@@ -195,10 +195,21 @@ nodes = {
 primitive_types = set(('Bool','Int8','Int16','Int32','Int64','UInt8','UInt16','UInt32','UInt64','Float32','Float64'))
 built_in_types = set(('Bool','Int8','Int16','Int32','Int64','UInt8','UInt16','UInt32','UInt64','Float32','Float64', 'Text', 'Data', 'Void', 'Object'))
 list_types = {}
+enum_types = []
+union_types = []
 def capitalize(s):
   if len(s) < 2:
     return s
   return s[0].upper() + s[1:]
+def upper_and_under(s):
+  if len(s) < 2:
+    return s
+  ret = [s[0]]
+  for letter in s[1:]:
+    if letter.isupper():
+      ret.append('_')
+    ret.append(letter)
+  return ''.join(ret).upper()
 def fixNodes(n):
   def fixNode(node_dict, full_name):
     nested = {}
@@ -208,6 +219,10 @@ def fixNodes(n):
       member_dict['full_type'] = member_dict.get('type')
       if 'body' in member_dict:
         nested[member] = fixNode(member_dict, full_name+'.'+capitalize(member))
+        if member_dict['body'] == 'enum':
+          enum_types.append(nested[member])
+        elif member_dict['body'] == 'union':
+          union_types.append(nested[member])
         if 'is_not_field' in member_dict:
           del node_dict['members'][member]
         else:
@@ -225,15 +240,20 @@ def fixNodes(n):
     node_dict['nestedNodes'] = nested
     return node_dict
   for node, node_dict in n.items():
-    fixNode(node_dict, capitalize(node))
+    res=fixNode(node_dict, capitalize(node))
+    if node_dict['body'] == 'enum':
+      enum_types.append(res)
+    elif node_dict['body'] == 'union':
+      union_types.append(res)
   return n
 
 env.filters['capitalize'] = capitalize
+env.filters['upper_and_under'] = upper_and_under
 nodes = fixNodes(nodes)
 tmpl = env.get_template('capnp.tmpl.pxd')
-open(os.path.join(curr_dir, 'capnp_schema.pxd'), 'w').write(tmpl.render(nodes=nodes, namespace='::capnp::schema', built_in_types=built_in_types))
+open(os.path.join(curr_dir, 'capnp_schema.pxd'), 'w').write(tmpl.render(nodes=nodes, namespace='::capnp::schema', built_in_types=built_in_types, enum_types=enum_types, union_types=union_types))
 tmpl = env.get_template('capnp.tmpl.pyx')
-open(os.path.join(curr_dir, 'schema.capnp.cpp.pyx'), 'w').write(tmpl.render(nodes=nodes, namespace='::capnp::schema', primitive_types=primitive_types, built_in_types=built_in_types, list_types=list_types))
+open(os.path.join(curr_dir, 'schema.capnp.cpp.pyx'), 'w').write(tmpl.render(nodes=nodes, namespace='::capnp::schema', primitive_types=primitive_types, built_in_types=built_in_types, list_types=list_types, enum_types=enum_types, union_types=union_types))
 
 setup(
     name = "capnp",

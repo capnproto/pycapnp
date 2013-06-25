@@ -4,7 +4,9 @@
 # distutils: libraries = capnp
 
 cimport capnp_schema as capnp
-from capnp_schema cimport CodeGeneratorRequest as C_CodeGeneratorRequest,ElementSize as C_ElementSize,InterfaceNode as C_InterfaceNode,Value as C_Value,ConstNode as C_ConstNode,Type as C_Type,FileNode as C_FileNode,Node as C_Node,AnnotationNode as C_AnnotationNode,EnumNode as C_EnumNode,StructNode as C_StructNode,Annotation as C_Annotation
+from capnp_schema cimport CodeGeneratorRequest as C_CodeGeneratorRequest,InterfaceNode as C_InterfaceNode,Value as C_Value,ConstNode as C_ConstNode,Type as C_Type,FileNode as C_FileNode,Node as C_Node,AnnotationNode as C_AnnotationNode,EnumNode as C_EnumNode,StructNode as C_StructNode,Annotation as C_Annotation
+from capnp_schema cimport _ElementSize_inlineComposite,_ElementSize_eightBytes,_ElementSize_pointer,_ElementSize_bit,_ElementSize_twoBytes,_ElementSize_fourBytes,_ElementSize_byte,_ElementSize_empty
+from capnp_schema cimport _Value_Body_uint32Value,_Value_Body_float64Value,_Value_Body_voidValue,_Value_Body_dataValue,_Value_Body_listValue,_Value_Body_int32Value,_Value_Body_enumValue,_Value_Body_int8Value,_Value_Body_boolValue,_Value_Body_int16Value,_Value_Body_float32Value,_Value_Body_interfaceValue,_Value_Body_uint16Value,_Value_Body_uint8Value,_Value_Body_int64Value,_Value_Body_structValue,_Value_Body_textValue,_Value_Body_uint64Value,_Value_Body_objectValue,_Type_Body_boolType,_Type_Body_structType,_Type_Body_int32Type,_Type_Body_voidType,_Type_Body_uint16Type,_Type_Body_dataType,_Type_Body_objectType,_Type_Body_int64Type,_Type_Body_float64Type,_Type_Body_interfaceType,_Type_Body_uint32Type,_Type_Body_uint8Type,_Type_Body_listType,_Type_Body_int8Type,_Type_Body_float32Type,_Type_Body_enumType,_Type_Body_uint64Type,_Type_Body_textType,_Type_Body_int16Type,_Node_Body_annotationNode,_Node_Body_interfaceNode,_Node_Body_enumNode,_Node_Body_structNode,_Node_Body_constNode,_Node_Body_fileNode,_StructNode_Member_Body_fieldMember,_StructNode_Member_Body_unionMember
 
 # from capnp_schema cimport *
 # Not doing this since we want to namespace away the class names
@@ -48,7 +50,7 @@ cdef class _List_InterfaceNode_InterfaceNode_Method_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _InterfaceNode_MethodReader().init(<C_InterfaceNode.InterfaceNode.Method.Reader>self.thisptr[index])
@@ -62,7 +64,7 @@ cdef class _List_InterfaceNode_InterfaceNode_Method_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _InterfaceNode_MethodBuilder().init(<C_InterfaceNode.InterfaceNode.Method.Builder>self.thisptr[index])
@@ -75,7 +77,7 @@ cdef class _List_EnumNode_EnumNode_Enumerant_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _EnumNode_EnumerantReader().init(<C_EnumNode.EnumNode.Enumerant.Reader>self.thisptr[index])
@@ -89,7 +91,7 @@ cdef class _List_EnumNode_EnumNode_Enumerant_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _EnumNode_EnumerantBuilder().init(<C_EnumNode.EnumNode.Enumerant.Builder>self.thisptr[index])
@@ -102,7 +104,7 @@ cdef class _List_StructNode_Union_StructNode_Member_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _StructNode_MemberReader().init(<C_StructNode.Union.StructNode.Member.Reader>self.thisptr[index])
@@ -116,7 +118,7 @@ cdef class _List_StructNode_Union_StructNode_Member_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _StructNode_MemberBuilder().init(<C_StructNode.Union.StructNode.Member.Builder>self.thisptr[index])
@@ -129,7 +131,7 @@ cdef class _List_InterfaceNode_Method_InterfaceNode_Method_Param_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _InterfaceNode_Method_ParamReader().init(<C_InterfaceNode.Method.InterfaceNode.Method.Param.Reader>self.thisptr[index])
@@ -143,7 +145,7 @@ cdef class _List_InterfaceNode_Method_InterfaceNode_Method_Param_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _InterfaceNode_Method_ParamBuilder().init(<C_InterfaceNode.Method.InterfaceNode.Method.Param.Builder>self.thisptr[index])
@@ -156,7 +158,7 @@ cdef class _List_InterfaceNode_Method_Param_Annotation_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationReader().init(<C_InterfaceNode.Method.Param.Annotation.Reader>self.thisptr[index])
@@ -170,7 +172,7 @@ cdef class _List_InterfaceNode_Method_Param_Annotation_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationBuilder().init(<C_InterfaceNode.Method.Param.Annotation.Builder>self.thisptr[index])
@@ -183,7 +185,7 @@ cdef class _List_UInt64_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return self.thisptr[index]
@@ -197,7 +199,7 @@ cdef class _List_UInt64_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return self.thisptr[index]
@@ -210,7 +212,7 @@ cdef class _List_Node_Node_NestedNode_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _Node_NestedNodeReader().init(<C_Node.Node.NestedNode.Reader>self.thisptr[index])
@@ -224,7 +226,7 @@ cdef class _List_Node_Node_NestedNode_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _Node_NestedNodeBuilder().init(<C_Node.Node.NestedNode.Builder>self.thisptr[index])
@@ -237,7 +239,7 @@ cdef class _List_StructNode_Member_Annotation_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationReader().init(<C_StructNode.Member.Annotation.Reader>self.thisptr[index])
@@ -251,7 +253,7 @@ cdef class _List_StructNode_Member_Annotation_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationBuilder().init(<C_StructNode.Member.Annotation.Builder>self.thisptr[index])
@@ -264,7 +266,7 @@ cdef class _List_InterfaceNode_Method_Annotation_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationReader().init(<C_InterfaceNode.Method.Annotation.Reader>self.thisptr[index])
@@ -278,7 +280,7 @@ cdef class _List_InterfaceNode_Method_Annotation_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationBuilder().init(<C_InterfaceNode.Method.Annotation.Builder>self.thisptr[index])
@@ -291,7 +293,7 @@ cdef class _List_StructNode_StructNode_Member_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _StructNode_MemberReader().init(<C_StructNode.StructNode.Member.Reader>self.thisptr[index])
@@ -305,7 +307,7 @@ cdef class _List_StructNode_StructNode_Member_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _StructNode_MemberBuilder().init(<C_StructNode.StructNode.Member.Builder>self.thisptr[index])
@@ -318,7 +320,7 @@ cdef class _List_Node_Annotation_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationReader().init(<C_Node.Annotation.Reader>self.thisptr[index])
@@ -332,7 +334,7 @@ cdef class _List_Node_Annotation_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationBuilder().init(<C_Node.Annotation.Builder>self.thisptr[index])
@@ -345,7 +347,7 @@ cdef class _List_CodeGeneratorRequest_Node_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _NodeReader().init(<C_CodeGeneratorRequest.Node.Reader>self.thisptr[index])
@@ -359,7 +361,7 @@ cdef class _List_CodeGeneratorRequest_Node_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _NodeBuilder().init(<C_CodeGeneratorRequest.Node.Builder>self.thisptr[index])
@@ -372,7 +374,7 @@ cdef class _List_FileNode_FileNode_Import_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _FileNode_ImportReader().init(<C_FileNode.FileNode.Import.Reader>self.thisptr[index])
@@ -386,7 +388,7 @@ cdef class _List_FileNode_FileNode_Import_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _FileNode_ImportBuilder().init(<C_FileNode.FileNode.Import.Builder>self.thisptr[index])
@@ -399,7 +401,7 @@ cdef class _List_EnumNode_Enumerant_Annotation_Reader:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationReader().init(<C_EnumNode.Enumerant.Annotation.Reader>self.thisptr[index])
@@ -413,7 +415,7 @@ cdef class _List_EnumNode_Enumerant_Annotation_Builder:
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return _AnnotationBuilder().init(<C_EnumNode.Enumerant.Annotation.Builder>self.thisptr[index])
@@ -425,6 +427,7 @@ cdef class _CodeGeneratorRequestReader:
     cdef init(self, C_CodeGeneratorRequest.Reader other):
         self.thisptr = other
         return self
+        
     property nodes:
         def __get__(self):
             return _List_CodeGeneratorRequest_Node_Reader().init(self.thisptr.getNodes())
@@ -437,6 +440,7 @@ cdef class _CodeGeneratorRequestBuilder:
     cdef init(self, C_CodeGeneratorRequest.Builder other):
         self.thisptr = other
         return self
+        
     property nodes:
         def __get__(self):
             return _List_CodeGeneratorRequest_Node_Builder().init(self.thisptr.getNodes())
@@ -448,6 +452,7 @@ cdef class _CodeGeneratorRequestBuilder:
     cpdef initRequestedFiles(self, uint num):
         return _List_UInt64_Builder().init(self.thisptr.initRequestedFiles(num))
 
+_ElementSize = make_enum('_ElementSize',inlineComposite = <int>_ElementSize_inlineComposite,eightBytes = <int>_ElementSize_eightBytes,pointer = <int>_ElementSize_pointer,bit = <int>_ElementSize_bit,twoBytes = <int>_ElementSize_twoBytes,fourBytes = <int>_ElementSize_fourBytes,byte = <int>_ElementSize_byte,empty = <int>_ElementSize_empty,)
 
 
 
@@ -456,6 +461,7 @@ cdef class _InterfaceNode_Method_ParamReader:
     cdef init(self, C_InterfaceNode.Method.Param.Reader other):
         self.thisptr = other
         return self
+        
     property defaultValue:
         def __get__(self):
             return _ValueReader().init(<C_Value.Reader>self.thisptr.getDefaultValue())
@@ -474,6 +480,7 @@ cdef class _InterfaceNode_Method_ParamBuilder:
     cdef init(self, C_InterfaceNode.Method.Param.Builder other):
         self.thisptr = other
         return self
+        
     property defaultValue:
         def __get__(self):
             return _ValueBuilder().init(<C_Value.Builder>self.thisptr.getDefaultValue())
@@ -499,6 +506,7 @@ cdef class _InterfaceNode_MethodReader:
     cdef init(self, C_InterfaceNode.Method.Reader other):
         self.thisptr = other
         return self
+        
     property codeOrder:
         def __get__(self):
             return self.thisptr.getCodeOrder()
@@ -523,6 +531,7 @@ cdef class _InterfaceNode_MethodBuilder:
     cdef init(self, C_InterfaceNode.Method.Builder other):
         self.thisptr = other
         return self
+        
     property codeOrder:
         def __get__(self):
             return self.thisptr.getCodeOrder()
@@ -558,6 +567,7 @@ cdef class _InterfaceNodeReader:
     cdef init(self, C_InterfaceNode.Reader other):
         self.thisptr = other
         return self
+        
     property methods:
         def __get__(self):
             return _List_InterfaceNode_InterfaceNode_Method_Reader().init(self.thisptr.getMethods())
@@ -567,6 +577,7 @@ cdef class _InterfaceNodeBuilder:
     cdef init(self, C_InterfaceNode.Builder other):
         self.thisptr = other
         return self
+        
     property methods:
         def __get__(self):
             return _List_InterfaceNode_InterfaceNode_Method_Builder().init(self.thisptr.getMethods())
@@ -574,11 +585,15 @@ cdef class _InterfaceNodeBuilder:
         return _List_InterfaceNode_InterfaceNode_Method_Builder().init(self.thisptr.initMethods(num))
 
 
+_Value_Body_Which = make_enum('_Value_Body_Which',uint32Value = <int>_Value_Body_uint32Value,float64Value = <int>_Value_Body_float64Value,voidValue = <int>_Value_Body_voidValue,dataValue = <int>_Value_Body_dataValue,listValue = <int>_Value_Body_listValue,int32Value = <int>_Value_Body_int32Value,enumValue = <int>_Value_Body_enumValue,int8Value = <int>_Value_Body_int8Value,boolValue = <int>_Value_Body_boolValue,int16Value = <int>_Value_Body_int16Value,float32Value = <int>_Value_Body_float32Value,interfaceValue = <int>_Value_Body_interfaceValue,uint16Value = <int>_Value_Body_uint16Value,uint8Value = <int>_Value_Body_uint8Value,int64Value = <int>_Value_Body_int64Value,structValue = <int>_Value_Body_structValue,textValue = <int>_Value_Body_textValue,uint64Value = <int>_Value_Body_uint64Value,objectValue = <int>_Value_Body_objectValue,)
 cdef class _Value_BodyReader:
     cdef C_Value.Body.Reader thisptr
     cdef init(self, C_Value.Body.Reader other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property uint32Value:
         def __get__(self):
             return self.thisptr.getUint32Value()
@@ -642,6 +657,9 @@ cdef class _Value_BodyBuilder:
     cdef init(self, C_Value.Body.Builder other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property uint32Value:
         def __get__(self):
             return self.thisptr.getUint32Value()
@@ -742,6 +760,7 @@ cdef class _ValueReader:
     cdef init(self, C_Value.Reader other):
         self.thisptr = other
         return self
+        
     property body:
         def __get__(self):
             return _Value_BodyReader().init(<C_Value.Body.Reader>self.thisptr.getBody())
@@ -751,6 +770,7 @@ cdef class _ValueBuilder:
     cdef init(self, C_Value.Builder other):
         self.thisptr = other
         return self
+        
     property body:
         def __get__(self):
             return _Value_BodyBuilder().init(<C_Value.Body.Builder>self.thisptr.getBody())
@@ -762,6 +782,7 @@ cdef class _ConstNodeReader:
     cdef init(self, C_ConstNode.Reader other):
         self.thisptr = other
         return self
+        
     property type:
         def __get__(self):
             return _TypeReader().init(<C_Type.Reader>self.thisptr.getType())
@@ -774,6 +795,7 @@ cdef class _ConstNodeBuilder:
     cdef init(self, C_ConstNode.Builder other):
         self.thisptr = other
         return self
+        
     property type:
         def __get__(self):
             return _TypeBuilder().init(<C_Type.Builder>self.thisptr.getType())
@@ -786,11 +808,15 @@ cdef class _ConstNodeBuilder:
             pass
 
 
+_Type_Body_Which = make_enum('_Type_Body_Which',boolType = <int>_Type_Body_boolType,structType = <int>_Type_Body_structType,int32Type = <int>_Type_Body_int32Type,voidType = <int>_Type_Body_voidType,uint16Type = <int>_Type_Body_uint16Type,dataType = <int>_Type_Body_dataType,objectType = <int>_Type_Body_objectType,int64Type = <int>_Type_Body_int64Type,float64Type = <int>_Type_Body_float64Type,interfaceType = <int>_Type_Body_interfaceType,uint32Type = <int>_Type_Body_uint32Type,uint8Type = <int>_Type_Body_uint8Type,listType = <int>_Type_Body_listType,int8Type = <int>_Type_Body_int8Type,float32Type = <int>_Type_Body_float32Type,enumType = <int>_Type_Body_enumType,uint64Type = <int>_Type_Body_uint64Type,textType = <int>_Type_Body_textType,int16Type = <int>_Type_Body_int16Type,)
 cdef class _Type_BodyReader:
     cdef C_Type.Body.Reader thisptr
     cdef init(self, C_Type.Body.Reader other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property boolType:
         def __get__(self):
             return None
@@ -854,6 +880,9 @@ cdef class _Type_BodyBuilder:
     cdef init(self, C_Type.Body.Builder other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property boolType:
         def __get__(self):
             return None
@@ -954,6 +983,7 @@ cdef class _TypeReader:
     cdef init(self, C_Type.Reader other):
         self.thisptr = other
         return self
+        
     property body:
         def __get__(self):
             return _Type_BodyReader().init(<C_Type.Body.Reader>self.thisptr.getBody())
@@ -963,6 +993,7 @@ cdef class _TypeBuilder:
     cdef init(self, C_Type.Builder other):
         self.thisptr = other
         return self
+        
     property body:
         def __get__(self):
             return _Type_BodyBuilder().init(<C_Type.Body.Builder>self.thisptr.getBody())
@@ -975,6 +1006,7 @@ cdef class _FileNode_ImportReader:
     cdef init(self, C_FileNode.Import.Reader other):
         self.thisptr = other
         return self
+        
     property id:
         def __get__(self):
             return self.thisptr.getId()
@@ -987,6 +1019,7 @@ cdef class _FileNode_ImportBuilder:
     cdef init(self, C_FileNode.Import.Builder other):
         self.thisptr = other
         return self
+        
     property id:
         def __get__(self):
             return self.thisptr.getId()
@@ -1002,6 +1035,7 @@ cdef class _FileNodeReader:
     cdef init(self, C_FileNode.Reader other):
         self.thisptr = other
         return self
+        
     property imports:
         def __get__(self):
             return _List_FileNode_FileNode_Import_Reader().init(self.thisptr.getImports())
@@ -1011,6 +1045,7 @@ cdef class _FileNodeBuilder:
     cdef init(self, C_FileNode.Builder other):
         self.thisptr = other
         return self
+        
     property imports:
         def __get__(self):
             return _List_FileNode_FileNode_Import_Builder().init(self.thisptr.getImports())
@@ -1018,11 +1053,15 @@ cdef class _FileNodeBuilder:
         return _List_FileNode_FileNode_Import_Builder().init(self.thisptr.initImports(num))
 
 
+_Node_Body_Which = make_enum('_Node_Body_Which',annotationNode = <int>_Node_Body_annotationNode,interfaceNode = <int>_Node_Body_interfaceNode,enumNode = <int>_Node_Body_enumNode,structNode = <int>_Node_Body_structNode,constNode = <int>_Node_Body_constNode,fileNode = <int>_Node_Body_fileNode,)
 cdef class _Node_BodyReader:
     cdef C_Node.Body.Reader thisptr
     cdef init(self, C_Node.Body.Reader other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property annotationNode:
         def __get__(self):
             return _AnnotationNodeReader().init(<C_AnnotationNode.Reader>self.thisptr.getAnnotationNode())
@@ -1047,6 +1086,9 @@ cdef class _Node_BodyBuilder:
     cdef init(self, C_Node.Body.Builder other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property annotationNode:
         def __get__(self):
             return _AnnotationNodeBuilder().init(<C_AnnotationNode.Builder>self.thisptr.getAnnotationNode())
@@ -1083,6 +1125,7 @@ cdef class _Node_NestedNodeReader:
     cdef init(self, C_Node.NestedNode.Reader other):
         self.thisptr = other
         return self
+        
     property name:
         def __get__(self):
             return None
@@ -1095,6 +1138,7 @@ cdef class _Node_NestedNodeBuilder:
     cdef init(self, C_Node.NestedNode.Builder other):
         self.thisptr = other
         return self
+        
     property name:
         def __get__(self):
             return None
@@ -1110,6 +1154,7 @@ cdef class _NodeReader:
     cdef init(self, C_Node.Reader other):
         self.thisptr = other
         return self
+        
     property body:
         def __get__(self):
             return _Node_BodyReader().init(<C_Node.Body.Reader>self.thisptr.getBody())
@@ -1134,6 +1179,7 @@ cdef class _NodeBuilder:
     cdef init(self, C_Node.Builder other):
         self.thisptr = other
         return self
+        
     property body:
         def __get__(self):
             return _Node_BodyBuilder().init(<C_Node.Body.Builder>self.thisptr.getBody())
@@ -1170,6 +1216,7 @@ cdef class _AnnotationNodeReader:
     cdef init(self, C_AnnotationNode.Reader other):
         self.thisptr = other
         return self
+        
     property targetsField:
         def __get__(self):
             return self.thisptr.getTargetsField()
@@ -1212,6 +1259,7 @@ cdef class _AnnotationNodeBuilder:
     cdef init(self, C_AnnotationNode.Builder other):
         self.thisptr = other
         return self
+        
     property targetsField:
         def __get__(self):
             return self.thisptr.getTargetsField()
@@ -1279,6 +1327,7 @@ cdef class _EnumNode_EnumerantReader:
     cdef init(self, C_EnumNode.Enumerant.Reader other):
         self.thisptr = other
         return self
+        
     property codeOrder:
         def __get__(self):
             return self.thisptr.getCodeOrder()
@@ -1294,6 +1343,7 @@ cdef class _EnumNode_EnumerantBuilder:
     cdef init(self, C_EnumNode.Enumerant.Builder other):
         self.thisptr = other
         return self
+        
     property codeOrder:
         def __get__(self):
             return self.thisptr.getCodeOrder()
@@ -1314,6 +1364,7 @@ cdef class _EnumNodeReader:
     cdef init(self, C_EnumNode.Reader other):
         self.thisptr = other
         return self
+        
     property enumerants:
         def __get__(self):
             return _List_EnumNode_EnumNode_Enumerant_Reader().init(self.thisptr.getEnumerants())
@@ -1323,6 +1374,7 @@ cdef class _EnumNodeBuilder:
     cdef init(self, C_EnumNode.Builder other):
         self.thisptr = other
         return self
+        
     property enumerants:
         def __get__(self):
             return _List_EnumNode_EnumNode_Enumerant_Builder().init(self.thisptr.getEnumerants())
@@ -1335,6 +1387,7 @@ cdef class _StructNode_UnionReader:
     cdef init(self, C_StructNode.Union.Reader other):
         self.thisptr = other
         return self
+        
     property discriminantOffset:
         def __get__(self):
             return self.thisptr.getDiscriminantOffset()
@@ -1347,6 +1400,7 @@ cdef class _StructNode_UnionBuilder:
     cdef init(self, C_StructNode.Union.Builder other):
         self.thisptr = other
         return self
+        
     property discriminantOffset:
         def __get__(self):
             return self.thisptr.getDiscriminantOffset()
@@ -1359,11 +1413,15 @@ cdef class _StructNode_UnionBuilder:
         return _List_StructNode_Union_StructNode_Member_Builder().init(self.thisptr.initMembers(num))
 
 
+_StructNode_Member_Body_Which = make_enum('_StructNode_Member_Body_Which',fieldMember = <int>_StructNode_Member_Body_fieldMember,unionMember = <int>_StructNode_Member_Body_unionMember,)
 cdef class _StructNode_Member_BodyReader:
     cdef C_StructNode.Member.Body.Reader thisptr
     cdef init(self, C_StructNode.Member.Body.Reader other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property fieldMember:
         def __get__(self):
             return _StructNode_FieldReader().init(<C_StructNode.Field.Reader>self.thisptr.getFieldMember())
@@ -1376,6 +1434,9 @@ cdef class _StructNode_Member_BodyBuilder:
     cdef init(self, C_StructNode.Member.Body.Builder other):
         self.thisptr = other
         return self
+        
+    cpdef int which(self):
+        return self.thisptr.which()
     property fieldMember:
         def __get__(self):
             return _StructNode_FieldBuilder().init(<C_StructNode.Field.Builder>self.thisptr.getFieldMember())
@@ -1391,6 +1452,7 @@ cdef class _StructNode_MemberReader:
     cdef init(self, C_StructNode.Member.Reader other):
         self.thisptr = other
         return self
+        
     property ordinal:
         def __get__(self):
             return self.thisptr.getOrdinal()
@@ -1412,6 +1474,7 @@ cdef class _StructNode_MemberBuilder:
     cdef init(self, C_StructNode.Member.Builder other):
         self.thisptr = other
         return self
+        
     property ordinal:
         def __get__(self):
             return self.thisptr.getOrdinal()
@@ -1443,6 +1506,7 @@ cdef class _StructNode_FieldReader:
     cdef init(self, C_StructNode.Field.Reader other):
         self.thisptr = other
         return self
+        
     property defaultValue:
         def __get__(self):
             return _ValueReader().init(<C_Value.Reader>self.thisptr.getDefaultValue())
@@ -1458,6 +1522,7 @@ cdef class _StructNode_FieldBuilder:
     cdef init(self, C_StructNode.Field.Builder other):
         self.thisptr = other
         return self
+        
     property defaultValue:
         def __get__(self):
             return _ValueBuilder().init(<C_Value.Builder>self.thisptr.getDefaultValue())
@@ -1478,6 +1543,7 @@ cdef class _StructNodeReader:
     cdef init(self, C_StructNode.Reader other):
         self.thisptr = other
         return self
+        
     property dataSectionWordSize:
         def __get__(self):
             return self.thisptr.getDataSectionWordSize()
@@ -1493,6 +1559,7 @@ cdef class _StructNodeBuilder:
     cdef init(self, C_StructNode.Builder other):
         self.thisptr = other
         return self
+        
     property dataSectionWordSize:
         def __get__(self):
             return self.thisptr.getDataSectionWordSize()
@@ -1514,6 +1581,7 @@ cdef class _AnnotationReader:
     cdef init(self, C_Annotation.Reader other):
         self.thisptr = other
         return self
+        
     property id:
         def __get__(self):
             return self.thisptr.getId()
@@ -1526,6 +1594,7 @@ cdef class _AnnotationBuilder:
     cdef init(self, C_Annotation.Builder other):
         self.thisptr = other
         return self
+        
     property id:
         def __get__(self):
             return self.thisptr.getId()

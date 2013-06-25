@@ -4,7 +4,9 @@
 # distutils: libraries = capnp
 
 cimport capnp_schema as capnp
-from capnp_schema cimport {% for node_name, node_dict in nodes.items() %}{{node_name|capitalize}} as C_{{node_name|capitalize}}{{',' if not loop.last}}{% endfor %}
+from capnp_schema cimport {% for node_name, node_dict in nodes.items() %}{% if node_dict['body'] != 'enum' %}{{node_name|capitalize}} as C_{{node_name|capitalize}}{{',' if not loop.last}}{%- endif %}{% endfor %}
+from capnp_schema cimport {% for node_dict in enum_types %}{%- for member_name, member_dict in node_dict['members'].items() %}{{node_dict['full_name_cython']}}_{{member_name}}{{',' if not loop.last}}{%- endfor %}{{',' if not loop.last}}{%- endfor %}
+from capnp_schema cimport {% for node_dict in union_types %}{%- for member_name, member_dict in node_dict['members'].items() %}{{node_dict['full_name_cython']}}_{{member_name}}{{',' if not loop.last}}{%- endfor %}{{',' if not loop.last}}{% endfor %}
 
 # from capnp_schema cimport *
 # Not doing this since we want to namespace away the class names
@@ -50,7 +52,7 @@ cdef class _{{ list_name |replace('[', '_')|replace(']','_')|replace('.','_')}}R
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         {%- if list_dict['elem_type'] in built_in_types %}
@@ -68,7 +70,7 @@ cdef class _{{ list_name |replace('[', '_')|replace(']','_')|replace('.','_')}}B
         return self
     def __getitem__(self, index):
         size = self.thisptr.size()
-        if index > size:
+        if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         {%- if list_dict['elem_type'] in built_in_types %}
@@ -83,11 +85,18 @@ cdef class _{{ list_name |replace('[', '_')|replace(']','_')|replace('.','_')}}B
 {{ loop(node_dict['nestedNodes'].items()) }}
 
     {%- if node_dict['body'] != 'enum' %}
+      {%- if node_dict['body'] == 'union' %}
+{{ node_dict['full_name_cython'] }}_Which = make_enum('{{ node_dict['full_name_cython'] }}_Which', {%- for member_name, member_dict in node_dict['members'].items() %}{{member_name}} = <int>{{node_dict['full_name_cython']}}_{{member_name}},{%- endfor %})
+      {%- endif %}
 cdef class {{ node_dict['full_name_cython'] }}Reader:
     cdef C_{{ node_dict['full_name'] }}.Reader thisptr
     cdef init(self, C_{{ node_dict['full_name'] }}.Reader other):
         self.thisptr = other
         return self
+        {% if node_dict['body'] == 'union' %}
+    cpdef int which(self):
+        return self.thisptr.which()
+        {%- endif %}
         {%- for member_name, member_dict in node_dict['members'].items() %}
     property {{member_name}}:
         def __get__(self):
@@ -107,6 +116,10 @@ cdef class {{ node_dict['full_name_cython'] }}Builder:
     cdef init(self, C_{{ node_dict['full_name'] }}.Builder other):
         self.thisptr = other
         return self
+        {% if node_dict['body'] == 'union' %}
+    cpdef int which(self):
+        return self.thisptr.which()
+        {%- endif %}
         {%- for member_name, member_dict in node_dict['members'].items() %}
     property {{member_name}}:
         def __get__(self):
@@ -130,6 +143,8 @@ cdef class {{ node_dict['full_name_cython'] }}Builder:
             pass
             {%- endif %}
         {%- endfor %}
+    {%- else %}
+{{ node_dict['full_name_cython'] }} = make_enum('{{ node_dict['full_name_cython'] }}', {%- for member_name, member_dict in node_dict['members'].items() %}{{member_name}} = <int>{{node_dict['full_name_cython']}}_{{member_name}},{%- endfor %})
     {%- endif %}
 {%- endfor %}
 

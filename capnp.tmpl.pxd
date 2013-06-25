@@ -31,11 +31,25 @@ cdef extern from "capnp/message.h" namespace "::capnp":
             uint size()
 
 cdef extern from "schema.capnp.h" namespace "::capnp::schema":
+{%- for node_dict in enum_types %}
+    enum {{node_name|capitalize}}:
+    {%- for member_name, member_dict in node_dict['members'].items() %}
+        {{node_dict['full_name_cython']}}_{{member_name}} "::capnp::schema::{{node_dict['full_name']}}::{{member_name|upper_and_under}}"
+    {%- endfor %}
+{%- endfor %}
+{%- for node_dict in union_types %}
+    enum {{node_dict['full_name_cython']}}_Which:
+    {%- for member_name, member_dict in node_dict['members'].items() %}
+        {{node_dict['full_name_cython']}}_{{member_name}} "::capnp::schema::{{node_dict['full_name']|replace('.', '::')}}::Which::{{member_name|upper_and_under}}"
+    {%- endfor %}
+{%- endfor %}
 {%- for node_name, node_dict in nodes.items() %}
-    cdef cppclass {{node_name|capitalize}}
+    {% if node_dict['body'] != 'enum' %}cdef cppclass {{node_name|capitalize}}{%- endif %}
 {%- endfor %}
 
 {%- for node_name, node_dict in nodes.items() recursive %}
+
+  {%- if node_dict['body'] != 'enum' %}
     {{ 'cdef ' if loop.depth == 1 }}cppclass {{node_name|capitalize}}:
 
     {%- for node_name, node_dict in node_dict['nestedNodes'].items() %}
@@ -44,10 +58,12 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
 
     {{ loop(node_dict['nestedNodes'].items()) | indent }}
         cppclass Reader:
+            {{'int which()' if node_dict['body'] == 'union'}}
     {%- for member_name, member_dict in node_dict['members'].items() %}
             {{member_dict['type']}}{{'.Reader' if member_dict.get('type', '').startswith('List') }} get{{member_name|capitalize}}()
     {%- endfor %}
         cppclass Builder:
+            {{'int which()' if node_dict['body'] == 'union'}}
     {%- for member_name, member_dict in node_dict['members'].items() %}
             {{member_dict['type']}}{{'.Builder' if member_dict.get('type', '').startswith('List') }} get{{member_name|capitalize}}()
         {%- if member_dict.get('type', '').startswith('List') %}
@@ -56,6 +72,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
             {{' ' if not member_dict['type']}}void set{{member_name|capitalize}}({{member_dict['type']}})
         {%- endif %}
     {%- endfor %}
+  {%- endif %}
 {%- endfor %}
 
 cdef extern from "capnp/message.h" namespace "::capnp":
@@ -65,13 +82,17 @@ cdef extern from "capnp/message.h" namespace "::capnp":
 
     cdef cppclass MessageBuilder:
 {%- for name, values in nodes.items() %}
+  {%- if values['body'] != 'enum' %}
         {{name}}.Builder getRoot{{name}}'getRoot<{{namespace}}::{{name}}>'()
         {{name}}.Builder initRoot{{name}}'initRoot<{{namespace}}::{{name}}>'()
+  {%- endif %}
 {%- endfor %}
 
     cdef cppclass MessageReader:
 {%- for name, values in nodes.items() %}
+  {%- if values['body'] != 'enum' %}
         {{name}}.Reader getRoot{{name}}'getRoot<{{namespace}}::{{name}}>'()
+  {%- endif %}
 {%- endfor %}
     
     cdef cppclass MallocMessageBuilder(MessageBuilder):
