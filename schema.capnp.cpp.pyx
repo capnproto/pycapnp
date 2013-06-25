@@ -1698,3 +1698,101 @@ def writeMessageToFd(int fd, MessageBuilder m):
     capnp.writeMessageToFd(fd, deref(m.thisptr))
 def writePackedMessageToFd(int fd, MessageBuilder m):
     capnp.writePackedMessageToFd(fd, deref(m.thisptr))
+
+# Make the namespace human usable
+from types import ModuleType
+temp = CodeGeneratorRequest = ModuleType('CodeGeneratorRequest')
+temp.Reader = _CodeGeneratorRequestReader
+temp.Builder = _CodeGeneratorRequestBuilder
+
+temp = ElementSize = ModuleType('ElementSize')
+ElementSize = _ElementSize
+
+temp = InterfaceNode = ModuleType('InterfaceNode')
+temp.Reader = _InterfaceNodeReader
+temp.Builder = _InterfaceNodeBuilder
+
+temp = InterfaceNode.Method = ModuleType('InterfaceNode.Method')
+temp.Reader = _InterfaceNode_MethodReader
+temp.Builder = _InterfaceNode_MethodBuilder
+
+temp = InterfaceNode.Method.Param = ModuleType('InterfaceNode.Method.Param')
+temp.Reader = _InterfaceNode_Method_ParamReader
+temp.Builder = _InterfaceNode_Method_ParamBuilder
+
+temp = Value = ModuleType('Value')
+temp.Reader = _ValueReader
+temp.Builder = _ValueBuilder
+
+temp = Value.Body = ModuleType('Value.Body')
+temp.Reader = _Value_BodyReader
+temp.Builder = _Value_BodyBuilder
+
+temp = ConstNode = ModuleType('ConstNode')
+temp.Reader = _ConstNodeReader
+temp.Builder = _ConstNodeBuilder
+
+temp = Type = ModuleType('Type')
+temp.Reader = _TypeReader
+temp.Builder = _TypeBuilder
+
+temp = Type.Body = ModuleType('Type.Body')
+temp.Reader = _Type_BodyReader
+temp.Builder = _Type_BodyBuilder
+
+temp = FileNode = ModuleType('FileNode')
+temp.Reader = _FileNodeReader
+temp.Builder = _FileNodeBuilder
+
+temp = FileNode.Import = ModuleType('FileNode.Import')
+temp.Reader = _FileNode_ImportReader
+temp.Builder = _FileNode_ImportBuilder
+
+temp = Node = ModuleType('Node')
+temp.Reader = _NodeReader
+temp.Builder = _NodeBuilder
+
+temp = Node.Body = ModuleType('Node.Body')
+temp.Reader = _Node_BodyReader
+temp.Builder = _Node_BodyBuilder
+
+temp = Node.NestedNode = ModuleType('Node.NestedNode')
+temp.Reader = _Node_NestedNodeReader
+temp.Builder = _Node_NestedNodeBuilder
+
+temp = AnnotationNode = ModuleType('AnnotationNode')
+temp.Reader = _AnnotationNodeReader
+temp.Builder = _AnnotationNodeBuilder
+
+temp = EnumNode = ModuleType('EnumNode')
+temp.Reader = _EnumNodeReader
+temp.Builder = _EnumNodeBuilder
+
+temp = EnumNode.Enumerant = ModuleType('EnumNode.Enumerant')
+temp.Reader = _EnumNode_EnumerantReader
+temp.Builder = _EnumNode_EnumerantBuilder
+
+temp = StructNode = ModuleType('StructNode')
+temp.Reader = _StructNodeReader
+temp.Builder = _StructNodeBuilder
+
+temp = StructNode.Union = ModuleType('StructNode.Union')
+temp.Reader = _StructNode_UnionReader
+temp.Builder = _StructNode_UnionBuilder
+
+temp = StructNode.Member = ModuleType('StructNode.Member')
+temp.Reader = _StructNode_MemberReader
+temp.Builder = _StructNode_MemberBuilder
+
+temp = StructNode.Member.Body = ModuleType('StructNode.Member.Body')
+temp.Reader = _StructNode_Member_BodyReader
+temp.Builder = _StructNode_Member_BodyBuilder
+
+temp = StructNode.Field = ModuleType('StructNode.Field')
+temp.Reader = _StructNode_FieldReader
+temp.Builder = _StructNode_FieldBuilder
+
+temp = Annotation = ModuleType('Annotation')
+temp.Reader = _AnnotationReader
+temp.Builder = _AnnotationBuilder
+

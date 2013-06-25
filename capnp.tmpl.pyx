@@ -188,3 +188,18 @@ def writeMessageToFd(int fd, MessageBuilder m):
     capnp.writeMessageToFd(fd, deref(m.thisptr))
 def writePackedMessageToFd(int fd, MessageBuilder m):
     capnp.writePackedMessageToFd(fd, deref(m.thisptr))
+
+# Make the namespace human usable
+from types import ModuleType
+
+{%- for node_name, node_dict in nodes.items() recursive %}
+temp = {{ node_dict['full_name'] }} = ModuleType('{{ node_dict['full_name'] }}')
+{%- if node_dict['body'] != 'enum' %}
+temp.Reader = {{ node_dict['full_name_cython'] }}Reader
+temp.Builder = {{ node_dict['full_name_cython'] }}Builder
+{%- else %}
+{{ node_dict['full_name'] }} = {{ node_dict['full_name_cython'] }}
+{%- endif %}
+{{ loop(node_dict['nestedNodes'].items()) }}
+{%- endfor %}
+
