@@ -1,0 +1,1 @@
+Ignore this directory. It is for bootstrapping the compiler from capnpc -v.
