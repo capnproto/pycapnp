@@ -14,13 +14,24 @@ ctypedef int16_t Int16
 ctypedef int32_t Int32
 ctypedef int64_t Int64
 
-ctypedef char * Data
 ctypedef char * Object
-ctypedef char * Text
 ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
         
+cdef extern from "capnp/blob.h" namespace "::capnp":
+    cdef cppclass Data:
+        cppclass Reader:
+            char * begin()
+            size_t size()
+        cppclass Builder:
+            char * begin()
+            size_t size()
+    cdef cppclass Text:
+        cppclass Reader:
+            char * cStr()
+        cppclass Builder:
+            char * cStr()
 cdef extern from "capnp/message.h" namespace "::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
@@ -130,7 +141,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                     
                     Value getDefaultValue()
                     Type getType()
-                    Text getName()
+                    Text.Reader getName()
                     List[InterfaceNode.Method.Param.Annotation].Reader getAnnotations()
                 cppclass Builder:
                     
@@ -138,14 +149,14 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                     void setDefaultValue(Value)
                     Type getType()
                     void setType(Type)
-                    Text getName()
+                    Text.Builder getName()
                     void setName(Text)
                     List[InterfaceNode.Method.Param.Annotation].Builder getAnnotations()
                     List[InterfaceNode.Method.Param.Annotation].Builder initAnnotations(int)
             cppclass Reader:
                 
                 UInt16 getCodeOrder()
-                Text getName()
+                Text.Reader getName()
                 List[InterfaceNode.Method.InterfaceNode.Method.Param].Reader getParams()
                 UInt16 getRequiredParamCount()
                 Type getReturnType()
@@ -154,7 +165,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                 
                 UInt16 getCodeOrder()
                 void setCodeOrder(UInt16)
-                Text getName()
+                Text.Builder getName()
                 void setName(Text)
                 List[InterfaceNode.Method.InterfaceNode.Method.Param].Builder getParams()
                 List[InterfaceNode.Method.InterfaceNode.Method.Param].Builder initParams(int)
@@ -183,7 +194,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                 UInt32 getUint32Value()
                 Float64 getFloat64Value()
                 Void getVoidValue()
-                Data getDataValue()
+                Data.Reader getDataValue()
                 Object getListValue()
                 Int32 getInt32Value()
                 UInt16 getEnumValue()
@@ -196,7 +207,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                 UInt8 getUint8Value()
                 Int64 getInt64Value()
                 Object getStructValue()
-                Text getTextValue()
+                Text.Reader getTextValue()
                 UInt64 getUint64Value()
                 Object getObjectValue()
             cppclass Builder:
@@ -207,7 +218,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                 void setFloat64Value(Float64)
                 Void getVoidValue()
                 void setVoidValue(Void)
-                Data getDataValue()
+                Data.Builder getDataValue()
                 void setDataValue(Data)
                 Object getListValue()
                 void setListValue(Object)
@@ -233,7 +244,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                 void setInt64Value(Int64)
                 Object getStructValue()
                 void setStructValue(Object)
-                Text getTextValue()
+                Text.Builder getTextValue()
                 void setTextValue(Text)
                 UInt64 getUint64Value()
                 void setUint64Value(UInt64)
@@ -344,12 +355,12 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
             cppclass Reader:
                 
                 UInt64 getId()
-                Text getName()
+                Text.Reader getName()
             cppclass Builder:
                 
                 UInt64 getId()
                 void setId(UInt64)
-                Text getName()
+                Text.Builder getName()
                 void setName(Text)
         cppclass Reader:
             
@@ -393,18 +404,18 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
         
             cppclass Reader:
                 
-                Text getName()
+                Text.Reader getName()
                 UInt64 getId()
             cppclass Builder:
                 
-                Text getName()
+                Text.Builder getName()
                 void setName(Text)
                 UInt64 getId()
                 void setId(UInt64)
         cppclass Reader:
             
             Node.Body getBody()
-            Text getDisplayName()
+            Text.Reader getDisplayName()
             List[Node.Annotation].Reader getAnnotations()
             UInt64 getScopeId()
             List[Node.Node.NestedNode].Reader getNestedNodes()
@@ -413,7 +424,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
             
             Node.Body getBody()
             void setBody(Node.Body)
-            Text getDisplayName()
+            Text.Builder getDisplayName()
             void setDisplayName(Text)
             List[Node.Annotation].Builder getAnnotations()
             List[Node.Annotation].Builder initAnnotations(int)
@@ -476,13 +487,13 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
             cppclass Reader:
                 
                 UInt16 getCodeOrder()
-                Text getName()
+                Text.Reader getName()
                 List[EnumNode.Enumerant.Annotation].Reader getAnnotations()
             cppclass Builder:
                 
                 UInt16 getCodeOrder()
                 void setCodeOrder(UInt16)
-                Text getName()
+                Text.Builder getName()
                 void setName(Text)
                 List[EnumNode.Enumerant.Annotation].Builder getAnnotations()
                 List[EnumNode.Enumerant.Annotation].Builder initAnnotations(int)
@@ -534,7 +545,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                 UInt16 getOrdinal()
                 StructNode.Member.Body getBody()
                 UInt16 getCodeOrder()
-                Text getName()
+                Text.Reader getName()
                 List[StructNode.Member.Annotation].Reader getAnnotations()
             cppclass Builder:
                 
@@ -544,7 +555,7 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
                 void setBody(StructNode.Member.Body)
                 UInt16 getCodeOrder()
                 void setCodeOrder(UInt16)
-                Text getName()
+                Text.Builder getName()
                 void setName(Text)
                 List[StructNode.Member.Annotation].Builder getAnnotations()
                 List[StructNode.Member.Annotation].Builder initAnnotations(int)

@@ -14,13 +14,24 @@ ctypedef int16_t Int16
 ctypedef int32_t Int32
 ctypedef int64_t Int64
 
-ctypedef char * Data
 ctypedef char * Object
-ctypedef char * Text
 ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
         
+cdef extern from "capnp/blob.h" namespace "::capnp":
+    cdef cppclass Data:
+        cppclass Reader:
+            char * begin()
+            size_t size()
+        cppclass Builder:
+            char * begin()
+            size_t size()
+    cdef cppclass Text:
+        cppclass Reader:
+            char * cStr()
+        cppclass Builder:
+            char * cStr()
 cdef extern from "capnp/message.h" namespace "::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
@@ -60,12 +71,12 @@ cdef extern from "schema.capnp.h" namespace "::capnp::schema":
         cppclass Reader:
             {{'int which()' if node_dict['body'] == 'union'}}
     {%- for member_name, member_dict in node_dict['members'].items() %}
-            {{member_dict['type']}}{{'.Reader' if member_dict.get('type', '').startswith('List') }} get{{member_name|capitalize}}()
+            {{member_dict['type']}}{{'.Reader' if member_dict.get('type', '').startswith('List') or member_dict.get('type', '') in ['Text', 'Data'] }} get{{member_name|capitalize}}()
     {%- endfor %}
         cppclass Builder:
             {{'int which()' if node_dict['body'] == 'union'}}
     {%- for member_name, member_dict in node_dict['members'].items() %}
-            {{member_dict['type']}}{{'.Builder' if member_dict.get('type', '').startswith('List') }} get{{member_name|capitalize}}()
+            {{member_dict['type']}}{{'.Builder' if member_dict.get('type', '').startswith('List') or member_dict.get('type', '') in ['Text', 'Data'] }} get{{member_name|capitalize}}()
         {%- if member_dict.get('type', '').startswith('List') %}
             {{member_dict['type']}}.Builder init{{member_name|capitalize}}(int)
         {%- else %}

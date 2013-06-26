@@ -8,7 +8,7 @@ from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest,Interface
 from schema_cpp cimport _ElementSize_inlineComposite,_ElementSize_eightBytes,_ElementSize_pointer,_ElementSize_bit,_ElementSize_twoBytes,_ElementSize_fourBytes,_ElementSize_byte,_ElementSize_empty
 from schema_cpp cimport _Value_Body_uint32Value,_Value_Body_float64Value,_Value_Body_voidValue,_Value_Body_dataValue,_Value_Body_listValue,_Value_Body_int32Value,_Value_Body_enumValue,_Value_Body_int8Value,_Value_Body_boolValue,_Value_Body_int16Value,_Value_Body_float32Value,_Value_Body_interfaceValue,_Value_Body_uint16Value,_Value_Body_uint8Value,_Value_Body_int64Value,_Value_Body_structValue,_Value_Body_textValue,_Value_Body_uint64Value,_Value_Body_objectValue,_Type_Body_boolType,_Type_Body_structType,_Type_Body_int32Type,_Type_Body_voidType,_Type_Body_uint16Type,_Type_Body_dataType,_Type_Body_objectType,_Type_Body_int64Type,_Type_Body_float64Type,_Type_Body_interfaceType,_Type_Body_uint32Type,_Type_Body_uint8Type,_Type_Body_listType,_Type_Body_int8Type,_Type_Body_float32Type,_Type_Body_enumType,_Type_Body_uint64Type,_Type_Body_textType,_Type_Body_int16Type,_Node_Body_annotationNode,_Node_Body_interfaceNode,_Node_Body_enumNode,_Node_Body_structNode,_Node_Body_constNode,_Node_Body_fileNode,_StructNode_Member_Body_fieldMember,_StructNode_Member_Body_unionMember
 
-# from capnp_schema cimport *
+# from schema_cpp cimport *
 # Not doing this since we want to namespace away the class names
 
 from cython.operator cimport dereference as deref
@@ -24,12 +24,16 @@ ctypedef int16_t Int16
 ctypedef int32_t Int32
 ctypedef int64_t Int64
 
-ctypedef char * Data
 ctypedef char * Object
-ctypedef char * Text
 ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
+cdef extern from "capnp/blob.h" namespace "::capnp":
+    cdef cppclass Data:
+        char * begin()
+        size_t size()
+    cdef cppclass Text:
+        char * cStr()
 cdef extern from "capnp/message.h" namespace "::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
@@ -470,7 +474,7 @@ cdef class _InterfaceNode_Method_ParamReader:
             return _TypeReader().init(<C_Type.Reader>self.thisptr.getType())
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
     property annotations:
         def __get__(self):
             return _List_InterfaceNode_Method_Param_Annotation_Reader().init(self.thisptr.getAnnotations())
@@ -493,7 +497,7 @@ cdef class _InterfaceNode_Method_ParamBuilder:
             pass
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
         def __set__(self, val):
             pass
     property annotations:
@@ -512,7 +516,7 @@ cdef class _InterfaceNode_MethodReader:
             return self.thisptr.getCodeOrder()
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
     property params:
         def __get__(self):
             return _List_InterfaceNode_Method_InterfaceNode_Method_Param_Reader().init(self.thisptr.getParams())
@@ -539,7 +543,7 @@ cdef class _InterfaceNode_MethodBuilder:
             self.thisptr.setCodeOrder(val)
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
         def __set__(self, val):
             pass
     property params:
@@ -605,7 +609,8 @@ cdef class _Value_BodyReader:
             return None
     property dataValue:
         def __get__(self):
-            return None
+            temp = self.thisptr.getDataValue()
+            return (<char*>temp.begin())[:temp.size()]
     property listValue:
         def __get__(self):
             return None
@@ -644,7 +649,7 @@ cdef class _Value_BodyReader:
             return None
     property textValue:
         def __get__(self):
-            return None
+            return self.thisptr.getTextValue().cStr()
     property uint64Value:
         def __get__(self):
             return self.thisptr.getUint64Value()
@@ -677,7 +682,8 @@ cdef class _Value_BodyBuilder:
             pass
     property dataValue:
         def __get__(self):
-            return None
+            temp = self.thisptr.getDataValue()
+            return (<char*>temp.begin())[:temp.size()]
         def __set__(self, val):
             pass
     property listValue:
@@ -742,7 +748,7 @@ cdef class _Value_BodyBuilder:
             pass
     property textValue:
         def __get__(self):
-            return None
+            return self.thisptr.getTextValue().cStr()
         def __set__(self, val):
             pass
     property uint64Value:
@@ -1012,7 +1018,7 @@ cdef class _FileNode_ImportReader:
             return self.thisptr.getId()
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
 
 cdef class _FileNode_ImportBuilder:
     cdef C_FileNode.Import.Builder thisptr
@@ -1027,7 +1033,7 @@ cdef class _FileNode_ImportBuilder:
             self.thisptr.setId(val)
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
         def __set__(self, val):
             pass
 cdef class _FileNodeReader:
@@ -1128,7 +1134,7 @@ cdef class _Node_NestedNodeReader:
         
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
     property id:
         def __get__(self):
             return self.thisptr.getId()
@@ -1141,7 +1147,7 @@ cdef class _Node_NestedNodeBuilder:
         
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
         def __set__(self, val):
             pass
     property id:
@@ -1160,7 +1166,7 @@ cdef class _NodeReader:
             return _Node_BodyReader().init(<C_Node.Body.Reader>self.thisptr.getBody())
     property displayName:
         def __get__(self):
-            return None
+            return self.thisptr.getDisplayName().cStr()
     property annotations:
         def __get__(self):
             return _List_Node_Annotation_Reader().init(self.thisptr.getAnnotations())
@@ -1187,7 +1193,7 @@ cdef class _NodeBuilder:
             pass
     property displayName:
         def __get__(self):
-            return None
+            return self.thisptr.getDisplayName().cStr()
         def __set__(self, val):
             pass
     property annotations:
@@ -1333,7 +1339,7 @@ cdef class _EnumNode_EnumerantReader:
             return self.thisptr.getCodeOrder()
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
     property annotations:
         def __get__(self):
             return _List_EnumNode_Enumerant_Annotation_Reader().init(self.thisptr.getAnnotations())
@@ -1351,7 +1357,7 @@ cdef class _EnumNode_EnumerantBuilder:
             self.thisptr.setCodeOrder(val)
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
         def __set__(self, val):
             pass
     property annotations:
@@ -1464,7 +1470,7 @@ cdef class _StructNode_MemberReader:
             return self.thisptr.getCodeOrder()
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
     property annotations:
         def __get__(self):
             return _List_StructNode_Member_Annotation_Reader().init(self.thisptr.getAnnotations())
@@ -1492,7 +1498,7 @@ cdef class _StructNode_MemberBuilder:
             self.thisptr.setCodeOrder(val)
     property name:
         def __get__(self):
-            return None
+            return self.thisptr.getName().cStr()
         def __set__(self, val):
             pass
     property annotations:
@@ -1688,11 +1694,11 @@ cdef class MessageReader:
 
 cdef class StreamFdMessageReader(MessageReader):
     def __cinit__(self, int fd):
-        self.thisptr = new capnp.StreamFdMessageReader(int)
+        self.thisptr = new capnp.StreamFdMessageReader(fd)
 
 cdef class PackedFdMessageReader(MessageReader):
     def __cinit__(self, int fd):
-        self.thisptr = new capnp.PackedFdMessageReader(int)
+        self.thisptr = new capnp.PackedFdMessageReader(fd)
 
 def writeMessageToFd(int fd, MessageBuilder m):
     capnp.writeMessageToFd(fd, deref(m.thisptr))

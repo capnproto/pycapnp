@@ -3,12 +3,12 @@
 # distutils: extra_compile_args = --std=c++11
 # distutils: libraries = capnp
 
-cimport capnp_schema as capnp
-from capnp_schema cimport {% for node_name, node_dict in nodes.items() %}{% if node_dict['body'] != 'enum' %}{{node_name|capitalize}} as C_{{node_name|capitalize}}{{',' if not loop.last}}{%- endif %}{% endfor %}
-from capnp_schema cimport {% for node_dict in enum_types %}{%- for member_name, member_dict in node_dict['members'].items() %}{{node_dict['full_name_cython']}}_{{member_name}}{{',' if not loop.last}}{%- endfor %}{{',' if not loop.last}}{%- endfor %}
-from capnp_schema cimport {% for node_dict in union_types %}{%- for member_name, member_dict in node_dict['members'].items() %}{{node_dict['full_name_cython']}}_{{member_name}}{{',' if not loop.last}}{%- endfor %}{{',' if not loop.last}}{% endfor %}
+cimport schema_cpp as capnp
+from schema_cpp cimport {% for node_name, node_dict in nodes.items() %}{% if node_dict['body'] != 'enum' %}{{node_name|capitalize}} as C_{{node_name|capitalize}}{{',' if not loop.last}}{%- endif %}{% endfor %}
+from schema_cpp cimport {% for node_dict in enum_types %}{%- for member_name, member_dict in node_dict['members'].items() %}{{node_dict['full_name_cython']}}_{{member_name}}{{',' if not loop.last}}{%- endfor %}{{',' if not loop.last}}{%- endfor %}
+from schema_cpp cimport {% for node_dict in union_types %}{%- for member_name, member_dict in node_dict['members'].items() %}{{node_dict['full_name_cython']}}_{{member_name}}{{',' if not loop.last}}{%- endfor %}{{',' if not loop.last}}{% endfor %}
 
-# from capnp_schema cimport *
+# from schema_cpp cimport *
 # Not doing this since we want to namespace away the class names
 
 from cython.operator cimport dereference as deref
@@ -24,12 +24,16 @@ ctypedef int16_t Int16
 ctypedef int32_t Int32
 ctypedef int64_t Int64
 
-ctypedef char * Data
 ctypedef char * Object
-ctypedef char * Text
 ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
+cdef extern from "capnp/blob.h" namespace "::capnp":
+    cdef cppclass Data:
+        char * begin()
+        size_t size()
+    cdef cppclass Text:
+        char * cStr()
 cdef extern from "capnp/message.h" namespace "::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
@@ -104,6 +108,11 @@ cdef class {{ node_dict['full_name_cython'] }}Reader:
             return self.thisptr.get{{member_name|capitalize}}()
             {%- elif member_dict['type'].startswith('List[') %}
             return _{{ member_dict['type'] |replace('[', '_')|replace(']','_')|replace('.','_')}}Reader().init(self.thisptr.get{{member_name|capitalize}}())
+            {%- elif member_dict['type'] == 'Text' %}
+            return self.thisptr.get{{member_name|capitalize}}().cStr()
+            {%- elif member_dict['type'] == 'Data' %}
+            temp = self.thisptr.get{{member_name|capitalize}}()
+            return (<char*>temp.begin())[:temp.size()]
             {%- elif member_dict['type'] in built_in_types %}
             return None
             {%- else %}
@@ -127,6 +136,11 @@ cdef class {{ node_dict['full_name_cython'] }}Builder:
             return self.thisptr.get{{member_name|capitalize}}()
             {%- elif member_dict['type'].startswith('List[') %}
             return _{{ member_dict['type'] |replace('[', '_')|replace(']','_')|replace('.','_')}}Builder().init(self.thisptr.get{{member_name|capitalize}}())
+            {%- elif member_dict['type'] == 'Text' %}
+            return self.thisptr.get{{member_name|capitalize}}().cStr()
+            {%- elif member_dict['type'] == 'Data' %}
+            temp = self.thisptr.get{{member_name|capitalize}}()
+            return (<char*>temp.begin())[:temp.size()]
             {%- elif member_dict['type'] in built_in_types %}
             return None
             {%- else %}
@@ -178,11 +192,11 @@ cdef class MessageReader:
 
 cdef class StreamFdMessageReader(MessageReader):
     def __cinit__(self, int fd):
-        self.thisptr = new capnp.StreamFdMessageReader(int)
+        self.thisptr = new capnp.StreamFdMessageReader(fd)
 
 cdef class PackedFdMessageReader(MessageReader):
     def __cinit__(self, int fd):
-        self.thisptr = new capnp.PackedFdMessageReader(int)
+        self.thisptr = new capnp.PackedFdMessageReader(fd)
 
 def writeMessageToFd(int fd, MessageBuilder m):
     capnp.writeMessageToFd(fd, deref(m.thisptr))
@@ -197,6 +211,8 @@ temp = {{ node_dict['full_name'] }} = ModuleType('{{ node_dict['full_name'] }}')
 {%- if node_dict['body'] != 'enum' %}
 temp.Reader = {{ node_dict['full_name_cython'] }}Reader
 temp.Builder = {{ node_dict['full_name_cython'] }}Builder
+{%- elif node_dict['body'] == 'union' %}
+temp.Which = {{ node_dict['full_name_cython'] }}_Which
 {%- else %}
 {{ node_dict['full_name'] }} = {{ node_dict['full_name_cython'] }}
 {%- endif %}
