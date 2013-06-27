@@ -18,6 +18,20 @@ ctypedef char * Object
 ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
+
+cdef extern from "capnp/dynamic.h" namespace "::capnp":
+    cdef cppclass DynamicValue:
+        cppclass Reader:
+            pass
+    cdef cppclass DynamicStruct:
+        cppclass Reader:
+            pass
+
+cdef extern from "capnp/schema.h" namespace "::capnp":
+    cdef cppclass Schema:
+        pass
+    cdef cppclass StructSchema(Schema):
+        pass
         
 cdef extern from "capnp/blob.h" namespace "::capnp":
     cdef cppclass Data:
@@ -41,7 +55,7 @@ cdef extern from "capnp/message.h" namespace "::capnp":
             T operator[](uint)
             uint size()
 
-cdef extern from "schema.capnp.h" namespace "::capnp::schema":
+cdef extern from "capnp/schema.capnp.h" namespace "::capnp::schema":
     enum :
         _ElementSize_inlineComposite "::capnp::schema::ElementSize::INLINE_COMPOSITE"
         _ElementSize_eightBytes "::capnp::schema::ElementSize::EIGHT_BYTES"
@@ -643,6 +657,8 @@ cdef extern from "capnp/message.h" namespace "::capnp":
         EnumNode.Reader getRootEnumNode'getRoot<::capnp::schema::EnumNode>'()
         StructNode.Reader getRootStructNode'getRoot<::capnp::schema::StructNode>'()
         Annotation.Reader getRootAnnotation'getRoot<::capnp::schema::Annotation>'()
+
+        DynamicStruct.Reader getRootDynamicStruct'getRoot<::capnp::DynamicStruct>'(StructSchema)
     
     cdef cppclass MallocMessageBuilder(MessageBuilder):
         MallocMessageBuilder()

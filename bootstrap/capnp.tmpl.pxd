@@ -41,7 +41,7 @@ cdef extern from "capnp/message.h" namespace "::capnp":
             T operator[](uint)
             uint size()
 
-cdef extern from "schema.capnp.h" namespace "::capnp::schema":
+cdef extern from "capnp/schema.capnp.h" namespace "::capnp::schema":
 {%- for node_dict in enum_types %}
     enum {{node_name|capitalize}}:
     {%- for member_name, member_dict in node_dict['members'].items() %}

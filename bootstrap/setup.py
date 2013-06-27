@@ -251,7 +251,7 @@ env.filters['capitalize'] = capitalize
 env.filters['upper_and_under'] = upper_and_under
 nodes = fixNodes(nodes)
 tmpl = env.get_template('capnp.tmpl.pxd')
-open(os.path.join(curr_dir, 'capnp_schema.pxd'), 'w').write(tmpl.render(nodes=nodes, namespace='::capnp::schema', built_in_types=built_in_types, enum_types=enum_types, union_types=union_types))
+open(os.path.join(curr_dir, 'schema_cpp.pxd'), 'w').write(tmpl.render(nodes=nodes, namespace='::capnp::schema', built_in_types=built_in_types, enum_types=enum_types, union_types=union_types))
 tmpl = env.get_template('capnp.tmpl.pyx')
 open(os.path.join(curr_dir, 'schema.capnp.cpp.pyx'), 'w').write(tmpl.render(nodes=nodes, namespace='::capnp::schema', primitive_types=primitive_types, built_in_types=built_in_types, list_types=list_types, enum_types=enum_types, union_types=union_types))
 
