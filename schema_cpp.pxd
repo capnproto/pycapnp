@@ -23,8 +23,12 @@ cdef extern from "capnp/dynamic.h" namespace "::capnp":
     cdef cppclass DynamicValue:
         cppclass Reader:
             pass
+        cppclass Builder:
+            pass
     cdef cppclass DynamicStruct:
         cppclass Reader:
+            pass
+        cppclass Builder:
             pass
 
 cdef extern from "capnp/schema.h" namespace "::capnp":
@@ -644,6 +648,9 @@ cdef extern from "capnp/message.h" namespace "::capnp":
         StructNode.Builder initRootStructNode'initRoot<::capnp::schema::StructNode>'()
         Annotation.Builder getRootAnnotation'getRoot<::capnp::schema::Annotation>'()
         Annotation.Builder initRootAnnotation'initRoot<::capnp::schema::Annotation>'()
+        
+        DynamicStruct.Builder getRootDynamicStruct'getRoot<::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct.Builder initRootDynamicStruct'initRoot<::capnp::DynamicStruct>'(StructSchema)
 
     cdef cppclass MessageReader:
         CodeGeneratorRequest.Reader getRootCodeGeneratorRequest'getRoot<::capnp::schema::CodeGeneratorRequest>'()
