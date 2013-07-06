@@ -208,10 +208,12 @@ from types import ModuleType
 
 {%- for node_name, node_dict in nodes.items() recursive %}
 temp = {{ node_dict['full_name'] }} = ModuleType('{{ node_dict['full_name'] }}')
-{%- if node_dict['body'] != 'enum' %}
+{%- if node_dict['body'] == 'struct' %}
 temp.Reader = {{ node_dict['full_name_cython'] }}Reader
 temp.Builder = {{ node_dict['full_name_cython'] }}Builder
 {%- elif node_dict['body'] == 'union' %}
+temp.Reader = {{ node_dict['full_name_cython'] }}Reader
+temp.Builder = {{ node_dict['full_name_cython'] }}Builder
 temp.Which = {{ node_dict['full_name_cython'] }}_Which
 {%- else %}
 {{ node_dict['full_name'] }} = {{ node_dict['full_name_cython'] }}

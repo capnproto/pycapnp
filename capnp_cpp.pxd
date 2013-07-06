@@ -2,7 +2,7 @@
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
 # distutils: libraries = capnp
-from schema_cpp cimport Node, Data, StructNode
+from schema_cpp cimport Node, Data, StructNode, EnumNode
 
 from libc.stdint cimport *
 ctypedef unsigned int uint
@@ -14,16 +14,54 @@ cdef extern from "kj/common.h" namespace "::kj":
 cdef extern from "capnp/schema.h" namespace "::capnp":
     cdef cppclass Schema:
         Node.Reader getProto()
-        StructSchema asStruct()
+        StructSchema asStruct() except +
+        EnumSchema asEnum() except +
+        Schema getDependency(uint64_t id) except +
+        #InterfaceSchema asInterface() const;
+
+    cdef cppclass MemberForward"::capnp::StructSchema::Member":
+        pass
+
     cdef cppclass StructSchema(Schema):
+        cppclass MemberList:
+            uint size()
+            MemberForward operator[](uint index)
+
+        cppclass Union:
+            StructNode.Union.Reader getProto()
+            MemberList getMembers()
+            MemberForward getMemberByName(char * name)
+
         cppclass Member:
             StructNode.Member.Reader getProto()
-        StructNode.Reader getProto()
+            StructSchema getContainingStruct()
+            uint getIndex()
+            MemberList getMembers()
+            Union asUnion() except +
+
+        Node.Reader getProto()
+        MemberList getMembers()
+        Member getMemberByName(char * name)
+
+    cdef cppclass EnumSchema:
+        cppclass Enumerant:
+            EnumNode.Enumerant.Reader getProto()
+            EnumSchema getContainingEnum()
+            uint16_t getOrdinal()
+
+        cppclass EnumerantList:
+            uint size()
+            Enumerant operator[](uint index)
+
+        EnumerantList getEnumerants()
+        Enumerant getEnumerantByName(char * name)
+        Node.Reader getProto()
 
 cdef extern from "capnp/schema-loader.h" namespace "::capnp":
     cdef cppclass SchemaLoader:
         SchemaLoader()
         Schema load(Node.Reader &) except +
+        Schema get(uint64_t id) except +
 
 cdef extern from "capnp/dynamic.h" namespace "::capnp":
     cdef cppclass DynamicValueForward"::capnp::DynamicValue":

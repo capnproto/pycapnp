@@ -3,5 +3,5 @@ from distutils.core import setup
 from Cython.Build import cythonize
 setup(
     name = "capnp",
-    ext_modules = cythonize('capnp.pyx'),
+    ext_modules = cythonize('*.pyx'),
 )

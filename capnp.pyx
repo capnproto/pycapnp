@@ -7,9 +7,11 @@ cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
 from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, DynamicUnion as C_DynamicUnion, fixMaybe
-from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest, Node as C_Node
+
+from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest, Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
 
+from schema cimport _NodeReader
 from libc.stdint cimport *
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
@@ -32,6 +34,7 @@ ctypedef fused valid_values:
     float
     double
     bint
+    cython.p_char
 
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -242,12 +245,34 @@ cdef class _DynamicStructBuilder:
     def __getattr__(self, field):
         return toPython(self.thisptr.get(field))
 
-    def _setattr(self, field, valid_values value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
+    cdef _setattrInt(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
+        self.thisptr.set(field, temp)
+
+    cdef _setattrDouble(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<double>value)
+        self.thisptr.set(field, temp)
+
+    cdef _setattrBool(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<bint>value)
+        self.thisptr.set(field, temp)
+
+    cdef _setattrString(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<char*>value)
         self.thisptr.set(field, temp)
 
     def __setattr__(self, field, value):
-        self._setattr(field, value)
+        value_type = type(value)
+        if value_type is int:
+            self._setattrInt(field, value)
+        elif value_type is float:
+            self._setattrDouble(field, value)
+        elif value_type is bool:
+            self._setattrBool(field, value)
+        elif value_type is bytes:
+            self._setattrString(field, value)
+        else:
+            raise ValueError("Non primitive type")
 
     def _has(self, field):
         return self.thisptr.has(field)
@@ -299,21 +324,6 @@ cdef class _CodeGeneratorRequestReader:
         def __get__(self):
             return _List_UInt64_Reader().init(self.thisptr.getRequestedFiles())
 
-cdef class _NodeReader:
-    cdef C_Node.Reader thisptr
-    cdef init(self, C_Node.Reader other):
-        self.thisptr = other
-        return self
-    property displayName:
-        def __get__(self):
-            return self.thisptr.getDisplayName().cStr()
-    property scopeId:
-        def __get__(self):
-            return self.thisptr.getScopeId()
-    property id:
-        def __get__(self):
-            return self.thisptr.getId()
-
 cdef class Schema:
     cdef C_Schema thisptr
     cdef init(self, C_Schema other):
@@ -322,6 +332,12 @@ cdef class Schema:
 
     cpdef asStruct(self):
         return StructSchema().init(self.thisptr.asStruct())
+
+    cpdef getDependency(self, id):
+        return Schema().init(self.thisptr.getDependency(id))
+
+    cpdef getProto(self):
+        return _NodeReader().init(self.thisptr.getProto())
 
 cdef class StructSchema:
     cdef C_StructSchema thisptr
@@ -340,18 +356,21 @@ cdef class SchemaLoader:
     cpdef load(self, _NodeReader node):
         return Schema().init(self.thisptr.load(node.thisptr))
 
+    cpdef get(self, id):
+        return Schema().init(self.thisptr.get(id))
+
 cdef class MessageBuilder:
     cdef schema_cpp.MessageBuilder * thisptr
     def __dealloc__(self):
         del self.thisptr
+    cpdef initRoot(self, StructSchema schema):
+        return _DynamicStructBuilder().init(self.thisptr.initRootDynamicStruct(schema.thisptr))
+    cpdef getRoot(self, StructSchema schema):
+        return _DynamicStructBuilder().init(self.thisptr.getRootDynamicStruct(schema.thisptr))
 
 cdef class MallocMessageBuilder(MessageBuilder):
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
-    cpdef initRootDynamicStruct(self, StructSchema schema):
-        return _DynamicStructBuilder().init(self.thisptr.initRootDynamicStruct(schema.thisptr))
-    cpdef getRootDynamicStruct(self, StructSchema schema):
-        return _DynamicStructBuilder().init(self.thisptr.getRootDynamicStruct(schema.thisptr))
 
 cdef class MessageReader:
     cdef schema_cpp.MessageReader * thisptr
@@ -362,6 +381,8 @@ cdef class MessageReader:
     cpdef getRootCodeGeneratorRequest(self):
         return _CodeGeneratorRequestReader().init(self.thisptr.getRootCodeGeneratorRequest())
     cpdef getRootDynamicStruct(self, StructSchema schema):
+        return _DynamicStructReader().init(self.thisptr.getRootDynamicStruct(schema.thisptr))
+    cpdef getRoot(self, StructSchema schema):
         return _DynamicStructReader().init(self.thisptr.getRootDynamicStruct(schema.thisptr))
 
 cdef class StreamFdMessageReader(MessageReader):
@@ -376,3 +397,77 @@ def writeMessageToFd(int fd, MessageBuilder m):
     schema_cpp.writeMessageToFd(fd, deref(m.thisptr))
 def writePackedMessageToFd(int fd, MessageBuilder m):
     schema_cpp.writePackedMessageToFd(fd, deref(m.thisptr))
+
+def capitalize(s):
+  if len(s) < 2:
+    return s
+  return s[0].upper() + s[1:]
+def upper_and_under(s):
+  if len(s) < 2:
+    return s
+  ret = [s[0]]
+  for letter in s[1:]:
+    if letter.isupper():
+      ret.append('_')
+    ret.append(letter)
+  return ''.join(ret).upper()
+
+def make_enum(enum_name, *sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    reverse = dict((value, key) for key, value in enums.iteritems())
+    enums['reverse_mapping'] = reverse
+    return type(enum_name, (), enums)
+
+from types import ModuleType
+import re
+import schema
+import subprocess
+
+def _load(m, n, loader, name = None, isUnion = False):
+    if name is None:
+        name = n.displayName
+    local_m = m
+    for sub_name in re.split('[:.]', name):
+        new_m = local_m.__dict__.get(sub_name, ModuleType(sub_name))
+        local_m.__dict__[sub_name] = new_m
+        local_m = new_m
+    for nestedNode in n.nestedNodes:
+        s = loader.get(nestedNode.id)
+        _load(m, s.getProto(), loader, name + ':' + nestedNode.name)
+    body = n.body
+    which = body.which()
+    if which == schema.Node.Body.Which.enumNode:
+        enum = body.enumNode
+        local_m.Which = make_enum(name+':Which', **{upper_and_under(e.name) : e.codeOrder for e in enum.enumerants})
+    elif which == schema.Node.Body.Which.structNode:
+        struct = body.structNode
+        for member in struct.members:
+            if member.body.which() == schema.StructNode.Member.Body.Which.unionMember:
+                sub_name = capitalize(member.name)
+                new_m = local_m.__dict__.get(sub_name, ModuleType(sub_name))
+                local_m.__dict__[sub_name] = new_m
+                new_m.Which = make_enum(sub_name+':Which', **{upper_and_under(e.name) : e.ordinal for e in struct.members})
+    return local_m
+
+def load(file_name, cat_path='/bin/cat'):
+    p = subprocess.Popen(['capnpc', '-o'+cat_path, file_name], stdout=subprocess.PIPE)
+    ret = p.wait()
+    if ret != 0:
+        raise RuntimeError("capnpc failed for some reason")
+    r = schema.StreamFdMessageReader(p.stdout.fileno())
+    c = r.getRootCodeGeneratorRequest()
+    m = ModuleType(file_name)
+    l = SchemaLoader()
+    m._loader = l
+    for node in c.nodes:
+        s = l.load(node)
+    for node in c.nodes:
+        s = l.load(node)
+        local_m = _load(m, node, l)
+        try:
+            s = s.asStruct()
+            local_m.Schema = s
+        except: pass
+
+    return m
+

@@ -1156,7 +1156,6 @@ cdef class _Node_NestedNodeBuilder:
         def __set__(self, val):
             self.thisptr.setId(val)
 cdef class _NodeReader:
-    cdef C_Node.Reader thisptr
     cdef init(self, C_Node.Reader other):
         self.thisptr = other
         return self
@@ -1733,6 +1732,7 @@ temp.Builder = _ValueBuilder
 temp = Value.Body = ModuleType('Value.Body')
 temp.Reader = _Value_BodyReader
 temp.Builder = _Value_BodyBuilder
+temp.Which = _Value_Body_Which
 
 temp = ConstNode = ModuleType('ConstNode')
 temp.Reader = _ConstNodeReader
@@ -1745,6 +1745,7 @@ temp.Builder = _TypeBuilder
 temp = Type.Body = ModuleType('Type.Body')
 temp.Reader = _Type_BodyReader
 temp.Builder = _Type_BodyBuilder
+temp.Which = _Type_Body_Which
 
 temp = FileNode = ModuleType('FileNode')
 temp.Reader = _FileNodeReader
@@ -1761,6 +1762,7 @@ temp.Builder = _NodeBuilder
 temp = Node.Body = ModuleType('Node.Body')
 temp.Reader = _Node_BodyReader
 temp.Builder = _Node_BodyBuilder
+temp.Which = _Node_Body_Which
 
 temp = Node.NestedNode = ModuleType('Node.NestedNode')
 temp.Reader = _Node_NestedNodeReader
@@ -1793,6 +1795,7 @@ temp.Builder = _StructNode_MemberBuilder
 temp = StructNode.Member.Body = ModuleType('StructNode.Member.Body')
 temp.Reader = _StructNode_Member_BodyReader
 temp.Builder = _StructNode_Member_BodyBuilder
+temp.Which = _StructNode_Member_Body_Which
 
 temp = StructNode.Field = ModuleType('StructNode.Field')
 temp.Reader = _StructNode_FieldReader
@@ -1801,4 +1804,5 @@ temp.Builder = _StructNode_FieldBuilder
 temp = Annotation = ModuleType('Annotation')
 temp.Reader = _AnnotationReader
 temp.Builder = _AnnotationBuilder
+
 
