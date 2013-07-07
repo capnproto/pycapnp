@@ -1,7 +1,9 @@
 # capnp.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++11
+# distutils: extra_compile_args = --std=c++11 -fpermissive
 # distutils: libraries = capnp
+# cython: c_string_type = str
+# cython: c_string_encoding = default
 
 cimport cython
 cimport capnp_cpp as capnp
@@ -310,7 +312,7 @@ cdef class _DynamicStructBuilder:
             self._setattrDouble(field, value)
         elif value_type is bool:
             self._setattrBool(field, value)
-        elif value_type is bytes:
+        elif value_type is str:
             self._setattrString(field, value)
         elif value is None:
             self._setattrVoid(field)
@@ -378,7 +380,7 @@ cdef class _DynamicUnionBuilder:
             self._setattrDouble(field, value)
         elif value_type is bool:
             self._setattrBool(field, value)
-        elif value_type is bytes:
+        elif value_type is str:
             self._setattrString(field, value)
         elif value is None:
             self._setattrVoid(field)
@@ -506,7 +508,7 @@ def upper_and_under(s):
   ret = [s[0]]
   for letter in s[1:]:
     if letter.isupper():
-      ret.append('_')
+      ret.append(u'_')
     ret.append(letter)
   return ''.join(ret).upper()
 
@@ -522,7 +524,7 @@ def _load(module, node, loader, name, isUnion = False):
         name = name[1:]
     local_module = module
     
-    for sub_name in re.split('[:.]', name):
+    for sub_name in re.split(u'[:.]', name):
         new_m = local_module.__dict__.get(sub_name, ModuleType(sub_name))
         new_m._parent_module = local_module
         local_module.__dict__[sub_name] = new_m

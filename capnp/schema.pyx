@@ -1,7 +1,9 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++11
+# distutils: extra_compile_args = --std=c++11 -fpermissive
 # distutils: libraries = capnp
+# cython: c_string_type = str
+# cython: c_string_encoding = default
 
 cimport schema_cpp as capnp
 from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest,InterfaceNode as C_InterfaceNode,Value as C_Value,ConstNode as C_ConstNode,Type as C_Type,FileNode as C_FileNode,Node as C_Node,AnnotationNode as C_AnnotationNode,EnumNode as C_EnumNode,StructNode as C_StructNode,Annotation as C_Annotation
