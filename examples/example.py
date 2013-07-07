@@ -52,7 +52,7 @@ def printAddressBook(fd):
         elif which == addressbook.Person.Employment.Which.SCHOOL:
             print 'student at:', person.employment.school
         elif which == addressbook.Person.Employment.Which.SELF_EMPLOYED:
-            print 'unemployed'
+            print 'self employed'
         print
 
 f = open('example', 'r')
