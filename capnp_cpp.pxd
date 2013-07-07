@@ -13,7 +13,7 @@ cdef extern from "kj/common.h" namespace "::kj":
 
 cdef extern from "capnp/schema.h" namespace "::capnp":
     cdef cppclass Schema:
-        Node.Reader getProto()
+        Node.Reader getProto() except +
         StructSchema asStruct() except +
         EnumSchema asEnum() except +
         Schema getDependency(uint64_t id) except +

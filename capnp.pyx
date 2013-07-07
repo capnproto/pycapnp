@@ -287,7 +287,7 @@ cdef class _DynamicUnionReader:
         return _DynamicValueReader().init(self.thisptr.get()).toPython()
 
     def __getattr__(self, field):
-        return self._get().toPython()
+        return self._get().toPython() # TODO: check that the field is right?
 
     cpdef which(self):
         return fixMaybe(self.thisptr.which()).getProto().getOrdinal()
@@ -299,7 +299,7 @@ cdef class _DynamicUnionBuilder:
         return self
 
     def __getattr__(self, field):
-        return toPython(self.thisptr.get())
+        return toPython(self.thisptr.get()) # TODO: check that the field is right?
 
     def _setattr(self, field, valid_values value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
@@ -423,51 +423,64 @@ import re
 import schema
 import subprocess
 
-def _load(m, n, loader, name = None, isUnion = False):
+def _load(module, node, loader, name = None, isUnion = False):
     if name is None:
-        name = n.displayName
-    local_m = m
+        name = node.displayName
+
+    local_module = module
+    
     for sub_name in re.split('[:.]', name):
-        new_m = local_m.__dict__.get(sub_name, ModuleType(sub_name))
-        local_m.__dict__[sub_name] = new_m
-        local_m = new_m
-    for nestedNode in n.nestedNodes:
+        new_m = local_module.__dict__.get(sub_name, ModuleType(sub_name))
+        local_module.__dict__[sub_name] = new_m
+        local_module = new_m
+    
+    for nestedNode in node.nestedNodes:
         s = loader.get(nestedNode.id)
-        _load(m, s.getProto(), loader, name + ':' + nestedNode.name)
-    body = n.body
+        _load(module, s.getProto(), loader, name + ':' + nestedNode.name)
+    
+    body = node.body
     which = body.which()
+    
     if which == schema.Node.Body.Which.enumNode:
         enum = body.enumNode
-        local_m.Which = make_enum(name+':Which', **{upper_and_under(e.name) : e.codeOrder for e in enum.enumerants})
+        
+        local_module.Which = make_enum(name+':Which', **{upper_and_under(e.name) : e.codeOrder for e in enum.enumerants})
     elif which == schema.Node.Body.Which.structNode:
         struct = body.structNode
+
         for member in struct.members:
             if member.body.which() == schema.StructNode.Member.Body.Which.unionMember:
                 sub_name = capitalize(member.name)
-                new_m = local_m.__dict__.get(sub_name, ModuleType(sub_name))
-                local_m.__dict__[sub_name] = new_m
-                new_m.Which = make_enum(sub_name+':Which', **{upper_and_under(e.name) : e.ordinal for e in struct.members})
-    return local_m
+                new_m = local_module.__dict__.get(sub_name, ModuleType(sub_name))
+                local_module.__dict__[sub_name] = new_m
+                
+                new_m.Which = make_enum(sub_name+':Which', **{upper_and_under(e.name) : e.ordinal for e in member.body.unionMember.members})
+
+    return local_module
 
 def load(file_name, cat_path='/bin/cat'):
     p = subprocess.Popen(['capnpc', '-o'+cat_path, file_name], stdout=subprocess.PIPE)
-    ret = p.wait()
-    if ret != 0:
+    retcode = p.wait()
+    if retcode != 0:
         raise RuntimeError("capnpc failed for some reason")
-    r = schema.StreamFdMessageReader(p.stdout.fileno())
-    c = r.getRootCodeGeneratorRequest()
-    m = ModuleType(file_name)
-    l = SchemaLoader()
-    m._loader = l
-    for node in c.nodes:
-        s = l.load(node)
-    for node in c.nodes:
-        s = l.load(node)
-        local_m = _load(m, node, l)
+
+    reader = schema.StreamFdMessageReader(p.stdout.fileno())
+    request = reader.getRootCodeGeneratorRequest()
+    module = ModuleType(file_name)
+    loader = SchemaLoader()
+
+    module._loader = loader
+    
+    for node in request.nodes:
+        loader.load(node)
+    
+    for node in request.nodes:
+        s = loader.load(node)
+        local_module = _load(module, node, loader)
         try:
             s = s.asStruct()
-            local_m.Schema = s
+            local_module.Schema = s
         except: pass
 
-    return m
+    return module
 
