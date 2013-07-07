@@ -276,12 +276,6 @@ cdef class _DynamicStructBuilder:
         return self
 
     def __getattr__(self, field):
-        if field.startswith('init'):
-            field_name = field[4].lower() + field[5:]
-            try:
-                self._has(field_name) # We don't need to test bool value here, since it will throw an exception if the field is non-existant
-                return lambda size: self.init(field_name, size)
-            except ValueError: pass
         return toPython(self.thisptr.get(field))
 
     cdef _setattrInt(self, field, value):
