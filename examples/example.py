@@ -1,5 +1,7 @@
+import os
 import capnp
-addressbook = capnp.load('addressbook.capnp')
+this_dir = os.path.dirname(__file__)
+addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
 def writeAddressBook(fd):
     message = capnp.MallocMessageBuilder()
