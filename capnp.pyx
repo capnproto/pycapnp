@@ -58,7 +58,7 @@ _Type = _make_enum('DynamicValue.Type',
                     INTERFACE = capnp.TYPE_INTERFACE,
                     OBJECT = capnp.TYPE_OBJECT)
 
-cdef extern from "capnp/list.h" namespace "::capnp":
+cdef extern from "capnp/list.h" namespace " ::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
             T operator[](uint) except +ValueError

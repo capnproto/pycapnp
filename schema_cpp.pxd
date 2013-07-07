@@ -19,7 +19,7 @@ ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
 
-cdef extern from "capnp/dynamic.h" namespace "::capnp":
+cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicValue:
         cppclass Reader:
             pass
@@ -31,13 +31,13 @@ cdef extern from "capnp/dynamic.h" namespace "::capnp":
         cppclass Builder:
             pass
 
-cdef extern from "capnp/schema.h" namespace "::capnp":
+cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
         pass
     cdef cppclass StructSchema(Schema):
         pass
         
-cdef extern from "capnp/blob.h" namespace "::capnp":
+cdef extern from "capnp/blob.h" namespace " ::capnp":
     cdef cppclass Data:
         cppclass Reader:
             char * begin()
@@ -50,7 +50,7 @@ cdef extern from "capnp/blob.h" namespace "::capnp":
             char * cStr()
         cppclass Builder:
             char * cStr()
-cdef extern from "capnp/message.h" namespace "::capnp":
+cdef extern from "capnp/message.h" namespace " ::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
             T operator[](uint)
@@ -59,66 +59,66 @@ cdef extern from "capnp/message.h" namespace "::capnp":
             T operator[](uint)
             uint size()
 
-cdef extern from "capnp/schema.capnp.h" namespace "::capnp::schema":
+cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
     enum :
-        _ElementSize_inlineComposite "::capnp::schema::ElementSize::INLINE_COMPOSITE"
-        _ElementSize_eightBytes "::capnp::schema::ElementSize::EIGHT_BYTES"
-        _ElementSize_pointer "::capnp::schema::ElementSize::POINTER"
-        _ElementSize_bit "::capnp::schema::ElementSize::BIT"
-        _ElementSize_twoBytes "::capnp::schema::ElementSize::TWO_BYTES"
-        _ElementSize_fourBytes "::capnp::schema::ElementSize::FOUR_BYTES"
-        _ElementSize_byte "::capnp::schema::ElementSize::BYTE"
-        _ElementSize_empty "::capnp::schema::ElementSize::EMPTY"
+        _ElementSize_inlineComposite " ::capnp::schema::ElementSize::INLINE_COMPOSITE"
+        _ElementSize_eightBytes " ::capnp::schema::ElementSize::EIGHT_BYTES"
+        _ElementSize_pointer " ::capnp::schema::ElementSize::POINTER"
+        _ElementSize_bit " ::capnp::schema::ElementSize::BIT"
+        _ElementSize_twoBytes " ::capnp::schema::ElementSize::TWO_BYTES"
+        _ElementSize_fourBytes " ::capnp::schema::ElementSize::FOUR_BYTES"
+        _ElementSize_byte " ::capnp::schema::ElementSize::BYTE"
+        _ElementSize_empty " ::capnp::schema::ElementSize::EMPTY"
     enum _Value_Body_Which:
-        _Value_Body_uint32Value "::capnp::schema::Value::Body::Which::UINT32_VALUE"
-        _Value_Body_float64Value "::capnp::schema::Value::Body::Which::FLOAT64_VALUE"
-        _Value_Body_voidValue "::capnp::schema::Value::Body::Which::VOID_VALUE"
-        _Value_Body_dataValue "::capnp::schema::Value::Body::Which::DATA_VALUE"
-        _Value_Body_listValue "::capnp::schema::Value::Body::Which::LIST_VALUE"
-        _Value_Body_int32Value "::capnp::schema::Value::Body::Which::INT32_VALUE"
-        _Value_Body_enumValue "::capnp::schema::Value::Body::Which::ENUM_VALUE"
-        _Value_Body_int8Value "::capnp::schema::Value::Body::Which::INT8_VALUE"
-        _Value_Body_boolValue "::capnp::schema::Value::Body::Which::BOOL_VALUE"
-        _Value_Body_int16Value "::capnp::schema::Value::Body::Which::INT16_VALUE"
-        _Value_Body_float32Value "::capnp::schema::Value::Body::Which::FLOAT32_VALUE"
-        _Value_Body_interfaceValue "::capnp::schema::Value::Body::Which::INTERFACE_VALUE"
-        _Value_Body_uint16Value "::capnp::schema::Value::Body::Which::UINT16_VALUE"
-        _Value_Body_uint8Value "::capnp::schema::Value::Body::Which::UINT8_VALUE"
-        _Value_Body_int64Value "::capnp::schema::Value::Body::Which::INT64_VALUE"
-        _Value_Body_structValue "::capnp::schema::Value::Body::Which::STRUCT_VALUE"
-        _Value_Body_textValue "::capnp::schema::Value::Body::Which::TEXT_VALUE"
-        _Value_Body_uint64Value "::capnp::schema::Value::Body::Which::UINT64_VALUE"
-        _Value_Body_objectValue "::capnp::schema::Value::Body::Which::OBJECT_VALUE"
+        _Value_Body_uint32Value " ::capnp::schema::Value::Body::Which::UINT32_VALUE"
+        _Value_Body_float64Value " ::capnp::schema::Value::Body::Which::FLOAT64_VALUE"
+        _Value_Body_voidValue " ::capnp::schema::Value::Body::Which::VOID_VALUE"
+        _Value_Body_dataValue " ::capnp::schema::Value::Body::Which::DATA_VALUE"
+        _Value_Body_listValue " ::capnp::schema::Value::Body::Which::LIST_VALUE"
+        _Value_Body_int32Value " ::capnp::schema::Value::Body::Which::INT32_VALUE"
+        _Value_Body_enumValue " ::capnp::schema::Value::Body::Which::ENUM_VALUE"
+        _Value_Body_int8Value " ::capnp::schema::Value::Body::Which::INT8_VALUE"
+        _Value_Body_boolValue " ::capnp::schema::Value::Body::Which::BOOL_VALUE"
+        _Value_Body_int16Value " ::capnp::schema::Value::Body::Which::INT16_VALUE"
+        _Value_Body_float32Value " ::capnp::schema::Value::Body::Which::FLOAT32_VALUE"
+        _Value_Body_interfaceValue " ::capnp::schema::Value::Body::Which::INTERFACE_VALUE"
+        _Value_Body_uint16Value " ::capnp::schema::Value::Body::Which::UINT16_VALUE"
+        _Value_Body_uint8Value " ::capnp::schema::Value::Body::Which::UINT8_VALUE"
+        _Value_Body_int64Value " ::capnp::schema::Value::Body::Which::INT64_VALUE"
+        _Value_Body_structValue " ::capnp::schema::Value::Body::Which::STRUCT_VALUE"
+        _Value_Body_textValue " ::capnp::schema::Value::Body::Which::TEXT_VALUE"
+        _Value_Body_uint64Value " ::capnp::schema::Value::Body::Which::UINT64_VALUE"
+        _Value_Body_objectValue " ::capnp::schema::Value::Body::Which::OBJECT_VALUE"
     enum _Type_Body_Which:
-        _Type_Body_boolType "::capnp::schema::Type::Body::Which::BOOL_TYPE"
-        _Type_Body_structType "::capnp::schema::Type::Body::Which::STRUCT_TYPE"
-        _Type_Body_int32Type "::capnp::schema::Type::Body::Which::INT32_TYPE"
-        _Type_Body_voidType "::capnp::schema::Type::Body::Which::VOID_TYPE"
-        _Type_Body_uint16Type "::capnp::schema::Type::Body::Which::UINT16_TYPE"
-        _Type_Body_dataType "::capnp::schema::Type::Body::Which::DATA_TYPE"
-        _Type_Body_objectType "::capnp::schema::Type::Body::Which::OBJECT_TYPE"
-        _Type_Body_int64Type "::capnp::schema::Type::Body::Which::INT64_TYPE"
-        _Type_Body_float64Type "::capnp::schema::Type::Body::Which::FLOAT64_TYPE"
-        _Type_Body_interfaceType "::capnp::schema::Type::Body::Which::INTERFACE_TYPE"
-        _Type_Body_uint32Type "::capnp::schema::Type::Body::Which::UINT32_TYPE"
-        _Type_Body_uint8Type "::capnp::schema::Type::Body::Which::UINT8_TYPE"
-        _Type_Body_listType "::capnp::schema::Type::Body::Which::LIST_TYPE"
-        _Type_Body_int8Type "::capnp::schema::Type::Body::Which::INT8_TYPE"
-        _Type_Body_float32Type "::capnp::schema::Type::Body::Which::FLOAT32_TYPE"
-        _Type_Body_enumType "::capnp::schema::Type::Body::Which::ENUM_TYPE"
-        _Type_Body_uint64Type "::capnp::schema::Type::Body::Which::UINT64_TYPE"
-        _Type_Body_textType "::capnp::schema::Type::Body::Which::TEXT_TYPE"
-        _Type_Body_int16Type "::capnp::schema::Type::Body::Which::INT16_TYPE"
+        _Type_Body_boolType " ::capnp::schema::Type::Body::Which::BOOL_TYPE"
+        _Type_Body_structType " ::capnp::schema::Type::Body::Which::STRUCT_TYPE"
+        _Type_Body_int32Type " ::capnp::schema::Type::Body::Which::INT32_TYPE"
+        _Type_Body_voidType " ::capnp::schema::Type::Body::Which::VOID_TYPE"
+        _Type_Body_uint16Type " ::capnp::schema::Type::Body::Which::UINT16_TYPE"
+        _Type_Body_dataType " ::capnp::schema::Type::Body::Which::DATA_TYPE"
+        _Type_Body_objectType " ::capnp::schema::Type::Body::Which::OBJECT_TYPE"
+        _Type_Body_int64Type " ::capnp::schema::Type::Body::Which::INT64_TYPE"
+        _Type_Body_float64Type " ::capnp::schema::Type::Body::Which::FLOAT64_TYPE"
+        _Type_Body_interfaceType " ::capnp::schema::Type::Body::Which::INTERFACE_TYPE"
+        _Type_Body_uint32Type " ::capnp::schema::Type::Body::Which::UINT32_TYPE"
+        _Type_Body_uint8Type " ::capnp::schema::Type::Body::Which::UINT8_TYPE"
+        _Type_Body_listType " ::capnp::schema::Type::Body::Which::LIST_TYPE"
+        _Type_Body_int8Type " ::capnp::schema::Type::Body::Which::INT8_TYPE"
+        _Type_Body_float32Type " ::capnp::schema::Type::Body::Which::FLOAT32_TYPE"
+        _Type_Body_enumType " ::capnp::schema::Type::Body::Which::ENUM_TYPE"
+        _Type_Body_uint64Type " ::capnp::schema::Type::Body::Which::UINT64_TYPE"
+        _Type_Body_textType " ::capnp::schema::Type::Body::Which::TEXT_TYPE"
+        _Type_Body_int16Type " ::capnp::schema::Type::Body::Which::INT16_TYPE"
     enum _Node_Body_Which:
-        _Node_Body_annotationNode "::capnp::schema::Node::Body::Which::ANNOTATION_NODE"
-        _Node_Body_interfaceNode "::capnp::schema::Node::Body::Which::INTERFACE_NODE"
-        _Node_Body_enumNode "::capnp::schema::Node::Body::Which::ENUM_NODE"
-        _Node_Body_structNode "::capnp::schema::Node::Body::Which::STRUCT_NODE"
-        _Node_Body_constNode "::capnp::schema::Node::Body::Which::CONST_NODE"
-        _Node_Body_fileNode "::capnp::schema::Node::Body::Which::FILE_NODE"
+        _Node_Body_annotationNode " ::capnp::schema::Node::Body::Which::ANNOTATION_NODE"
+        _Node_Body_interfaceNode " ::capnp::schema::Node::Body::Which::INTERFACE_NODE"
+        _Node_Body_enumNode " ::capnp::schema::Node::Body::Which::ENUM_NODE"
+        _Node_Body_structNode " ::capnp::schema::Node::Body::Which::STRUCT_NODE"
+        _Node_Body_constNode " ::capnp::schema::Node::Body::Which::CONST_NODE"
+        _Node_Body_fileNode " ::capnp::schema::Node::Body::Which::FILE_NODE"
     enum _StructNode_Member_Body_Which:
-        _StructNode_Member_Body_fieldMember "::capnp::schema::StructNode::Member::Body::Which::FIELD_MEMBER"
-        _StructNode_Member_Body_unionMember "::capnp::schema::StructNode::Member::Body::Which::UNION_MEMBER"
+        _StructNode_Member_Body_fieldMember " ::capnp::schema::StructNode::Member::Body::Which::FIELD_MEMBER"
+        _StructNode_Member_Body_unionMember " ::capnp::schema::StructNode::Member::Body::Which::UNION_MEMBER"
     cdef cppclass CodeGeneratorRequest
     
     cdef cppclass InterfaceNode
@@ -620,52 +620,52 @@ cdef extern from "capnp/schema.capnp.h" namespace "::capnp::schema":
             Value getValue()
             void setValue(Value)
 
-cdef extern from "capnp/message.h" namespace "::capnp":
+cdef extern from "capnp/message.h" namespace " ::capnp":
     cdef cppclass ReaderOptions:
         uint64_t traversalLimitInWords
         uint nestingLimit
 
     cdef cppclass MessageBuilder:
-        CodeGeneratorRequest.Builder getRootCodeGeneratorRequest'getRoot<::capnp::schema::CodeGeneratorRequest>'()
-        CodeGeneratorRequest.Builder initRootCodeGeneratorRequest'initRoot<::capnp::schema::CodeGeneratorRequest>'()
-        InterfaceNode.Builder getRootInterfaceNode'getRoot<::capnp::schema::InterfaceNode>'()
-        InterfaceNode.Builder initRootInterfaceNode'initRoot<::capnp::schema::InterfaceNode>'()
-        Value.Builder getRootValue'getRoot<::capnp::schema::Value>'()
-        Value.Builder initRootValue'initRoot<::capnp::schema::Value>'()
-        ConstNode.Builder getRootConstNode'getRoot<::capnp::schema::ConstNode>'()
-        ConstNode.Builder initRootConstNode'initRoot<::capnp::schema::ConstNode>'()
-        Type.Builder getRootType'getRoot<::capnp::schema::Type>'()
-        Type.Builder initRootType'initRoot<::capnp::schema::Type>'()
-        FileNode.Builder getRootFileNode'getRoot<::capnp::schema::FileNode>'()
-        FileNode.Builder initRootFileNode'initRoot<::capnp::schema::FileNode>'()
-        Node.Builder getRootNode'getRoot<::capnp::schema::Node>'()
-        Node.Builder initRootNode'initRoot<::capnp::schema::Node>'()
-        AnnotationNode.Builder getRootAnnotationNode'getRoot<::capnp::schema::AnnotationNode>'()
-        AnnotationNode.Builder initRootAnnotationNode'initRoot<::capnp::schema::AnnotationNode>'()
-        EnumNode.Builder getRootEnumNode'getRoot<::capnp::schema::EnumNode>'()
-        EnumNode.Builder initRootEnumNode'initRoot<::capnp::schema::EnumNode>'()
-        StructNode.Builder getRootStructNode'getRoot<::capnp::schema::StructNode>'()
-        StructNode.Builder initRootStructNode'initRoot<::capnp::schema::StructNode>'()
-        Annotation.Builder getRootAnnotation'getRoot<::capnp::schema::Annotation>'()
-        Annotation.Builder initRootAnnotation'initRoot<::capnp::schema::Annotation>'()
+        CodeGeneratorRequest.Builder getRootCodeGeneratorRequest'getRoot< ::capnp::schema::CodeGeneratorRequest>'()
+        CodeGeneratorRequest.Builder initRootCodeGeneratorRequest'initRoot< ::capnp::schema::CodeGeneratorRequest>'()
+        InterfaceNode.Builder getRootInterfaceNode'getRoot< ::capnp::schema::InterfaceNode>'()
+        InterfaceNode.Builder initRootInterfaceNode'initRoot< ::capnp::schema::InterfaceNode>'()
+        Value.Builder getRootValue'getRoot< ::capnp::schema::Value>'()
+        Value.Builder initRootValue'initRoot< ::capnp::schema::Value>'()
+        ConstNode.Builder getRootConstNode'getRoot< ::capnp::schema::ConstNode>'()
+        ConstNode.Builder initRootConstNode'initRoot< ::capnp::schema::ConstNode>'()
+        Type.Builder getRootType'getRoot< ::capnp::schema::Type>'()
+        Type.Builder initRootType'initRoot< ::capnp::schema::Type>'()
+        FileNode.Builder getRootFileNode'getRoot< ::capnp::schema::FileNode>'()
+        FileNode.Builder initRootFileNode'initRoot< ::capnp::schema::FileNode>'()
+        Node.Builder getRootNode'getRoot< ::capnp::schema::Node>'()
+        Node.Builder initRootNode'initRoot< ::capnp::schema::Node>'()
+        AnnotationNode.Builder getRootAnnotationNode'getRoot< ::capnp::schema::AnnotationNode>'()
+        AnnotationNode.Builder initRootAnnotationNode'initRoot< ::capnp::schema::AnnotationNode>'()
+        EnumNode.Builder getRootEnumNode'getRoot< ::capnp::schema::EnumNode>'()
+        EnumNode.Builder initRootEnumNode'initRoot< ::capnp::schema::EnumNode>'()
+        StructNode.Builder getRootStructNode'getRoot< ::capnp::schema::StructNode>'()
+        StructNode.Builder initRootStructNode'initRoot< ::capnp::schema::StructNode>'()
+        Annotation.Builder getRootAnnotation'getRoot< ::capnp::schema::Annotation>'()
+        Annotation.Builder initRootAnnotation'initRoot< ::capnp::schema::Annotation>'()
         
-        DynamicStruct.Builder getRootDynamicStruct'getRoot<::capnp::DynamicStruct>'(StructSchema)
-        DynamicStruct.Builder initRootDynamicStruct'initRoot<::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct.Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct.Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
 
     cdef cppclass MessageReader:
-        CodeGeneratorRequest.Reader getRootCodeGeneratorRequest'getRoot<::capnp::schema::CodeGeneratorRequest>'()
-        InterfaceNode.Reader getRootInterfaceNode'getRoot<::capnp::schema::InterfaceNode>'()
-        Value.Reader getRootValue'getRoot<::capnp::schema::Value>'()
-        ConstNode.Reader getRootConstNode'getRoot<::capnp::schema::ConstNode>'()
-        Type.Reader getRootType'getRoot<::capnp::schema::Type>'()
-        FileNode.Reader getRootFileNode'getRoot<::capnp::schema::FileNode>'()
-        Node.Reader getRootNode'getRoot<::capnp::schema::Node>'()
-        AnnotationNode.Reader getRootAnnotationNode'getRoot<::capnp::schema::AnnotationNode>'()
-        EnumNode.Reader getRootEnumNode'getRoot<::capnp::schema::EnumNode>'()
-        StructNode.Reader getRootStructNode'getRoot<::capnp::schema::StructNode>'()
-        Annotation.Reader getRootAnnotation'getRoot<::capnp::schema::Annotation>'()
+        CodeGeneratorRequest.Reader getRootCodeGeneratorRequest'getRoot< ::capnp::schema::CodeGeneratorRequest>'()
+        InterfaceNode.Reader getRootInterfaceNode'getRoot< ::capnp::schema::InterfaceNode>'()
+        Value.Reader getRootValue'getRoot< ::capnp::schema::Value>'()
+        ConstNode.Reader getRootConstNode'getRoot< ::capnp::schema::ConstNode>'()
+        Type.Reader getRootType'getRoot< ::capnp::schema::Type>'()
+        FileNode.Reader getRootFileNode'getRoot< ::capnp::schema::FileNode>'()
+        Node.Reader getRootNode'getRoot< ::capnp::schema::Node>'()
+        AnnotationNode.Reader getRootAnnotationNode'getRoot< ::capnp::schema::AnnotationNode>'()
+        EnumNode.Reader getRootEnumNode'getRoot< ::capnp::schema::EnumNode>'()
+        StructNode.Reader getRootStructNode'getRoot< ::capnp::schema::StructNode>'()
+        Annotation.Reader getRootAnnotation'getRoot< ::capnp::schema::Annotation>'()
 
-        DynamicStruct.Reader getRootDynamicStruct'getRoot<::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct.Reader getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
     
     cdef cppclass MallocMessageBuilder(MessageBuilder):
         MallocMessageBuilder()
@@ -674,14 +674,14 @@ cdef extern from "capnp/message.h" namespace "::capnp":
     enum Void:
         VOID
 
-cdef extern from "capnp/serialize.h" namespace "::capnp":
+cdef extern from "capnp/serialize.h" namespace " ::capnp":
     cdef cppclass StreamFdMessageReader(MessageReader):
         StreamFdMessageReader(int)
         StreamFdMessageReader(int, ReaderOptions)
 
     void writeMessageToFd(int, MessageBuilder&)
 
-cdef extern from "capnp/serialize-packed.h" namespace "::capnp":
+cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
     cdef cppclass PackedFdMessageReader(MessageReader):
         PackedFdMessageReader(int)
         StreamFdMessageReader(int, ReaderOptions)

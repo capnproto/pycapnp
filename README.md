@@ -16,7 +16,7 @@ You also need a working version of the latest [Cython](http://cython.org/) insta
 
 ## Building and installation
 
-`cd` into the repo directory and run `python setup.py install`
+`cd` into the repo directory and run `python setup.py install` or `pip install .`
 
 ## Documentation/Example
 At the moment, there is no documenation, but the library is almost a 1:1 clone of the [Capnproto C++ Library](http://kentonv.github.io/capnproto/cxx.html)

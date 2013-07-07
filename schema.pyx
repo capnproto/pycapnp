@@ -28,13 +28,13 @@ ctypedef char * Object
 ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
-cdef extern from "capnp/blob.h" namespace "::capnp":
+cdef extern from "capnp/blob.h" namespace " ::capnp":
     cdef cppclass Data:
         char * begin()
         size_t size()
     cdef cppclass Text:
         char * cStr()
-cdef extern from "capnp/message.h" namespace "::capnp":
+cdef extern from "capnp/message.h" namespace " ::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
             T operator[](uint)
