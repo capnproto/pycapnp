@@ -6,7 +6,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, DynamicUnion as C_DynamicUnion, fixMaybe
+from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, DynamicUnion as C_DynamicUnion, fixMaybe, VOID
 
 from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest, Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -69,7 +69,7 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
 
 cdef class _DynamicListReader:
     cdef C_DynamicList.Reader thisptr
-    cdef init(self, C_DynamicList.Reader other):
+    cdef _init(self, C_DynamicList.Reader other):
         self.thisptr = other
         return self
 
@@ -78,7 +78,7 @@ cdef class _DynamicListReader:
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        return _DynamicValueReader().init(self.thisptr[index])
+        return _DynamicValueReader()._init(self.thisptr[index])
 
     def __getitem__(self, index):
         return self._get(index).toPython()
@@ -88,12 +88,12 @@ cdef class _DynamicListReader:
 
 cdef class _DynamicListBuilder:
     cdef C_DynamicList.Builder thisptr
-    cdef init(self, C_DynamicList.Builder other):
+    cdef _init(self, C_DynamicList.Builder other):
         self.thisptr = other
         return self
 
-    #def init(self, size):
-    #    self.thisptr.init(size)
+    #def _init(self, size):
+    #    self.thisptr._init(size)
     #    return self
 
     def __getitem__(self, index):
@@ -120,7 +120,7 @@ cdef class _DynamicListBuilder:
 
 cdef class _List_UInt64_Reader:
     cdef List[UInt64].Reader thisptr
-    cdef init(self, List[UInt64].Reader other):
+    cdef _init(self, List[UInt64].Reader other):
         self.thisptr = other
         return self
     def __getitem__(self, index):
@@ -135,7 +135,7 @@ cdef class _List_UInt64_Reader:
 
 cdef class _List_Node_Reader:
     cdef List[C_Node].Reader thisptr
-    cdef init(self, List[C_Node].Reader other):
+    cdef _init(self, List[C_Node].Reader other):
         self.thisptr = other
         return self
     def __getitem__(self, index):
@@ -150,7 +150,7 @@ cdef class _List_Node_Reader:
 
 cdef class _DynamicValueReader:
     cdef C_DynamicValue.Reader thisptr
-    cdef init(self, C_DynamicValue.Reader other):
+    cdef _init(self, C_DynamicValue.Reader other):
         self.thisptr = other
         return self
 
@@ -173,13 +173,13 @@ cdef class _DynamicValueReader:
             temp = self.thisptr.asData()
             return (<char*>temp.begin())[:temp.size()]
         elif type == capnp.TYPE_LIST:
-            return list(_DynamicListReader().init(self.thisptr.asList()))
+            return list(_DynamicListReader()._init(self.thisptr.asList()))
         elif type == capnp.TYPE_STRUCT:
-            return _DynamicStructReader().init(self.thisptr.asStruct())
+            return _DynamicStructReader()._init(self.thisptr.asStruct())
         elif type == capnp.TYPE_UNION:
-            return _DynamicUnionReader().init(self.thisptr.asUnion())
+            return _DynamicUnionReader()._init(self.thisptr.asUnion())
         elif type == capnp.TYPE_ENUM:
-            return self.thisptr.asEnum().getRaw()
+            return fixMaybe(self.thisptr.asEnum().getEnumerant()).getProto().getName().cStr()
         elif type == capnp.TYPE_VOID:
             return None
         elif type == capnp.TYPE_UNKOWN:
@@ -207,13 +207,44 @@ cdef toPython(C_DynamicValue.Builder & self):
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
     elif type == capnp.TYPE_LIST:
-        return list(_DynamicListBuilder().init(self.asList()))
+        return list(_DynamicListBuilder()._init(self.asList()))
     elif type == capnp.TYPE_STRUCT:
-        return _DynamicStructBuilder().init(self.asStruct())
+        return _DynamicStructBuilder()._init(self.asStruct())
     elif type == capnp.TYPE_UNION:
-        return _DynamicUnionBuilder().init(self.asUnion())
+        return _DynamicUnionBuilder()._init(self.asUnion())
     elif type == capnp.TYPE_ENUM:
-        return self.asEnum().getRaw()
+        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+    elif type == capnp.TYPE_VOID:
+        return None
+    elif type == capnp.TYPE_UNKOWN:
+        raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+    else:
+        raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+
+
+cdef toPythonByValue(C_DynamicValue.Builder self):
+    cdef int type = self.getType()
+    if type == capnp.TYPE_BOOL:
+        return self.asBool()
+    elif type == capnp.TYPE_INT:
+        return self.asInt()
+    elif type == capnp.TYPE_UINT:
+        return self.asUint()
+    elif type == capnp.TYPE_FLOAT:
+        return self.asDouble()
+    elif type == capnp.TYPE_TEXT:
+        return self.asText()[:]
+    elif type == capnp.TYPE_DATA:
+        temp = self.asData()
+        return (<char*>temp.begin())[:temp.size()]
+    elif type == capnp.TYPE_LIST:
+        return list(_DynamicListBuilder()._init(self.asList()))
+    elif type == capnp.TYPE_STRUCT:
+        return _DynamicStructBuilder()._init(self.asStruct())
+    elif type == capnp.TYPE_UNION:
+        return _DynamicUnionBuilder()._init(self.asUnion())
+    elif type == capnp.TYPE_ENUM:
+        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_UNKOWN:
@@ -223,12 +254,12 @@ cdef toPython(C_DynamicValue.Builder & self):
 
 cdef class _DynamicStructReader:
     cdef C_DynamicStruct.Reader thisptr
-    cdef init(self, C_DynamicStruct.Reader other):
+    cdef _init(self, C_DynamicStruct.Reader other):
         self.thisptr = other
         return self
         
     cpdef _get(self, field):
-        return _DynamicValueReader().init(self.thisptr.get(field))
+        return _DynamicValueReader()._init(self.thisptr.get(field))
 
     def __getattr__(self, field):
         return self._get(field).toPython()
@@ -238,11 +269,17 @@ cdef class _DynamicStructReader:
 
 cdef class _DynamicStructBuilder:
     cdef C_DynamicStruct.Builder thisptr
-    cdef init(self, C_DynamicStruct.Builder other):
+    cdef _init(self, C_DynamicStruct.Builder other):
         self.thisptr = other
         return self
 
     def __getattr__(self, field):
+        if field.startswith('init'):
+            field_name = field[4].lower() + field[5:]
+            try:
+                self._has(field_name) # We don't need to test bool value here, since it will throw an exception if the field is non-existant
+                return lambda size: self.init(field_name, size)
+            except ValueError: pass
         return toPython(self.thisptr.get(field))
 
     cdef _setattrInt(self, field, value):
@@ -261,6 +298,10 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<char*>value)
         self.thisptr.set(field, temp)
 
+    cdef _setattrVoid(self, field):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
+        self.thisptr.set(field, temp)
+
     def __setattr__(self, field, value):
         value_type = type(value)
         if value_type is int:
@@ -271,77 +312,119 @@ cdef class _DynamicStructBuilder:
             self._setattrBool(field, value)
         elif value_type is bytes:
             self._setattrString(field, value)
+        elif value is None:
+            self._setattrVoid(field)
         else:
             raise ValueError("Non primitive type")
 
     def _has(self, field):
         return self.thisptr.has(field)
 
+    cpdef init(self, field, size=None) except +ValueError:
+        if size is None:
+            return toPythonByValue(self.thisptr.init(field))
+        else:
+            return toPythonByValue(self.thisptr.init(field, size))
+
 cdef class _DynamicUnionReader:
     cdef C_DynamicUnion.Reader thisptr
-    cdef init(self, C_DynamicUnion.Reader other):
+    cdef _init(self, C_DynamicUnion.Reader other):
         self.thisptr = other
         return self
         
     cpdef _get(self):
-        return _DynamicValueReader().init(self.thisptr.get()).toPython()
+        return _DynamicValueReader()._init(self.thisptr.get())
 
     def __getattr__(self, field):
         return self._get().toPython() # TODO: check that the field is right?
 
     cpdef which(self):
-        return fixMaybe(self.thisptr.which()).getProto().getOrdinal()
+        return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
 cdef class _DynamicUnionBuilder:
     cdef C_DynamicUnion.Builder thisptr
-    cdef init(self, C_DynamicUnion.Builder other):
+    cdef _init(self, C_DynamicUnion.Builder other):
         self.thisptr = other
         return self
 
     def __getattr__(self, field):
         return toPython(self.thisptr.get()) # TODO: check that the field is right?
 
-    def _setattr(self, field, valid_values value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
+    cdef _setattrInt(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
+        self.thisptr.set(field, temp)
+
+    cdef _setattrDouble(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<double>value)
+        self.thisptr.set(field, temp)
+
+    cdef _setattrBool(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<bint>value)
+        self.thisptr.set(field, temp)
+
+    cdef _setattrString(self, field, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<char*>value)
+        self.thisptr.set(field, temp)
+
+    cdef _setattrVoid(self, field):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
         self.thisptr.set(field, temp)
 
     def __setattr__(self, field, value):
-        self._setattr(field, value)
+        value_type = type(value)
+        if value_type is int:
+            self._setattrInt(field, value)
+        elif value_type is float:
+            self._setattrDouble(field, value)
+        elif value_type is bool:
+            self._setattrBool(field, value)
+        elif value_type is bytes:
+            self._setattrString(field, value)
+        elif value is None:
+            self._setattrVoid(field)
+        else:
+            raise ValueError("Non primitive type")
 
     cpdef which(self):
-        return fixMaybe(self.thisptr.which()).getProto().getOrdinal()
+        return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
+
+    cpdef init(self, field, size=None) except +ValueError:
+        if size is None:
+            return toPythonByValue(self.thisptr.init(field))
+        else:
+            return toPythonByValue(self.thisptr.init(field, size))
 
 cdef class _CodeGeneratorRequestReader:
     cdef C_CodeGeneratorRequest.Reader thisptr
-    cdef init(self, C_CodeGeneratorRequest.Reader other):
+    cdef _init(self, C_CodeGeneratorRequest.Reader other):
         self.thisptr = other
         return self
         
     property nodes:
         def __get__(self):
-            return _List_Node_Reader().init(self.thisptr.getNodes())
+            return _List_Node_Reader()._init(self.thisptr.getNodes())
     property requestedFiles:
         def __get__(self):
-            return _List_UInt64_Reader().init(self.thisptr.getRequestedFiles())
+            return _List_UInt64_Reader()._init(self.thisptr.getRequestedFiles())
 
 cdef class Schema:
     cdef C_Schema thisptr
-    cdef init(self, C_Schema other):
+    cdef _init(self, C_Schema other):
         self.thisptr = other
         return self
 
     cpdef asStruct(self):
-        return StructSchema().init(self.thisptr.asStruct())
+        return StructSchema()._init(self.thisptr.asStruct())
 
     cpdef getDependency(self, id):
-        return Schema().init(self.thisptr.getDependency(id))
+        return Schema()._init(self.thisptr.getDependency(id))
 
     cpdef getProto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
 cdef class StructSchema:
     cdef C_StructSchema thisptr
-    cdef init(self, C_StructSchema other):
+    cdef _init(self, C_StructSchema other):
         self.thisptr = other
         return self
 
@@ -354,19 +437,29 @@ cdef class SchemaLoader:
         del self.thisptr
 
     cpdef load(self, _NodeReader node):
-        return Schema().init(self.thisptr.load(node.thisptr))
+        return Schema()._init(self.thisptr.load(node.thisptr))
 
     cpdef get(self, id):
-        return Schema().init(self.thisptr.get(id))
+        return Schema()._init(self.thisptr.get(id))
 
 cdef class MessageBuilder:
     cdef schema_cpp.MessageBuilder * thisptr
     def __dealloc__(self):
         del self.thisptr
-    cpdef initRoot(self, StructSchema schema):
-        return _DynamicStructBuilder().init(self.thisptr.initRootDynamicStruct(schema.thisptr))
-    cpdef getRoot(self, StructSchema schema):
-        return _DynamicStructBuilder().init(self.thisptr.getRootDynamicStruct(schema.thisptr))
+    cpdef initRoot(self, schema):
+        cdef StructSchema s
+        if hasattr(schema, 'Schema'):
+            s = schema.Schema
+        else:
+            s = schema
+        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr))
+    cpdef getRoot(self, schema):
+        cdef StructSchema s
+        if hasattr(schema, 'Schema'):
+            s = schema.Schema
+        else:
+            s = schema
+        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr))
 
 cdef class MallocMessageBuilder(MessageBuilder):
     def __cinit__(self):
@@ -379,11 +472,16 @@ cdef class MessageReader:
     cpdef getRootNode(self):
         return _NodeReader().init(self.thisptr.getRootNode())
     cpdef getRootCodeGeneratorRequest(self):
-        return _CodeGeneratorRequestReader().init(self.thisptr.getRootCodeGeneratorRequest())
+        return _CodeGeneratorRequestReader()._init(self.thisptr.getRootCodeGeneratorRequest())
     cpdef getRootDynamicStruct(self, StructSchema schema):
-        return _DynamicStructReader().init(self.thisptr.getRootDynamicStruct(schema.thisptr))
-    cpdef getRoot(self, StructSchema schema):
-        return _DynamicStructReader().init(self.thisptr.getRootDynamicStruct(schema.thisptr))
+        return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(schema.thisptr))
+    cpdef getRoot(self, schema):
+        cdef StructSchema s
+        if hasattr(schema, 'Schema'):
+            s = schema.Schema
+        else:
+            s = schema
+        return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr))
 
 cdef class StreamFdMessageReader(MessageReader):
     def __cinit__(self, int fd):
@@ -412,28 +510,24 @@ def upper_and_under(s):
     ret.append(letter)
   return ''.join(ret).upper()
 
-def make_enum(enum_name, *sequential, **named):
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = dict((value, key) for key, value in enums.iteritems())
-    enums['reverse_mapping'] = reverse
-    return type(enum_name, (), enums)
-
 from types import ModuleType
 import re
 import schema
 import subprocess
 
-def _load(module, node, loader, name = None, isUnion = False):
-    if name is None:
-        name = node.displayName
-
+def _load(module, node, loader, name, isUnion = False):
+    if name is None or len(name) == 0:
+        return
+    if name[0] == ':':
+        name = name[1:]
     local_module = module
     
     for sub_name in re.split('[:.]', name):
         new_m = local_module.__dict__.get(sub_name, ModuleType(sub_name))
+        new_m._parent_module = local_module
         local_module.__dict__[sub_name] = new_m
         local_module = new_m
-    
+    local_module._root_module = module
     for nestedNode in node.nestedNodes:
         s = loader.get(nestedNode.id)
         _load(module, s.getProto(), loader, name + ':' + nestedNode.name)
@@ -444,7 +538,7 @@ def _load(module, node, loader, name = None, isUnion = False):
     if which == schema.Node.Body.Which.enumNode:
         enum = body.enumNode
         
-        local_module.Which = make_enum(name+':Which', **{upper_and_under(e.name) : e.codeOrder for e in enum.enumerants})
+        local_module._parent_module.__dict__[sub_name] = _make_enum(name, **{upper_and_under(e.name) : e.name for e in enum.enumerants})
     elif which == schema.Node.Body.Which.structNode:
         struct = body.structNode
 
@@ -454,7 +548,7 @@ def _load(module, node, loader, name = None, isUnion = False):
                 new_m = local_module.__dict__.get(sub_name, ModuleType(sub_name))
                 local_module.__dict__[sub_name] = new_m
                 
-                new_m.Which = make_enum(sub_name+':Which', **{upper_and_under(e.name) : e.ordinal for e in member.body.unionMember.members})
+                new_m.Which = _make_enum(sub_name+':Which', **{upper_and_under(e.name) : e.name for e in member.body.unionMember.members})
 
     return local_module
 
@@ -476,7 +570,7 @@ def load(file_name, cat_path='/bin/cat'):
     
     for node in request.nodes:
         s = loader.load(node)
-        local_module = _load(module, node, loader)
+        local_module = _load(module, node, loader, name = node.displayName.replace(file_name, '', 1))
         try:
             s = s.asStruct()
             local_module.Schema = s

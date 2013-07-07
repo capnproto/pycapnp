@@ -7,6 +7,10 @@ from schema_cpp cimport Node, Data, StructNode, EnumNode
 from libc.stdint cimport *
 ctypedef unsigned int uint
 
+cdef extern from "capnp/common.h" namespace " ::capnp":
+    enum Void:
+        VOID " ::capnp::Void::VOID"
+
 cdef extern from "kj/common.h" namespace "::kj":
     cdef cppclass Maybe[T]:
         pass
@@ -94,13 +98,17 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Builder get(char *) except +ValueError
             bint has(char *) except +ValueError
             void set(char *, DynamicValueForward.Reader&) except +ValueError
+            DynamicValueForward.Builder init(char *, uint size)
+            DynamicValueForward.Builder init(char *)
 
 cdef extern from "fixMaybe.h":
     StructSchema.Member fixMaybe(Maybe[StructSchema.Member]) except+
+    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except+
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
         uint16_t getRaw()
+        Maybe[EnumSchema.Enumerant] getEnumerant()
 
     cdef cppclass DynamicUnion:
         cppclass Reader:
@@ -110,6 +118,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Builder get() except +ValueError
             Maybe[StructSchema.Member] which()
             void set(char *, DynamicValueForward.Reader&) except +ValueError
+            DynamicValueForward.Builder init(char *, uint size)
+            DynamicValueForward.Builder init(char *)
 
     cdef cppclass DynamicList:
         cppclass Reader:
@@ -124,6 +134,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicValue:
         cppclass Reader:
             Reader()
+            Reader(Void value)
             Reader(bint value)
             Reader(char value)
             Reader(short value)
