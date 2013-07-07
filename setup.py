@@ -9,12 +9,12 @@ if Cython.__version__ < '0.19.1':
     raise RuntimeError('Old cython installed. Please run `pip install -U cython`')
 
 from distutils.core import setup
+import os
 
 MAJOR = 0
 MINOR = 1
 MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-
 
 def write_version_py(filename=None):
     cnt = """\
@@ -30,6 +30,8 @@ short_version = '%s'
         a.write(cnt % (VERSION, VERSION))
     finally:
         a.close()
+
+write_version_py()
 
 setup(
     name="capnp",
