@@ -2,7 +2,7 @@
 
 ## Downloading
 
-For now, this code is only on github, although I plan to put it up on PyPi at somepoint.
+For now, this code is only on github although I plan to put it up on PyPi at somepoint.
 
 You can clone the repo like so:
 
@@ -10,12 +10,12 @@ You can clone the repo like so:
 
 ## Requirements
 
-A system-wide installation of the Capnproto C++ library, compiled with the 
--fpic flag. All you need to do is follow the official [installation docs](http://kentonv.github.io/capnproto/install.html)].
+First you need a system-wide installation of the Capnproto C++ library. All you need to do is follow the official [installation docs](http://kentonv.github.io/capnproto/install.html)].
+Also on my ubuntu 12.10 box, I had to run `sudo ldconfig` after installation to make sure the libcapnp library was picked up by the linker.
 
-You also need a working version of the latest [Cython](http://cython.org/) installed. This is easily done with:
+You also need a working version of the latest [Cython](http://cython.org/) and the latest version of setuptools. This is easily done with:
 
-    pip install 'cython >= 0.19.1'
+    pip install -U cython setuptools
 
 ## Building and installation
 
@@ -24,7 +24,7 @@ You also need a working version of the latest [Cython](http://cython.org/) insta
 ## Documentation/Example
 At the moment, there is no documenation, but the library is almost a 1:1 clone of the [Capnproto C++ Library](http://kentonv.github.io/capnproto/cxx.html)
 
-The examples has one example that shows off the capabilities quite nicely. Here it is, reproduced:
+The examples directory has one example that shows off the capabilities quite nicely. Here it is, reproduced:
 ```python
 import capnp
 addressbook = capnp.load('addressbook.capnp')
