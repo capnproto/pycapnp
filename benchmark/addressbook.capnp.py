@@ -6,6 +6,8 @@ this_dir = os.path.dirname(__file__)
 addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
 print = lambda *x: x
+
+
 def writeAddressBook(fd):
     message = capnp.MallocMessageBuilder()
     addressBook = message.initRoot(addressbook.AddressBook)

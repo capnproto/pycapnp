@@ -4,6 +4,7 @@ import os
 
 print = lambda *x: x
 
+
 def writeAddressBook(fd):
     addressBook = addressbook.AddressBook()
 
