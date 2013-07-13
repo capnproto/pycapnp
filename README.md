@@ -86,4 +86,4 @@ printAddressBook(f.fileno())
 ```
 
 ## PyPy
-There is also a preliminary branch that works for pypy. Unfortunately it requires some pretty terrible hacks to get working, so you I've left it in it's own branch. Just do `git checkout pypy` and then install like normal `pypy setup.py install` or `pip install .`. Don't forget to install dependencies beforehand with `pip install -U cython setuptools`
+There is also a preliminary branch that works for pypy. Unfortunately it requires some pretty terrible hacks to get working, so I've left it in it's own branch. Just do `git checkout pypy` and then install like normal with `pypy setup.py install` or `pip install .`. Don't forget to install dependencies beforehand with `pip install -U cython setuptools`
