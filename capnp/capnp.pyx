@@ -13,7 +13,6 @@ from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, Struc
 from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest, Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
 
-from schema cimport _NodeReader
 from libc.stdint cimport *
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
@@ -68,6 +67,22 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
         cppclass Builder:
             T operator[](uint) except +ValueError
             uint size()
+
+cdef class _NodeReader:
+    cdef C_Node.Reader thisptr
+    cdef init(self, C_Node.Reader other):
+        self.thisptr = other
+        return self
+
+    property displayName:
+        def __get__(self):
+            return self.thisptr.getDisplayName().cStr()
+    property scopeId:
+        def __get__(self):
+            return self.thisptr.getScopeId()
+    property id:
+        def __get__(self):
+            return self.thisptr.getId()
 
 cdef class _DynamicListReader:
     cdef C_DynamicList.Reader thisptr
@@ -530,11 +545,10 @@ def upper_and_under(s):
 
 from types import ModuleType
 import re
-import schema
 import subprocess
 
-def _load(module, node, loader, name, isUnion = False):
-    if name is None or len(name) == 0:
+def _load(module, node, loader, name):
+    if name is None or len(name) == 0: # This only is true for the root fileNode
         return
     if name[0] == ':':
         name = name[1:]
@@ -546,27 +560,6 @@ def _load(module, node, loader, name, isUnion = False):
         local_module.__dict__[sub_name] = new_m
         local_module = new_m
     local_module._root_module = module
-    for nestedNode in node.nestedNodes:
-        s = loader.get(nestedNode.id)
-        _load(module, s.getProto(), loader, name + ':' + nestedNode.name)
-    
-    body = node.body
-    which = body.which()
-    
-    if which == schema.Node.Body.Which.enumNode:
-        enum = body.enumNode
-        
-        local_module._parent_module.__dict__[sub_name] = _make_enum(name, **{upper_and_under(e.name) : e.name for e in enum.enumerants})
-    elif which == schema.Node.Body.Which.structNode:
-        struct = body.structNode
-
-        for member in struct.members:
-            if member.body.which() == schema.StructNode.Member.Body.Which.unionMember:
-                sub_name = capitalize(member.name)
-                new_m = local_module.__dict__.get(sub_name, ModuleType(sub_name))
-                local_module.__dict__[sub_name] = new_m
-                
-                new_m.Which = _make_enum(sub_name+':Which', **{upper_and_under(e.name) : e.name for e in member.body.unionMember.members})
 
     return local_module
 
@@ -574,9 +567,9 @@ def load(file_name, cat_path='/bin/cat'):
     p = subprocess.Popen(['capnpc', '-o'+cat_path, file_name], stdout=subprocess.PIPE)
     retcode = p.wait()
     if retcode != 0:
-        raise RuntimeError("capnpc failed for some reason")
+        raise RuntimeError("capnpc failed for some reason. Make sure `capnpc` is in your path, and that the path to cat (%s) is correct" % cat_path)
 
-    reader = schema.StreamFdMessageReader(p.stdout.fileno())
+    reader = StreamFdMessageReader(p.stdout.fileno())
     request = reader.getRootCodeGeneratorRequest()
     module = ModuleType(file_name)
     loader = SchemaLoader()
@@ -592,7 +585,7 @@ def load(file_name, cat_path='/bin/cat'):
         try:
             s = s.asStruct()
             local_module.Schema = s
-        except: pass
+        except: pass # We only need to store away StructSchemas
 
     return module
 
