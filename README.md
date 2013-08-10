@@ -10,7 +10,7 @@ You can clone the repo like so:
 
 ## Requirements
 
-First you need a system-wide installation of the Capnproto C++ library. All you need to do is follow the official [installation docs](http://kentonv.github.io/capnproto/install.html)].
+First you need a system-wide installation of the Capnproto C++ library >= 0.2. All you need to do is follow the official [installation docs](http://kentonv.github.io/capnproto/install.html)].
 Also on my ubuntu 12.10 box, I had to run `sudo ldconfig` after installation to make sure the libcapnp library was picked up by the linker.
 
 You also need a working version of the latest [Cython](http://cython.org/) and the latest version of setuptools. This is easily done with:

@@ -564,7 +564,7 @@ def _load(module, node, loader, name):
     return local_module
 
 def load(file_name, cat_path='/bin/cat'):
-    p = subprocess.Popen(['capnpc', '-o'+cat_path, file_name], stdout=subprocess.PIPE)
+    p = subprocess.Popen(['capnp', 'compile', '-o'+cat_path, file_name], stdout=subprocess.PIPE)
     retcode = p.wait()
     if retcode != 0:
         raise RuntimeError("capnpc failed for some reason. Make sure `capnpc` is in your path, and that the path to cat (%s) is correct" % cat_path)
