@@ -13,7 +13,7 @@ import os
 
 MAJOR = 0
 MINOR = 2
-MICRO = 0
+MICRO = 5
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
@@ -44,11 +44,13 @@ setup(
     name="capnp",
     packages=["capnp"],
     version=VERSION,
-    package_data={'capnp': ['*.pxd']},
-    ext_modules=cythonize('capnp/*.pyx'),
+    package_data={'capnp': ['*.pxd', '*.pyx']},
+    ext_modules=cythonize('capnp/*.pyx', language="c++"),
+    install_requires=['cython > 0.19'],
     # PyPi info
     description='A cython wrapping of the C++ capnproto library',
     long_description=long_description,
+    license='BSD',
     author="Jason Paryani",
     author_email="pypi-contact@jparyani.com",
     url = 'https://github.com/jparyani/capnpc-python-cpp',
@@ -60,8 +62,8 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX',
-        'Programming Language :: C++'
-        'Programming Language :: Cython'
+        'Programming Language :: C++',
+        'Programming Language :: Cython',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
