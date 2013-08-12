@@ -51,7 +51,7 @@ def writeAddressBook(fd):
     bobPhones[0].number = "555-4567"
     bobPhones[0].type = 'home'
     bobPhones[1].number = "555-7654" 
-    bobPhones[1].type = addressbook.Person.PhoneNumber.Type.WORK
+    bobPhones[1].type = 'work'
     bob.employment.unemployed = None
 
     capnp.writePackedMessageToFd(fd, message)
@@ -71,14 +71,14 @@ def printAddressBook(fd):
         which = person.employment.which()
         print which
 
-        if which == addressbook.Person.Employment.Which.UNEMPLOYED:
-            print 'unemployed'
-        elif which == addressbook.Person.Employment.Which.EMPLOYER:
-            print 'employer:', person.employment.employer
-        elif which == addressbook.Person.Employment.Which.SCHOOL:
-            print 'student at:', person.employment.school
-        elif which == addressbook.Person.Employment.Which.SELF_EMPLOYED:
-            print 'self employed'
+        if which == 'unemployed':
+            print('unemployed')
+        elif which == 'employer':
+            print('employer:', person.employment.employer)
+        elif which == 'school':
+            print('student at:', person.employment.school)
+        elif which == 'selfEmployed':
+            print('self employed')
         print
 
 f = open('example', 'r')
