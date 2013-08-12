@@ -1,16 +1,8 @@
 #capnpc-python-cpp
 
-## Downloading
-
-For now, this code is only on github although I plan to put it up on PyPi at somepoint.
-
-You can clone the repo like so:
-
-    git clone https://github.com/jparyani/capnpc-python-cpp.git
-
 ## Requirements
 
-First you need a system-wide installation of the Capnproto C++ library >= 0.2. All you need to do is follow the official [installation docs](http://kentonv.github.io/capnproto/install.html)].
+First you need a system-wide installation of the Capnproto C++ library >= 0.2. All you need to do is follow the official [installation docs](http://kentonv.github.io/capnproto/install.html).
 Also on my ubuntu 12.10 box, I had to run `sudo ldconfig` after installation to make sure the libcapnp library was picked up by the linker.
 
 You also need a working version of the latest [Cython](http://cython.org/) and the latest version of setuptools. This is easily done (assuming you've already installed pip):
@@ -18,6 +10,12 @@ You also need a working version of the latest [Cython](http://cython.org/) and t
     pip install -U cython setuptools
 
 ## Building and installation
+
+Install with `pip install capnp`
+
+Or you can clone the repo like so:
+
+    git clone https://github.com/jparyani/capnpc-python-cpp.git
 
 `cd` into the repo directory and run `pip install .`
 
