@@ -13,7 +13,7 @@ import os
 
 MAJOR = 0
 MINOR = 2
-MICRO = 5
+MICRO = 7
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
