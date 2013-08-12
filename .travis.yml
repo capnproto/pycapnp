@@ -12,3 +12,5 @@ install:
 matrix:
   allow_failures:
     - python: pypy
+
+script: python setup.py test
