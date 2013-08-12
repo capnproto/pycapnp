@@ -1,0 +1,14 @@
+language: python
+
+python:
+  - 2.7
+
+before_install:
+  - sudo apt-get install -qq libeigen3-dev
+
+install:
+  - pip install --editable .
+
+matrix:
+  allow_failures:
+    - python: pypy
