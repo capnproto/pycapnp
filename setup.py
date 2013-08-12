@@ -8,20 +8,12 @@ except ImportError:
 if Cython.__version__ < '0.19.1':
     raise RuntimeError('Old cython installed. Please run `pip install -U cython`')
 
-try:
-    import setuptools
-except ImportError:
-    raise RuntimeError('No setuptools installed. Please run `pip install setuptools`')
-
-if setuptools.__version__ < '.0.9.8':
-    raise RuntimeError('Old setuptools installed. Please run `pip install -U setuptools`')
-
 from distutils.core import setup
 import os
 
 MAJOR = 0
 MINOR = 2
-MICRO = 8
+MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 

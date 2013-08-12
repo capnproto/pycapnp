@@ -33,3 +33,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# Cpp files
+capnp/*.cpp
+
+capnp/version.py
+MANIFEST
