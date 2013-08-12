@@ -35,8 +35,16 @@ write_version_py()
 
 setup(
     name="capnp",
-    version=VERSION,
     packages=["capnp"],
+    version=VERSION,
     package_data={'capnp': ['*.pxd']},
-    ext_modules=cythonize('capnp/*.pyx')
+    ext_modules=cythonize('capnp/*.pyx'),
+    # PyPi info
+    description="A cython wrapping of the C++ capnproto library",
+    author="Jason Paryani",
+    author_email="pypi-contact@jparyani.com",
+    url = 'https://github.com/jparyani/capnpc-python-cpp',
+    download_url = 'https://github.com/jparyani/capnpc-python-cpp/archive/v0.2.zip',
+    keywords = ['testing', 'logging', 'example'], # arbitrary keywords
+    classifiers = [],
 )
