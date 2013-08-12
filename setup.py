@@ -16,6 +16,7 @@ MINOR = 2
 MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
+
 def write_version_py(filename=None):
     cnt = """\
 version = '%s'
@@ -33,6 +34,12 @@ short_version = '%s'
 
 write_version_py()
 
+try:
+    import pypandoc
+    long_description = pypandoc.convert('README.md', 'rst')
+except (IOError, ImportError):
+    long_description = ''
+
 setup(
     name="capnp",
     packages=["capnp"],
@@ -40,11 +47,25 @@ setup(
     package_data={'capnp': ['*.pxd']},
     ext_modules=cythonize('capnp/*.pyx'),
     # PyPi info
-    description="A cython wrapping of the C++ capnproto library",
+    description='A cython wrapping of the C++ capnproto library',
+    long_description=long_description,
     author="Jason Paryani",
     author_email="pypi-contact@jparyani.com",
     url = 'https://github.com/jparyani/capnpc-python-cpp',
     download_url = 'https://github.com/jparyani/capnpc-python-cpp/archive/v{}.zip'.format(VERSION),
-    keywords = ['testing', 'logging', 'example'], # arbitrary keywords
-    classifiers = [],
+    keywords = ['capnp', 'capnproto'],
+    classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: POSIX',
+        'Programming Language :: C++'
+        'Programming Language :: Cython'
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        # 'Programming Language :: Python :: Implementation :: PyPy'
+        'Topic :: Communications'],
 )

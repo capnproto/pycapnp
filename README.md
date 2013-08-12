@@ -25,6 +25,7 @@ You also need a working version of the latest [Cython](http://cython.org/) and t
 At the moment, there is no documenation, but the library is almost a 1:1 clone of the [Capnproto C++ Library](http://kentonv.github.io/capnproto/cxx.html)
 
 The examples directory has one example that shows off the capabilities quite nicely. Here it is, reproduced:
+
 ```python
 import capnp
 addressbook = capnp.load('addressbook.capnp')
@@ -84,6 +85,3 @@ def printAddressBook(fd):
 f = open('example', 'r')
 printAddressBook(f.fileno())
 ```
-
-## PyPy
-There is also a preliminary branch that works for pypy. Unfortunately it requires some pretty terrible hacks to get working, so I've left it in it's own branch. Just do `git checkout pypy` and then install like normal with `pypy setup.py install` or `pip install .`. Don't forget to install dependencies beforehand with `pip install -U cython setuptools`
