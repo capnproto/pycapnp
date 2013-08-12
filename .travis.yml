@@ -2,9 +2,10 @@ language: python
 
 python:
   - 2.7
+compiler: clang
 
 before_install:
-  - sudo apt-get install -qq libeigen3-dev
+  - "curl -L https://gist.github.com/jparyani/6216515/raw/a50cb02574033a14f3856dac949f83b4c0557c82/install_capnproto.sh | /bin/bash"
 
 install:
   - pip install --editable .
@@ -13,4 +14,4 @@ matrix:
   allow_failures:
     - python: pypy
 
-script: python setup.py test
+script: true
