@@ -83,3 +83,6 @@ def printAddressBook(fd):
 f = open('example', 'r')
 printAddressBook(f.fileno())
 ```
+
+[![Build Status](https://travis-ci.org/jparyani/capnpc-python-cpp.png?branch=master)](https://travis-ci.org/jparyani/capnpc-python-cpp)
+
