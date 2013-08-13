@@ -24,4 +24,4 @@ before_install:
 install:
   - pip install --editable .
 
-script: true
+script: cd examples && python example.py
