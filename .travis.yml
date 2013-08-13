@@ -4,6 +4,9 @@ python:
   - 2.7
 compiler: clang
 
+env:
+  - CXX=clang
+
 before_install:
   - "curl -L https://gist.github.com/jparyani/6216515/raw/a50cb02574033a14f3856dac949f83b4c0557c82/install_capnproto.sh | /bin/bash"
 
