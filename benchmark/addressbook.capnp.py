@@ -29,7 +29,7 @@ def writeAddressBook(fd):
     bobPhones[0].number = "555-4567"
     bobPhones[0].type = 'home'
     bobPhones[1].number = "555-7654"
-    bobPhones[1].type = addressbook.Person.PhoneNumber.Type.WORK
+    bobPhones[1].type = 'work'
 
     capnp.writePackedMessageToFd(fd, message)
 
