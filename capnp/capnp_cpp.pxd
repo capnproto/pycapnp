@@ -1,7 +1,7 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-# distutils: libraries = capnp
+# distutils: libraries = capnpc
 from schema_cpp cimport Node, Data, StructNode, EnumNode
 
 from libc.stdint cimport *
@@ -11,9 +11,18 @@ cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
         VOID " ::capnp::Void::VOID"
 
-cdef extern from "kj/common.h" namespace "::kj":
+cdef extern from "kj/string.h" namespace " ::kj":
+    cdef cppclass StringPtr:
+        StringPtr(char *)
+
+cdef extern from "kj/common.h" namespace " ::kj":
     cdef cppclass Maybe[T]:
         pass
+    cdef cppclass ArrayPtr[T]:
+        ArrayPtr()
+        ArrayPtr(T *, size_t size)
+        size_t size()
+        T& operator[](size_t index)
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
@@ -176,3 +185,10 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicUnion.Builder asUnion"as< ::capnp::DynamicUnion>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
             Data.Builder asData"as< ::capnp::Data>"()
+
+cdef extern from "capnp/schema-parser.h" namespace " ::capnp":
+    cdef cppclass ParsedSchema(Schema):
+        ParsedSchema getNested(char * name) except +
+    cdef cppclass SchemaParser:
+        SchemaParser()
+        ParsedSchema parseDiskFile(char * displayName, char * diskPath, ArrayPtr[StringPtr] importPath) except +

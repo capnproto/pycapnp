@@ -1,14 +1,14 @@
 # capnp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11 -fpermissive
-# distutils: libraries = capnp
+# distutils: libraries = capnpc
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, DynamicUnion as C_DynamicUnion, fixMaybe, VOID
+from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, DynamicUnion as C_DynamicUnion, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr
 
 from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest, Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -80,6 +80,22 @@ cdef class _NodeReader:
     property scopeId:
         def __get__(self):
             return self.thisptr.getScopeId()
+    property id:
+        def __get__(self):
+            return self.thisptr.getId()
+    property nestedNodes:
+        def __get__(self):
+            return _List_NestedNode_Reader()._init(self.thisptr.getNestedNodes())
+
+cdef class _NestedNodeReader:
+    cdef C_Node.NestedNode.Reader thisptr
+    cdef init(self, C_Node.NestedNode.Reader other):
+        self.thisptr = other
+        return self
+
+    property name:
+        def __get__(self):
+            return self.thisptr.getName().cStr()
     property id:
         def __get__(self):
             return self.thisptr.getId()
@@ -165,6 +181,21 @@ cdef class _List_Node_Reader:
             raise IndexError('Out of bounds')
         index = index % size
         return _NodeReader().init(<C_Node.Reader>self.thisptr[index])
+
+    def __len__(self):
+        return self.thisptr.size()
+
+cdef class _List_NestedNode_Reader:
+    cdef List[C_Node.NestedNode].Reader thisptr
+    cdef _init(self, List[C_Node.NestedNode].Reader other):
+        self.thisptr = other
+        return self
+    def __getitem__(self, index):
+        size = self.thisptr.size()
+        if index >= size:
+            raise IndexError('Out of bounds')
+        index = index % size
+        return _NestedNodeReader().init(<C_Node.NestedNode.Reader>self.thisptr[index])
 
     def __len__(self):
         return self.thisptr.size()
@@ -453,6 +484,24 @@ cdef class StructSchema:
         self.thisptr = other
         return self
 
+cdef class ParsedSchema:
+    cdef C_ParsedSchema thisptr
+    cdef _init(self, C_ParsedSchema other):
+        self.thisptr = other
+        return self
+
+    cpdef asStruct(self):
+        return StructSchema()._init(self.thisptr.asStruct())
+
+    cpdef getDependency(self, id):
+        return Schema()._init(self.thisptr.getDependency(id))
+
+    cpdef getProto(self):
+        return _NodeReader().init(self.thisptr.getProto())
+
+    cpdef getNested(self, name):
+        return ParsedSchema()._init(self.thisptr.getNested(name))
+
 cdef class SchemaLoader:
     cdef C_SchemaLoader * thisptr
     def __cinit__(self):
@@ -466,6 +515,23 @@ cdef class SchemaLoader:
 
     cpdef get(self, id):
         return Schema()._init(self.thisptr.get(id))
+
+cdef class SchemaParser:
+    cdef C_SchemaParser * thisptr
+    def __cinit__(self):
+        self.thisptr = new C_SchemaParser()
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    def parseDiskFile(self, displayName, diskPath):
+        cdef StringPtr * importArray = []
+        cdef ArrayPtr[StringPtr] imports = ArrayPtr[StringPtr](importArray, <size_t>0)
+
+        ret = ParsedSchema()
+        ret._init(self.thisptr.parseDiskFile(displayName, diskPath, imports))
+
+        return ret
 
 cdef class MessageBuilder:
     cdef schema_cpp.MessageBuilder * thisptr
@@ -544,48 +610,35 @@ def upper_and_under(s):
   return ''.join(ret).upper()
 
 from types import ModuleType
-import re
-import subprocess
+import os
 
-def _load(module, node, loader, name):
-    if name is None or len(name) == 0: # This only is true for the root fileNode
-        return
-    if name[0] == ':':
-        name = name[1:]
-    local_module = module
-    
-    for sub_name in re.split(u'[:.]', name):
-        new_m = local_module.__dict__.get(sub_name, ModuleType(sub_name))
-        new_m._parent_module = local_module
-        local_module.__dict__[sub_name] = new_m
-        local_module = new_m
-    local_module._root_module = module
+def _load(nodeSchema, module):
+    module._nodeSchema = nodeSchema
+    nodeProto = nodeSchema.getProto()
+    module._nodeProto = nodeProto
 
-    return local_module
+    for node in nodeProto.nestedNodes:
+        local_module = ModuleType(node.name)
+        module.__dict__[node.name] = local_module
 
-def load(file_name, cat_path='/bin/cat'):
-    p = subprocess.Popen(['capnp', 'compile', '-o'+cat_path, file_name], stdout=subprocess.PIPE)
-    retcode = p.wait()
-    if retcode != 0:
-        raise RuntimeError("capnpc failed for some reason. Make sure `capnpc` is in your path, and that the path to cat (%s) is correct" % cat_path)
-
-    reader = StreamFdMessageReader(p.stdout.fileno())
-    request = reader.getRootCodeGeneratorRequest()
-    module = ModuleType(file_name)
-    loader = SchemaLoader()
-
-    module._loader = loader
-    
-    for node in request.nodes:
-        loader.load(node)
-    
-    for node in request.nodes:
-        s = loader.load(node)
-        local_module = _load(module, node, loader, name = node.displayName.replace(file_name, '', 1))
+        schema = nodeSchema.getNested(node.name)
         try:
-            s = s.asStruct()
+            s = schema.asStruct()
             local_module.Schema = s
-        except: pass # We only need to store away StructSchemas
+        except: pass
+        _load(schema, local_module)
+
+
+def load(file_name, display_name=None):
+    if display_name is None:
+        display_name = os.path.basename(file_name)
+    module = ModuleType(display_name)
+    parser = SchemaParser()
+
+    module._parser = parser
+
+    fileSchema = parser.parseDiskFile(display_name, file_name)
+    _load(fileSchema, module)
 
     return module
 
