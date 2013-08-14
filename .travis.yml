@@ -17,7 +17,7 @@ before_install:
                                      --slave   /usr/bin/g++  g++  /usr/bin/g++-4.8
                                      --slave   /usr/bin/gcov gcov /usr/bin/gcov-4.8
   - sudo update-alternatives --quiet --set gcc /usr/bin/gcc-4.8
-  - "https://gist.github.com/jparyani/6216515/raw/bd1d53a598e104489179d1a345b1ebf7bc1cdc73/install_capnproto.sh | /bin/bash"
+  - wget https://github.com/kentonv/capnproto/archive/master.zip && unzip master.zip && cd capnproto-master/c++ && ./setup-autotools.sh && autoreconf -i && make -j6 check && sudo make install && sudo ldconfig
   - pip install -U setuptools
   - pip install cython
 
