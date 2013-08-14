@@ -28,6 +28,7 @@ ctypedef char * Object
 ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
+from libc.stdlib cimport malloc, free
 
 ctypedef fused valid_values:
     int
@@ -524,12 +525,18 @@ cdef class SchemaParser:
     def __dealloc__(self):
         del self.thisptr
 
-    def parseDiskFile(self, displayName, diskPath):
-        cdef StringPtr * importArray = []
-        cdef ArrayPtr[StringPtr] imports = ArrayPtr[StringPtr](importArray, <size_t>0)
+    def parseDiskFile(self, displayName, diskPath, imports):
+        cdef StringPtr * importArray = <StringPtr *>malloc(sizeof(StringPtr) * len(imports))
+
+        for i in range(len(imports)):
+            importArray[i] = StringPtr(imports[i])
+
+        cdef ArrayPtr[StringPtr] importsPtr = ArrayPtr[StringPtr](importArray, <size_t>len(imports))
 
         ret = ParsedSchema()
-        ret._init(self.thisptr.parseDiskFile(displayName, diskPath, imports))
+        ret._init(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
+
+        free(importArray)
 
         return ret
 
@@ -629,7 +636,7 @@ def _load(nodeSchema, module):
         _load(schema, local_module)
 
 
-def load(file_name, display_name=None):
+def load(file_name, display_name=None, imports=[]):
     if display_name is None:
         display_name = os.path.basename(file_name)
     module = ModuleType(display_name)
@@ -637,7 +644,7 @@ def load(file_name, display_name=None):
 
     module._parser = parser
 
-    fileSchema = parser.parseDiskFile(display_name, file_name)
+    fileSchema = parser.parseDiskFile(display_name, file_name, imports)
     _load(fileSchema, module)
 
     return module
