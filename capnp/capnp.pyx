@@ -176,6 +176,7 @@ cdef class _List_Node_Reader:
     cdef _init(self, List[C_Node].Reader other):
         self.thisptr = other
         return self
+
     def __getitem__(self, index):
         size = self.thisptr.size()
         if index >= size:
@@ -191,6 +192,7 @@ cdef class _List_NestedNode_Reader:
     cdef _init(self, List[C_Node.NestedNode].Reader other):
         self.thisptr = other
         return self
+
     def __getitem__(self, index):
         size = self.thisptr.size()
         if index >= size:
@@ -599,22 +601,9 @@ cdef class PackedFdMessageReader(MessageReader):
 
 def writeMessageToFd(int fd, MessageBuilder m):
     schema_cpp.writeMessageToFd(fd, deref(m.thisptr))
+
 def writePackedMessageToFd(int fd, MessageBuilder m):
     schema_cpp.writePackedMessageToFd(fd, deref(m.thisptr))
-
-def capitalize(s):
-  if len(s) < 2:
-    return s
-  return s[0].upper() + s[1:]
-def upper_and_under(s):
-  if len(s) < 2:
-    return s
-  ret = [s[0]]
-  for letter in s[1:]:
-    if letter.isupper():
-      ret.append(u'_')
-    ret.append(letter)
-  return ''.join(ret).upper()
 
 from types import ModuleType
 import os
@@ -630,11 +619,11 @@ def _load(nodeSchema, module):
 
         schema = nodeSchema.getNested(node.name)
         try:
-            s = schema.asStruct()
-            local_module.Schema = s
-        except: pass
-        _load(schema, local_module)
+            local_module.Schema = schema.asStruct()
+        except:
+            pass
 
+        _load(schema, local_module)
 
 def load(file_name, display_name=None, imports=[]):
     if display_name is None:
@@ -648,4 +637,3 @@ def load(file_name, display_name=None, imports=[]):
     _load(fileSchema, module)
 
     return module
-
