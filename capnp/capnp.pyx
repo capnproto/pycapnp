@@ -8,7 +8,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, DynamicUnion as C_DynamicUnion, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr
+from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, DynamicUnion as C_DynamicUnion, fixMaybe, fixMaybeUnion, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr
 
 from schema_cpp cimport CodeGeneratorRequest as C_CodeGeneratorRequest, Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -278,7 +278,6 @@ cdef toPython(C_DynamicValue.Builder & self, object parent):
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
-
 cdef toPythonByValue(C_DynamicValue.Builder self, object parent):
     cdef int type = self.getType()
     if type == capnp.TYPE_BOOL:
@@ -309,6 +308,12 @@ cdef toPythonByValue(C_DynamicValue.Builder self, object parent):
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
+cdef getWhichReader(C_DynamicValue.Reader & val):
+    return fixMaybe(val.asUnion().which()).getProto().getName().cStr()
+
+cdef getWhichBuilder(C_DynamicValue.Builder & val):
+    return fixMaybe(val.asUnion().which()).getProto().getName().cStr()
+
 cdef class _DynamicStructReader:
     cdef C_DynamicStruct.Reader thisptr
     cdef public object _parent
@@ -325,6 +330,14 @@ cdef class _DynamicStructReader:
 
     def _has(self, field):
         return self.thisptr.has(field)
+
+    cpdef which(self):
+        try:
+            union = fixMaybeUnion(self.thisptr.getSchema().getUnnamedUnion())
+        except:
+            raise TypeError("This struct has no unnamed enums. You cannot call which on it")
+
+        return getWhichReader(self.thisptr.getByUnion(union))
 
 cdef class _DynamicStructBuilder:
     cdef C_DynamicStruct.Builder thisptr
@@ -380,6 +393,14 @@ cdef class _DynamicStructBuilder:
             return toPythonByValue(self.thisptr.init(field), self._parent)
         else:
             return toPythonByValue(self.thisptr.init(field, size), self._parent)
+
+    cpdef which(self):
+        try:
+            union = fixMaybeUnion(self.thisptr.getSchema().getUnnamedUnion())
+        except:
+            raise TypeError("This struct has no unnamed enums. You cannot call which on it")
+
+        return getWhichBuilder(self.thisptr.getByUnion(union))
 
 cdef class _DynamicUnionReader:
     cdef C_DynamicUnion.Reader thisptr

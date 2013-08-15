@@ -55,6 +55,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         Node.Reader getProto()
         MemberList getMembers()
         Member getMemberByName(char * name)
+        Maybe[StructSchema.Union] getUnnamedUnion()
 
     cdef cppclass EnumSchema:
         cppclass Enumerant:
@@ -102,16 +103,21 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicStruct:
         cppclass Reader:
             DynamicValueForward.Reader get(char *) except +ValueError
+            DynamicValueForward.Reader getByUnion'get'(StructSchema.Union member) except +ValueError
             bint has(char *) except +ValueError
+            StructSchema getSchema()
         cppclass Builder:
             DynamicValueForward.Builder get(char *) except +ValueError
+            DynamicValueForward.Builder getByUnion'get'(StructSchema.Union member) except +ValueError
             bint has(char *) except +ValueError
             void set(char *, DynamicValueForward.Reader&) except +ValueError
             DynamicValueForward.Builder init(char *, uint size)
             DynamicValueForward.Builder init(char *)
+            StructSchema getSchema()
 
 cdef extern from "fixMaybe.h":
     StructSchema.Member fixMaybe(Maybe[StructSchema.Member]) except+
+    StructSchema.Union fixMaybeUnion'fixMaybe'(Maybe[StructSchema.Union]) except+
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except+
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
