@@ -46,7 +46,9 @@ setup(
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.pyx', '*.h']},
     ext_modules=cythonize('capnp/*.pyx', language="c++"),
-    install_requires=['cython > 0.19'],
+    install_requires=[
+        'cython > 0.19',
+        'setuptools >= 0.8'],
     # PyPi info
     description='A cython wrapping of the C++ capnproto library',
     long_description=long_description,
