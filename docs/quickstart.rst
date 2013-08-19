@@ -8,7 +8,7 @@ This assumes you already have the capnp library installed. If you don't, please 
 In general, this library is a very light wrapping of the `Capnproto C++ library <http://kentonv.github.io/capnproto/cxx.html>`_. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.
 
 Load a Capnproto Schema
--------------
+------------------------
 
 First you need to import the library::
     
@@ -54,7 +54,7 @@ For future reference, here is the capnproto schema. Also available in the github
     }
 
 Build a message
--------------
+------------------
 
 Message Builder
 ~~~~~~~~~~~~~~~~~~~
@@ -64,7 +64,7 @@ First you need to allocate a MessageBuilder for your message to go in. There is 
     message = capnp.MallocMessageBuilder()
 
 Initialize a New Capnproto Object
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
@@ -143,7 +143,7 @@ For now, the only way to serialize a message is to write it directly to a file d
 Note the call to fileno(), since it expects a raw file descriptor. There is also `writeMessageToFd` instead of `writePackedMessageToFd`. Make sure your reader uses the same packing type.
 
 Read a message
--------------
+-----------------
 
 Reading from a file
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -154,7 +154,7 @@ Much like before, you will have to de-serialize the message from a file descript
     message = capnp.PackedFdMessageReader(f.fileno())
 
 Initialize a New Capnproto Object
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Just like when building, you have to actually specify which message you want to read out of buffer::
 
