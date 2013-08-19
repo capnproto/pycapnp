@@ -28,7 +28,7 @@ def writeAddressBook(fd):
     bobPhones[0].type = 'home'
     bobPhones[1].number = "555-7654"
     bobPhones[1].type = 'work'
-    bob.employment.unemployed = None  # This is definitely bad, syntax will change at some point
+    bob.employment.unemployed = None
 
     capnp.writePackedMessageToFd(fd, message)
 
