@@ -130,6 +130,7 @@ For the most part, you just treat them like structs::
 Now the `school` field is the active part of the union, and we've assigned `'MIT'` to it. You can query which field is set in a union with `which()`, shown in `Reading Unions`_
 
 Also, one weird case is for Void types in Unions (and in general, but Void is really only used in Unions). For these, you will have to assign `None` to them::
+
     bob.employment.unemployed = None 
 
 Writing to a File
