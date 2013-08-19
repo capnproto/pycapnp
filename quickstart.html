@@ -173,10 +173,10 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </pre></div>
 </div>
 <p>Now the <cite>school</cite> field is the active part of the union, and we&#8217;ve assigned <cite>&#8216;MIT&#8217;</cite> to it. You can query which field is set in a union with <cite>which()</cite>, shown in <a class="reference internal" href="#reading-unions">Reading Unions</a></p>
-<dl class="docutils">
-<dt>Also, one weird case is for Void types in Unions (and in general, but Void is really only used in Unions). For these, you will have to assign <cite>None</cite> to them::</dt>
-<dd>bob.employment.unemployed = None</dd>
-</dl>
+<p>Also, one weird case is for Void types in Unions (and in general, but Void is really only used in Unions). For these, you will have to assign <cite>None</cite> to them:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">bob</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">unemployed</span> <span class="o">=</span> <span class="bp">None</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="writing-to-a-file">
 <h3>Writing to a File<a class="headerlink" href="#writing-to-a-file" title="Permalink to this headline">¶</a></h3>
