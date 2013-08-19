@@ -1,0 +1,179 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>API Reference &mdash; capnp 0.2.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="capnp 0.2.1 documentation" href="index.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="quickstart.html" title="Quickstart"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">capnp 0.2.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-capnp">
+<span id="api-reference"></span><span id="api"></span><h1>API Reference<a class="headerlink" href="#module-capnp" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="capnp.load">
+<tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="capnp.writeMessageToFd">
+<tt class="descclassname">capnp.</tt><tt class="descname">writeMessageToFd</tt><big>(</big><em>int fd</em>, <em>MessageBuilder m</em><big>)</big><a class="headerlink" href="#capnp.writeMessageToFd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="capnp.writePackedMessageToFd">
+<tt class="descclassname">capnp.</tt><tt class="descname">writePackedMessageToFd</tt><big>(</big><em>int fd</em>, <em>MessageBuilder m</em><big>)</big><a class="headerlink" href="#capnp.writePackedMessageToFd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="readers">
+<h2>Readers<a class="headerlink" href="#readers" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="capnp.StreamFdMessageReader">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">StreamFdMessageReader</tt><a class="headerlink" href="#capnp.StreamFdMessageReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>StreamFdMessageReader(int fd)</p>
+<dl class="method">
+<dt id="capnp.StreamFdMessageReader.getRoot">
+<tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.StreamFdMessageReader.getRoot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp.PackedFdMessageReader">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">PackedFdMessageReader</tt><a class="headerlink" href="#capnp.PackedFdMessageReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>PackedFdMessageReader(int fd)</p>
+<dl class="method">
+<dt id="capnp.PackedFdMessageReader.getRoot">
+<tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.PackedFdMessageReader.getRoot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="writers">
+<h2>Writers<a class="headerlink" href="#writers" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="capnp.MallocMessageBuilder">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">MallocMessageBuilder</tt><a class="headerlink" href="#capnp.MallocMessageBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>MallocMessageBuilder()</p>
+<dl class="method">
+<dt id="capnp.MallocMessageBuilder.getRoot">
+<tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MallocMessageBuilder.getRoot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="capnp.MallocMessageBuilder.initRoot">
+<tt class="descname">initRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MallocMessageBuilder.initRoot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">API Reference</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#readers">Readers</a></li>
+<li><a class="reference internal" href="#writers">Writers</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="quickstart.html"
+                        title="previous chapter">Quickstart</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/capnp.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="quickstart.html" title="Quickstart"
+             >previous</a> |</li>
+        <li><a href="index.html">capnp 0.2.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Author.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

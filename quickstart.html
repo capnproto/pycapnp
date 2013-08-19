@@ -1,0 +1,400 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Quickstart &mdash; capnp 0.2.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="capnp 0.2.1 documentation" href="index.html" />
+    <link rel="next" title="API Reference" href="capnp.html" />
+    <link rel="prev" title="Installation" href="install.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="capnp.html" title="API Reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Installation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">capnp 0.2.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="quickstart">
+<span id="id1"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
+<p>This assumes you already have the capnp library installed. If you don&#8217;t, please follow the instructions at <a class="reference internal" href="install.html#install"><em>Installation</em></a> first.</p>
+<p>In general, this library is a very light wrapping of the <a class="reference external" href="http://kentonv.github.io/capnproto/cxx.html">Capnproto C++ library</a>. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.</p>
+<div class="section" id="load-a-capnproto-schema">
+<h2>Load a Capnproto Schema<a class="headerlink" href="#load-a-capnproto-schema" title="Permalink to this headline">¶</a></h2>
+<p>First you need to import the library:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
+</pre></div>
+</div>
+<p>Then you can load the Capnproto schema with:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For future reference, here is the capnproto schema. Also available in the github repository under examples/addressbook.capnp:</p>
+<div class="highlight-python"><pre># addressbook.capnp
+0x934efea7f017fff0;
+
+struct Person {
+  id @0 :UInt32;
+  name @1 :Text;
+  email @2 :Text;
+  phones @3 :List(PhoneNumber);
+
+  struct PhoneNumber {
+    number @0 :Text;
+    type @1 :Type;
+
+    enum Type {
+      mobile @0;
+      home @1;
+      work @2;
+    }
+  }
+
+  employment @4 union {
+    unemployed @5 :Void;
+    employer @6 :Text;
+    school @7 :Text;
+    selfEmployed @8 :Void;
+    # We assume that a person is only one of these.
+  }
+}
+
+struct AddressBook {
+  people @0 :List(Person);
+}</pre>
+</div>
+</div>
+<div class="section" id="build-a-message">
+<h2>Build a message<a class="headerlink" href="#build-a-message" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="message-builder">
+<h3>Message Builder<a class="headerlink" href="#message-builder" title="Permalink to this headline">¶</a></h3>
+<p>First you need to allocate a MessageBuilder for your message to go in. There is only 1 message allocator available at the moment (Malloc), although there may be more varied kinds in the future:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="initialize-a-new-capnproto-object">
+<h3>Initialize a New Capnproto Object<a class="headerlink" href="#initialize-a-new-capnproto-object" title="Permalink to this headline">¶</a></h3>
+<p>Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Notice that we used <cite>addressbook</cite> from the previous section: <a class="reference internal" href="#load-a-capnproto-schema">Load a Capnproto Schema</a>.</p>
+</div>
+<div class="section" id="list">
+<h3>List<a class="headerlink" href="#list" title="Permalink to this headline">¶</a></h3>
+<p>Allocating a list inside of an object requires use of the <cite>init</cite> function:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For now, let&#8217;s grab the first element out of this list and assign it to a variable named <cite>alice</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="primitive-types">
+<h3>Primitive Types<a class="headerlink" href="#primitive-types" title="Permalink to this headline">¶</a></h3>
+<p>For all primitive types, from the Capnproto docs:</p>
+<ul class="simple">
+<li>Boolean: Bool</li>
+<li>Integers: Int8, Int16, Int32, Int64</li>
+<li>Unsigned integers: UInt8, UInt16, UInt32, UInt64</li>
+<li>Floating-point: Float32, Float64</li>
+<li>Blobs: Text, Data</li>
+</ul>
+<p>You can just assign straight to the variable with the corresponding Python type. For Blobs, you just use strings. Assignment happens just by using the <cite>.</cite> syntax on the object you contstructed above:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Alice&#39;</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s">&#39;alice@example.com&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="enums">
+<h3>Enums<a class="headerlink" href="#enums" title="Permalink to this headline">¶</a></h3>
+<p>First we&#8217;ll allocate a length one list of phonenumbers for <cite>alice</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alicePhone</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Note that even though it was a length 1 list, it was still a list that was returned, and we extracted the first (and only) element with <cite>[0]</cite>.</p>
+<p>Now, enums are treated like strings, and you just assign to them like there were a Text field:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alicePhone</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;mobile&#39;</span>
+</pre></div>
+</div>
+<p>If you assign an invalid value to one, you will get a ValueError:</p>
+<div class="highlight-python"><pre>alicePhone.type = 'foo'
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+...
+ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enumerant; name = foo</pre>
+</div>
+</div>
+<div class="section" id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this headline">¶</a></h3>
+<p>For the most part, you just treat them like structs:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span> <span class="o">=</span> <span class="s">&quot;MIT&quot;</span>
+</pre></div>
+</div>
+<p>Now the <cite>school</cite> field is the active part of the union, and we&#8217;ve assigned <cite>&#8216;MIT&#8217;</cite> to it. You can query which field is set in a union with <cite>which()</cite>, shown in <a class="reference internal" href="#reading-unions">Reading Unions</a></p>
+<dl class="docutils">
+<dt>Also, one weird case is for Void types in Unions (and in general, but Void is really only used in Unions). For these, you will have to assign <cite>None</cite> to them::</dt>
+<dd>bob.employment.unemployed = None</dd>
+</dl>
+</div>
+<div class="section" id="writing-to-a-file">
+<h3>Writing to a File<a class="headerlink" href="#writing-to-a-file" title="Permalink to this headline">¶</a></h3>
+<p>For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">capnp</span><span class="o">.</span><span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note the call to fileno(), since it expects a raw file descriptor. There is also <cite>writeMessageToFd</cite> instead of <cite>writePackedMessageToFd</cite>. Make sure your reader uses the same packing type.</p>
+</div>
+</div>
+<div class="section" id="read-a-message">
+<h2>Read a message<a class="headerlink" href="#read-a-message" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="reading-from-a-file">
+<h3>Reading from a file<a class="headerlink" href="#reading-from-a-file" title="Permalink to this headline">¶</a></h3>
+<p>Much like before, you will have to de-serialize the message from a file descriptor:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>Initialize a New Capnproto Object<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>Just like when building, you have to actually specify which message you want to read out of buffer:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel, wrap all your types in an unnamed enum, or you need some out of band method for communicating what type a message is. Unnamed unions are defined in the .capnp file like so:</p>
+<div class="highlight-python"><pre>struct Message {
+    union {
+      person @0 :Person;
+      addressbook @1 :AddressBook;
+    }
+}</pre>
+</div>
+</div>
+<div class="section" id="reading-fields">
+<h3>Reading Fields<a class="headerlink" href="#reading-fields" title="Permalink to this headline">¶</a></h3>
+<p>Fields are very easy to read. You just use the <cite>.</cite> syntax as before. Lists behave just like normal Python lists:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reading-unions">
+<h3>Reading Unions<a class="headerlink" href="#reading-unions" title="Permalink to this headline">¶</a></h3>
+<p>The only tricky one is unions, where you need to call <cite>.which()</cite> to determine the union type. The <cite>.which()</cite> call returns an enum, ie. a string, corresponding to the field name:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">which</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
+<span class="k">print</span><span class="p">(</span><span class="n">which</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;unemployed&#39;</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;unemployed&#39;</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;employer&#39;</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;employer:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;school&#39;</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;student at:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;selfEmployed&#39;</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;self employed&#39;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="full-example">
+<h2>Full Example<a class="headerlink" href="#full-example" title="Permalink to this headline">¶</a></h2>
+<p>Here is a full example reproduced from <a class="reference external" href="https://github.com/jparyani/capnpc-python-cpp/blob/master/examples/example.py">examples/example.py</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">capnp</span>
+
+<span class="n">this_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">)</span>
+<span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">this_dir</span><span class="p">,</span> <span class="s">&#39;addressbook.capnp&#39;</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">writeAddressBook</span><span class="p">(</span><span class="n">fd</span><span class="p">):</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+    <span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+    <span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">alice</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">123</span>
+    <span class="n">alice</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Alice&#39;</span>
+    <span class="n">alice</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s">&#39;alice@example.com&#39;</span>
+    <span class="n">alicePhones</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">alicePhones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">number</span> <span class="o">=</span> <span class="s">&quot;555-1212&quot;</span>
+    <span class="n">alicePhones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;mobile&#39;</span>
+    <span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span> <span class="o">=</span> <span class="s">&quot;MIT&quot;</span>
+
+    <span class="n">bob</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">bob</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">456</span>
+    <span class="n">bob</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Bob&#39;</span>
+    <span class="n">bob</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s">&#39;bob@example.com&#39;</span>
+    <span class="n">bobPhones</span> <span class="o">=</span> <span class="n">bob</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">bobPhones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">number</span> <span class="o">=</span> <span class="s">&quot;555-4567&quot;</span>
+    <span class="n">bobPhones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;home&#39;</span>
+    <span class="n">bobPhones</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">number</span> <span class="o">=</span> <span class="s">&quot;555-7654&quot;</span>
+    <span class="n">bobPhones</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;work&#39;</span>
+    <span class="n">bob</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">unemployed</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="n">capnp</span><span class="o">.</span><span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">printAddressBook</span><span class="p">(</span><span class="n">fd</span><span class="p">):</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+    <span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+
+        <span class="n">which</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">which</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;unemployed&#39;</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;unemployed&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;employer&#39;</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;employer:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;school&#39;</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;student at:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;selfEmployed&#39;</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;self employed&#39;</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">writeAddressBook</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example&#39;</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">printAddressBook</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Quickstart</a><ul>
+<li><a class="reference internal" href="#load-a-capnproto-schema">Load a Capnproto Schema</a></li>
+<li><a class="reference internal" href="#build-a-message">Build a message</a><ul>
+<li><a class="reference internal" href="#message-builder">Message Builder</a></li>
+<li><a class="reference internal" href="#initialize-a-new-capnproto-object">Initialize a New Capnproto Object</a></li>
+<li><a class="reference internal" href="#list">List</a></li>
+<li><a class="reference internal" href="#primitive-types">Primitive Types</a></li>
+<li><a class="reference internal" href="#enums">Enums</a></li>
+<li><a class="reference internal" href="#unions">Unions</a></li>
+<li><a class="reference internal" href="#writing-to-a-file">Writing to a File</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#read-a-message">Read a message</a><ul>
+<li><a class="reference internal" href="#reading-from-a-file">Reading from a file</a></li>
+<li><a class="reference internal" href="#id2">Initialize a New Capnproto Object</a></li>
+<li><a class="reference internal" href="#reading-fields">Reading Fields</a></li>
+<li><a class="reference internal" href="#reading-unions">Reading Unions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#full-example">Full Example</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="install.html"
+                        title="previous chapter">Installation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="capnp.html"
+                        title="next chapter">API Reference</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/quickstart.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="capnp.html" title="API Reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Installation"
+             >previous</a> |</li>
+        <li><a href="index.html">capnp 0.2.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Author.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
