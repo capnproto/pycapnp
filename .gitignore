@@ -39,3 +39,4 @@ capnp/*.cpp
 
 capnp/version.py
 MANIFEST
+docs/_build
