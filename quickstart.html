@@ -56,18 +56,18 @@
   <div class="section" id="quickstart">
 <span id="id1"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
 <p>This assumes you already have the capnp library installed. If you don&#8217;t, please follow the instructions at <a class="reference internal" href="install.html#install"><em>Installation</em></a> first.</p>
-<p>In general, this library is a very light wrapping of the <a class="reference external" href="http://kentonv.github.io/capnproto/cxx.html">Capnproto C++ library</a>. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.</p>
-<div class="section" id="load-a-capnproto-schema">
-<h2>Load a Capnproto Schema<a class="headerlink" href="#load-a-capnproto-schema" title="Permalink to this headline">¶</a></h2>
+<p>In general, this library is a very light wrapping of the <a class="reference external" href="http://kentonv.github.io/capnproto/cxx.html">Cap&#8217;n Proto C++ library</a>. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.</p>
+<div class="section" id="load-a-cap-n-proto-schema">
+<h2>Load a Cap&#8217;n Proto Schema<a class="headerlink" href="#load-a-cap-n-proto-schema" title="Permalink to this headline">¶</a></h2>
 <p>First you need to import the library:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
 </pre></div>
 </div>
-<p>Then you can load the Capnproto schema with:</p>
+<p>Then you can load the Cap&#8217;n Proto schema with:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>For future reference, here is the capnproto schema. Also available in the github repository under examples/addressbook.capnp:</p>
+<p>For future reference, here is the Cap&#8217;n Proto schema. Also available in the github repository under examples/addressbook.capnp:</p>
 <div class="highlight-python"><pre># addressbook.capnp
 0x934efea7f017fff0;
 
@@ -111,13 +111,13 @@ struct AddressBook {
 </pre></div>
 </div>
 </div>
-<div class="section" id="initialize-a-new-capnproto-object">
-<h3>Initialize a New Capnproto Object<a class="headerlink" href="#initialize-a-new-capnproto-object" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="initialize-a-new-cap-n-proto-object">
+<h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#initialize-a-new-cap-n-proto-object" title="Permalink to this headline">¶</a></h3>
 <p>Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Notice that we used <cite>addressbook</cite> from the previous section: <a class="reference internal" href="#load-a-capnproto-schema">Load a Capnproto Schema</a>.</p>
+<p>Notice that we used <cite>addressbook</cite> from the previous section: <a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a>.</p>
 </div>
 <div class="section" id="list">
 <h3>List<a class="headerlink" href="#list" title="Permalink to this headline">¶</a></h3>
@@ -132,7 +132,7 @@ struct AddressBook {
 </div>
 <div class="section" id="primitive-types">
 <h3>Primitive Types<a class="headerlink" href="#primitive-types" title="Permalink to this headline">¶</a></h3>
-<p>For all primitive types, from the Capnproto docs:</p>
+<p>For all primitive types, from the Cap&#8217;n Proto docs:</p>
 <ul class="simple">
 <li>Boolean: Bool</li>
 <li>Integers: Int8, Int16, Int32, Int64</li>
@@ -199,7 +199,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 </div>
 <div class="section" id="id2">
-<h3>Initialize a New Capnproto Object<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <p>Just like when building, you have to actually specify which message you want to read out of buffer:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
 </pre></div>
@@ -323,10 +323,10 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Quickstart</a><ul>
-<li><a class="reference internal" href="#load-a-capnproto-schema">Load a Capnproto Schema</a></li>
+<li><a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a></li>
 <li><a class="reference internal" href="#build-a-message">Build a message</a><ul>
 <li><a class="reference internal" href="#message-builder">Message Builder</a></li>
-<li><a class="reference internal" href="#initialize-a-new-capnproto-object">Initialize a New Capnproto Object</a></li>
+<li><a class="reference internal" href="#initialize-a-new-cap-n-proto-object">Initialize a New Cap&#8217;n Proto Object</a></li>
 <li><a class="reference internal" href="#list">List</a></li>
 <li><a class="reference internal" href="#primitive-types">Primitive Types</a></li>
 <li><a class="reference internal" href="#enums">Enums</a></li>
@@ -336,7 +336,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </li>
 <li><a class="reference internal" href="#read-a-message">Read a message</a><ul>
 <li><a class="reference internal" href="#reading-from-a-file">Reading from a file</a></li>
-<li><a class="reference internal" href="#id2">Initialize a New Capnproto Object</a></li>
+<li><a class="reference internal" href="#id2">Initialize a New Cap&#8217;n Proto Object</a></li>
 <li><a class="reference internal" href="#reading-fields">Reading Fields</a></li>
 <li><a class="reference internal" href="#reading-unions">Reading Unions</a></li>
 </ul>

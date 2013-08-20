@@ -3,7 +3,7 @@
 Welcome to capnp's documentation!
 =================================
 
-This is a python wrapping of the C++ implementation of the `Capnproto <http://kentonv.github.io/capnproto/>`_ library. Here is a description, quoted from its docs:
+This is a python wrapping of the C++ implementation of the `Cap'n Proto <http://kentonv.github.io/capnproto/>`_ library. Here is a description, quoted from its docs:
     
     Cap’n Proto is an insanely fast data interchange format and capability-based RPC system. Think JSON, except binary. Or think Protocol Buffers, except faster. In fact, in benchmarks, Cap’n Proto is INFINITY TIMES faster than Protocol Buffers.
 
