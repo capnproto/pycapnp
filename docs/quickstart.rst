@@ -5,20 +5,20 @@ Quickstart
 
 This assumes you already have the capnp library installed. If you don't, please follow the instructions at :ref:`Installation <install>` first.
 
-In general, this library is a very light wrapping of the `Capnproto C++ library <http://kentonv.github.io/capnproto/cxx.html>`_. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.
+In general, this library is a very light wrapping of the `Cap'n Proto C++ library <http://kentonv.github.io/capnproto/cxx.html>`_. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.
 
-Load a Capnproto Schema
+Load a Cap'n Proto Schema
 ------------------------
 
 First you need to import the library::
     
     import capnp
 
-Then you can load the Capnproto schema with::
+Then you can load the Cap'n Proto schema with::
 
     capnp.load('addressbook.capnp')
 
-For future reference, here is the capnproto schema. Also available in the github repository under examples/addressbook.capnp::
+For future reference, here is the Cap'n Proto schema. Also available in the github repository under examples/addressbook.capnp::
 
     # addressbook.capnp
     0x934efea7f017fff0;
@@ -63,14 +63,14 @@ First you need to allocate a MessageBuilder for your message to go in. There is 
 
     message = capnp.MallocMessageBuilder()
 
-Initialize a New Capnproto Object
+Initialize a New Cap'n Proto Object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
     addressBook = message.initRoot(addressbook.AddressBook)
 
-Notice that we used `addressbook` from the previous section: `Load a Capnproto Schema`_.
+Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
 
 List
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,7 +86,7 @@ For now, let's grab the first element out of this list and assign it to a variab
 Primitive Types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For all primitive types, from the Capnproto docs:
+For all primitive types, from the Cap'n Proto docs:
 
 - Boolean: Bool
 - Integers: Int8, Int16, Int32, Int64
@@ -154,7 +154,7 @@ Much like before, you will have to de-serialize the message from a file descript
     f = open('example.bin')
     message = capnp.PackedFdMessageReader(f.fileno())
 
-Initialize a New Capnproto Object
+Initialize a New Cap'n Proto Object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Just like when building, you have to actually specify which message you want to read out of buffer::
