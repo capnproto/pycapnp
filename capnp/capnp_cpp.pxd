@@ -32,30 +32,23 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         Schema getDependency(uint64_t id) except +
         #InterfaceSchema asInterface() const;
 
-    cdef cppclass MemberForward" ::capnp::StructSchema::Member":
+    cdef cppclass MemberForward" ::capnp::StructSchema::Field":
         pass
 
     cdef cppclass StructSchema(Schema):
-        cppclass MemberList:
+        cppclass FieldList:
             uint size()
             MemberForward operator[](uint index)
 
-        cppclass Union:
-            StructNode.Union.Reader getProto()
-            MemberList getMembers()
-            MemberForward getMemberByName(char * name)
-
-        cppclass Member:
+        cppclass Field:
             StructNode.Member.Reader getProto()
             StructSchema getContainingStruct()
             uint getIndex()
-            MemberList getMembers()
-            Union asUnion() except +
+            FieldList getFields()
 
         Node.Reader getProto()
-        MemberList getMembers()
-        Member getMemberByName(char * name)
-        Maybe[StructSchema.Union] getUnnamedUnion()
+        FieldList getFields()
+        Field getFieldByName(char * name)
 
     cdef cppclass EnumSchema:
         cppclass Enumerant:
@@ -96,45 +89,32 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         TYPE_LIST " ::capnp::DynamicValue::LIST"
         TYPE_ENUM " ::capnp::DynamicValue::ENUM"
         TYPE_STRUCT " ::capnp::DynamicValue::STRUCT"
-        TYPE_UNION " ::capnp::DynamicValue::UNION"
         TYPE_INTERFACE " ::capnp::DynamicValue::INTERFACE"
         TYPE_OBJECT " ::capnp::DynamicValue::OBJECT"
 
     cdef cppclass DynamicStruct:
         cppclass Reader:
             DynamicValueForward.Reader get(char *) except +ValueError
-            DynamicValueForward.Reader getByUnion'get'(StructSchema.Union member) except +ValueError
             bint has(char *) except +ValueError
             StructSchema getSchema()
+            Maybe[StructSchema.Field] which()
         cppclass Builder:
             DynamicValueForward.Builder get(char *) except +ValueError
-            DynamicValueForward.Builder getByUnion'get'(StructSchema.Union member) except +ValueError
             bint has(char *) except +ValueError
             void set(char *, DynamicValueForward.Reader&) except +ValueError
             DynamicValueForward.Builder init(char *, uint size)
             DynamicValueForward.Builder init(char *)
             StructSchema getSchema()
+            Maybe[StructSchema.Field] which()
 
 cdef extern from "fixMaybe.h":
-    StructSchema.Member fixMaybe(Maybe[StructSchema.Member]) except+
-    StructSchema.Union fixMaybeUnion'fixMaybe'(Maybe[StructSchema.Union]) except+
+    StructSchema.Field fixMaybe(Maybe[StructSchema.Field]) except+
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except+
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
         uint16_t getRaw()
         Maybe[EnumSchema.Enumerant] getEnumerant()
-
-    cdef cppclass DynamicUnion:
-        cppclass Reader:
-            DynamicValueForward.Reader get() except +ValueError
-            Maybe[StructSchema.Member] which()
-        cppclass Builder:
-            DynamicValueForward.Builder get() except +ValueError
-            Maybe[StructSchema.Member] which()
-            void set(char *, DynamicValueForward.Reader&) except +ValueError
-            DynamicValueForward.Builder init(char *, uint size)
-            DynamicValueForward.Builder init(char *)
 
     cdef cppclass DynamicList:
         cppclass Reader:
@@ -167,7 +147,6 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Reader(DynamicList.Reader& value)
             Reader(DynamicEnum value)
             Reader(DynamicStruct.Reader& value)
-            Reader(DynamicUnion.Reader& value)
             Type getType()
             int64_t asInt"as<int64_t>"()
             uint64_t asUint"as<uint64_t>"()
@@ -176,7 +155,6 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             char * asText"as< ::capnp::Text>().cStr"()
             DynamicList.Reader asList"as< ::capnp::DynamicList>"()
             DynamicStruct.Reader asStruct"as< ::capnp::DynamicStruct>"()
-            DynamicUnion.Reader asUnion"as< ::capnp::DynamicUnion>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
             Data.Reader asData"as< ::capnp::Data>"()
         cppclass Builder:
@@ -188,7 +166,6 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             char * asText"as< ::capnp::Text>().cStr"()
             DynamicList.Builder asList"as< ::capnp::DynamicList>"()
             DynamicStruct.Builder asStruct"as< ::capnp::DynamicStruct>"()
-            DynamicUnion.Builder asUnion"as< ::capnp::DynamicUnion>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
             Data.Builder asData"as< ::capnp::Data>"()
 

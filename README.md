@@ -5,20 +5,20 @@
 First you need a system-wide installation of the Capnproto C++ library >= 0.3. Unfortunately, as of now, that means you have to build from the HEAD of Cap'n Proto. Follow these instructions to do so:
 
 ```bash
-    wget https://github.com/kentonv/capnproto/archive/master.zip
-    unzip master.zip
-    cd capnproto-master/c++
-    ./setup-autotools.sh
-    autoreconf -i
-    ./configure
-    make -j6 check
-    sudo make install
-    sudo ldconfig
+wget https://github.com/kentonv/capnproto/archive/master.zip
+unzip master.zip
+cd capnproto-master/c++
+./setup-autotools.sh
+autoreconf -i
+./configure
+make -j6 check
+sudo make install
+sudo ldconfig
 ```
 
 A recent version of setuptools is also required. You can install a newer version with:
     
-```python
+```bash
 pip install -U setuptools
 ```
 
