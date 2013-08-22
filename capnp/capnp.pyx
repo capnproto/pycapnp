@@ -4,6 +4,7 @@
 # distutils: libraries = capnpc
 # cython: c_string_type = str
 # cython: c_string_encoding = default
+# cython: embedsignature = True
 
 cimport cython
 cimport capnp_cpp as capnp
@@ -598,12 +599,10 @@ cdef class MessageReader:
     def __init__(self):
         raise NotImplementedError("This is an abstract base class")
 
-    cpdef getRootNode(self):
+    cpdef _getRootNode(self):
         return _NodeReader().init(self.thisptr.getRootNode())
-    cpdef getRootCodeGeneratorRequest(self):
+    cpdef _getRootCodeGeneratorRequest(self):
         return _CodeGeneratorRequestReader()._init(self.thisptr.getRootCodeGeneratorRequest())
-    cpdef getRootDynamicStruct(self, StructSchema schema):
-        return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(schema.thisptr), self)
     cpdef getRoot(self, schema):
         cdef StructSchema s
         if hasattr(schema, 'Schema'):
