@@ -18,6 +18,8 @@ Then you can load the Cap'n Proto schema with::
 
     capnp.load('addressbook.capnp')
 
+You can also provide an absolute path to the Cap'n Proto schema you wish to load. Otherwise, it will only look in the current working directory.
+
 For future reference, here is the Cap'n Proto schema. Also available in the github repository under examples/addressbook.capnp::
 
     # addressbook.capnp
