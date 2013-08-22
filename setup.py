@@ -12,8 +12,8 @@ from distutils.core import setup
 import os
 
 MAJOR = 0
-MINOR = 2
-MICRO = 1
+MINOR = 3
+MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
