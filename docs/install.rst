@@ -22,8 +22,11 @@ Pip
 ---------------------
 
 Using pip is by far the easiest way to install the library. After you've installed the C++ library, all you need to run is::
-
+    
+    pip install -U setuptools
     pip install capnp
+
+You only need to run the setuptools line if you have a setuptools older than v0.8.0.
 
 From Source
 ---------------------

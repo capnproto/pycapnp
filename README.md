@@ -4,6 +4,7 @@
 
 First you need a system-wide installation of the Capnproto C++ library >= 0.3. Unfortunately, as of now, that means you have to build from the HEAD of Cap'n Proto. Follow these instructions to do so:
 
+```bash
     wget https://github.com/kentonv/capnproto/archive/master.zip
     unzip master.zip
     cd capnproto-master/c++
@@ -13,6 +14,13 @@ First you need a system-wide installation of the Capnproto C++ library >= 0.3. U
     make -j6 check
     sudo make install
     sudo ldconfig
+```
+
+A recent version of setuptools is also required. You can install a newer version with:
+    
+```python
+pip install -U setuptools
+```
 
 ## Building and installation
 
@@ -88,6 +96,17 @@ def printAddressBook(fd):
 f = open('example', 'r')
 printAddressBook(f.fileno())
 ```
+
+## Common Problems
+
+If you get an error on installation like:
+
+    ...
+    gcc-4.8: error: capnp/capnp.c: No such file or directory
+
+    gcc-4.8: fatal error: no input files
+
+Then you have too old a version of setuptools. Run `pip install -U setuptools` then try again.
 
 [![Build Status](https://travis-ci.org/jparyani/capnpc-python-cpp.png?branch=master)](https://travis-ci.org/jparyani/capnpc-python-cpp)
 
