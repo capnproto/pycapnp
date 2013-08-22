@@ -2,12 +2,17 @@
 
 ## Requirements
 
-First you need a system-wide installation of the Capnproto C++ library >= 0.2. All you need to do is follow the official [installation docs](http://kentonv.github.io/capnproto/install.html).
-Also on my ubuntu 12.10 box, I had to run `sudo ldconfig` after installation to make sure the libcapnp library was picked up by the linker.
+First you need a system-wide installation of the Capnproto C++ library >= 0.3. Unfortunately, as of now, that means you have to build from the HEAD of Cap'n Proto. Follow these instructions to do so:
 
-You also need a working version of the latest [Cython](http://cython.org/) and the latest version of setuptools. This is easily done (assuming you've already installed pip):
-
-    pip install -U cython setuptools
+    wget https://github.com/kentonv/capnproto/archive/master.zip
+    unzip master.zip
+    cd capnproto-master/c++
+    ./setup-autotools.sh
+    autoreconf -i
+    ./configure
+    make -j6 check
+    sudo make install
+    sudo ldconfig
 
 ## Building and installation
 
@@ -20,7 +25,7 @@ Or you can clone the repo like so:
 `cd` into the repo directory and run `pip install .`
 
 ## Documentation/Example
-At the moment, there is no documenation, but the library is almost a 1:1 clone of the [Capnproto C++ Library](http://kentonv.github.io/capnproto/cxx.html)
+There is some basic documentation [here](http://jparyani.github.io/capnpc-python-cpp/).
 
 The examples directory has one example that shows off the capabilities quite nicely. Here it is, reproduced:
 
