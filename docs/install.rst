@@ -4,7 +4,7 @@ Installation
 ===================
 
 C++ Cap'n Proto Library
----------------------
+------------------------
 
 You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at `http://kentonv.github.io/capnproto/install.html <http://kentonv.github.io/capnproto/install.html>`_ with an added `sudo ldconfig` after you're done installing, or if you're feeling lazy, you can run the commands below::
 
@@ -22,8 +22,11 @@ Pip
 ---------------------
 
 Using pip is by far the easiest way to install the library. After you've installed the C++ library, all you need to run is::
-
+    
+    pip install -U setuptools
     pip install capnp
+
+You only need to run the setuptools line if you have a setuptools older than v0.8.0.
 
 From Source
 ---------------------
