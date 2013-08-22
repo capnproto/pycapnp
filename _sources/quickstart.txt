@@ -8,7 +8,7 @@ This assumes you already have the capnp library installed. If you don't, please 
 In general, this library is a very light wrapping of the `Cap'n Proto C++ library <http://kentonv.github.io/capnproto/cxx.html>`_. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.
 
 Load a Cap'n Proto Schema
-------------------------
+-------------------------
 
 First you need to import the library::
     
@@ -66,7 +66,7 @@ First you need to allocate a MessageBuilder for your message to go in. There is 
     message = capnp.MallocMessageBuilder()
 
 Initialize a New Cap'n Proto Object
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
@@ -157,7 +157,7 @@ Much like before, you will have to de-serialize the message from a file descript
     message = capnp.PackedFdMessageReader(f.fileno())
 
 Initialize a New Cap'n Proto Object
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Just like when building, you have to actually specify which message you want to read out of buffer::
 
