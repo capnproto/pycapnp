@@ -134,13 +134,15 @@ cdef class _DynamicListBuilder:
     #    self.thisptr._init(size)
     #    return self
 
+    cpdef _get(self, index) except +ValueError:
+        return toPython(self.thisptr[index], self._parent)
+
     def __getitem__(self, index):
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        temp = self.thisptr[index]
-        return toPython(temp, self._parent)
+        return self._get(index)
 
     def _setitem(self, index, valid_values value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
@@ -242,39 +244,7 @@ cdef class _DynamicValueReader:
         else:
             raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
-
-cdef int getType(C_DynamicValue.Builder & self):
-    return self.getType()
-
-cdef toPython(C_DynamicValue.Builder & self, object parent):
-    cdef int type = getType(self)
-    if type == capnp.TYPE_BOOL:
-        return self.asBool()
-    elif type == capnp.TYPE_INT:
-        return self.asInt()
-    elif type == capnp.TYPE_UINT:
-        return self.asUint()
-    elif type == capnp.TYPE_FLOAT:
-        return self.asDouble()
-    elif type == capnp.TYPE_TEXT:
-        return self.asText()[:]
-    elif type == capnp.TYPE_DATA:
-        temp = self.asData()
-        return (<char*>temp.begin())[:temp.size()]
-    elif type == capnp.TYPE_LIST:
-        return list(_DynamicListBuilder()._init(self.asList(), parent))
-    elif type == capnp.TYPE_STRUCT:
-        return _DynamicStructBuilder()._init(self.asStruct(), parent)
-    elif type == capnp.TYPE_ENUM:
-        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
-    elif type == capnp.TYPE_VOID:
-        return None
-    elif type == capnp.TYPE_UNKOWN:
-        raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
-    else:
-        raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
-
-cdef toPythonByValue(C_DynamicValue.Builder self, object parent):
+cdef toPython(C_DynamicValue.Builder self, object parent):
     cdef int type = self.getType()
     if type == capnp.TYPE_BOOL:
         return self.asBool()
@@ -330,8 +300,11 @@ cdef class _DynamicStructBuilder:
         self._parent = parent
         return self
 
-    def __getattr__(self, field):
+    cpdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
+
+    def __getattr__(self, field):
+        return self._get(field)
 
     cdef _setattrInt(self, field, value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
@@ -373,9 +346,9 @@ cdef class _DynamicStructBuilder:
 
     cpdef init(self, field, size=None) except +ValueError:
         if size is None:
-            return toPythonByValue(self.thisptr.init(field), self._parent)
+            return toPython(self.thisptr.init(field), self._parent)
         else:
-            return toPythonByValue(self.thisptr.init(field, size), self._parent)
+            return toPython(self.thisptr.init(field, size), self._parent)
 
     # cpdef which(self):
     #     try:

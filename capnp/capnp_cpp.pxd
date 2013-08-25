@@ -99,7 +99,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
         cppclass Builder:
-            DynamicValueForward.Builder get(char *) except +ValueError
+            DynamicValueForward.Builder get(char *)
             bint has(char *) except +ValueError
             void set(char *, DynamicValueForward.Reader&) except +ValueError
             DynamicValueForward.Builder init(char *, uint size)
@@ -121,10 +121,10 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Reader operator[](uint) except +ValueError
             uint size()
         cppclass Builder:
-            DynamicValueForward.Builder operator[](uint) except +ValueError
+            DynamicValueForward.Builder operator[](uint)
             uint size()
-            void set(uint index, DynamicValueForward.Reader& value)
-            DynamicValueForward.Builder init(uint index, uint size)
+            void set(uint index, DynamicValueForward.Reader& value) except +ValueError
+            DynamicValueForward.Builder init(uint index, uint size) except +ValueError
 
     cdef cppclass DynamicValue:
         cppclass Reader:
