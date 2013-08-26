@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Quickstart &mdash; capnp 0.3.0 documentation</title>
+    <title>Quickstart &mdash; capnp 0.3.5 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.0',
+        VERSION:     '0.3.5',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.0 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.5 documentation" href="index.html" />
     <link rel="next" title="API Reference" href="capnp.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.5 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -64,13 +64,16 @@
 </pre></div>
 </div>
 <p>Then you can load the Cap&#8217;n Proto schema with:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Note that we assign the loaded module to a variable, named <cite>addressbook</cite>. We&#8217;ll use this from now on to access the Cap&#8217;n Proto schema, ie. when we need to get a Struct&#8217;s class or accessing const values.</p>
 <p>You can also provide an absolute path to the Cap&#8217;n Proto schema you wish to load. Otherwise, it will only look in the current working directory.</p>
 <p>For future reference, here is the Cap&#8217;n Proto schema. Also available in the github repository under examples/addressbook.capnp:</p>
 <div class="highlight-python"><pre># addressbook.capnp
 0x934efea7f017fff0;
+
+const qux :UInt32 = 123;
 
 struct Person {
   id @0 :UInt32;
@@ -101,6 +104,14 @@ struct Person {
 struct AddressBook {
   people @0 :List(Person);
 }</pre>
+</div>
+<div class="section" id="const-values">
+<h3>Const values<a class="headerlink" href="#const-values" title="Permalink to this headline">¶</a></h3>
+<p>Const values show up just as you&#8217;d expect under the loaded schema. For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span>
+<span class="c"># 123</span>
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="build-a-message">
@@ -324,7 +335,10 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Quickstart</a><ul>
-<li><a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a></li>
+<li><a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a><ul>
+<li><a class="reference internal" href="#const-values">Const values</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#build-a-message">Build a message</a><ul>
 <li><a class="reference internal" href="#message-builder">Message Builder</a></li>
 <li><a class="reference internal" href="#initialize-a-new-cap-n-proto-object">Initialize a New Cap&#8217;n Proto Object</a></li>
@@ -390,7 +404,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
         <li class="right" >
           <a href="install.html" title="Installation"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.5 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
