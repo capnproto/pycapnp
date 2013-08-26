@@ -18,9 +18,10 @@ sudo make install
 sudo ldconfig
 ```
 
-A recent version of setuptools is also required. You can install a newer version with:
+A recent version of cython and setuptools is also required. You can install these with:
     
 ```bash
+pip install -U cython
 pip install -U setuptools
 ```
 

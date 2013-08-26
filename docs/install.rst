@@ -23,6 +23,7 @@ Pip
 
 Using pip is by far the easiest way to install the library. After you've installed the C++ library, all you need to run is::
     
+    pip install -U cython
     pip install -U setuptools
     pip install capnp
 
@@ -41,6 +42,6 @@ or::
     cd capnpc-python-cpp
     python setup.py install
 
-If you don't use pip, you will need to manually install Cython, and a setuptools with a version > .7.
+If you don't use pip, you will need to manually install Cython, and a setuptools with a version >= .8.
 
 Once you're done installing, take a look at the :ref:`quickstart`
