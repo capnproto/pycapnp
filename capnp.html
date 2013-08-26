@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.3.5 documentation</title>
+    <title>API Reference &mdash; capnp 0.3.6 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.5',
+        VERSION:     '0.3.6',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.5 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.6 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.5 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.6 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -51,12 +51,82 @@
             
   <div class="section" id="module-capnp">
 <span id="api-reference"></span><span id="api"></span><h1>API Reference<a class="headerlink" href="#module-capnp" title="Permalink to this headline">¶</a></h1>
+<p>A python library wrapping the Cap&#8217;n Proto C++ library</p>
+<p>Example Usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
+
+<span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+
+<span class="c"># Building</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+<span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+<span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Alice&#39;</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s">&#39;alice@example.com&#39;</span>
+<span class="n">alicePhone</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">alicePhone</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;mobile&#39;</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">capnp</span><span class="o">.</span><span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c"># Reading</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+
+<span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+</pre></div>
+</div>
 <div class="section" id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="capnp.load">
 <tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>load a Cap&#8217;n Proto schema from a file</p>
+<p>You will have to load a schema before you can begin doing anything
+meaningful with this library. Loading a schema is much like Loading
+a Python module (and load even returns a ModuleType). Once it&#8217;s been
+loaded, you use it much like any other Module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant</span>
+<span class="c"># 123</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; A relative or absolute path to a Cap&#8217;n Proto schema</li>
+<li><strong>display_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name internally used by the Cap&#8217;n Proto library
+for the loaded schema. By default, it&#8217;s just os.path.basename(file_name)</li>
+<li><strong>imports</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of str directories to add to the import path.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">ModuleType</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A module corresponding to the loaded schema. You can access
+parsed schemas and constants with . syntax</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if <cite>file_name</cite> doesn&#8217;t exist</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="capnp.writeMessageToFd">
@@ -168,7 +238,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.5 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.6 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
