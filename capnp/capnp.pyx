@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, DynamicOrphan as C_DynamicOrphan
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, DynamicOrphan as C_DynamicOrphan
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -319,7 +319,7 @@ cdef class _DynamicOrphan:
         self._parent = parent
         return self
 
-cdef class Schema:
+cdef class _Schema:
     cdef C_Schema thisptr
     cdef _init(self, C_Schema other):
         self.thisptr = other
@@ -329,21 +329,21 @@ cdef class Schema:
         return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
     cpdef asStruct(self):
-        return StructSchema()._init(self.thisptr.asStruct())
+        return _StructSchema()._init(self.thisptr.asStruct())
 
     cpdef getDependency(self, id):
-        return Schema()._init(self.thisptr.getDependency(id))
+        return _Schema()._init(self.thisptr.getDependency(id))
 
     cpdef getProto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
-cdef class StructSchema:
+cdef class _StructSchema:
     cdef C_StructSchema thisptr
     cdef _init(self, C_StructSchema other):
         self.thisptr = other
         return self
 
-cdef class ParsedSchema:
+cdef class _ParsedSchema:
     cdef C_ParsedSchema thisptr
     cdef _init(self, C_ParsedSchema other):
         self.thisptr = other
@@ -353,32 +353,18 @@ cdef class ParsedSchema:
         return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
     cpdef asStruct(self):
-        return StructSchema()._init(self.thisptr.asStruct())
+        return _StructSchema()._init(self.thisptr.asStruct())
 
     cpdef getDependency(self, id):
-        return Schema()._init(self.thisptr.getDependency(id))
+        return _Schema()._init(self.thisptr.getDependency(id))
 
     cpdef getProto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
     cpdef getNested(self, name):
-        return ParsedSchema()._init(self.thisptr.getNested(name))
+        return _ParsedSchema()._init(self.thisptr.getNested(name))
 
-cdef class SchemaLoader:
-    cdef C_SchemaLoader * thisptr
-    def __cinit__(self):
-        self.thisptr = new C_SchemaLoader()
-
-    def __dealloc__(self):
-        del self.thisptr
-
-    cpdef load(self, _NodeReader node):
-        return Schema()._init(self.thisptr.load(node.thisptr))
-
-    cpdef get(self, id):
-        return Schema()._init(self.thisptr.get(id))
-
-cdef class SchemaParser:
+cdef class _SchemaParser:
     cdef C_SchemaParser * thisptr
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
@@ -394,7 +380,7 @@ cdef class SchemaParser:
 
         cdef ArrayPtr[StringPtr] importsPtr = ArrayPtr[StringPtr](importArray, <size_t>len(imports))
 
-        ret = ParsedSchema()
+        ret = _ParsedSchema()
         ret._init(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
 
         free(importArray)
@@ -409,7 +395,7 @@ cdef class MessageBuilder:
         raise NotImplementedError("This is an abstract base class. You should use MallocMessageBuilder instead")
 
     cpdef initRoot(self, schema):
-        cdef StructSchema s
+        cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
         else:
@@ -417,7 +403,7 @@ cdef class MessageBuilder:
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
 
     cpdef getRoot(self, schema):
-        cdef StructSchema s
+        cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
         else:
@@ -430,7 +416,7 @@ cdef class MallocMessageBuilder(MessageBuilder):
     def __init__(self):
         pass
 
-cdef class MessageReader:
+cdef class _MessageReader:
     cdef schema_cpp.MessageReader * thisptr
     def __dealloc__(self):
         del self.thisptr
@@ -441,18 +427,18 @@ cdef class MessageReader:
         return _NodeReader().init(self.thisptr.getRootNode())
 
     cpdef getRoot(self, schema):
-        cdef StructSchema s
+        cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
         else:
             s = schema
         return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
-cdef class StreamFdMessageReader(MessageReader):
+cdef class StreamFdMessageReader(_MessageReader):
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd)
 
-cdef class PackedFdMessageReader(MessageReader):
+cdef class PackedFdMessageReader(_MessageReader):
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd)
 
@@ -462,8 +448,8 @@ def writeMessageToFd(int fd, MessageBuilder m):
 def writePackedMessageToFd(int fd, MessageBuilder m):
     schema_cpp.writePackedMessageToFd(fd, deref(m.thisptr))
 
-from types import ModuleType
-import os
+from types import ModuleType as _ModuleType
+import os as _os
 
 def load(file_name, display_name=None, imports=[]):
     """load a Cap'n Proto schema from a file 
@@ -502,7 +488,7 @@ def load(file_name, display_name=None, imports=[]):
         module._nodeProto = nodeProto
 
         for node in nodeProto.nestedNodes:
-            local_module = ModuleType(node.name)
+            local_module = _ModuleType(node.name)
             module.__dict__[node.name] = local_module
 
             schema = nodeSchema.getNested(node.name)
@@ -515,9 +501,9 @@ def load(file_name, display_name=None, imports=[]):
             _load(schema, local_module)
 
     if display_name is None:
-        display_name = os.path.basename(file_name)
-    module = ModuleType(display_name)
-    parser = SchemaParser()
+        display_name = _os.path.basename(file_name)
+    module = _ModuleType(display_name)
+    parser = _SchemaParser()
 
     module._parser = parser
 

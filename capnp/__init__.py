@@ -35,3 +35,4 @@ Example Usage::
 """
 from .version import version as __version__
 from .capnp import *
+del capnp

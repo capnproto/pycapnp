@@ -68,12 +68,6 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass ConstSchema:
         pass
 
-cdef extern from "capnp/schema-loader.h" namespace " ::capnp":
-    cdef cppclass SchemaLoader:
-        SchemaLoader()
-        Schema load(Node.Reader &) except +
-        Schema get(uint64_t id) except +
-
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicValueForward" ::capnp::DynamicValue":
         cppclass Reader:
