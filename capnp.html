@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.3.6 documentation</title>
+    <title>API Reference &mdash; capnp 0.3.7 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.6',
+        VERSION:     '0.3.7',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.6 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.7 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.6 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.7 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -90,10 +90,10 @@
 <dl class="function">
 <dt id="capnp.load">
 <tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>load a Cap&#8217;n Proto schema from a file</p>
+<dd><p>Load a Cap&#8217;n Proto schema from a file</p>
 <p>You will have to load a schema before you can begin doing anything
 meaningful with this library. Loading a schema is much like Loading
-a Python module (and load even returns a ModuleType). Once it&#8217;s been
+a Python module (and load even returns a <cite>ModuleType</cite>). Once it&#8217;s been
 loaded, you use it much like any other Module:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
 <span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant</span>
@@ -130,13 +130,66 @@ parsed schemas and constants with . syntax</p>
 
 <dl class="function">
 <dt id="capnp.writeMessageToFd">
-<tt class="descclassname">capnp.</tt><tt class="descname">writeMessageToFd</tt><big>(</big><em>int fd</em>, <em>MessageBuilder m</em><big>)</big><a class="headerlink" href="#capnp.writeMessageToFd" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<tt class="descclassname">capnp.</tt><tt class="descname">writeMessageToFd</tt><big>(</big><em>int fd</em>, <em>MessageBuilder message</em><big>)</big><a class="headerlink" href="#capnp.writeMessageToFd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize a Cap&#8217;n Proto message to a file descriptor</p>
+<p>You use this method to serialize your message to a file. Please note that
+you must pass a file descriptor (ie. an int), not a file object. Make sure
+you use the proper reader to match this (ie. don&#8217;t use PackedFdMessageReader):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+<span class="o">...</span>
+<span class="n">writeMessageToFd</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fd</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; A file descriptor</li>
+<li><strong>message</strong> (<a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>) &#8211; The Cap&#8217;n Proto message to serialize</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">void</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="capnp.writePackedMessageToFd">
-<tt class="descclassname">capnp.</tt><tt class="descname">writePackedMessageToFd</tt><big>(</big><em>int fd</em>, <em>MessageBuilder m</em><big>)</big><a class="headerlink" href="#capnp.writePackedMessageToFd" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<tt class="descclassname">capnp.</tt><tt class="descname">writePackedMessageToFd</tt><big>(</big><em>int fd</em>, <em>MessageBuilder message</em><big>)</big><a class="headerlink" href="#capnp.writePackedMessageToFd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize a Cap&#8217;n Proto message to a file descriptor in a packed manner</p>
+<p>You use this method to serialize your message to a file. Please note that
+you must pass a file descriptor (ie. an int), not a file object. Also, note
+the difference in names with writeMessageToFd. This method uses a different
+serialization specification, and your reader will need to match.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+<span class="o">...</span>
+<span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fd</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; A file descriptor</li>
+<li><strong>message</strong> (<a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>) &#8211; The Cap&#8217;n Proto message to serialize</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">void</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </div>
 <div class="section" id="readers">
@@ -144,44 +197,301 @@ parsed schemas and constants with . syntax</p>
 <dl class="class">
 <dt id="capnp.StreamFdMessageReader">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">StreamFdMessageReader</tt><a class="headerlink" href="#capnp.StreamFdMessageReader" title="Permalink to this definition">¶</a></dt>
-<dd><p>StreamFdMessageReader(int fd)</p>
+<dd><p>StreamFdMessageReader(int fd)
+Read a Cap&#8217;n Proto message from a file descriptor</p>
+<blockquote>
+<div><p>You use this class to for reading message(s) from a file. It&#8217;s analagous to the inverse of writeMessageToFd and <a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>, but in one class.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li>fd (<cite>int</cite>) - A file descriptor</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
 <dl class="method">
 <dt id="capnp.StreamFdMessageReader.getRoot">
 <tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.StreamFdMessageReader.getRoot" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs</p>
+<p>You will need to pass in a schema to specify which struct to
+instantiate. Schemas are available in a loaded Cap&#8217;n Proto module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An object with all the data of the read Cap&#8217;n Proto message.
+Access members with . syntax.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="capnp.PackedFdMessageReader">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">PackedFdMessageReader</tt><a class="headerlink" href="#capnp.PackedFdMessageReader" title="Permalink to this definition">¶</a></dt>
-<dd><p>PackedFdMessageReader(int fd)</p>
+<dd><p>PackedFdMessageReader(int fd)
+Read a Cap&#8217;n Proto message from a file descriptor in a packed manner</p>
+<blockquote>
+<div><p>You use this class to for reading message(s) from a file. It&#8217;s analagous to the inverse of writePackedMessageToFd and <a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>, but in one class.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li>fd (<cite>int</cite>) - A file descriptor</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
 <dl class="method">
 <dt id="capnp.PackedFdMessageReader.getRoot">
 <tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.PackedFdMessageReader.getRoot" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs</p>
+<p>You will need to pass in a schema to specify which struct to
+instantiate. Schemas are available in a loaded Cap&#8217;n Proto module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An object with all the data of the read Cap&#8217;n Proto message.
+Access members with . syntax.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="writers">
-<h2>Writers<a class="headerlink" href="#writers" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="builders">
+<h2>Builders<a class="headerlink" href="#builders" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="capnp.MessageBuilder">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">MessageBuilder</tt><a class="headerlink" href="#capnp.MessageBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>MessageBuilder()
+An abstract base class for building Cap&#8217;n Proto messages</p>
+<blockquote>
+<div><div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Don&#8217;t ever instantiate this class directly. It is only used for inheritance.</p>
+</div>
+</div></blockquote>
+<dl class="method">
+<dt id="capnp.MessageBuilder.getRoot">
+<tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MessageBuilder.getRoot" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs, from an already pre-written buffers</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. You probably
+want to use initRoot instead:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An object where you will set all the members</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp.MessageBuilder.initRoot">
+<tt class="descname">initRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MessageBuilder.initRoot" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs</p>
+<p>You will need to pass in a schema to specify which struct to
+instantiate. Schemas are available in a loaded Cap&#8217;n Proto module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An object where you will set all the members</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="capnp.MallocMessageBuilder">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">MallocMessageBuilder</tt><a class="headerlink" href="#capnp.MallocMessageBuilder" title="Permalink to this definition">¶</a></dt>
-<dd><p>MallocMessageBuilder()</p>
+<dd><p>MallocMessageBuilder()
+The main class for building Cap&#8217;n Proto messages</p>
+<blockquote>
+<div><p>You will use this class to handle arena allocation of the Cap&#8217;n Proto
+messages. You also use this object when you&#8217;re done assigning to Cap&#8217;n
+Proto objects, and wish to serialize them:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;alice&#39;</span>
+<span class="o">...</span>
+<span class="n">writeMessageToFd</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
 <dl class="method">
 <dt id="capnp.MallocMessageBuilder.getRoot">
 <tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MallocMessageBuilder.getRoot" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs, from an already pre-written buffers</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. You probably
+want to use initRoot instead:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An object where you will set all the members</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="capnp.MallocMessageBuilder.initRoot">
 <tt class="descname">initRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MallocMessageBuilder.initRoot" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs</p>
+<p>You will need to pass in a schema to specify which struct to
+instantiate. Schemas are available in a loaded Cap&#8217;n Proto module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An object where you will set all the members</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="internal-classes">
+<h2>Internal Classes<a class="headerlink" href="#internal-classes" title="Permalink to this headline">¶</a></h2>
+<p>These classes are internal to the library. You will never need to allocate
+one yourself, but you may end up using some of their member methods.</p>
+<div class="section" id="id1">
+<h3>Readers<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="capnp._DynamicStructReader">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicStructReader</tt><a class="headerlink" href="#capnp._DynamicStructReader" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="capnp._DynamicStructReader.which">
+<tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.which" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="capnp._DynamicListReader">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicListReader</tt><a class="headerlink" href="#capnp._DynamicListReader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="id2">
+<h3>Builders<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="capnp._DynamicStructBuilder">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicStructBuilder</tt><a class="headerlink" href="#capnp._DynamicStructBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="capnp._DynamicStructBuilder.init">
+<tt class="descname">init</tt><big>(</big><em>self</em>, <em>field</em>, <em>size=None</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicStructBuilder.which">
+<tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.which" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp._DynamicListBuilder">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicListBuilder</tt><a class="headerlink" href="#capnp._DynamicListBuilder" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="miscellaneous">
+<h3>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="capnp._DynamicOrphan">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicOrphan</tt><a class="headerlink" href="#capnp._DynamicOrphan" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
 </div>
 </div>
 
@@ -196,7 +506,13 @@ parsed schemas and constants with . syntax</p>
 <li><a class="reference internal" href="#">API Reference</a><ul>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#readers">Readers</a></li>
-<li><a class="reference internal" href="#writers">Writers</a></li>
+<li><a class="reference internal" href="#builders">Builders</a></li>
+<li><a class="reference internal" href="#internal-classes">Internal Classes</a><ul>
+<li><a class="reference internal" href="#id1">Readers</a></li>
+<li><a class="reference internal" href="#id2">Builders</a></li>
+<li><a class="reference internal" href="#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -238,7 +554,7 @@ parsed schemas and constants with . syntax</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.6 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.7 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
