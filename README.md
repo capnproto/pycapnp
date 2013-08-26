@@ -1,8 +1,10 @@
 #capnpc-python-cpp
 
+More thorough docs are available at [http://jparyani.github.io/capnpc-python-cpp/](http://jparyani.github.io/capnpc-python-cpp/).
+
 ## Requirements
 
-First you need a system-wide installation of the Capnproto C++ library >= 0.3. Unfortunately, as of now, that means you have to build from the HEAD of Cap'n Proto. Follow these instructions to do so:
+First you need a system-wide installation of the Cap'n Proto C++ library >= 0.3. Unfortunately, as of now, that means you have to build from the HEAD of Cap'n Proto. Follow these instructions to do so:
 
 ```bash
 wget https://github.com/kentonv/capnproto/archive/master.zip

@@ -508,25 +508,55 @@ def writePackedMessageToFd(int fd, MessageBuilder m):
 from types import ModuleType
 import os
 
-def _load(nodeSchema, module):
-    module._nodeSchema = nodeSchema
-    nodeProto = nodeSchema.getProto()
-    module._nodeProto = nodeProto
-
-    for node in nodeProto.nestedNodes:
-        local_module = ModuleType(node.name)
-        module.__dict__[node.name] = local_module
-
-        schema = nodeSchema.getNested(node.name)
-        proto = schema.getProto()
-        if proto.isStruct:
-            local_module.Schema = schema.asStruct()
-        elif proto.isConst:
-            module.__dict__[node.name] = schema.asConstValue()
-
-        _load(schema, local_module)
-
 def load(file_name, display_name=None, imports=[]):
+    """load a Cap'n Proto schema from a file 
+
+    You will have to load a schema before you can begin doing anything
+    meaningful with this library. Loading a schema is much like Loading
+    a Python module (and load even returns a ModuleType). Once it's been
+    loaded, you use it much like any other Module::
+
+        addressbook = capnp.load('addressbook.capnp')
+        print addressbook.qux # qux is a top level constant
+        # 123
+        message = capnp.MallocMessageBuilder()
+        person = message.initRoot(addressbook.Person)
+
+    :type file_name: str
+    :param file_name: A relative or absolute path to a Cap'n Proto schema
+
+    :type display_name: str
+    :param display_name: The name internally used by the Cap'n Proto library
+        for the loaded schema. By default, it's just os.path.basename(file_name)
+
+    :type imports: list
+    :param imports: A list of str directories to add to the import path.
+
+    :rtype: ModuleType
+    :return: A module corresponding to the loaded schema. You can access
+        parsed schemas and constants with . syntax
+
+    :Raises: :exc:`exceptions.ValueError` if `file_name` doesn't exist
+
+    """
+    def _load(nodeSchema, module):
+        module._nodeSchema = nodeSchema
+        nodeProto = nodeSchema.getProto()
+        module._nodeProto = nodeProto
+
+        for node in nodeProto.nestedNodes:
+            local_module = ModuleType(node.name)
+            module.__dict__[node.name] = local_module
+
+            schema = nodeSchema.getNested(node.name)
+            proto = schema.getProto()
+            if proto.isStruct:
+                local_module.Schema = schema.asStruct()
+            elif proto.isConst:
+                module.__dict__[node.name] = schema.asConstValue()
+
+            _load(schema, local_module)
+
     if display_name is None:
         display_name = os.path.basename(file_name)
     module = ModuleType(display_name)

@@ -6,16 +6,20 @@ except ImportError:
     raise RuntimeError('No cython installed. Please run `pip install cython`')
 
 if Cython.__version__ < '0.19.1':
-    raise RuntimeError('Old cython installed. Please run `pip install -U cython`')
+    raise RuntimeError('Old cython installed (%s). Please run `pip install -U cython`' % Cython.__version__)
+
+import pkg_resources
+setuptools_version = pkg_resources.get_distribution("setuptools").version
+if setuptools_version < '0.8':
+    raise RuntimeError('Old setuptools installed (%s). Please run `pip install -U setuptools`. Running `pip install capnp` will not work alone, since setuptools needs to be upgraded before installing anything else.' % setuptools_version)
 
 from distutils.core import setup
 import os
 
 MAJOR = 0
 MINOR = 3
-MICRO = 5
+MICRO = 6
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-
 
 def write_version_py(filename=None):
     cnt = """\
