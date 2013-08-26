@@ -16,7 +16,9 @@ First you need to import the library::
 
 Then you can load the Cap'n Proto schema with::
 
-    capnp.load('addressbook.capnp')
+    addressbook = capnp.load('addressbook.capnp')
+
+Note that we assign the loaded module to a variable, named `addressbook`. We'll use this from now on to access the Cap'n Proto schema, ie. when we need to get a Struct's class or accessing const values.
 
 You can also provide an absolute path to the Cap'n Proto schema you wish to load. Otherwise, it will only look in the current working directory.
 
@@ -24,6 +26,8 @@ For future reference, here is the Cap'n Proto schema. Also available in the gith
 
     # addressbook.capnp
     0x934efea7f017fff0;
+
+    const qux :UInt32 = 123;
 
     struct Person {
       id @0 :UInt32;
@@ -54,6 +58,14 @@ For future reference, here is the Cap'n Proto schema. Also available in the gith
     struct AddressBook {
       people @0 :List(Person);
     }
+
+Const values
+~~~~~~~~~~~~~~
+
+Const values show up just as you'd expect under the loaded schema. For example::
+    
+    print addressbook.qux
+    # 123
 
 Build a message
 ------------------
