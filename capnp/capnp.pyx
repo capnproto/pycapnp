@@ -258,7 +258,7 @@ cdef class _DynamicStructBuilder:
         self._parent = parent
         return self
 
-    cpdef _get(self, field) except +ValueError:
+    cdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
 
     def __getattr__(self, field):
@@ -388,13 +388,33 @@ cdef class _SchemaParser:
         return ret
 
 cdef class MessageBuilder:
+    """An abstract base class for building Cap'n Proto messages
+
+    .. warning:: Don't ever instantiate this class directly. It is only used for inheritance.
+    """
     cdef schema_cpp.MessageBuilder * thisptr
     def __dealloc__(self):
         del self.thisptr
+
     def __init__(self):
         raise NotImplementedError("This is an abstract base class. You should use MallocMessageBuilder instead")
 
     cpdef initRoot(self, schema):
+        """A method for instantiating Cap'n Proto structs
+
+        You will need to pass in a schema to specify which struct to
+        instantiate. Schemas are available in a loaded Cap'n Proto module::
+
+            addressbook = capnp.load('addressbook.capnp')
+            ...
+            person = message.initRoot(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicStructBuilder`
+        :return: An object where you will set all the members
+        """
         cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
@@ -403,6 +423,23 @@ cdef class MessageBuilder:
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
 
     cpdef getRoot(self, schema):
+        """A method for instantiating Cap'n Proto structs, from an already pre-written buffers
+
+        Don't use this method unless you know what you're doing. You probably
+        want to use initRoot instead::
+
+            addressbook = capnp.load('addressbook.capnp')
+            ...
+            person = message.initRoot(addressbook.Person)
+            ...
+            person = message.getRoot(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicStructBuilder`
+        :return: An object where you will set all the members
+        """
         cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
@@ -411,12 +448,30 @@ cdef class MessageBuilder:
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
 cdef class MallocMessageBuilder(MessageBuilder):
+    """The main class for building Cap'n Proto messages
+
+    You will use this class to handle arena allocation of the Cap'n Proto
+    messages. You also use this object when you're done assigning to Cap'n
+    Proto objects, and wish to serialize them::
+
+        addressbook = capnp.load('addressbook.capnp')
+        message = capnp.MallocMessageBuilder()
+        person = message.initRoot(addressbook.Person)
+        person.name = 'alice'
+        ...
+        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+    """
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
+
     def __init__(self):
         pass
 
 cdef class _MessageReader:
+    """An abstract base class for reading Cap'n Proto messages
+
+    .. warning:: Don't ever instantiate this class. It is only used for inheritance.
+    """
     cdef schema_cpp.MessageReader * thisptr
     def __dealloc__(self):
         del self.thisptr
@@ -427,6 +482,22 @@ cdef class _MessageReader:
         return _NodeReader().init(self.thisptr.getRootNode())
 
     cpdef getRoot(self, schema):
+        """A method for instantiating Cap'n Proto structs
+
+        You will need to pass in a schema to specify which struct to
+        instantiate. Schemas are available in a loaded Cap'n Proto module::
+
+            addressbook = capnp.load('addressbook.capnp')
+            ...
+            person = message.getRoot(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicStructReader`
+        :return: An object with all the data of the read Cap'n Proto message.
+            Access members with . syntax.
+        """
         cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
@@ -435,24 +506,85 @@ cdef class _MessageReader:
         return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
 cdef class StreamFdMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor
+
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of writeMessageToFd and :class:`MessageBuilder`, but in one class.::
+
+        message = StreamFdMessageReader(open('out.txt').fileno())
+        person = message.getRoot(addressbook.Person)
+        print person.name
+
+    :Parameters: - fd (`int`) - A file descriptor
+    """
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd)
 
 cdef class PackedFdMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor in a packed manner
+
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of writePackedMessageToFd and :class:`MessageBuilder`, but in one class.::
+
+        message = StreamFdMessageReader(open('out.txt').fileno())
+        person = message.getRoot(addressbook.Person)
+        print person.name
+
+    :Parameters: - fd (`int`) - A file descriptor
+    """
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd)
 
-def writeMessageToFd(int fd, MessageBuilder m):
-    schema_cpp.writeMessageToFd(fd, deref(m.thisptr))
+def writeMessageToFd(int fd, MessageBuilder message):
+    """Serialize a Cap'n Proto message to a file descriptor
 
-def writePackedMessageToFd(int fd, MessageBuilder m):
-    schema_cpp.writePackedMessageToFd(fd, deref(m.thisptr))
+    You use this method to serialize your message to a file. Please note that
+    you must pass a file descriptor (ie. an int), not a file object. Make sure
+    you use the proper reader to match this (ie. don't use PackedFdMessageReader)::
+
+        message = capnp.MallocMessageBuilder()
+        ...
+        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+        ...
+        StreamFdMessageReader(open('out.txt').fileno())
+
+    :type fd: int
+    :param fd: A file descriptor
+
+    :type message: :class:`MessageBuilder`
+    :param message: The Cap'n Proto message to serialize
+
+    :rtype: void
+    """
+    schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
+
+def writePackedMessageToFd(int fd, MessageBuilder message):
+    """Serialize a Cap'n Proto message to a file descriptor in a packed manner
+
+    You use this method to serialize your message to a file. Please note that
+    you must pass a file descriptor (ie. an int), not a file object. Also, note
+    the difference in names with writeMessageToFd. This method uses a different
+    serialization specification, and your reader will need to match.::
+
+        message = capnp.MallocMessageBuilder()
+        ...
+        writePackedMessageToFd(open('out.txt', 'w').fileno(), message)
+        ...
+        PackedFdMessageReader(open('out.txt').fileno())
+
+    :type fd: int
+    :param fd: A file descriptor
+
+    :type message: :class:`MessageBuilder`
+    :param message: The Cap'n Proto message to serialize
+
+    :rtype: void
+    """
+    schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
 
 from types import ModuleType as _ModuleType
 import os as _os
 
 def load(file_name, display_name=None, imports=[]):
-    """load a Cap'n Proto schema from a file 
+    """Load a Cap'n Proto schema from a file 
 
     You will have to load a schema before you can begin doing anything
     meaningful with this library. Loading a schema is much like Loading
