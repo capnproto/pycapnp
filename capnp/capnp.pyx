@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, DynamicOrphan as C_DynamicOrphan
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -60,6 +60,7 @@ _Type = _make_enum('DynamicValue.Type',
                     INTERFACE = capnp.TYPE_INTERFACE,
                     OBJECT = capnp.TYPE_OBJECT)
 
+# Templated classes are weird in cython. I couldn't put it in a pxd header for some reason
 cdef extern from "capnp/list.h" namespace " ::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
@@ -68,6 +69,9 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
         cppclass Builder:
             T operator[](uint) except +ValueError
             uint size()
+
+cdef extern from "<utility>" namespace "std":
+    C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan &)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -115,15 +119,12 @@ cdef class _DynamicListReader:
         self._parent = parent
         return self
 
-    cpdef _get(self, index):
+    def __getitem__(self, index):
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        return _DynamicValueReader()._init(self.thisptr[index], self._parent)
-
-    def __getitem__(self, index):
-        return self._get(index).toPython()
+        return toPythonReader(self.thisptr[index], self._parent)
 
     def __len__(self):
         return self.thisptr.size()
@@ -135,10 +136,6 @@ cdef class _DynamicListBuilder:
         self.thisptr = other
         self._parent = parent
         return self
-
-    #def _init(self, size):
-    #    self.thisptr._init(size)
-    #    return self
 
     cpdef _get(self, index) except +ValueError:
         return toPython(self.thisptr[index], self._parent)
@@ -164,37 +161,6 @@ cdef class _DynamicListBuilder:
     def __len__(self):
         return self.thisptr.size()
 
-cdef class _List_UInt64_Reader:
-    cdef List[UInt64].Reader thisptr
-    cdef _init(self, List[UInt64].Reader other):
-        self.thisptr = other
-        return self
-    def __getitem__(self, index):
-        size = self.thisptr.size()
-        if index >= size:
-            raise IndexError('Out of bounds')
-        index = index % size
-        return self.thisptr[index]
-
-    def __len__(self):
-        return self.thisptr.size()
-
-cdef class _List_Node_Reader:
-    cdef List[C_Node].Reader thisptr
-    cdef _init(self, List[C_Node].Reader other):
-        self.thisptr = other
-        return self
-
-    def __getitem__(self, index):
-        size = self.thisptr.size()
-        if index >= size:
-            raise IndexError('Out of bounds')
-        index = index % size
-        return _NodeReader().init(<C_Node.Reader>self.thisptr[index])
-
-    def __len__(self):
-        return self.thisptr.size()
-
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
     cdef _init(self, List[C_Node.NestedNode].Reader other):
@@ -211,44 +177,33 @@ cdef class _List_NestedNode_Reader:
     def __len__(self):
         return self.thisptr.size()
 
-cdef class _DynamicValueReader:
-    cdef C_DynamicValue.Reader thisptr
-    cdef public object _parent
-    cdef _init(self, C_DynamicValue.Reader other, object parent):
-        self.thisptr = other
-        self._parent = parent
-        return self
-
-    cpdef int getType(self):
-        return self.thisptr.getType()
-
-    cpdef toPython(self):
-        cdef int type = self.getType()
-        if type == capnp.TYPE_BOOL:
-            return self.thisptr.asBool()
-        elif type == capnp.TYPE_INT:
-            return self.thisptr.asInt()
-        elif type == capnp.TYPE_UINT:
-            return self.thisptr.asUint()
-        elif type == capnp.TYPE_FLOAT:
-            return self.thisptr.asDouble()
-        elif type == capnp.TYPE_TEXT:
-            return self.thisptr.asText()[:]
-        elif type == capnp.TYPE_DATA:
-            temp = self.thisptr.asData()
-            return (<char*>temp.begin())[:temp.size()]
-        elif type == capnp.TYPE_LIST:
-            return list(_DynamicListReader()._init(self.thisptr.asList(), self._parent))
-        elif type == capnp.TYPE_STRUCT:
-            return _DynamicStructReader()._init(self.thisptr.asStruct(), self._parent)
-        elif type == capnp.TYPE_ENUM:
-            return fixMaybe(self.thisptr.asEnum().getEnumerant()).getProto().getName().cStr()
-        elif type == capnp.TYPE_VOID:
-            return None
-        elif type == capnp.TYPE_UNKOWN:
-            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
-        else:
-            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+cdef toPythonReader(C_DynamicValue.Reader self, object parent):
+    cdef int type = self.getType()
+    if type == capnp.TYPE_BOOL:
+        return self.asBool()
+    elif type == capnp.TYPE_INT:
+        return self.asInt()
+    elif type == capnp.TYPE_UINT:
+        return self.asUint()
+    elif type == capnp.TYPE_FLOAT:
+        return self.asDouble()
+    elif type == capnp.TYPE_TEXT:
+        return self.asText()[:]
+    elif type == capnp.TYPE_DATA:
+        temp = self.asData()
+        return (<char*>temp.begin())[:temp.size()]
+    elif type == capnp.TYPE_LIST:
+        return list(_DynamicListReader()._init(self.asList(), parent))
+    elif type == capnp.TYPE_STRUCT:
+        return _DynamicStructReader()._init(self.asStruct(), parent)
+    elif type == capnp.TYPE_ENUM:
+        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+    elif type == capnp.TYPE_VOID:
+        return None
+    elif type == capnp.TYPE_UNKOWN:
+        raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+    else:
+        raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
 cdef toPython(C_DynamicValue.Builder self, object parent):
     cdef int type = self.getType()
@@ -286,11 +241,8 @@ cdef class _DynamicStructReader:
         self._parent = parent
         return self
 
-    cpdef _get(self, field):
-        return _DynamicValueReader()._init(self.thisptr.get(field), self._parent)
-
     def __getattr__(self, field):
-        return self._get(field).toPython()
+        return toPythonReader(self.thisptr.get(field), self._parent)
 
     def _has(self, field):
         return self.thisptr.has(field)
@@ -306,7 +258,7 @@ cdef class _DynamicStructBuilder:
         self._parent = parent
         return self
 
-    cpdef _get(self, field) except +ValueError:
+    cdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
 
     def __getattr__(self, field):
@@ -356,74 +308,63 @@ cdef class _DynamicStructBuilder:
         else:
             return toPython(self.thisptr.init(field, size), self._parent)
 
-    # cpdef which(self):
-    #     try:
-    #         union = fixMaybeUnion(self.thisptr.getSchema().getUnnamedUnion())
-    #     except:
-    #         raise TypeError("This struct has no unnamed enums. You cannot call which on it")
+    cpdef which(self):
+        return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
-    #     return getWhichBuilder(self.thisptr.getByUnion(union))
+cdef class _DynamicOrphan:
+    cdef C_DynamicOrphan thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicOrphan other, object parent):
+        self.thisptr = moveOrphan(other)
+        self._parent = parent
+        return self
 
-cdef class Schema:
+cdef class _Schema:
     cdef C_Schema thisptr
     cdef _init(self, C_Schema other):
         self.thisptr = other
         return self
 
     cpdef asConstValue(self):
-        return _DynamicValueReader()._init(<C_DynamicValue.Reader>self.thisptr.asConst(), self).toPython()
+        return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
     cpdef asStruct(self):
-        return StructSchema()._init(self.thisptr.asStruct())
+        return _StructSchema()._init(self.thisptr.asStruct())
 
     cpdef getDependency(self, id):
-        return Schema()._init(self.thisptr.getDependency(id))
+        return _Schema()._init(self.thisptr.getDependency(id))
 
     cpdef getProto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
-cdef class StructSchema:
+cdef class _StructSchema:
     cdef C_StructSchema thisptr
     cdef _init(self, C_StructSchema other):
         self.thisptr = other
         return self
 
-cdef class ParsedSchema:
+cdef class _ParsedSchema:
     cdef C_ParsedSchema thisptr
     cdef _init(self, C_ParsedSchema other):
         self.thisptr = other
         return self
 
     cpdef asConstValue(self):
-        return _DynamicValueReader()._init(<C_DynamicValue.Reader>self.thisptr.asConst(), self).toPython()
+        return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
     cpdef asStruct(self):
-        return StructSchema()._init(self.thisptr.asStruct())
+        return _StructSchema()._init(self.thisptr.asStruct())
 
     cpdef getDependency(self, id):
-        return Schema()._init(self.thisptr.getDependency(id))
+        return _Schema()._init(self.thisptr.getDependency(id))
 
     cpdef getProto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
     cpdef getNested(self, name):
-        return ParsedSchema()._init(self.thisptr.getNested(name))
+        return _ParsedSchema()._init(self.thisptr.getNested(name))
 
-cdef class SchemaLoader:
-    cdef C_SchemaLoader * thisptr
-    def __cinit__(self):
-        self.thisptr = new C_SchemaLoader()
-
-    def __dealloc__(self):
-        del self.thisptr
-
-    cpdef load(self, _NodeReader node):
-        return Schema()._init(self.thisptr.load(node.thisptr))
-
-    cpdef get(self, id):
-        return Schema()._init(self.thisptr.get(id))
-
-cdef class SchemaParser:
+cdef class _SchemaParser:
     cdef C_SchemaParser * thisptr
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
@@ -439,7 +380,7 @@ cdef class SchemaParser:
 
         cdef ArrayPtr[StringPtr] importsPtr = ArrayPtr[StringPtr](importArray, <size_t>len(imports))
 
-        ret = ParsedSchema()
+        ret = _ParsedSchema()
         ret._init(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
 
         free(importArray)
@@ -447,21 +388,59 @@ cdef class SchemaParser:
         return ret
 
 cdef class MessageBuilder:
+    """An abstract base class for building Cap'n Proto messages
+
+    .. warning:: Don't ever instantiate this class directly. It is only used for inheritance.
+    """
     cdef schema_cpp.MessageBuilder * thisptr
     def __dealloc__(self):
         del self.thisptr
+
     def __init__(self):
         raise NotImplementedError("This is an abstract base class. You should use MallocMessageBuilder instead")
 
     cpdef initRoot(self, schema):
-        cdef StructSchema s
+        """A method for instantiating Cap'n Proto structs
+
+        You will need to pass in a schema to specify which struct to
+        instantiate. Schemas are available in a loaded Cap'n Proto module::
+
+            addressbook = capnp.load('addressbook.capnp')
+            ...
+            person = message.initRoot(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicStructBuilder`
+        :return: An object where you will set all the members
+        """
+        cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
+
     cpdef getRoot(self, schema):
-        cdef StructSchema s
+        """A method for instantiating Cap'n Proto structs, from an already pre-written buffers
+
+        Don't use this method unless you know what you're doing. You probably
+        want to use initRoot instead::
+
+            addressbook = capnp.load('addressbook.capnp')
+            ...
+            person = message.initRoot(addressbook.Person)
+            ...
+            person = message.getRoot(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicStructBuilder`
+        :return: An object where you will set all the members
+        """
+        cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
         else:
@@ -469,12 +448,30 @@ cdef class MessageBuilder:
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
 cdef class MallocMessageBuilder(MessageBuilder):
+    """The main class for building Cap'n Proto messages
+
+    You will use this class to handle arena allocation of the Cap'n Proto
+    messages. You also use this object when you're done assigning to Cap'n
+    Proto objects, and wish to serialize them::
+
+        addressbook = capnp.load('addressbook.capnp')
+        message = capnp.MallocMessageBuilder()
+        person = message.initRoot(addressbook.Person)
+        person.name = 'alice'
+        ...
+        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+    """
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
+
     def __init__(self):
         pass
 
-cdef class MessageReader:
+cdef class _MessageReader:
+    """An abstract base class for reading Cap'n Proto messages
+
+    .. warning:: Don't ever instantiate this class. It is only used for inheritance.
+    """
     cdef schema_cpp.MessageReader * thisptr
     def __dealloc__(self):
         del self.thisptr
@@ -483,37 +480,115 @@ cdef class MessageReader:
 
     cpdef _getRootNode(self):
         return _NodeReader().init(self.thisptr.getRootNode())
+
     cpdef getRoot(self, schema):
-        cdef StructSchema s
+        """A method for instantiating Cap'n Proto structs
+
+        You will need to pass in a schema to specify which struct to
+        instantiate. Schemas are available in a loaded Cap'n Proto module::
+
+            addressbook = capnp.load('addressbook.capnp')
+            ...
+            person = message.getRoot(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicStructReader`
+        :return: An object with all the data of the read Cap'n Proto message.
+            Access members with . syntax.
+        """
+        cdef _StructSchema s
         if hasattr(schema, 'Schema'):
             s = schema.Schema
         else:
             s = schema
         return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
-cdef class StreamFdMessageReader(MessageReader):
+cdef class StreamFdMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor
+
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of writeMessageToFd and :class:`MessageBuilder`, but in one class.::
+
+        message = StreamFdMessageReader(open('out.txt').fileno())
+        person = message.getRoot(addressbook.Person)
+        print person.name
+
+    :Parameters: - fd (`int`) - A file descriptor
+    """
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd)
 
-cdef class PackedFdMessageReader(MessageReader):
+cdef class PackedFdMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor in a packed manner
+
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of writePackedMessageToFd and :class:`MessageBuilder`, but in one class.::
+
+        message = StreamFdMessageReader(open('out.txt').fileno())
+        person = message.getRoot(addressbook.Person)
+        print person.name
+
+    :Parameters: - fd (`int`) - A file descriptor
+    """
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd)
 
-def writeMessageToFd(int fd, MessageBuilder m):
-    schema_cpp.writeMessageToFd(fd, deref(m.thisptr))
+def writeMessageToFd(int fd, MessageBuilder message):
+    """Serialize a Cap'n Proto message to a file descriptor
 
-def writePackedMessageToFd(int fd, MessageBuilder m):
-    schema_cpp.writePackedMessageToFd(fd, deref(m.thisptr))
+    You use this method to serialize your message to a file. Please note that
+    you must pass a file descriptor (ie. an int), not a file object. Make sure
+    you use the proper reader to match this (ie. don't use PackedFdMessageReader)::
 
-from types import ModuleType
-import os
+        message = capnp.MallocMessageBuilder()
+        ...
+        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+        ...
+        StreamFdMessageReader(open('out.txt').fileno())
+
+    :type fd: int
+    :param fd: A file descriptor
+
+    :type message: :class:`MessageBuilder`
+    :param message: The Cap'n Proto message to serialize
+
+    :rtype: void
+    """
+    schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
+
+def writePackedMessageToFd(int fd, MessageBuilder message):
+    """Serialize a Cap'n Proto message to a file descriptor in a packed manner
+
+    You use this method to serialize your message to a file. Please note that
+    you must pass a file descriptor (ie. an int), not a file object. Also, note
+    the difference in names with writeMessageToFd. This method uses a different
+    serialization specification, and your reader will need to match.::
+
+        message = capnp.MallocMessageBuilder()
+        ...
+        writePackedMessageToFd(open('out.txt', 'w').fileno(), message)
+        ...
+        PackedFdMessageReader(open('out.txt').fileno())
+
+    :type fd: int
+    :param fd: A file descriptor
+
+    :type message: :class:`MessageBuilder`
+    :param message: The Cap'n Proto message to serialize
+
+    :rtype: void
+    """
+    schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
+
+from types import ModuleType as _ModuleType
+import os as _os
 
 def load(file_name, display_name=None, imports=[]):
-    """load a Cap'n Proto schema from a file 
+    """Load a Cap'n Proto schema from a file 
 
     You will have to load a schema before you can begin doing anything
     meaningful with this library. Loading a schema is much like Loading
-    a Python module (and load even returns a ModuleType). Once it's been
+    a Python module (and load even returns a `ModuleType`). Once it's been
     loaded, you use it much like any other Module::
 
         addressbook = capnp.load('addressbook.capnp')
@@ -545,7 +620,7 @@ def load(file_name, display_name=None, imports=[]):
         module._nodeProto = nodeProto
 
         for node in nodeProto.nestedNodes:
-            local_module = ModuleType(node.name)
+            local_module = _ModuleType(node.name)
             module.__dict__[node.name] = local_module
 
             schema = nodeSchema.getNested(node.name)
@@ -558,9 +633,9 @@ def load(file_name, display_name=None, imports=[]):
             _load(schema, local_module)
 
     if display_name is None:
-        display_name = os.path.basename(file_name)
-    module = ModuleType(display_name)
-    parser = SchemaParser()
+        display_name = _os.path.basename(file_name)
+    module = _ModuleType(display_name)
+    parser = _SchemaParser()
 
     module._parser = parser
 

@@ -68,12 +68,6 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass ConstSchema:
         pass
 
-cdef extern from "capnp/schema-loader.h" namespace " ::capnp":
-    cdef cppclass SchemaLoader:
-        SchemaLoader()
-        Schema load(Node.Reader &) except +
-        Schema get(uint64_t id) except +
-
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicValueForward" ::capnp::DynamicValue":
         cppclass Reader:
@@ -179,3 +173,8 @@ cdef extern from "capnp/schema-parser.h" namespace " ::capnp":
     cdef cppclass SchemaParser:
         SchemaParser()
         ParsedSchema parseDiskFile(char * displayName, char * diskPath, ArrayPtr[StringPtr] importPath) except +
+
+cdef extern from "capnp/orphan.h" namespace " ::capnp":
+    cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>":
+        DynamicValue.Builder get()
+        DynamicValue.Reader getReader()
