@@ -29,6 +29,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         Node.Reader getProto() except +
         StructSchema asStruct() except +
         EnumSchema asEnum() except +
+        ConstSchema asConst() except +
         Schema getDependency(uint64_t id) except +
         #InterfaceSchema asInterface() const;
 
@@ -63,6 +64,9 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         EnumerantList getEnumerants()
         Enumerant getEnumerantByName(char * name)
         Node.Reader getProto()
+
+    cdef cppclass ConstSchema:
+        pass
 
 cdef extern from "capnp/schema-loader.h" namespace " ::capnp":
     cdef cppclass SchemaLoader:

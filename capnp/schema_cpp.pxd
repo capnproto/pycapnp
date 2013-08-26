@@ -438,6 +438,12 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             UInt64 getScopeId()
             List[Node.Node.NestedNode].Reader getNestedNodes()
             UInt64 getId()
+            bint isFile()
+            bint isStruct()
+            bint isEnum()
+            bint isInterface()
+            bint isConst()
+            bint isAnnotation()
         cppclass Builder:
             
             Node.Body getBody()
@@ -452,6 +458,12 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             List[Node.Node.NestedNode].Builder initNestedNodes(int)
             UInt64 getId()
             void setId(UInt64)
+            bint isFile()
+            bint isStruct()
+            bint isEnum()
+            bint isInterface()
+            bint isConst()
+            bint isAnnotation()
     cdef cppclass AnnotationNode:
 
     

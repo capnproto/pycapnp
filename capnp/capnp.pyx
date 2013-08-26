@@ -87,6 +87,12 @@ cdef class _NodeReader:
     property nestedNodes:
         def __get__(self):
             return _List_NestedNode_Reader()._init(self.thisptr.getNestedNodes())
+    property isStruct:
+        def __get__(self):
+            return self.thisptr.isStruct()
+    property isConst:
+        def __get__(self):
+            return self.thisptr.isConst()
 
 cdef class _NestedNodeReader:
     cdef C_Node.NestedNode.Reader thisptr
@@ -364,6 +370,9 @@ cdef class Schema:
         self.thisptr = other
         return self
 
+    cpdef asConstValue(self):
+        return _DynamicValueReader()._init(<C_DynamicValue.Reader>self.thisptr.asConst(), self).toPython()
+
     cpdef asStruct(self):
         return StructSchema()._init(self.thisptr.asStruct())
 
@@ -384,6 +393,9 @@ cdef class ParsedSchema:
     cdef _init(self, C_ParsedSchema other):
         self.thisptr = other
         return self
+
+    cpdef asConstValue(self):
+        return _DynamicValueReader()._init(<C_DynamicValue.Reader>self.thisptr.asConst(), self).toPython()
 
     cpdef asStruct(self):
         return StructSchema()._init(self.thisptr.asStruct())
@@ -506,10 +518,11 @@ def _load(nodeSchema, module):
         module.__dict__[node.name] = local_module
 
         schema = nodeSchema.getNested(node.name)
-        try:
+        proto = schema.getProto()
+        if proto.isStruct:
             local_module.Schema = schema.asStruct()
-        except:
-            pass
+        elif proto.isConst:
+            module.__dict__[node.name] = schema.asConstValue()
 
         _load(schema, local_module)
 

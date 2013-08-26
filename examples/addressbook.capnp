@@ -1,5 +1,7 @@
 @0x934efea7f017fff0;
 
+const qux :UInt32 = 123;
+
 struct Person {
   id @0 :UInt32;
   name @1 :Text;
