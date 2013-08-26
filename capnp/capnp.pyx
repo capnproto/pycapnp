@@ -119,15 +119,12 @@ cdef class _DynamicListReader:
         self._parent = parent
         return self
 
-    cpdef _get(self, index):
+    def __getitem__(self, index):
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        return _DynamicValueReader()._init(self.thisptr[index], self._parent)
-
-    def __getitem__(self, index):
-        return self._get(index).toPython()
+        return toPythonReader(self.thisptr[index], self._parent)
 
     def __len__(self):
         return self.thisptr.size()
@@ -139,10 +136,6 @@ cdef class _DynamicListBuilder:
         self.thisptr = other
         self._parent = parent
         return self
-
-    #def _init(self, size):
-    #    self.thisptr._init(size)
-    #    return self
 
     cpdef _get(self, index) except +ValueError:
         return toPython(self.thisptr[index], self._parent)
@@ -168,37 +161,6 @@ cdef class _DynamicListBuilder:
     def __len__(self):
         return self.thisptr.size()
 
-cdef class _List_UInt64_Reader:
-    cdef List[UInt64].Reader thisptr
-    cdef _init(self, List[UInt64].Reader other):
-        self.thisptr = other
-        return self
-    def __getitem__(self, index):
-        size = self.thisptr.size()
-        if index >= size:
-            raise IndexError('Out of bounds')
-        index = index % size
-        return self.thisptr[index]
-
-    def __len__(self):
-        return self.thisptr.size()
-
-cdef class _List_Node_Reader:
-    cdef List[C_Node].Reader thisptr
-    cdef _init(self, List[C_Node].Reader other):
-        self.thisptr = other
-        return self
-
-    def __getitem__(self, index):
-        size = self.thisptr.size()
-        if index >= size:
-            raise IndexError('Out of bounds')
-        index = index % size
-        return _NodeReader().init(<C_Node.Reader>self.thisptr[index])
-
-    def __len__(self):
-        return self.thisptr.size()
-
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
     cdef _init(self, List[C_Node.NestedNode].Reader other):
@@ -215,44 +177,33 @@ cdef class _List_NestedNode_Reader:
     def __len__(self):
         return self.thisptr.size()
 
-cdef class _DynamicValueReader:
-    cdef C_DynamicValue.Reader thisptr
-    cdef public object _parent
-    cdef _init(self, C_DynamicValue.Reader other, object parent):
-        self.thisptr = other
-        self._parent = parent
-        return self
-
-    cpdef int getType(self):
-        return self.thisptr.getType()
-
-    cpdef toPython(self):
-        cdef int type = self.getType()
-        if type == capnp.TYPE_BOOL:
-            return self.thisptr.asBool()
-        elif type == capnp.TYPE_INT:
-            return self.thisptr.asInt()
-        elif type == capnp.TYPE_UINT:
-            return self.thisptr.asUint()
-        elif type == capnp.TYPE_FLOAT:
-            return self.thisptr.asDouble()
-        elif type == capnp.TYPE_TEXT:
-            return self.thisptr.asText()[:]
-        elif type == capnp.TYPE_DATA:
-            temp = self.thisptr.asData()
-            return (<char*>temp.begin())[:temp.size()]
-        elif type == capnp.TYPE_LIST:
-            return list(_DynamicListReader()._init(self.thisptr.asList(), self._parent))
-        elif type == capnp.TYPE_STRUCT:
-            return _DynamicStructReader()._init(self.thisptr.asStruct(), self._parent)
-        elif type == capnp.TYPE_ENUM:
-            return fixMaybe(self.thisptr.asEnum().getEnumerant()).getProto().getName().cStr()
-        elif type == capnp.TYPE_VOID:
-            return None
-        elif type == capnp.TYPE_UNKOWN:
-            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
-        else:
-            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+cdef toPythonReader(C_DynamicValue.Reader self, object parent):
+    cdef int type = self.getType()
+    if type == capnp.TYPE_BOOL:
+        return self.asBool()
+    elif type == capnp.TYPE_INT:
+        return self.asInt()
+    elif type == capnp.TYPE_UINT:
+        return self.asUint()
+    elif type == capnp.TYPE_FLOAT:
+        return self.asDouble()
+    elif type == capnp.TYPE_TEXT:
+        return self.asText()[:]
+    elif type == capnp.TYPE_DATA:
+        temp = self.asData()
+        return (<char*>temp.begin())[:temp.size()]
+    elif type == capnp.TYPE_LIST:
+        return list(_DynamicListReader()._init(self.asList(), parent))
+    elif type == capnp.TYPE_STRUCT:
+        return _DynamicStructReader()._init(self.asStruct(), parent)
+    elif type == capnp.TYPE_ENUM:
+        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+    elif type == capnp.TYPE_VOID:
+        return None
+    elif type == capnp.TYPE_UNKOWN:
+        raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+    else:
+        raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
 cdef toPython(C_DynamicValue.Builder self, object parent):
     cdef int type = self.getType()
@@ -290,11 +241,8 @@ cdef class _DynamicStructReader:
         self._parent = parent
         return self
 
-    cpdef _get(self, field):
-        return _DynamicValueReader()._init(self.thisptr.get(field), self._parent)
-
     def __getattr__(self, field):
-        return self._get(field).toPython()
+        return toPythonReader(self.thisptr.get(field), self._parent)
 
     def _has(self, field):
         return self.thisptr.has(field)
@@ -360,13 +308,8 @@ cdef class _DynamicStructBuilder:
         else:
             return toPython(self.thisptr.init(field, size), self._parent)
 
-    # cpdef which(self):
-    #     try:
-    #         union = fixMaybeUnion(self.thisptr.getSchema().getUnnamedUnion())
-    #     except:
-    #         raise TypeError("This struct has no unnamed enums. You cannot call which on it")
-
-    #     return getWhichBuilder(self.thisptr.getByUnion(union))
+    cpdef which(self):
+        return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
@@ -383,7 +326,7 @@ cdef class Schema:
         return self
 
     cpdef asConstValue(self):
-        return _DynamicValueReader()._init(<C_DynamicValue.Reader>self.thisptr.asConst(), self).toPython()
+        return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
     cpdef asStruct(self):
         return StructSchema()._init(self.thisptr.asStruct())
@@ -407,7 +350,7 @@ cdef class ParsedSchema:
         return self
 
     cpdef asConstValue(self):
-        return _DynamicValueReader()._init(<C_DynamicValue.Reader>self.thisptr.asConst(), self).toPython()
+        return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
     cpdef asStruct(self):
         return StructSchema()._init(self.thisptr.asStruct())
@@ -472,6 +415,7 @@ cdef class MessageBuilder:
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
+
     cpdef getRoot(self, schema):
         cdef StructSchema s
         if hasattr(schema, 'Schema'):
@@ -495,6 +439,7 @@ cdef class MessageReader:
 
     cpdef _getRootNode(self):
         return _NodeReader().init(self.thisptr.getRootNode())
+
     cpdef getRoot(self, schema):
         cdef StructSchema s
         if hasattr(schema, 'Schema'):
@@ -525,7 +470,7 @@ def load(file_name, display_name=None, imports=[]):
 
     You will have to load a schema before you can begin doing anything
     meaningful with this library. Loading a schema is much like Loading
-    a Python module (and load even returns a ModuleType). Once it's been
+    a Python module (and load even returns a `ModuleType`). Once it's been
     loaded, you use it much like any other Module::
 
         addressbook = capnp.load('addressbook.capnp')
