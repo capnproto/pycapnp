@@ -48,19 +48,10 @@ copyright = u'2013, Author'
 # built documents.
 #
 # The short X.Y version.
-def extract_version():
-    """extract version from version.py, so it's not multiply defined"""
-    with open(os.path.join('..', 'capnp', 'version.py')) as f:
-        line = f.readline()
-        while not line.startswith("version"):
-            line = f.readline()
-            print line
-    exec(line)
-    return version
+import capnp
 
-vs = extract_version()
+vs = capnp.__version__
 # The short X.Y version.
-import string
 version = vs.rstrip(string.letters)
 # The full version, including alpha/beta/rc tags.
 release = vs
