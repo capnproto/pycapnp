@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr
+from capnp_cpp cimport SchemaLoader as C_SchemaLoader, Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, DynamicOrphan as C_DynamicOrphan
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -60,6 +60,7 @@ _Type = _make_enum('DynamicValue.Type',
                     INTERFACE = capnp.TYPE_INTERFACE,
                     OBJECT = capnp.TYPE_OBJECT)
 
+# Templated classes are weird in cython. I couldn't put it in a pxd header for some reason
 cdef extern from "capnp/list.h" namespace " ::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
@@ -68,6 +69,9 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
         cppclass Builder:
             T operator[](uint) except +ValueError
             uint size()
+
+cdef extern from "<utility>" namespace "std":
+    C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan &)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -363,6 +367,14 @@ cdef class _DynamicStructBuilder:
     #         raise TypeError("This struct has no unnamed enums. You cannot call which on it")
 
     #     return getWhichBuilder(self.thisptr.getByUnion(union))
+
+cdef class _DynamicOrphan:
+    cdef C_DynamicOrphan thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicOrphan other, object parent):
+        self.thisptr = moveOrphan(other)
+        self._parent = parent
+        return self
 
 cdef class Schema:
     cdef C_Schema thisptr

@@ -179,3 +179,8 @@ cdef extern from "capnp/schema-parser.h" namespace " ::capnp":
     cdef cppclass SchemaParser:
         SchemaParser()
         ParsedSchema parseDiskFile(char * displayName, char * diskPath, ArrayPtr[StringPtr] importPath) except +
+
+cdef extern from "capnp/orphan.h" namespace " ::capnp":
+    cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>":
+        DynamicValue.Builder get()
+        DynamicValue.Reader getReader()
