@@ -67,10 +67,3 @@ Builders
   :members:
   :undoc-members:
   :inherited-members:
-
-Miscellaneous
-~~~~~~~~~~~~~
-.. autoclass:: _DynamicOrphan
-  :members:
-  :undoc-members:
-  :inherited-members:

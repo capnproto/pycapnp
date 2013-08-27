@@ -112,6 +112,21 @@ cdef class _NestedNodeReader:
             return self.thisptr.getId()
 
 cdef class _DynamicListReader:
+    """Class for reading Cap'n Proto Lists
+
+    This class thinly wraps the C++ Cap'n Proto DynamicList::Reader class. __getitem__ and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
+
+        ...
+        person = message.getRoot(addressbook.Person)
+
+        phones = person.phones # This returns a _DynamicListReader
+
+        phone = phones[0]
+        print phone.number
+
+        for phone in phones:
+            print phone.number
+    """
     cdef C_DynamicList.Reader thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Reader other, object parent):
@@ -130,6 +145,23 @@ cdef class _DynamicListReader:
         return self.thisptr.size()
 
 cdef class _DynamicListBuilder:
+    """Class for building Cap'n Proto Lists
+
+    This class thinly wraps the C++ Cap'n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
+
+        ...
+        person = message.initRoot(addressbook.Person)
+
+        phones = person.init('phones', 2) # This returns a _DynamicListBuilder
+        
+        phone = phones[0]
+        phone.number = 'foo'
+        phone = phones[1]
+        phone.number = 'bar'
+
+        for phone in phones:
+            print phone.number
+    """
     cdef C_DynamicList.Builder thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Builder other, object parent):
@@ -137,7 +169,7 @@ cdef class _DynamicListBuilder:
         self._parent = parent
         return self
 
-    cpdef _get(self, index) except +ValueError:
+    cdef _get(self, index) except +ValueError:
         return toPython(self.thisptr[index], self._parent)
 
     def __getitem__(self, index):
@@ -234,6 +266,14 @@ cdef toPython(C_DynamicValue.Builder self, object parent):
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
 cdef class _DynamicStructReader:
+    """Reads Cap'n Proto structs
+
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Reader. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
+
+        person = message.getRoot(addressbook.Person) # This returns a _DynamicStructReader
+        print person.name # using . syntax
+        print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
+    """
     cdef C_DynamicStruct.Reader thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicStruct.Reader other, object parent):
@@ -247,10 +287,40 @@ cdef class _DynamicStructReader:
     def _has(self, field):
         return self.thisptr.has(field)
 
-    cpdef which(self):
+    cpdef which(self) except +ValueError:
+        """Returns the enum corresponding to the union in this struct
+
+        Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
+
+            person = message.initRoot(addressbook.Person)
+            
+            person.which()
+            # ValueError: member was null
+
+            a.employment.employer = 'foo'
+            print employment.which()
+            # 'employer'
+
+        :rtype: str
+        :return: A string/enum corresponding to what field is set in the union
+
+        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        """
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
 cdef class _DynamicStructBuilder:
+    """Builds Cap'n Proto structs
+
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder. The only difference is that instead of a `get`/`set` method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don't follow valid python naming convention for fields, use the global functions :py:func:`getattr`/:py:func:`setattr`::
+
+        person = message.initRoot(addressbook.Person) # This returns a _DynamicStructBuilder
+        
+        person.name = 'foo' # using . syntax
+        print person.name # using . syntax
+
+        setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
+        print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
+    """
     cdef C_DynamicStruct.Builder thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicStruct.Builder other, object parent):
@@ -302,13 +372,45 @@ cdef class _DynamicStructBuilder:
     def _has(self, field):
         return self.thisptr.has(field)
 
-    cpdef init(self, field, size=None) except +ValueError:
+    cpdef init(self, field, size=None) except +AttributeError:
+        """Method for initializing fields that are of type union/struct/list
+
+        Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists. 
+
+        :type field: str
+        :param field: The field name to initialize
+
+        :type size: int
+        :param size: The size of the list to initiialize. This should be None for struct/union initialization.
+
+        :rtype: :class:`_DynamicStructBuilder` or :class:`_DynamicListBuilder`
+
+        :Raises: :exc:`exceptions.AttributeError` if the field isn't in this struct
+        """
         if size is None:
             return toPython(self.thisptr.init(field), self._parent)
         else:
             return toPython(self.thisptr.init(field, size), self._parent)
 
-    cpdef which(self):
+    cpdef which(self) except +ValueError:
+        """Returns the enum corresponding to the union in this struct
+
+        Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
+
+            person = message.initRoot(addressbook.Person)
+            
+            person.which()
+            # ValueError: member was null
+
+            a.employment.employer = 'foo'
+            print employment.which()
+            # 'employer'
+            
+        :rtype: str
+        :return: A string/enum corresponding to what field is set in the union
+
+        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        """
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
 cdef class _DynamicOrphan:
@@ -459,7 +561,8 @@ cdef class MallocMessageBuilder(MessageBuilder):
         person = message.initRoot(addressbook.Person)
         person.name = 'alice'
         ...
-        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+        f = open('out.txt', 'w')
+        writeMessageToFd(f.fileno(), message)
     """
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
@@ -508,9 +611,10 @@ cdef class _MessageReader:
 cdef class StreamFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of writeMessageToFd and :class:`MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`writeMessageToFd` and :class:`MessageBuilder`, but in one class::
 
-        message = StreamFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        message = StreamFdMessageReader(f.fileno())
         person = message.getRoot(addressbook.Person)
         print person.name
 
@@ -524,7 +628,8 @@ cdef class PackedFdMessageReader(_MessageReader):
 
     You use this class to for reading message(s) from a file. It's analagous to the inverse of writePackedMessageToFd and :class:`MessageBuilder`, but in one class.::
 
-        message = StreamFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        message = StreamFdMessageReader(f.fileno())
         person = message.getRoot(addressbook.Person)
         print person.name
 
@@ -542,9 +647,11 @@ def writeMessageToFd(int fd, MessageBuilder message):
 
         message = capnp.MallocMessageBuilder()
         ...
-        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+        f = open('out.txt', 'w')
+        writeMessageToFd(f.fileno(), message)
         ...
-        StreamFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        StreamFdMessageReader(f.fileno())
 
     :type fd: int
     :param fd: A file descriptor
@@ -566,9 +673,11 @@ def writePackedMessageToFd(int fd, MessageBuilder message):
 
         message = capnp.MallocMessageBuilder()
         ...
-        writePackedMessageToFd(open('out.txt', 'w').fileno(), message)
+        f = open('out.txt', 'w')
+        writePackedMessageToFd(f.fileno(), message)
         ...
-        PackedFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        PackedFdMessageReader(f.fileno())
 
     :type fd: int
     :param fd: A file descriptor
