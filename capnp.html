@@ -137,9 +137,11 @@ you must pass a file descriptor (ie. an int), not a file object. Make sure
 you use the proper reader to match this (ie. don&#8217;t use PackedFdMessageReader):</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
 <span class="o">...</span>
-<span class="n">writeMessageToFd</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">writeMessageToFd</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
 <span class="o">...</span>
-<span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span>
+<span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
 </pre></div>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
@@ -169,9 +171,11 @@ the difference in names with writeMessageToFd. This method uses a different
 serialization specification, and your reader will need to match.:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
 <span class="o">...</span>
-<span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
 <span class="o">...</span>
-<span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span>
+<span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
 </pre></div>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
@@ -200,8 +204,9 @@ serialization specification, and your reader will need to match.:</p>
 <dd><p>StreamFdMessageReader(int fd)
 Read a Cap&#8217;n Proto message from a file descriptor</p>
 <blockquote>
-<div><p>You use this class to for reading message(s) from a file. It&#8217;s analagous to the inverse of writeMessageToFd and <a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>, but in one class.:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+<div><p>You use this class to for reading message(s) from a file. It&#8217;s analagous to the inverse of <a class="reference internal" href="#capnp.writeMessageToFd" title="capnp.writeMessageToFd"><tt class="xref py py-func docutils literal"><span class="pre">writeMessageToFd()</span></tt></a> and <a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>, but in one class:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
 <span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
 <span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span>
 </pre></div>
@@ -253,7 +258,8 @@ Access members with . syntax.</td>
 Read a Cap&#8217;n Proto message from a file descriptor in a packed manner</p>
 <blockquote>
 <div><p>You use this class to for reading message(s) from a file. It&#8217;s analagous to the inverse of writePackedMessageToFd and <a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>, but in one class.:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
 <span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
 <span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span>
 </pre></div>
@@ -380,7 +386,8 @@ Proto objects, and wish to serialize them:</p>
 <span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
 <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;alice&#39;</span>
 <span class="o">...</span>
-<span class="n">writeMessageToFd</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">writeMessageToFd</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -448,17 +455,62 @@ one yourself, but you may end up using some of their member methods.</p>
 <dl class="class">
 <dt id="capnp._DynamicStructReader">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicStructReader</tt><a class="headerlink" href="#capnp._DynamicStructReader" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Reads Cap&#8217;n Proto structs</p>
+<p>This class is almost a 1 for 1 wrapping of the Cap&#8217;n Proto C++ DynamicStruct::Reader. The only difference is that instead of a <cite>get</cite> method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent <cite>get</cite>. This means you just use . syntax to access any field. For field names that don&#8217;t follow valid python naming convention for fields, use the global function <a class="reference external" href="http://docs.python.org/library/functions.html#getattr" title="(in Python v2.7)"><tt class="xref py py-func docutils literal"><span class="pre">getattr()</span></tt></a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span> <span class="c"># This returns a _DynamicStructReader</span>
+<span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="c"># using . syntax</span>
+<span class="k">print</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="s">&#39;field-with-hyphens&#39;</span><span class="p">)</span> <span class="c"># for names that are invalid for python, use getattr</span>
+</pre></div>
+</div>
+<dl class="method">
 <dt id="capnp._DynamicStructReader.which">
 <tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.which" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the enum corresponding to the union in this struct</p>
+<p>Enums are just strings in the python Cap&#8217;n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn&#8217;t a union, or a struct with an unnamed union:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+
+<span class="n">person</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
+<span class="c"># ValueError: member was null</span>
+
+<span class="n">a</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
+<span class="k">print</span> <span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
+<span class="c"># &#39;employer&#39;</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string/enum corresponding to what field is set in the union</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this struct doesn&#8217;t contain a union</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="capnp._DynamicListReader">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicListReader</tt><a class="headerlink" href="#capnp._DynamicListReader" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Class for reading Cap&#8217;n Proto Lists</p>
+<p>This class thinly wraps the C++ Cap&#8217;n Proto DynamicList::Reader class. __getitem__ and __len__ have been defined properly, so you can treat this class mostly like any other iterable class:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+
+<span class="n">phones</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span> <span class="c"># This returns a _DynamicListReader</span>
+
+<span class="n">phone</span> <span class="o">=</span> <span class="n">phones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">print</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span>
+
+<span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">phones</span><span class="p">:</span>
+    <span class="k">print</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span>
+</pre></div>
+</div>
+</dd></dl>
 
 </div>
 <div class="section" id="id2">
@@ -466,22 +518,93 @@ one yourself, but you may end up using some of their member methods.</p>
 <dl class="class">
 <dt id="capnp._DynamicStructBuilder">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicStructBuilder</tt><a class="headerlink" href="#capnp._DynamicStructBuilder" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Builds Cap&#8217;n Proto structs</p>
+<p>This class is almost a 1 for 1 wrapping of the Cap&#8217;n Proto C++ DynamicStruct::Builder. The only difference is that instead of a <cite>get</cite>/<cite>set</cite> method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don&#8217;t follow valid python naming convention for fields, use the global functions <a class="reference external" href="http://docs.python.org/library/functions.html#getattr" title="(in Python v2.7)"><tt class="xref py py-func docutils literal"><span class="pre">getattr()</span></tt></a>/<a class="reference external" href="http://docs.python.org/library/functions.html#setattr" title="(in Python v2.7)"><tt class="xref py py-func docutils literal"><span class="pre">setattr()</span></tt></a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span> <span class="c"># This returns a _DynamicStructBuilder</span>
+
+<span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span> <span class="c"># using . syntax</span>
+<span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="c"># using . syntax</span>
+
+<span class="nb">setattr</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="s">&#39;field-with-hyphens&#39;</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">)</span> <span class="c"># for names that are invalid for python, use setattr</span>
+<span class="k">print</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="s">&#39;field-with-hyphens&#39;</span><span class="p">)</span> <span class="c"># for names that are invalid for python, use getattr</span>
+</pre></div>
+</div>
+<dl class="method">
 <dt id="capnp._DynamicStructBuilder.init">
 <tt class="descname">init</tt><big>(</big><em>self</em>, <em>field</em>, <em>size=None</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.init" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Method for initializing fields that are of type union/struct/list</p>
+<p>Typically, you don&#8217;t have to worry about initializing structs/unions, so this method is mainly for lists.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>field</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The field name to initialize</li>
+<li><strong>size</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The size of the list to initiialize. This should be None for struct/union initialization.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a> or <a class="reference internal" href="#capnp._DynamicListBuilder" title="capnp._DynamicListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicListBuilder</span></tt></a></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.AttributeError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.AttributeError</span></tt></a> if the field isn&#8217;t in this struct</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="capnp._DynamicStructBuilder.which">
 <tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.which" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the enum corresponding to the union in this struct</p>
+<p>Enums are just strings in the python Cap&#8217;n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn&#8217;t a union, or a struct with an unnamed union:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+
+<span class="n">person</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
+<span class="c"># ValueError: member was null</span>
+
+<span class="n">a</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
+<span class="k">print</span> <span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
+<span class="c"># &#39;employer&#39;</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string/enum corresponding to what field is set in the union</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this struct doesn&#8217;t contain a union</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="capnp._DynamicListBuilder">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicListBuilder</tt><a class="headerlink" href="#capnp._DynamicListBuilder" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Class for building Cap&#8217;n Proto Lists</p>
+<p>This class thinly wraps the C++ Cap&#8217;n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__ have been defined properly, so you can treat this class mostly like any other iterable class:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="o">...</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+
+<span class="n">phones</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="c"># This returns a _DynamicListBuilder</span>
+
+<span class="n">phone</span> <span class="o">=</span> <span class="n">phones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">phone</span><span class="o">.</span><span class="n">number</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
+<span class="n">phone</span> <span class="o">=</span> <span class="n">phones</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">phone</span><span class="o">.</span><span class="n">number</span> <span class="o">=</span> <span class="s">&#39;bar&#39;</span>
+
+<span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">phones</span><span class="p">:</span>
+    <span class="k">print</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span>
+</pre></div>
+</div>
+</dd></dl>
 
 </div>
 <div class="section" id="miscellaneous">
