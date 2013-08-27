@@ -104,6 +104,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Builder init(char *)
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
+            void adopt(char *, DynamicOrphan)
+            DynamicOrphan disown(char *)
 
 cdef extern from "fixMaybe.h":
     StructSchema.Field fixMaybe(Maybe[StructSchema.Field]) except+
@@ -123,6 +125,9 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             uint size()
             void set(uint index, DynamicValueForward.Reader& value) except +ValueError
             DynamicValueForward.Builder init(uint index, uint size) except +ValueError
+            void adopt(uint, DynamicOrphan)
+            DynamicOrphan disown(uint)
+            StructSchema getStructElementType'getSchema().getStructElementType'()
 
     cdef cppclass DynamicValue:
         cppclass Reader:
@@ -155,6 +160,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicStruct.Reader asStruct"as< ::capnp::DynamicStruct>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
             Data.Reader asData"as< ::capnp::Data>"()
+
         cppclass Builder:
             Type getType()
             int64_t asInt"as<int64_t>"()

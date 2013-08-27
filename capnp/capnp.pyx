@@ -71,7 +71,7 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
             uint size()
 
 cdef extern from "<utility>" namespace "std":
-    C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan &)
+    C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -144,6 +144,42 @@ cdef class _DynamicListReader:
     def __len__(self):
         return self.thisptr.size()
 
+cdef class _DynamicOrphanListBuilder:
+    cdef public object _parent, _message, _field, _schema
+    cdef public list _list
+    def __init__(self, parent, field, schema):
+        self._parent = parent
+        self._message = parent._parent
+        self._field = field
+        self._schema = schema
+
+        self._list = list()
+
+    cpdef add(self):
+        if len(self) == 0:
+            self._message._addSerializeEvent(self._serialize)
+
+        orphan = self._message.newOrphan(self._schema)
+        orphan_val = orphan.get()
+        self._list.append((orphan, orphan_val))
+        return orphan_val
+        
+    def __getitem__(self, index):
+        return self._list[index][1]
+
+    # def __setitem__(self, index, val):
+    #     self._list[index] = val
+
+    def __len__(self):
+        return len(self._list)
+
+    def _serialize(self):
+        cdef int i = 0
+        new_list = self._parent.init(self._field, len(self))
+        for orphan, _ in self._list:
+            new_list.adopt(i, orphan)
+            i += 1
+
 cdef class _DynamicListBuilder:
     """Class for building Cap'n Proto Lists
 
@@ -192,6 +228,47 @@ cdef class _DynamicListBuilder:
 
     def __len__(self):
         return self.thisptr.size()
+
+    cpdef adopt(self, index, _DynamicOrphan orphan):
+        """A method for adopting Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
+
+            message = capnp.MallocMessageBuilder()
+
+            alice = m.newOrphan(addressbook.Person)
+            alice.get().name = 'alice'
+
+            bob = m.newOrphan(addressbook.Person)
+            bob.get().name = 'bob'
+
+            addressBook = message.initRoot(addressbook.AddressBook)
+            people = addressBook.init('people', 2)
+
+            people.adopt(0, alice)
+            people.adopt(1, bob)
+
+        :type index: int
+        :param index: The index of the element in the list to replace with the newly adopted object
+
+        :type orphan: :class:`_DynamicOrphan`
+        :param orphan: A Cap'n proto orphan to adopt. It will be unusable after this operation.
+
+        :rtype: void
+        """
+        self.thisptr.adopt(index, orphan.move())
+
+    cpdef disown(self, index):
+        """A method for disowning Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing.
+
+        :type index: int
+        :param index: The index of the element in the list to disown
+
+        :rtype: :class:`_DynamicOrphan`
+        """
+        return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
@@ -253,7 +330,7 @@ cdef toPython(C_DynamicValue.Builder self, object parent):
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
     elif type == capnp.TYPE_LIST:
-        return list(_DynamicListBuilder()._init(self.asList(), parent))
+        return _DynamicListBuilder()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructBuilder()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
@@ -389,6 +466,8 @@ cdef class _DynamicStructBuilder:
         """
         if size is None:
             return toPython(self.thisptr.init(field), self._parent)
+        elif size == 0:
+            return _DynamicOrphanListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
         else:
             return toPython(self.thisptr.init(field, size), self._parent)
 
@@ -413,6 +492,47 @@ cdef class _DynamicStructBuilder:
         """
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
+    cpdef adopt(self, field, _DynamicOrphan orphan):
+        """A method for adopting Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
+
+            message = capnp.MallocMessageBuilder()
+
+            alice = m.newOrphan(addressbook.Person)
+            alice.get().name = 'alice'
+
+            bob = m.newOrphan(addressbook.Person)
+            bob.get().name = 'bob'
+
+            addressBook = message.initRoot(addressbook.AddressBook)
+            people = addressBook.init('people', 2)
+
+            people.adopt(0, alice)
+            people.adopt(1, bob)
+
+        :type field: str
+        :param field: The field name in the struct
+
+        :type orphan: :class:`_DynamicOrphan`
+        :param orphan: A Cap'n proto orphan to adopt. It will be unusable after this operation.
+
+        :rtype: void
+        """
+        self.thisptr.adopt(field, orphan.move())
+
+    cpdef disown(self, field):
+        """A method for disowning Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing.
+
+        :type field: str
+        :param field: The field name in the struct
+
+        :rtype: :class:`_DynamicOrphan`
+        """
+        return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
+
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
     cdef public object _parent
@@ -420,6 +540,16 @@ cdef class _DynamicOrphan:
         self.thisptr = moveOrphan(other)
         self._parent = parent
         return self
+
+    cdef C_DynamicOrphan move(self):
+        return moveOrphan(self.thisptr)
+
+    cpdef get(self):
+        """Returns a python object corresponding to the DynamicValue owned by this orphan
+
+        Use this DynamicValue to set fields inside the orphan
+        """
+        return toPython(self.thisptr.get(), self._parent)
 
 cdef class _Schema:
     cdef C_Schema thisptr
@@ -495,6 +625,7 @@ cdef class MessageBuilder:
     .. warning:: Don't ever instantiate this class directly. It is only used for inheritance.
     """
     cdef schema_cpp.MessageBuilder * thisptr
+    cdef public list _serializeEvents
     def __dealloc__(self):
         del self.thisptr
 
@@ -525,7 +656,7 @@ cdef class MessageBuilder:
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
 
     cpdef getRoot(self, schema):
-        """A method for instantiating Cap'n Proto structs, from an already pre-written buffers
+        """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
 
         Don't use this method unless you know what you're doing. You probably
         want to use initRoot instead::
@@ -549,6 +680,36 @@ cdef class MessageBuilder:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
+    cpdef newOrphan(self, schema):
+        """A method for instantiating Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
+
+            addressbook = capnp.load('addressbook.capnp')
+
+            alice = m.newOrphan(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicOrphan`
+        :return: An orphan representing a :class:`_DynamicStructBuilder`
+        """
+        cdef _StructSchema s
+        if hasattr(schema, 'Schema'):
+            s = schema.Schema
+        else:
+            s = schema
+
+        return _DynamicOrphan()._init(self.thisptr.newOrphan(s.thisptr), self)
+
+    def _addSerializeEvent(self, event):
+        self._serializeEvents.append(event)
+
+    def _serialize(self):
+        for event in self._serializeEvents:
+            event()
+
 cdef class MallocMessageBuilder(MessageBuilder):
     """The main class for building Cap'n Proto messages
 
@@ -566,6 +727,7 @@ cdef class MallocMessageBuilder(MessageBuilder):
     """
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
+        self._serializeEvents = list()
 
     def __init__(self):
         pass
@@ -661,6 +823,7 @@ def writeMessageToFd(int fd, MessageBuilder message):
 
     :rtype: void
     """
+    message._serialize()
     schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
 
 def writePackedMessageToFd(int fd, MessageBuilder message):
@@ -687,6 +850,7 @@ def writePackedMessageToFd(int fd, MessageBuilder message):
 
     :rtype: void
     """
+    message._serialize()
     schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
 
 from types import ModuleType as _ModuleType

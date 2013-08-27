@@ -35,5 +35,5 @@ Example Usage::
 """
 from .version import version as __version__
 from .capnp import *
-from .capnp import _DynamicStructReader, _DynamicStructBuilder, _DynamicListReader, _DynamicListBuilder, _DynamicOrphan
+from .capnp import _DynamicStructReader, _DynamicStructBuilder, _DynamicOrphanListBuilder, _DynamicListReader, _DynamicListBuilder, _DynamicOrphan
 del capnp

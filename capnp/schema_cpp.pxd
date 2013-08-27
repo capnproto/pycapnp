@@ -4,6 +4,7 @@
 # distutils: libraries = capnp
 
 from libc.stdint cimport *
+from capnp_cpp cimport DynamicOrphan
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
 ctypedef uint16_t UInt16
@@ -663,6 +664,8 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         
         DynamicStruct.Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
         DynamicStruct.Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
+
+        DynamicOrphan newOrphan'getOrphanage().newOrphan'(StructSchema)
 
     cdef cppclass MessageReader:
         CodeGeneratorRequest.Reader getRootCodeGeneratorRequest'getRoot< ::capnp::schema::CodeGeneratorRequest>'()
