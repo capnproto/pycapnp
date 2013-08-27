@@ -8,7 +8,7 @@ addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 def writeAddressBook(fd):
     message = capnp.MallocMessageBuilder()
     addressBook = message.initRoot(addressbook.AddressBook)
-    people = addressBook.init('people', 0)
+    people = addressBook.initResizableList('people')
 
     alice = people.add()
     alice.id = 123
@@ -29,6 +29,8 @@ def writeAddressBook(fd):
     bobPhones[1].number = "555-7654"
     bobPhones[1].type = 'work'
     bob.employment.unemployed = None
+
+    people.finish()
 
     capnp.writePackedMessageToFd(fd, message)
 

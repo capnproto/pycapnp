@@ -144,7 +144,7 @@ cdef class _DynamicListReader:
     def __len__(self):
         return self.thisptr.size()
 
-cdef class _DynamicOrphanListBuilder:
+cdef class _DynamicResizableListBuilder:
     cdef public object _parent, _message, _field, _schema
     cdef public list _list
     def __init__(self, parent, field, schema):
@@ -156,9 +156,6 @@ cdef class _DynamicOrphanListBuilder:
         self._list = list()
 
     cpdef add(self):
-        if len(self) == 0:
-            self._message._addSerializeEvent(self._serialize)
-
         orphan = self._message.newOrphan(self._schema)
         orphan_val = orphan.get()
         self._list.append((orphan, orphan_val))
@@ -173,7 +170,7 @@ cdef class _DynamicOrphanListBuilder:
     def __len__(self):
         return len(self._list)
 
-    def _serialize(self):
+    def finish(self):
         cdef int i = 0
         new_list = self._parent.init(self._field, len(self))
         for orphan, _ in self._list:
@@ -466,10 +463,11 @@ cdef class _DynamicStructBuilder:
         """
         if size is None:
             return toPython(self.thisptr.init(field), self._parent)
-        elif size == 0:
-            return _DynamicOrphanListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
         else:
             return toPython(self.thisptr.init(field, size), self._parent)
+
+    cpdef initResizableList(self, field):
+        return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
     cpdef which(self) except +ValueError:
         """Returns the enum corresponding to the union in this struct
@@ -625,7 +623,6 @@ cdef class MessageBuilder:
     .. warning:: Don't ever instantiate this class directly. It is only used for inheritance.
     """
     cdef schema_cpp.MessageBuilder * thisptr
-    cdef public list _serializeEvents
     def __dealloc__(self):
         del self.thisptr
 
@@ -703,13 +700,6 @@ cdef class MessageBuilder:
 
         return _DynamicOrphan()._init(self.thisptr.newOrphan(s.thisptr), self)
 
-    def _addSerializeEvent(self, event):
-        self._serializeEvents.append(event)
-
-    def _serialize(self):
-        for event in self._serializeEvents:
-            event()
-
 cdef class MallocMessageBuilder(MessageBuilder):
     """The main class for building Cap'n Proto messages
 
@@ -727,7 +717,6 @@ cdef class MallocMessageBuilder(MessageBuilder):
     """
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
-        self._serializeEvents = list()
 
     def __init__(self):
         pass
@@ -823,7 +812,6 @@ def writeMessageToFd(int fd, MessageBuilder message):
 
     :rtype: void
     """
-    message._serialize()
     schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
 
 def writePackedMessageToFd(int fd, MessageBuilder message):
@@ -850,7 +838,6 @@ def writePackedMessageToFd(int fd, MessageBuilder message):
 
     :rtype: void
     """
-    message._serialize()
     schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
 
 from types import ModuleType as _ModuleType

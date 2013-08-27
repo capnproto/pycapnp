@@ -11,7 +11,7 @@ print = lambda *x: x
 def writeAddressBook(fd):
     message = capnp.MallocMessageBuilder()
     addressBook = message.initRoot(addressbook.AddressBook)
-    people = addressBook.init('people', 0)
+    people = addressBook.initResizableList('people')
 
     alice = people.add()
     alice.id = 123
@@ -30,6 +30,8 @@ def writeAddressBook(fd):
     bobPhones[0].type = 'home'
     bobPhones[1].number = "555-7654"
     bobPhones[1].type = 'work'
+
+    people.finish()
 
     capnp.writePackedMessageToFd(fd, message)
 
