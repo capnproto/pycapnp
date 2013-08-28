@@ -43,7 +43,6 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
             uint size()
             Field operator[](uint index)
 
-        Node.Reader getProto()
         FieldList getFields()
         Field getFieldByName(char * name)
 

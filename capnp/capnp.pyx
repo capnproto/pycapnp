@@ -380,6 +380,11 @@ cdef class _StructSchema:
                                       for i in xrange(nfields))
             return self.__fieldnames
 
+    property node:
+        """The raw schema node"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+
 cdef class _ParsedSchema:
     cdef C_ParsedSchema thisptr
     cdef _init(self, C_ParsedSchema other):
