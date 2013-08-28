@@ -236,6 +236,7 @@ cdef toPython(C_DynamicValue.Builder self, object parent):
 cdef class _DynamicStructReader:
     cdef C_DynamicStruct.Reader thisptr
     cdef public object _parent
+    cdef object _obj_to_pin
     cdef _init(self, C_DynamicStruct.Reader other, object parent):
         self.thisptr = other
         self._parent = parent
@@ -249,6 +250,14 @@ cdef class _DynamicStructReader:
 
     cpdef which(self):
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
+
+    property schema:
+        """A _StructSchema object matching this reader"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
 
 cdef class _DynamicStructBuilder:
     cdef C_DynamicStruct.Builder thisptr
@@ -311,6 +320,21 @@ cdef class _DynamicStructBuilder:
     cpdef which(self):
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
+    cpdef as_reader(self):
+          cdef _DynamicStructReader reader
+          reader = _DynamicStructReader()._init(self.thisptr.asReader(),
+                                                self._parent)
+          reader._obj_to_pin = self
+          return reader
+
+    property schema:
+        """A _StructSchema object matching this reader"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
+
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
     cdef public object _parent
@@ -339,9 +363,27 @@ cdef class _Schema:
 
 cdef class _StructSchema:
     cdef C_StructSchema thisptr
+    cdef object __fieldnames
     cdef _init(self, C_StructSchema other):
         self.thisptr = other
+        self.__fieldnames = None
         return self
+
+    property fieldnames:
+        """A tuple of the field names in the struct."""
+        def __get__(self):
+            if self.__fieldnames is not None:
+               return self.__fieldnames
+            fieldlist = self.thisptr.getFields()
+            nfields = fieldlist.size()
+            self.__fieldnames = tuple(fieldlist[i].getProto().getName().cStr()
+                                      for i in xrange(nfields))
+            return self.__fieldnames
+
+    property node:
+        """The raw schema node"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), None)
 
 cdef class _ParsedSchema:
     cdef C_ParsedSchema thisptr

@@ -33,21 +33,16 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         Schema getDependency(uint64_t id) except +
         #InterfaceSchema asInterface() const;
 
-    cdef cppclass MemberForward" ::capnp::StructSchema::Field":
-        pass
-
     cdef cppclass StructSchema(Schema):
-        cppclass FieldList:
-            uint size()
-            MemberForward operator[](uint index)
-
         cppclass Field:
             StructNode.Member.Reader getProto()
             StructSchema getContainingStruct()
             uint getIndex()
-            FieldList getFields()
 
-        Node.Reader getProto()
+        cppclass FieldList:
+            uint size()
+            Field operator[](uint index)
+
         FieldList getFields()
         Field getFieldByName(char * name)
 
@@ -104,6 +99,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Builder init(char *)
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
+            DynamicStruct.Reader asReader()
 
 cdef extern from "fixMaybe.h":
     StructSchema.Field fixMaybe(Maybe[StructSchema.Field]) except+
