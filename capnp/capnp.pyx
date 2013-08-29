@@ -195,15 +195,18 @@ cdef class _DynamicListBuilder:
         for phone in phones:
             print phone.number
     """
-    cdef C_DynamicList.Builder thisptr
+    cdef C_DynamicList.Builder * thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Builder other, object parent):
-        self.thisptr = other
+        self.thisptr = new C_DynamicList.Builder(other)
         self._parent = parent
         return self
 
+    def __dealloc__(self):
+        del self.thisptr
+
     cdef _get(self, index) except +ValueError:
-        return toPython(self.thisptr[index], self._parent)
+        return toPython(deref(self.thisptr)[index], self._parent)
 
     def __getitem__(self, index):
         size = self.thisptr.size()
@@ -299,6 +302,7 @@ cdef toPythonReader(C_DynamicValue.Reader self, object parent):
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
     elif type == capnp.TYPE_LIST:
+        print 'list'
         return list(_DynamicListReader()._init(self.asList(), parent))
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
@@ -404,12 +408,15 @@ cdef class _DynamicStructBuilder:
         setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef C_DynamicStruct.Builder thisptr
+    cdef C_DynamicStruct.Builder * thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicStruct.Builder other, object parent):
-        self.thisptr = other
+        self.thisptr = new C_DynamicStruct.Builder(other)
         self._parent = parent
         return self
+
+    def __dealloc__(self):
+        del self.thisptr
 
     cdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
