@@ -34,7 +34,6 @@ Example Usage::
             print(phone.type, ':', phone.number)
 """
 from .version import version as __version__
-import capnp as _capnp
 from .capnp import *
 from .capnp import _DynamicStructReader, _DynamicStructBuilder, _DynamicResizableListBuilder, _DynamicListReader, _DynamicListBuilder, _DynamicOrphan
 del capnp
