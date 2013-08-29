@@ -695,8 +695,8 @@ cdef class MessageBuilder:
         :return: An object where you will set all the members
         """
         cdef _StructSchema s
-        if hasattr(schema, 'Schema'):
-            s = schema.Schema
+        if hasattr(schema, 'schema'):
+            s = schema.schema
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
@@ -720,8 +720,8 @@ cdef class MessageBuilder:
         :return: An object where you will set all the members
         """
         cdef _StructSchema s
-        if hasattr(schema, 'Schema'):
-            s = schema.Schema
+        if hasattr(schema, 'schema'):
+            s = schema.schema
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
@@ -742,8 +742,8 @@ cdef class MessageBuilder:
         :return: An orphan representing a :class:`_DynamicStructBuilder`
         """
         cdef _StructSchema s
-        if hasattr(schema, 'Schema'):
-            s = schema.Schema
+        if hasattr(schema, 'schema'):
+            s = schema.schema
         else:
             s = schema
 
@@ -802,8 +802,8 @@ cdef class _MessageReader:
             Access members with . syntax.
         """
         cdef _StructSchema s
-        if hasattr(schema, 'Schema'):
-            s = schema.Schema
+        if hasattr(schema, 'schema'):
+            s = schema.schema
         else:
             s = schema
         return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
@@ -935,7 +935,7 @@ def load(file_name, display_name=None, imports=[]):
             schema = nodeSchema.getNested(node.name)
             proto = schema.getProto()
             if proto.isStruct:
-                local_module.Schema = schema.asStruct()
+                local_module.schema = schema.asStruct()
             elif proto.isConst:
                 module.__dict__[node.name] = schema.asConstValue()
 
