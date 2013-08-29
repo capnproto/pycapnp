@@ -35,6 +35,10 @@ Or you can clone the repo like so:
 
 `cd` into the repo directory and run `pip install .`
 
+## Development
+
+This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/). Essentially, just make sure you do your changes in the `develop` branch.
+
 ## Documentation/Example
 There is some basic documentation [here](http://jparyani.github.io/capnpc-python-cpp/).
 
