@@ -21,8 +21,9 @@ before_install:
   - wget https://github.com/kentonv/capnproto/archive/master.zip && unzip master.zip && cd capnproto-master/c++ && ./setup-autotools.sh && autoreconf -i && ./configure && make -j6 check && sudo make install && sudo ldconfig && cd ../..
   - pip install -U setuptools
   - pip install cython
+  - pip install pytest
 
 install:
   - pip install --editable .
 
-script: cd examples && python example.py
+script: py.test

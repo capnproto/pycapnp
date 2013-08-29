@@ -71,7 +71,7 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
             uint size()
 
 cdef extern from "<utility>" namespace "std":
-    C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan &)
+    C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -112,6 +112,21 @@ cdef class _NestedNodeReader:
             return self.thisptr.getId()
 
 cdef class _DynamicListReader:
+    """Class for reading Cap'n Proto Lists
+
+    This class thinly wraps the C++ Cap'n Proto DynamicList::Reader class. __getitem__ and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
+
+        ...
+        person = message.getRoot(addressbook.Person)
+
+        phones = person.phones # This returns a _DynamicListReader
+
+        phone = phones[0]
+        print phone.number
+
+        for phone in phones:
+            print phone.number
+    """
     cdef C_DynamicList.Reader thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Reader other, object parent):
@@ -129,16 +144,69 @@ cdef class _DynamicListReader:
     def __len__(self):
         return self.thisptr.size()
 
+cdef class _DynamicResizableListBuilder:
+    cdef public object _parent, _message, _field, _schema
+    cdef public list _list
+    def __init__(self, parent, field, schema):
+        self._parent = parent
+        self._message = parent._parent
+        self._field = field
+        self._schema = schema
+
+        self._list = list()
+
+    cpdef add(self):
+        orphan = self._message.newOrphan(self._schema)
+        orphan_val = orphan.get()
+        self._list.append((orphan, orphan_val))
+        return orphan_val
+        
+    def __getitem__(self, index):
+        return self._list[index][1]
+
+    # def __setitem__(self, index, val):
+    #     self._list[index] = val
+
+    def __len__(self):
+        return len(self._list)
+
+    def finish(self):
+        cdef int i = 0
+        new_list = self._parent.init(self._field, len(self))
+        for orphan, _ in self._list:
+            new_list.adopt(i, orphan)
+            i += 1
+
 cdef class _DynamicListBuilder:
-    cdef C_DynamicList.Builder thisptr
+    """Class for building Cap'n Proto Lists
+
+    This class thinly wraps the C++ Cap'n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
+
+        ...
+        person = message.initRoot(addressbook.Person)
+
+        phones = person.init('phones', 2) # This returns a _DynamicListBuilder
+        
+        phone = phones[0]
+        phone.number = 'foo'
+        phone = phones[1]
+        phone.number = 'bar'
+
+        for phone in phones:
+            print phone.number
+    """
+    cdef C_DynamicList.Builder * thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Builder other, object parent):
-        self.thisptr = other
+        self.thisptr = new C_DynamicList.Builder(other)
         self._parent = parent
         return self
 
-    cpdef _get(self, index) except +ValueError:
-        return toPython(self.thisptr[index], self._parent)
+    def __dealloc__(self):
+        del self.thisptr
+
+    cdef _get(self, index) except +ValueError:
+        return toPython(deref(self.thisptr)[index], self._parent)
 
     def __getitem__(self, index):
         size = self.thisptr.size()
@@ -160,6 +228,47 @@ cdef class _DynamicListBuilder:
 
     def __len__(self):
         return self.thisptr.size()
+
+    cpdef adopt(self, index, _DynamicOrphan orphan):
+        """A method for adopting Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
+
+            message = capnp.MallocMessageBuilder()
+
+            alice = m.newOrphan(addressbook.Person)
+            alice.get().name = 'alice'
+
+            bob = m.newOrphan(addressbook.Person)
+            bob.get().name = 'bob'
+
+            addressBook = message.initRoot(addressbook.AddressBook)
+            people = addressBook.init('people', 2)
+
+            people.adopt(0, alice)
+            people.adopt(1, bob)
+
+        :type index: int
+        :param index: The index of the element in the list to replace with the newly adopted object
+
+        :type orphan: :class:`_DynamicOrphan`
+        :param orphan: A Cap'n proto orphan to adopt. It will be unusable after this operation.
+
+        :rtype: void
+        """
+        self.thisptr.adopt(index, orphan.move())
+
+    cpdef disown(self, index):
+        """A method for disowning Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing.
+
+        :type index: int
+        :param index: The index of the element in the list to disown
+
+        :rtype: :class:`_DynamicOrphan`
+        """
+        return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
@@ -193,6 +302,7 @@ cdef toPythonReader(C_DynamicValue.Reader self, object parent):
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
     elif type == capnp.TYPE_LIST:
+        print 'list'
         return list(_DynamicListReader()._init(self.asList(), parent))
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
@@ -221,7 +331,7 @@ cdef toPython(C_DynamicValue.Builder self, object parent):
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
     elif type == capnp.TYPE_LIST:
-        return list(_DynamicListBuilder()._init(self.asList(), parent))
+        return _DynamicListBuilder()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructBuilder()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
@@ -234,8 +344,17 @@ cdef toPython(C_DynamicValue.Builder self, object parent):
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
 cdef class _DynamicStructReader:
+    """Reads Cap'n Proto structs
+
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Reader. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
+
+        person = message.getRoot(addressbook.Person) # This returns a _DynamicStructReader
+        print person.name # using . syntax
+        print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
+    """
     cdef C_DynamicStruct.Reader thisptr
     cdef public object _parent
+    cdef object _obj_to_pin
     cdef _init(self, C_DynamicStruct.Reader other, object parent):
         self.thisptr = other
         self._parent = parent
@@ -247,16 +366,57 @@ cdef class _DynamicStructReader:
     def _has(self, field):
         return self.thisptr.has(field)
 
-    cpdef which(self):
+    cpdef which(self) except +ValueError:
+        """Returns the enum corresponding to the union in this struct
+
+        Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
+
+            person = message.initRoot(addressbook.Person)
+            
+            person.which()
+            # ValueError: member was null
+
+            a.employment.employer = 'foo'
+            print employment.which()
+            # 'employer'
+
+        :rtype: str
+        :return: A string/enum corresponding to what field is set in the union
+
+        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        """
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
+    property schema:
+        """A _StructSchema object matching this reader"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
+
 cdef class _DynamicStructBuilder:
-    cdef C_DynamicStruct.Builder thisptr
+    """Builds Cap'n Proto structs
+
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder. The only difference is that instead of a `get`/`set` method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don't follow valid python naming convention for fields, use the global functions :py:func:`getattr`/:py:func:`setattr`::
+
+        person = message.initRoot(addressbook.Person) # This returns a _DynamicStructBuilder
+        
+        person.name = 'foo' # using . syntax
+        print person.name # using . syntax
+
+        setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
+        print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
+    """
+    cdef C_DynamicStruct.Builder * thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicStruct.Builder other, object parent):
-        self.thisptr = other
+        self.thisptr = new C_DynamicStruct.Builder(other)
         self._parent = parent
         return self
+
+    def __dealloc__(self):
+        del self.thisptr
 
     cdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
@@ -302,14 +462,105 @@ cdef class _DynamicStructBuilder:
     def _has(self, field):
         return self.thisptr.has(field)
 
-    cpdef init(self, field, size=None) except +ValueError:
+    cpdef init(self, field, size=None) except +AttributeError:
+        """Method for initializing fields that are of type union/struct/list
+
+        Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists. 
+
+        :type field: str
+        :param field: The field name to initialize
+
+        :type size: int
+        :param size: The size of the list to initiialize. This should be None for struct/union initialization.
+
+        :rtype: :class:`_DynamicStructBuilder` or :class:`_DynamicListBuilder`
+
+        :Raises: :exc:`exceptions.AttributeError` if the field isn't in this struct
+        """
         if size is None:
             return toPython(self.thisptr.init(field), self._parent)
         else:
             return toPython(self.thisptr.init(field, size), self._parent)
 
-    cpdef which(self):
+    cpdef initResizableList(self, field):
+        return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
+
+    cpdef which(self) except +ValueError:
+        """Returns the enum corresponding to the union in this struct
+
+        Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
+
+            person = message.initRoot(addressbook.Person)
+            
+            person.which()
+            # ValueError: member was null
+
+            a.employment.employer = 'foo'
+            print employment.which()
+            # 'employer'
+            
+        :rtype: str
+        :return: A string/enum corresponding to what field is set in the union
+
+        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        """
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
+
+    cpdef adopt(self, field, _DynamicOrphan orphan):
+        """A method for adopting Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
+
+            message = capnp.MallocMessageBuilder()
+
+            alice = m.newOrphan(addressbook.Person)
+            alice.get().name = 'alice'
+
+            bob = m.newOrphan(addressbook.Person)
+            bob.get().name = 'bob'
+
+            addressBook = message.initRoot(addressbook.AddressBook)
+            people = addressBook.init('people', 2)
+
+            people.adopt(0, alice)
+            people.adopt(1, bob)
+
+        :type field: str
+        :param field: The field name in the struct
+
+        :type orphan: :class:`_DynamicOrphan`
+        :param orphan: A Cap'n proto orphan to adopt. It will be unusable after this operation.
+
+        :rtype: void
+        """
+        self.thisptr.adopt(field, orphan.move())
+
+    cpdef disown(self, field):
+        """A method for disowning Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing.
+
+        :type field: str
+        :param field: The field name in the struct
+
+        :rtype: :class:`_DynamicOrphan`
+        """
+        return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
+
+    cpdef asReader(self):
+          cdef _DynamicStructReader reader
+          reader = _DynamicStructReader()._init(self.thisptr.asReader(),
+                                                self._parent)
+          reader._obj_to_pin = self
+          return reader
+
+    property schema:
+        """A _StructSchema object matching this reader"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
 
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
@@ -318,6 +569,16 @@ cdef class _DynamicOrphan:
         self.thisptr = moveOrphan(other)
         self._parent = parent
         return self
+
+    cdef C_DynamicOrphan move(self):
+        return moveOrphan(self.thisptr)
+
+    cpdef get(self):
+        """Returns a python object corresponding to the DynamicValue owned by this orphan
+
+        Use this DynamicValue to set fields inside the orphan
+        """
+        return toPython(self.thisptr.get(), self._parent)
 
 cdef class _Schema:
     cdef C_Schema thisptr
@@ -339,9 +600,27 @@ cdef class _Schema:
 
 cdef class _StructSchema:
     cdef C_StructSchema thisptr
+    cdef object __fieldnames
     cdef _init(self, C_StructSchema other):
         self.thisptr = other
+        self.__fieldnames = None
         return self
+
+    property fieldnames:
+        """A tuple of the field names in the struct."""
+        def __get__(self):
+            if self.__fieldnames is not None:
+               return self.__fieldnames
+            fieldlist = self.thisptr.getFields()
+            nfields = fieldlist.size()
+            self.__fieldnames = tuple(fieldlist[i].getProto().getName().cStr()
+                                      for i in xrange(nfields))
+            return self.__fieldnames
+
+    property node:
+        """The raw schema node"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), None)
 
 cdef class _ParsedSchema:
     cdef C_ParsedSchema thisptr
@@ -416,14 +695,14 @@ cdef class MessageBuilder:
         :return: An object where you will set all the members
         """
         cdef _StructSchema s
-        if hasattr(schema, 'Schema'):
-            s = schema.Schema
+        if hasattr(schema, 'schema'):
+            s = schema.schema
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
 
     cpdef getRoot(self, schema):
-        """A method for instantiating Cap'n Proto structs, from an already pre-written buffers
+        """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
 
         Don't use this method unless you know what you're doing. You probably
         want to use initRoot instead::
@@ -441,11 +720,34 @@ cdef class MessageBuilder:
         :return: An object where you will set all the members
         """
         cdef _StructSchema s
-        if hasattr(schema, 'Schema'):
-            s = schema.Schema
+        if hasattr(schema, 'schema'):
+            s = schema.schema
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
+
+    cpdef newOrphan(self, schema):
+        """A method for instantiating Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
+
+            addressbook = capnp.load('addressbook.capnp')
+
+            alice = m.newOrphan(addressbook.Person)
+
+        :type schema: Schema
+        :param schema: A Cap'n proto schema specifying which struct to instantiate
+
+        :rtype: :class:`_DynamicOrphan`
+        :return: An orphan representing a :class:`_DynamicStructBuilder`
+        """
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicOrphan()._init(self.thisptr.newOrphan(s.thisptr), self)
 
 cdef class MallocMessageBuilder(MessageBuilder):
     """The main class for building Cap'n Proto messages
@@ -459,7 +761,8 @@ cdef class MallocMessageBuilder(MessageBuilder):
         person = message.initRoot(addressbook.Person)
         person.name = 'alice'
         ...
-        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+        f = open('out.txt', 'w')
+        writeMessageToFd(f.fileno(), message)
     """
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
@@ -499,8 +802,8 @@ cdef class _MessageReader:
             Access members with . syntax.
         """
         cdef _StructSchema s
-        if hasattr(schema, 'Schema'):
-            s = schema.Schema
+        if hasattr(schema, 'schema'):
+            s = schema.schema
         else:
             s = schema
         return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
@@ -508,9 +811,10 @@ cdef class _MessageReader:
 cdef class StreamFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of writeMessageToFd and :class:`MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`writeMessageToFd` and :class:`MessageBuilder`, but in one class::
 
-        message = StreamFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        message = StreamFdMessageReader(f.fileno())
         person = message.getRoot(addressbook.Person)
         print person.name
 
@@ -524,7 +828,8 @@ cdef class PackedFdMessageReader(_MessageReader):
 
     You use this class to for reading message(s) from a file. It's analagous to the inverse of writePackedMessageToFd and :class:`MessageBuilder`, but in one class.::
 
-        message = StreamFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        message = StreamFdMessageReader(f.fileno())
         person = message.getRoot(addressbook.Person)
         print person.name
 
@@ -542,9 +847,11 @@ def writeMessageToFd(int fd, MessageBuilder message):
 
         message = capnp.MallocMessageBuilder()
         ...
-        writeMessageToFd(open('out.txt', 'w').fileno(), message)
+        f = open('out.txt', 'w')
+        writeMessageToFd(f.fileno(), message)
         ...
-        StreamFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        StreamFdMessageReader(f.fileno())
 
     :type fd: int
     :param fd: A file descriptor
@@ -566,9 +873,11 @@ def writePackedMessageToFd(int fd, MessageBuilder message):
 
         message = capnp.MallocMessageBuilder()
         ...
-        writePackedMessageToFd(open('out.txt', 'w').fileno(), message)
+        f = open('out.txt', 'w')
+        writePackedMessageToFd(f.fileno(), message)
         ...
-        PackedFdMessageReader(open('out.txt').fileno())
+        f = open('out.txt')
+        PackedFdMessageReader(f.fileno())
 
     :type fd: int
     :param fd: A file descriptor
@@ -626,7 +935,7 @@ def load(file_name, display_name=None, imports=[]):
             schema = nodeSchema.getNested(node.name)
             proto = schema.getProto()
             if proto.isStruct:
-                local_module.Schema = schema.asStruct()
+                local_module.schema = schema.asStruct()
             elif proto.isConst:
                 module.__dict__[node.name] = schema.asConstValue()
 

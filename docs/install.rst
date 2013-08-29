@@ -44,4 +44,13 @@ or::
 
 If you don't use pip, you will need to manually install Cython, and a setuptools with a version >= .8.
 
+Development
+-------------------
+
+Clone the repo from https://github.com/jparyani/capnpc-python-cpp.git and use the `develop` branch. I'll probably ask you to redo pull requests that target `master` and aren't easily mergable to `develop`.::
+    
+    git clone https://github.com/jparyani/capnpc-python-cpp.git
+    git checkout develop
+
+
 Once you're done installing, take a look at the :ref:`quickstart`
