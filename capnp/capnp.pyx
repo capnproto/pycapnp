@@ -875,7 +875,7 @@ cdef class StreamFdMessageReader(_MessageReader):
 cdef class PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of writePackedMessageToFd and :class:`MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`writePackedMessageToFd` and :class:`MessageBuilder`, but in one class.::
 
         f = open('out.txt')
         message = StreamFdMessageReader(f.fileno())
