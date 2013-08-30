@@ -67,6 +67,11 @@ Builders
   :members:
   :undoc-members:
   :inherited-members:
+  
+.. autoclass:: _DynamicResizableListBuilder
+  :members:
+  :undoc-members:
+  :inherited-members:
 
 Miscellaneous
 ~~~~~~~~~~~~~

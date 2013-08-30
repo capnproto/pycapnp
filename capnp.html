@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.3.7 documentation</title>
+    <title>API Reference &mdash; capnp 0.3.8 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.7',
+        VERSION:     '0.3.8',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.7 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.8 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.7 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.8 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -321,7 +321,7 @@ An abstract base class for building Cap&#8217;n Proto messages</p>
 <dl class="method">
 <dt id="capnp.MessageBuilder.getRoot">
 <tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MessageBuilder.getRoot" title="Permalink to this definition">¶</a></dt>
-<dd><p>A method for instantiating Cap&#8217;n Proto structs, from an already pre-written buffers</p>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs, from an already pre-written buffer</p>
 <p>Don&#8217;t use this method unless you know what you&#8217;re doing. You probably
 want to use initRoot instead:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
@@ -370,6 +370,30 @@ instantiate. Schemas are available in a loaded Cap&#8217;n Proto module:</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="capnp.MessageBuilder.newOrphan">
+<tt class="descname">newOrphan</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MessageBuilder.newOrphan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for instantiating Cap&#8217;n Proto orphans</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+
+<span class="n">alice</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">newOrphan</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicOrphan</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An orphan representing a <a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -394,7 +418,7 @@ Proto objects, and wish to serialize them:</p>
 <dl class="method">
 <dt id="capnp.MallocMessageBuilder.getRoot">
 <tt class="descname">getRoot</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MallocMessageBuilder.getRoot" title="Permalink to this definition">¶</a></dt>
-<dd><p>A method for instantiating Cap&#8217;n Proto structs, from an already pre-written buffers</p>
+<dd><p>A method for instantiating Cap&#8217;n Proto structs, from an already pre-written buffer</p>
 <p>Don&#8217;t use this method unless you know what you&#8217;re doing. You probably
 want to use initRoot instead:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
@@ -443,6 +467,30 @@ instantiate. Schemas are available in a loaded Cap&#8217;n Proto module:</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="capnp.MallocMessageBuilder.newOrphan">
+<tt class="descname">newOrphan</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp.MallocMessageBuilder.newOrphan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for instantiating Cap&#8217;n Proto orphans</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+
+<span class="n">alice</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">newOrphan</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>schema</strong> (<em>Schema</em>) &#8211; A Cap&#8217;n proto schema specifying which struct to instantiate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicOrphan</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An orphan representing a <a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -462,6 +510,12 @@ one yourself, but you may end up using some of their member methods.</p>
 <span class="k">print</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="s">&#39;field-with-hyphens&#39;</span><span class="p">)</span> <span class="c"># for names that are invalid for python, use getattr</span>
 </pre></div>
 </div>
+<dl class="attribute">
+<dt id="capnp._DynamicStructReader.schema">
+<tt class="descname">schema</tt><a class="headerlink" href="#capnp._DynamicStructReader.schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>A property that returns the _StructSchema object matching this reader</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="capnp._DynamicStructReader.which">
 <tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.which" title="Permalink to this definition">¶</a></dt>
@@ -530,6 +584,75 @@ one yourself, but you may end up using some of their member methods.</p>
 </pre></div>
 </div>
 <dl class="method">
+<dt id="capnp._DynamicStructBuilder.adopt">
+<tt class="descname">adopt</tt><big>(</big><em>self</em>, <em>field</em>, <em>_DynamicOrphan orphan</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.adopt" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for adopting Cap&#8217;n Proto orphans</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+
+<span class="n">alice</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">newOrphan</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;alice&#39;</span>
+
+<span class="n">bob</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">newOrphan</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="n">bob</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;bob&#39;</span>
+
+<span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+<span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">people</span><span class="o">.</span><span class="n">adopt</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">alice</span><span class="p">)</span>
+<span class="n">people</span><span class="o">.</span><span class="n">adopt</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">bob</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>field</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The field name in the struct</li>
+<li><strong>orphan</strong> (<a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicOrphan</span></tt></a>) &#8211; A Cap&#8217;n proto orphan to adopt. It will be unusable after this operation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">void</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicStructBuilder.asReader">
+<tt class="descname">asReader</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.asReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for casting this Builder to a Reader</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicStructBuilder.disown">
+<tt class="descname">disown</tt><big>(</big><em>self</em>, <em>field</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.disown" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for disowning Cap&#8217;n Proto orphans</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>field</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The field name in the struct</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicOrphan</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="capnp._DynamicStructBuilder.init">
 <tt class="descname">init</tt><big>(</big><em>self</em>, <em>field</em>, <em>size=None</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.init" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method for initializing fields that are of type union/struct/list</p>
@@ -552,6 +675,35 @@ one yourself, but you may end up using some of their member methods.</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicStructBuilder.initResizableList">
+<tt class="descname">initResizableList</tt><big>(</big><em>self</em>, <em>field</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.initResizableList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method for initializing fields that are of type list (of structs)</p>
+<p>This version of init returns a <a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicResizableListBuilder</span></tt></a> that allows you to add members one at a time (ie. if you don&#8217;t know the size for sure). This is only meant for lists of Cap&#8217;n Proto objects, since you can just define a normal python and fill it with primitive types like int/float.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You need to call <a class="reference internal" href="#capnp._DynamicResizableListBuilder.finish" title="capnp._DynamicResizableListBuilder.finish"><tt class="xref py py-meth docutils literal"><span class="pre">_DynamicResizableListBuilder.finish()</span></tt></a> on the list object before serializing the Cap&#8217;n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>field</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The field name to initialize</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicResizableListBuilder</span></tt></a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.AttributeError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.AttributeError</span></tt></a> if the field isn&#8217;t in this struct</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp._DynamicStructBuilder.schema">
+<tt class="descname">schema</tt><a class="headerlink" href="#capnp._DynamicStructBuilder.schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>A property that returns the _StructSchema object matching this writer</p>
 </dd></dl>
 
 <dl class="method">
@@ -604,6 +756,107 @@ one yourself, but you may end up using some of their member methods.</p>
     <span class="k">print</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span>
 </pre></div>
 </div>
+<dl class="method">
+<dt id="capnp._DynamicListBuilder.adopt">
+<tt class="descname">adopt</tt><big>(</big><em>self</em>, <em>index</em>, <em>_DynamicOrphan orphan</em><big>)</big><a class="headerlink" href="#capnp._DynamicListBuilder.adopt" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for adopting Cap&#8217;n Proto orphans</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
+
+<span class="n">alice</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">newOrphan</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;alice&#39;</span>
+
+<span class="n">bob</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">newOrphan</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
+<span class="n">bob</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;bob&#39;</span>
+
+<span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+<span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">people</span><span class="o">.</span><span class="n">adopt</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">alice</span><span class="p">)</span>
+<span class="n">people</span><span class="o">.</span><span class="n">adopt</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">bob</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>index</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The index of the element in the list to replace with the newly adopted object</li>
+<li><strong>orphan</strong> (<a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicOrphan</span></tt></a>) &#8211; A Cap&#8217;n proto orphan to adopt. It will be unusable after this operation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">void</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicListBuilder.disown">
+<tt class="descname">disown</tt><big>(</big><em>self</em>, <em>index</em><big>)</big><a class="headerlink" href="#capnp._DynamicListBuilder.disown" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for disowning Cap&#8217;n Proto orphans</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>index</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The index of the element in the list to disown</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicOrphan</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp._DynamicResizableListBuilder">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicResizableListBuilder</tt><a class="headerlink" href="#capnp._DynamicResizableListBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>_DynamicResizableListBuilder(parent, field, schema)
+Class for building growable Cap&#8217;n Proto Lists</p>
+<blockquote>
+<div><div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You need to call <a class="reference internal" href="#capnp._DynamicResizableListBuilder.finish" title="capnp._DynamicResizableListBuilder.finish"><tt class="xref py py-meth docutils literal"><span class="pre">finish()</span></tt></a> on this object before serializing the Cap&#8217;n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.</p>
+</div>
+<p>This class works much like <a class="reference internal" href="#capnp._DynamicListBuilder" title="capnp._DynamicListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicListBuilder</span></tt></a>, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you&#8217;re much better off using a normal python list and then serializing straight to a Cap&#8217;n Proto list. It has __getitem__ and __len__ defined, but not __setitem__.</p>
+<blockquote>
+<div><p>...
+person = message.initRoot(addressbook.Person)</p>
+<p>phones = person.initResizableList(&#8216;phones&#8217;) # This returns a _DynamicResizableListBuilder</p>
+<p>phone = phones.add()
+phone.number = &#8216;foo&#8217;
+phone = phones.add()
+phone.number = &#8216;bar&#8217;</p>
+<p>people.finish()</p>
+<p>capnp.writePackedMessageToFd(fd, message)</p>
+</div></blockquote>
+</div></blockquote>
+<dl class="method">
+<dt id="capnp._DynamicResizableListBuilder.add">
+<tt class="descname">add</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicResizableListBuilder.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for adding a new struct to the list</p>
+<p>This will return a struct, in which you can set fields that will be reflected in the serialized Cap&#8217;n Proto message.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicResizableListBuilder.finish">
+<tt class="descname">finish</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicResizableListBuilder.finish" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for closing this list and serializing all its members to the message</p>
+<p>If you don&#8217;t call this method, the items you previously added from this object will leak into the message, ie. inaccessible but still taking up space.</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -612,7 +865,14 @@ one yourself, but you may end up using some of their member methods.</p>
 <dl class="class">
 <dt id="capnp._DynamicOrphan">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicOrphan</tt><a class="headerlink" href="#capnp._DynamicOrphan" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><dl class="method">
+<dt id="capnp._DynamicOrphan.get">
+<tt class="descname">get</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicOrphan.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a python object corresponding to the DynamicValue owned by this orphan</p>
+<p>Use this DynamicValue to set fields inside the orphan</p>
+</dd></dl>
+
+</dd></dl>
 
 </div>
 </div>
@@ -677,7 +937,7 @@ one yourself, but you may end up using some of their member methods.</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.7 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.8 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
