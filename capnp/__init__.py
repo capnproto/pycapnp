@@ -9,7 +9,7 @@ Example Usage::
     # Building
     message = capnp.MallocMessageBuilder()
     addressBook = message.initRoot(addressbook.AddressBook)
-    people = addressBook.init('people', 2)
+    people = addressBook.init('people', 1)
 
     alice = people[0]
     alice.id = 123

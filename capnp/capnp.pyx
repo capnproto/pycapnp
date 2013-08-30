@@ -249,12 +249,27 @@ cdef class _DynamicListBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
         self.thisptr.set(index, temp)
 
+    cdef _setattrDynamicStructBuilder(self, index, _DynamicStructBuilder value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
+        self.thisptr.set(index, temp)
+
+    cdef _setattrDynamicStructReader(self, index, _DynamicStructReader value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr)
+        self.thisptr.set(index, temp)
+
     def __setitem__(self, index, value):
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        self._setitem(index, value)
+        value_type = type(value)
+
+        if value_type is _DynamicStructBuilder:
+            self._setattrDynamicStructBuilder(index, value)
+        elif value_type is _DynamicStructReader:
+            self._setattrDynamicStructReader(index, value)
+        else:
+            self._setitem(index, value)
 
     def __len__(self):
         return self.thisptr.size()
@@ -474,8 +489,17 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
         self.thisptr.set(field, temp)
 
+    cdef _setattrDynamicStructBuilder(self, field, _DynamicStructBuilder value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
+        self.thisptr.set(field, temp)
+
+    cdef _setattrDynamicStructReader(self, field, _DynamicStructReader value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr)
+        self.thisptr.set(field, temp)
+
     def __setattr__(self, field, value):
         value_type = type(value)
+
         if value_type is int:
             self._setattrInt(field, value)
         elif value_type is float:
@@ -486,6 +510,10 @@ cdef class _DynamicStructBuilder:
             self._setattrString(field, value)
         elif value is None:
             self._setattrVoid(field)
+        elif value_type is _DynamicStructBuilder:
+            self._setattrDynamicStructBuilder(field, value)
+        elif value_type is _DynamicStructReader:
+            self._setattrDynamicStructReader(field, value)
         else:
             raise ValueError("Non primitive type")
 
@@ -515,7 +543,7 @@ cdef class _DynamicStructBuilder:
     cpdef initResizableList(self, field):
         """Method for initializing fields that are of type list (of structs)
 
-        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since you can just define a normal python and fill it with primitive types like int/float. 
+        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since for primitive types you can just define a normal python list and fill it yourself. 
 
         .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the list object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
 
@@ -692,7 +720,11 @@ cdef class _ParsedSchema:
     cpdef getNested(self, name):
         return _ParsedSchema()._init(self.thisptr.getNested(name))
 
-cdef class _SchemaParser:
+cdef class SchemaParser:
+    """A class for loading Cap'n Proto schema files.
+
+    Do not use this class unless you're sure you know what you're doing. Use the convenience method :func:`load` instead.
+    """
     cdef C_SchemaParser * thisptr
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
@@ -700,7 +732,7 @@ cdef class _SchemaParser:
     def __dealloc__(self):
         del self.thisptr
 
-    def parseDiskFile(self, displayName, diskPath, imports):
+    def _parseDiskFile(self, displayName, diskPath, imports):
         cdef StringPtr * importArray = <StringPtr *>malloc(sizeof(StringPtr) * len(imports))
 
         for i in range(len(imports)):
@@ -714,6 +746,69 @@ cdef class _SchemaParser:
         free(importArray)
 
         return ret
+
+    def load(self, file_name, display_name=None, imports=[]):
+        """Load a Cap'n Proto schema from a file 
+
+        You will have to load a schema before you can begin doing anything
+        meaningful with this library. Loading a schema is much like loading
+        a Python module (and load even returns a `ModuleType`). Once it's been
+        loaded, you use it much like any other Module::
+
+            parser = capnp.SchemaParser()
+            addressbook = parser.load('addressbook.capnp')
+            print addressbook.qux # qux is a top level constant
+            # 123
+            message = capnp.MallocMessageBuilder()
+            person = message.initRoot(addressbook.Person)
+
+        :type file_name: str
+        :param file_name: A relative or absolute path to a Cap'n Proto schema
+
+        :type display_name: str
+        :param display_name: The name internally used by the Cap'n Proto library
+            for the loaded schema. By default, it's just os.path.basename(file_name)
+
+        :type imports: list
+        :param imports: A list of str directories to add to the import path.
+
+        :rtype: ModuleType
+        :return: A module corresponding to the loaded schema. You can access
+            parsed schemas and constants with . syntax
+
+        :Raises: :exc:`exceptions.ValueError` if `file_name` doesn't exist
+
+        """
+        def _load(nodeSchema, module):
+            module._nodeSchema = nodeSchema
+            nodeProto = nodeSchema.getProto()
+            module._nodeProto = nodeProto
+
+            for node in nodeProto.nestedNodes:
+                local_module = _ModuleType(node.name)
+                module.__dict__[node.name] = local_module
+
+                schema = nodeSchema.getNested(node.name)
+                proto = schema.getProto()
+                if proto.isStruct:
+                    local_module.schema = schema.asStruct()
+                elif proto.isConst:
+                    module.__dict__[node.name] = schema.asConstValue()
+
+                _load(schema, local_module)
+
+        if display_name is None:
+            display_name = _os.path.basename(file_name)
+
+        module = _ModuleType(display_name)
+        parser = self
+
+        module._parser = parser
+
+        fileSchema = parser._parseDiskFile(display_name, file_name, imports)
+        _load(fileSchema, module)
+
+        return module
 
 cdef class MessageBuilder:
     """An abstract base class for building Cap'n Proto messages
@@ -941,11 +1036,13 @@ def writePackedMessageToFd(int fd, MessageBuilder message):
 from types import ModuleType as _ModuleType
 import os as _os
 
+_global_schema_parser = None
+
 def load(file_name, display_name=None, imports=[]):
     """Load a Cap'n Proto schema from a file 
 
     You will have to load a schema before you can begin doing anything
-    meaningful with this library. Loading a schema is much like Loading
+    meaningful with this library. Loading a schema is much like loading
     a Python module (and load even returns a `ModuleType`). Once it's been
     loaded, you use it much like any other Module::
 
@@ -972,32 +1069,8 @@ def load(file_name, display_name=None, imports=[]):
     :Raises: :exc:`exceptions.ValueError` if `file_name` doesn't exist
 
     """
-    def _load(nodeSchema, module):
-        module._nodeSchema = nodeSchema
-        nodeProto = nodeSchema.getProto()
-        module._nodeProto = nodeProto
+    global _global_schema_parser
+    if _global_schema_parser is None:
+        _global_schema_parser = SchemaParser()
 
-        for node in nodeProto.nestedNodes:
-            local_module = _ModuleType(node.name)
-            module.__dict__[node.name] = local_module
-
-            schema = nodeSchema.getNested(node.name)
-            proto = schema.getProto()
-            if proto.isStruct:
-                local_module.schema = schema.asStruct()
-            elif proto.isConst:
-                module.__dict__[node.name] = schema.asConstValue()
-
-            _load(schema, local_module)
-
-    if display_name is None:
-        display_name = _os.path.basename(file_name)
-    module = _ModuleType(display_name)
-    parser = _SchemaParser()
-
-    module._parser = parser
-
-    fileSchema = parser.parseDiskFile(display_name, file_name, imports)
-    _load(fileSchema, module)
-
-    return module
+    return _global_schema_parser.load(file_name, display_name, imports)
