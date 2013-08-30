@@ -145,6 +145,26 @@ cdef class _DynamicListReader:
         return self.thisptr.size()
 
 cdef class _DynamicResizableListBuilder:
+    """Class for building growable Cap'n Proto Lists
+
+    .. warning:: You need to call :meth:`finish` on this object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+
+    This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you're much better off using a normal python list and then serializing straight to a Cap'n Proto list. It has __getitem__ and __len__ defined, but not __setitem__.
+
+        ...
+        person = message.initRoot(addressbook.Person)
+
+        phones = person.initResizableList('phones') # This returns a _DynamicResizableListBuilder
+        
+        phone = phones.add()
+        phone.number = 'foo'
+        phone = phones.add()
+        phone.number = 'bar'
+
+        people.finish()
+
+        capnp.writePackedMessageToFd(fd, message)
+    """
     cdef public object _parent, _message, _field, _schema
     cdef public list _list
     def __init__(self, parent, field, schema):
@@ -156,6 +176,12 @@ cdef class _DynamicResizableListBuilder:
         self._list = list()
 
     cpdef add(self):
+        """A method for adding a new struct to the list
+
+        This will return a struct, in which you can set fields that will be reflected in the serialized Cap'n Proto message.
+
+        :rtype: :class:`_DynamicStructBuilder`
+        """
         orphan = self._message.newOrphan(self._schema)
         orphan_val = orphan.get()
         self._list.append((orphan, orphan_val))
@@ -171,6 +197,10 @@ cdef class _DynamicResizableListBuilder:
         return len(self._list)
 
     def finish(self):
+        """A method for closing this list and serializing all its members to the message
+
+        If you don't call this method, the items you previously added from this object will leak into the message, ie. inaccessible but still taking up space.
+        """
         cdef int i = 0
         new_list = self._parent.init(self._field, len(self))
         for orphan, _ in self._list:
@@ -388,7 +418,7 @@ cdef class _DynamicStructReader:
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
     property schema:
-        """A _StructSchema object matching this reader"""
+        """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
             return _StructSchema()._init(self.thisptr.getSchema())
 
@@ -483,6 +513,19 @@ cdef class _DynamicStructBuilder:
             return toPython(self.thisptr.init(field, size), self._parent)
 
     cpdef initResizableList(self, field):
+        """Method for initializing fields that are of type list (of structs)
+
+        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since you can just define a normal python and fill it with primitive types like int/float. 
+
+        .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the list object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+
+        :type field: str
+        :param field: The field name to initialize
+
+        :rtype: :class:`_DynamicResizableListBuilder`
+
+        :Raises: :exc:`exceptions.AttributeError` if the field isn't in this struct
+        """
         return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
     cpdef which(self) except +ValueError:
@@ -548,14 +591,20 @@ cdef class _DynamicStructBuilder:
         return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
 
     cpdef asReader(self):
-          cdef _DynamicStructReader reader
-          reader = _DynamicStructReader()._init(self.thisptr.asReader(),
-                                                self._parent)
-          reader._obj_to_pin = self
-          return reader
+        """A method for casting this Builder to a Reader
+
+        Don't use this method unless you know what you're doing.
+
+        :rtype: :class:`_DynamicStructReader`
+        """
+        cdef _DynamicStructReader reader
+        reader = _DynamicStructReader()._init(self.thisptr.asReader(),
+                                            self._parent)
+        reader._obj_to_pin = self
+        return reader
 
     property schema:
-        """A _StructSchema object matching this reader"""
+        """A property that returns the _StructSchema object matching this writer"""
         def __get__(self):
             return _StructSchema()._init(self.thisptr.getSchema())
 
