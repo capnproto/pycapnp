@@ -14,6 +14,12 @@ cdef extern from "capnp/common.h" namespace " ::capnp":
 cdef extern from "kj/string.h" namespace " ::kj":
     cdef cppclass StringPtr:
         StringPtr(char *)
+    cdef cppclass String:
+        char* cStr()
+
+cdef extern from "kj/string-tree.h" namespace " ::kj":
+    cdef cppclass StringTree:
+        String flatten()
 
 cdef extern from "kj/common.h" namespace " ::kj":
     cdef cppclass Maybe[T]:

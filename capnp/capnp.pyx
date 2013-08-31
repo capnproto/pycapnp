@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, DynamicOrphan as C_DynamicOrphan
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -72,6 +72,18 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
 
 cdef extern from "<utility>" namespace "std":
     C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
+
+cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
+    StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
+    StringTree printStructBuilder" ::capnp::prettyPrint"(C_DynamicStruct.Builder)
+    StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader)
+    StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder)
+
+cdef extern from "<kj/string.h>" namespace " ::kj":
+    String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
+    String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
+    String strListReader" ::kj::str"(C_DynamicList.Reader)
+    String strListBuilder" ::kj::str"(C_DynamicList.Builder)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -143,6 +155,13 @@ cdef class _DynamicListReader:
 
     def __len__(self):
         return self.thisptr.size()
+
+    def __str__(self):
+        return printListReader(self.thisptr).flatten().cStr()
+
+    def __repr__(self):
+        # TODO:  Print the list type.
+        return '<capnp list reader %s>' % strListReader(self.thisptr).cStr()
 
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
@@ -315,6 +334,13 @@ cdef class _DynamicListBuilder:
         """
         return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
+    def __str__(self):
+        return printListBuilder(deref(self.thisptr)).flatten().cStr()
+
+    def __repr__(self):
+        # TODO:  Print the list type.
+        return '<capnp list builder %s>' % strListBuilder(deref(self.thisptr)).cStr()
+
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
     cdef _init(self, List[C_Node.NestedNode].Reader other):
@@ -438,6 +464,12 @@ cdef class _DynamicStructReader:
 
     def __dir__(self):
         return list(self.schema.fieldnames)
+
+    def __str__(self):
+        return printStructReader(self.thisptr).flatten().cStr()
+
+    def __repr__(self):
+        return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
 
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
@@ -638,6 +670,12 @@ cdef class _DynamicStructBuilder:
     def __dir__(self):
         return list(self.schema.fieldnames)
 
+    def __str__(self):
+        return printStructBuilder(deref(self.thisptr)).flatten().cStr()
+
+    def __repr__(self):
+        return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(deref(self.thisptr)).cStr())
+
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
     cdef public object _parent
@@ -655,6 +693,12 @@ cdef class _DynamicOrphan:
         Use this DynamicValue to set fields inside the orphan
         """
         return toPython(self.thisptr.get(), self._parent)
+
+    def __str__(self):
+        return str(self.get())
+
+    def __repr__(self):
+        return repr(self.get())
 
 cdef class _Schema:
     cdef C_Schema thisptr
@@ -697,6 +741,9 @@ cdef class _StructSchema:
         """The raw schema node"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+
+    def __repr__(self):
+        return '<schema for %s>' % self.node.displayName
 
 cdef class _ParsedSchema:
     cdef C_ParsedSchema thisptr
