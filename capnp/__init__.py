@@ -9,7 +9,7 @@ Example Usage::
     # Building
     message = capnp.MallocMessageBuilder()
     addressBook = message.initRoot(addressbook.AddressBook)
-    people = addressBook.init('people', 2)
+    people = addressBook.init('people', 1)
 
     alice = people[0]
     alice.id = 123
@@ -35,5 +35,5 @@ Example Usage::
 """
 from .version import version as __version__
 from .capnp import *
-from .capnp import _DynamicStructReader, _DynamicStructBuilder, _DynamicResizableListBuilder, _DynamicListReader, _DynamicListBuilder, _DynamicOrphan
+from .capnp import _DynamicStructReader, _DynamicStructBuilder, _DynamicResizableListBuilder, _DynamicListReader, _DynamicListBuilder, _DynamicOrphan, _DynamicResizableListBuilder
 del capnp

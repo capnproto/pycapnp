@@ -26,4 +26,4 @@ before_install:
 install:
   - pip install --editable .
 
-script: py.test
+script: py.test test

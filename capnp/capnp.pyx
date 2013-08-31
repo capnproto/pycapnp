@@ -145,6 +145,26 @@ cdef class _DynamicListReader:
         return self.thisptr.size()
 
 cdef class _DynamicResizableListBuilder:
+    """Class for building growable Cap'n Proto Lists
+
+    .. warning:: You need to call :meth:`finish` on this object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+
+    This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you're much better off using a normal python list and then serializing straight to a Cap'n Proto list. It has __getitem__ and __len__ defined, but not __setitem__.
+
+        ...
+        person = message.initRoot(addressbook.Person)
+
+        phones = person.initResizableList('phones') # This returns a _DynamicResizableListBuilder
+        
+        phone = phones.add()
+        phone.number = 'foo'
+        phone = phones.add()
+        phone.number = 'bar'
+
+        people.finish()
+
+        capnp.writePackedMessageToFd(fd, message)
+    """
     cdef public object _parent, _message, _field, _schema
     cdef public list _list
     def __init__(self, parent, field, schema):
@@ -156,6 +176,12 @@ cdef class _DynamicResizableListBuilder:
         self._list = list()
 
     cpdef add(self):
+        """A method for adding a new struct to the list
+
+        This will return a struct, in which you can set fields that will be reflected in the serialized Cap'n Proto message.
+
+        :rtype: :class:`_DynamicStructBuilder`
+        """
         orphan = self._message.newOrphan(self._schema)
         orphan_val = orphan.get()
         self._list.append((orphan, orphan_val))
@@ -171,6 +197,10 @@ cdef class _DynamicResizableListBuilder:
         return len(self._list)
 
     def finish(self):
+        """A method for closing this list and serializing all its members to the message
+
+        If you don't call this method, the items you previously added from this object will leak into the message, ie. inaccessible but still taking up space.
+        """
         cdef int i = 0
         new_list = self._parent.init(self._field, len(self))
         for orphan, _ in self._list:
@@ -219,12 +249,27 @@ cdef class _DynamicListBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
         self.thisptr.set(index, temp)
 
+    cdef _setattrDynamicStructBuilder(self, index, _DynamicStructBuilder value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
+        self.thisptr.set(index, temp)
+
+    cdef _setattrDynamicStructReader(self, index, _DynamicStructReader value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr)
+        self.thisptr.set(index, temp)
+
     def __setitem__(self, index, value):
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        self._setitem(index, value)
+        value_type = type(value)
+
+        if value_type is _DynamicStructBuilder:
+            self._setattrDynamicStructBuilder(index, value)
+        elif value_type is _DynamicStructReader:
+            self._setattrDynamicStructReader(index, value)
+        else:
+            self._setitem(index, value)
 
     def __len__(self):
         return self.thisptr.size()
@@ -388,7 +433,7 @@ cdef class _DynamicStructReader:
         return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
 
     property schema:
-        """A _StructSchema object matching this reader"""
+        """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
             return _StructSchema()._init(self.thisptr.getSchema())
 
@@ -444,8 +489,17 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
         self.thisptr.set(field, temp)
 
+    cdef _setattrDynamicStructBuilder(self, field, _DynamicStructBuilder value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
+        self.thisptr.set(field, temp)
+
+    cdef _setattrDynamicStructReader(self, field, _DynamicStructReader value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr)
+        self.thisptr.set(field, temp)
+
     def __setattr__(self, field, value):
         value_type = type(value)
+
         if value_type is int:
             self._setattrInt(field, value)
         elif value_type is float:
@@ -456,6 +510,10 @@ cdef class _DynamicStructBuilder:
             self._setattrString(field, value)
         elif value is None:
             self._setattrVoid(field)
+        elif value_type is _DynamicStructBuilder:
+            self._setattrDynamicStructBuilder(field, value)
+        elif value_type is _DynamicStructReader:
+            self._setattrDynamicStructReader(field, value)
         else:
             raise ValueError("Non primitive type")
 
@@ -483,6 +541,19 @@ cdef class _DynamicStructBuilder:
             return toPython(self.thisptr.init(field, size), self._parent)
 
     cpdef initResizableList(self, field):
+        """Method for initializing fields that are of type list (of structs)
+
+        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since for primitive types you can just define a normal python list and fill it yourself. 
+
+        .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the list object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+
+        :type field: str
+        :param field: The field name to initialize
+
+        :rtype: :class:`_DynamicResizableListBuilder`
+
+        :Raises: :exc:`exceptions.AttributeError` if the field isn't in this struct
+        """
         return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
     cpdef which(self) except +ValueError:
@@ -548,14 +619,20 @@ cdef class _DynamicStructBuilder:
         return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
 
     cpdef asReader(self):
-          cdef _DynamicStructReader reader
-          reader = _DynamicStructReader()._init(self.thisptr.asReader(),
-                                                self._parent)
-          reader._obj_to_pin = self
-          return reader
+        """A method for casting this Builder to a Reader
+
+        Don't use this method unless you know what you're doing.
+
+        :rtype: :class:`_DynamicStructReader`
+        """
+        cdef _DynamicStructReader reader
+        reader = _DynamicStructReader()._init(self.thisptr.asReader(),
+                                            self._parent)
+        reader._obj_to_pin = self
+        return reader
 
     property schema:
-        """A _StructSchema object matching this reader"""
+        """A property that returns the _StructSchema object matching this writer"""
         def __get__(self):
             return _StructSchema()._init(self.thisptr.getSchema())
 
@@ -643,7 +720,11 @@ cdef class _ParsedSchema:
     cpdef getNested(self, name):
         return _ParsedSchema()._init(self.thisptr.getNested(name))
 
-cdef class _SchemaParser:
+cdef class SchemaParser:
+    """A class for loading Cap'n Proto schema files.
+
+    Do not use this class unless you're sure you know what you're doing. Use the convenience method :func:`load` instead.
+    """
     cdef C_SchemaParser * thisptr
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
@@ -651,7 +732,7 @@ cdef class _SchemaParser:
     def __dealloc__(self):
         del self.thisptr
 
-    def parseDiskFile(self, displayName, diskPath, imports):
+    def _parseDiskFile(self, displayName, diskPath, imports):
         cdef StringPtr * importArray = <StringPtr *>malloc(sizeof(StringPtr) * len(imports))
 
         for i in range(len(imports)):
@@ -665,6 +746,69 @@ cdef class _SchemaParser:
         free(importArray)
 
         return ret
+
+    def load(self, file_name, display_name=None, imports=[]):
+        """Load a Cap'n Proto schema from a file 
+
+        You will have to load a schema before you can begin doing anything
+        meaningful with this library. Loading a schema is much like loading
+        a Python module (and load even returns a `ModuleType`). Once it's been
+        loaded, you use it much like any other Module::
+
+            parser = capnp.SchemaParser()
+            addressbook = parser.load('addressbook.capnp')
+            print addressbook.qux # qux is a top level constant
+            # 123
+            message = capnp.MallocMessageBuilder()
+            person = message.initRoot(addressbook.Person)
+
+        :type file_name: str
+        :param file_name: A relative or absolute path to a Cap'n Proto schema
+
+        :type display_name: str
+        :param display_name: The name internally used by the Cap'n Proto library
+            for the loaded schema. By default, it's just os.path.basename(file_name)
+
+        :type imports: list
+        :param imports: A list of str directories to add to the import path.
+
+        :rtype: ModuleType
+        :return: A module corresponding to the loaded schema. You can access
+            parsed schemas and constants with . syntax
+
+        :Raises: :exc:`exceptions.ValueError` if `file_name` doesn't exist
+
+        """
+        def _load(nodeSchema, module):
+            module._nodeSchema = nodeSchema
+            nodeProto = nodeSchema.getProto()
+            module._nodeProto = nodeProto
+
+            for node in nodeProto.nestedNodes:
+                local_module = _ModuleType(node.name)
+                module.__dict__[node.name] = local_module
+
+                schema = nodeSchema.getNested(node.name)
+                proto = schema.getProto()
+                if proto.isStruct:
+                    local_module.schema = schema.asStruct()
+                elif proto.isConst:
+                    module.__dict__[node.name] = schema.asConstValue()
+
+                _load(schema, local_module)
+
+        if display_name is None:
+            display_name = _os.path.basename(file_name)
+
+        module = _ModuleType(display_name)
+        parser = self
+
+        module._parser = parser
+
+        fileSchema = parser._parseDiskFile(display_name, file_name, imports)
+        _load(fileSchema, module)
+
+        return module
 
 cdef class MessageBuilder:
     """An abstract base class for building Cap'n Proto messages
@@ -826,7 +970,7 @@ cdef class StreamFdMessageReader(_MessageReader):
 cdef class PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of writePackedMessageToFd and :class:`MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`writePackedMessageToFd` and :class:`MessageBuilder`, but in one class.::
 
         f = open('out.txt')
         message = StreamFdMessageReader(f.fileno())
@@ -892,16 +1036,18 @@ def writePackedMessageToFd(int fd, MessageBuilder message):
 from types import ModuleType as _ModuleType
 import os as _os
 
+_global_schema_parser = None
+
 def load(file_name, display_name=None, imports=[]):
     """Load a Cap'n Proto schema from a file 
 
     You will have to load a schema before you can begin doing anything
-    meaningful with this library. Loading a schema is much like Loading
+    meaningful with this library. Loading a schema is much like loading
     a Python module (and load even returns a `ModuleType`). Once it's been
     loaded, you use it much like any other Module::
 
         addressbook = capnp.load('addressbook.capnp')
-        print addressbook.qux # qux is a top level constant
+        print addressbook.qux # qux is a top level constant in the addressbook.capnp schema
         # 123
         message = capnp.MallocMessageBuilder()
         person = message.initRoot(addressbook.Person)
@@ -923,32 +1069,8 @@ def load(file_name, display_name=None, imports=[]):
     :Raises: :exc:`exceptions.ValueError` if `file_name` doesn't exist
 
     """
-    def _load(nodeSchema, module):
-        module._nodeSchema = nodeSchema
-        nodeProto = nodeSchema.getProto()
-        module._nodeProto = nodeProto
+    global _global_schema_parser
+    if _global_schema_parser is None:
+        _global_schema_parser = SchemaParser()
 
-        for node in nodeProto.nestedNodes:
-            local_module = _ModuleType(node.name)
-            module.__dict__[node.name] = local_module
-
-            schema = nodeSchema.getNested(node.name)
-            proto = schema.getProto()
-            if proto.isStruct:
-                local_module.schema = schema.asStruct()
-            elif proto.isConst:
-                module.__dict__[node.name] = schema.asConstValue()
-
-            _load(schema, local_module)
-
-    if display_name is None:
-        display_name = _os.path.basename(file_name)
-    module = _ModuleType(display_name)
-    parser = _SchemaParser()
-
-    module._parser = parser
-
-    fileSchema = parser.parseDiskFile(display_name, file_name, imports)
-    _load(fileSchema, module)
-
-    return module
+    return _global_schema_parser.load(file_name, display_name, imports)
