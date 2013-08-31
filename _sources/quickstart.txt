@@ -108,7 +108,7 @@ For all primitive types, from the Cap'n Proto docs:
 - Floating-point: Float32, Float64
 - Blobs: Text, Data
 
-You can just assign straight to the variable with the corresponding Python type. For Blobs, you just use strings. Assignment happens just by using the `.` syntax on the object you contstructed above::
+You can assign straight to the variable with the corresponding Python type. For Blobs, you use strings. Assignment happens just by using the `.` syntax on the object you contstructed above::
 
     alice.id = 123
     alice.name = 'Alice'

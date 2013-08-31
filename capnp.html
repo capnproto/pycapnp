@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.3.8 documentation</title>
+    <title>API Reference &mdash; capnp 0.3.9 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.8',
+        VERSION:     '0.3.9',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.8 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.9 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.8 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.9 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -60,7 +60,7 @@
 <span class="c"># Building</span>
 <span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
 <span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
-<span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
 <span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">alice</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">123</span>
@@ -92,11 +92,11 @@
 <tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a Cap&#8217;n Proto schema from a file</p>
 <p>You will have to load a schema before you can begin doing anything
-meaningful with this library. Loading a schema is much like Loading
+meaningful with this library. Loading a schema is much like loading
 a Python module (and load even returns a <cite>ModuleType</cite>). Once it&#8217;s been
 loaded, you use it much like any other Module:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
-<span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant</span>
+<span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant in the addressbook.capnp schema</span>
 <span class="c"># 123</span>
 <span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
 <span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
@@ -257,7 +257,7 @@ Access members with . syntax.</td>
 <dd><p>PackedFdMessageReader(int fd)
 Read a Cap&#8217;n Proto message from a file descriptor in a packed manner</p>
 <blockquote>
-<div><p>You use this class to for reading message(s) from a file. It&#8217;s analagous to the inverse of writePackedMessageToFd and <a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>, but in one class.:</p>
+<div><p>You use this class to for reading message(s) from a file. It&#8217;s analagous to the inverse of <a class="reference internal" href="#capnp.writePackedMessageToFd" title="capnp.writePackedMessageToFd"><tt class="xref py py-func docutils literal"><span class="pre">writePackedMessageToFd()</span></tt></a> and <a class="reference internal" href="#capnp.MessageBuilder" title="capnp.MessageBuilder"><tt class="xref py py-class docutils literal"><span class="pre">MessageBuilder</span></tt></a>, but in one class.:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;out.txt&#39;</span><span class="p">)</span>
 <span class="n">message</span> <span class="o">=</span> <span class="n">StreamFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
 <span class="n">person</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span>
@@ -681,7 +681,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt id="capnp._DynamicStructBuilder.initResizableList">
 <tt class="descname">initResizableList</tt><big>(</big><em>self</em>, <em>field</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.initResizableList" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method for initializing fields that are of type list (of structs)</p>
-<p>This version of init returns a <a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicResizableListBuilder</span></tt></a> that allows you to add members one at a time (ie. if you don&#8217;t know the size for sure). This is only meant for lists of Cap&#8217;n Proto objects, since you can just define a normal python and fill it with primitive types like int/float.</p>
+<p>This version of init returns a <a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicResizableListBuilder</span></tt></a> that allows you to add members one at a time (ie. if you don&#8217;t know the size for sure). This is only meant for lists of Cap&#8217;n Proto objects, since for primitive types you can just define a normal python list and fill it yourself.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">You need to call <a class="reference internal" href="#capnp._DynamicResizableListBuilder.finish" title="capnp._DynamicResizableListBuilder.finish"><tt class="xref py py-meth docutils literal"><span class="pre">_DynamicResizableListBuilder.finish()</span></tt></a> on the list object before serializing the Cap&#8217;n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.</p>
@@ -937,7 +937,7 @@ phone.number = &#8216;bar&#8217;</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.8 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.9 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
