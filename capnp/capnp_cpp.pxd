@@ -6,6 +6,7 @@ from schema_cpp cimport Node, Data, StructNode, EnumNode
 
 from libc.stdint cimport *
 ctypedef unsigned int uint
+from libcpp cimport bool as cbool
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
@@ -137,7 +138,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Reader:
             Reader()
             Reader(Void value)
-            Reader(bint value)
+            Reader(cbool value)
             Reader(char value)
             Reader(short value)
             Reader(int value)

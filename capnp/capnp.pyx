@@ -30,14 +30,7 @@ ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
 from libc.stdlib cimport malloc, free
-
-ctypedef fused valid_values:
-    int
-    long
-    float
-    double
-    bint
-    cython.p_char
+from libcpp cimport bool as cbool
 
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -264,31 +257,76 @@ cdef class _DynamicListBuilder:
         index = index % size
         return self._get(index)
 
-    def _setitem(self, index, valid_values value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
+    cdef _setitemInt(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
         self.thisptr.set(index, temp)
 
-    cdef _setattrDynamicStructBuilder(self, index, _DynamicStructBuilder value):
+    cdef _setitemLong(self, index, value):
+        cdef C_DynamicValue.Reader temp
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemDouble(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<double>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemBool(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<cbool>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemString(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<char*>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemVoid(self, index):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemList(self, index, value):
+        builder = toPython(self.thisptr.init(index, len(value)), self._parent)
+        for (i, v) in enumerate(value):
+            builder[i] = v
+
+    cdef _setitemDynamicStructBuilder(self, index, _DynamicStructBuilder value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
         self.thisptr.set(index, temp)
 
-    cdef _setattrDynamicStructReader(self, index, _DynamicStructReader value):
+    cdef _setitemDynamicStructReader(self, index, _DynamicStructReader value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr)
         self.thisptr.set(index, temp)
 
     def __setitem__(self, index, value):
+        # TODO: share code with _DynamicStructBuilder.__setattr__
+        
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         value_type = type(value)
 
-        if value_type is _DynamicStructBuilder:
+        if value_type is int:
+            self._setitemInt(index, value)
+        elif value_type is long:
+            self._setitemLong(index, value)
+        elif value_type is float:
+            self._setitemDouble(index, value)
+        elif value_type is bool:
+            self._setitemBool(index, value)
+        elif value_type is str:
+            self._setitemString(index, value)
+        elif value_type is list:
+            self._setitemList(index, value)
+        elif value is None:
+            self._setitemVoid(index)
+        elif value_type is _DynamicStructBuilder:
             self._setattrDynamicStructBuilder(index, value)
         elif value_type is _DynamicStructReader:
             self._setattrDynamicStructReader(index, value)
         else:
-            self._setitem(index, value)
+            raise ValueError("Non primitive type")
 
     def __len__(self):
         return self.thisptr.size()
@@ -504,12 +542,20 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
         self.thisptr.set(field, temp)
 
+    cdef _setattrLong(self, field, value):
+        cdef C_DynamicValue.Reader temp
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        self.thisptr.set(field, temp)
+
     cdef _setattrDouble(self, field, value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<double>value)
         self.thisptr.set(field, temp)
 
     cdef _setattrBool(self, field, value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<bint>value)
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<cbool>value)
         self.thisptr.set(field, temp)
 
     cdef _setattrString(self, field, value):
@@ -520,6 +566,11 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
         self.thisptr.set(field, temp)
 
+    cdef _setattrList(self, field, value):
+        builder = toPython(self.thisptr.init(field, len(value)), self._parent)
+        for (i, v) in enumerate(value):
+            builder[i] = v
+
     cdef _setattrDynamicStructBuilder(self, field, _DynamicStructBuilder value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
         self.thisptr.set(field, temp)
@@ -529,16 +580,21 @@ cdef class _DynamicStructBuilder:
         self.thisptr.set(field, temp)
 
     def __setattr__(self, field, value):
+        # TODO: share code with _DynamicListBuilder.__setitem__
         value_type = type(value)
 
         if value_type is int:
             self._setattrInt(field, value)
+        elif value_type is long:
+            self._setattrLong(field, value)
         elif value_type is float:
             self._setattrDouble(field, value)
         elif value_type is bool:
             self._setattrBool(field, value)
         elif value_type is str:
             self._setattrString(field, value)
+        elif value_type is list:
+            self._setattrList(field, value)
         elif value is None:
             self._setattrVoid(field)
         elif value_type is _DynamicStructBuilder:
