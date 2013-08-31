@@ -1047,7 +1047,7 @@ def load(file_name, display_name=None, imports=[]):
     loaded, you use it much like any other Module::
 
         addressbook = capnp.load('addressbook.capnp')
-        print addressbook.qux # qux is a top level constant
+        print addressbook.qux # qux is a top level constant in the addressbook.capnp schema
         # 123
         message = capnp.MallocMessageBuilder()
         person = message.initRoot(addressbook.Person)

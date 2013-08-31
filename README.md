@@ -7,13 +7,11 @@ More thorough docs are available at [http://jparyani.github.io/capnpc-python-cpp
 First you need a system-wide installation of the Cap'n Proto C++ library >= 0.3. Unfortunately, as of now, that means you have to build from the HEAD of Cap'n Proto. Follow these instructions to do so:
 
 ```bash
-wget https://github.com/kentonv/capnproto/archive/master.zip
-unzip master.zip
-cd capnproto-master/c++
-./setup-autotools.sh
-autoreconf -i
+wget http://capnproto.org/capnproto-c++-0.3.0-rc2.tar.gz
+tar xzf capnproto-c++-0.3.0-rc2.tar.gz
+cd capnproto-c++-0.3.0-rc2
 ./configure
-make -j6 check
+make -j8 check
 sudo make install
 sudo ldconfig
 ```
