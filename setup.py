@@ -18,7 +18,7 @@ import os
 
 MAJOR = 0
 MINOR = 3
-MICRO = 10
+MICRO = 11
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 def write_version_py(filename=None):
