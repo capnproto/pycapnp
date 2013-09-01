@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Quickstart &mdash; capnp 0.3.9 documentation</title>
+    <title>Quickstart &mdash; capnp 0.3.11 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.9',
+        VERSION:     '0.3.11',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.9 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.11 documentation" href="index.html" />
     <link rel="next" title="API Reference" href="capnp.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -69,7 +69,7 @@
 </div>
 <p>Note that we assign the loaded module to a variable, named <cite>addressbook</cite>. We&#8217;ll use this from now on to access the Cap&#8217;n Proto schema, ie. when we need to get a Struct&#8217;s class or accessing const values.</p>
 <p>You can also provide an absolute path to the Cap&#8217;n Proto schema you wish to load. Otherwise, it will only look in the current working directory.</p>
-<p>For future reference, here is the Cap&#8217;n Proto schema. Also available in the github repository under examples/addressbook.capnp:</p>
+<p>For future reference, here is the Cap&#8217;n Proto schema. Also available in the github repository under <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/examples">examples/addressbook.capnp</a>:</p>
 <div class="highlight-python"><pre># addressbook.capnp
 0x934efea7f017fff0;
 
@@ -116,17 +116,10 @@ struct AddressBook {
 </div>
 <div class="section" id="build-a-message">
 <h2>Build a message<a class="headerlink" href="#build-a-message" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="message-builder">
-<h3>Message Builder<a class="headerlink" href="#message-builder" title="Permalink to this headline">¶</a></h3>
-<p>First you need to allocate a MessageBuilder for your message to go in. There is only 1 message allocator available at the moment (Malloc), although there may be more varied kinds in the future:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
 <div class="section" id="initialize-a-new-cap-n-proto-object">
 <h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#initialize-a-new-cap-n-proto-object" title="Permalink to this headline">¶</a></h3>
 <p>Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Notice that we used <cite>addressbook</cite> from the previous section: <a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a>.</p>
@@ -194,7 +187,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <h3>Writing to a File<a class="headerlink" href="#writing-to-a-file" title="Permalink to this headline">¶</a></h3>
 <p>For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon):</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
-<span class="n">capnp</span><span class="o">.</span><span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+<span class="n">addresses</span><span class="o">.</span><span class="n">writeTo</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note the call to fileno(), since it expects a raw file descriptor. There is also <cite>writeMessageToFd</cite> instead of <cite>writePackedMessageToFd</cite>. Make sure your reader uses the same packing type.</p>
@@ -205,18 +198,10 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <div class="section" id="reading-from-a-file">
 <h3>Reading from a file<a class="headerlink" href="#reading-from-a-file" title="Permalink to this headline">¶</a></h3>
 <p>Much like before, you will have to de-serialize the message from a file descriptor:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">)</span>
-<span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
-</pre></div>
+<div class="highlight-python"><pre>f = open('example.bin')
+addresses = addressbook.AddressBook.readFrom(f</pre>
 </div>
-</div>
-<div class="section" id="id2">
-<h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
-<p>Just like when building, you have to actually specify which message you want to read out of buffer:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel, wrap all your types in an unnamed enum, or you need some out of band method for communicating what type a message is. Unnamed unions are defined in the .capnp file like so:</p>
+<p>Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so:</p>
 <div class="highlight-python"><pre>struct Message {
     union {
       person @0 :Person;
@@ -228,7 +213,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <div class="section" id="reading-fields">
 <h3>Reading Fields<a class="headerlink" href="#reading-fields" title="Permalink to this headline">¶</a></h3>
 <p>Fields are very easy to read. You just use the <cite>.</cite> syntax as before. Lists behave just like normal Python lists:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addresses</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
     <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span><span class="p">:</span>
         <span class="k">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
@@ -256,7 +241,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 <div class="section" id="full-example">
 <h2>Full Example<a class="headerlink" href="#full-example" title="Permalink to this headline">¶</a></h2>
-<p>Here is a full example reproduced from <a class="reference external" href="https://github.com/jparyani/capnpc-python-cpp/blob/master/examples/example.py">examples/example.py</a>:</p>
+<p>Here is a full example reproduced from <a class="reference external" href="https://github.com/jparyani/pycapnp/blob/master/examples/example.py">examples/example.py</a>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">capnp</span>
@@ -264,10 +249,9 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <span class="n">this_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">)</span>
 <span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">this_dir</span><span class="p">,</span> <span class="s">&#39;addressbook.capnp&#39;</span><span class="p">))</span>
 
-<span class="k">def</span> <span class="nf">writeAddressBook</span><span class="p">(</span><span class="n">fd</span><span class="p">):</span>
-    <span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">MallocMessageBuilder</span><span class="p">()</span>
-    <span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">initRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
-    <span class="n">people</span> <span class="o">=</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">writeAddressBook</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
+    <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+    <span class="n">people</span> <span class="o">=</span> <span class="n">addresses</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
     <span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">alice</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">123</span>
@@ -289,14 +273,13 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
     <span class="n">bobPhones</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;work&#39;</span>
     <span class="n">bob</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">unemployed</span> <span class="o">=</span> <span class="bp">None</span>
 
-    <span class="n">capnp</span><span class="o">.</span><span class="n">writePackedMessageToFd</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+    <span class="n">addresses</span><span class="o">.</span><span class="n">writeTo</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">printAddressBook</span><span class="p">(</span><span class="n">fd</span><span class="p">):</span>
-    <span class="n">message</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">PackedFdMessageReader</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
-    <span class="n">addressBook</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">getRoot</span><span class="p">(</span><span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">printAddressBook</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
+    <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">readFrom</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addressBook</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addresses</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
         <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span><span class="p">:</span>
             <span class="k">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
@@ -317,10 +300,10 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
-    <span class="n">writeAddressBook</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+    <span class="n">writeAddressBook</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
     <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example&#39;</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span>
-    <span class="n">printAddressBook</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+    <span class="n">printAddressBook</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -340,7 +323,6 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </ul>
 </li>
 <li><a class="reference internal" href="#build-a-message">Build a message</a><ul>
-<li><a class="reference internal" href="#message-builder">Message Builder</a></li>
 <li><a class="reference internal" href="#initialize-a-new-cap-n-proto-object">Initialize a New Cap&#8217;n Proto Object</a></li>
 <li><a class="reference internal" href="#list">List</a></li>
 <li><a class="reference internal" href="#primitive-types">Primitive Types</a></li>
@@ -351,7 +333,6 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </li>
 <li><a class="reference internal" href="#read-a-message">Read a message</a><ul>
 <li><a class="reference internal" href="#reading-from-a-file">Reading from a file</a></li>
-<li><a class="reference internal" href="#id2">Initialize a New Cap&#8217;n Proto Object</a></li>
 <li><a class="reference internal" href="#reading-fields">Reading Fields</a></li>
 <li><a class="reference internal" href="#reading-unions">Reading Unions</a></li>
 </ul>
@@ -404,7 +385,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
         <li class="right" >
           <a href="install.html" title="Installation"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

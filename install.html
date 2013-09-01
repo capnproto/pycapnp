@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Installation &mdash; capnp 0.3.9 documentation</title>
+    <title>Installation &mdash; capnp 0.3.11 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.9',
+        VERSION:     '0.3.11',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.9 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.11 documentation" href="index.html" />
     <link rel="next" title="Quickstart" href="quickstart.html" />
     <link rel="prev" title="Welcome to capnp’s documentation!" href="index.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to capnp’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -57,14 +57,13 @@
 <span id="install"></span><h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="c-cap-n-proto-library">
 <h2>C++ Cap&#8217;n Proto Library<a class="headerlink" href="#c-cap-n-proto-library" title="Permalink to this headline">¶</a></h2>
-<p>You need to install the C++ Cap&#8217;n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at <a class="reference external" href="http://kentonv.github.io/capnproto/install.html">http://kentonv.github.io/capnproto/install.html</a> with an added <cite>sudo ldconfig</cite> after you&#8217;re done installing, or if you&#8217;re feeling lazy, you can run the commands below:</p>
-<div class="highlight-python"><pre>wget http://capnproto.org/capnproto-c++-0.3.0-rc2.tar.gz
-tar xzf capnproto-c++-0.3.0-rc2.tar.gz
-cd capnproto-c++-0.3.0-rc2
+<p>You need to install the C++ Cap&#8217;n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at <a class="reference external" href="http://kentonv.github.io/capnproto/install.html">http://kentonv.github.io/capnproto/install.html</a>, or if you&#8217;re feeling lazy, you can run the commands below:</p>
+<div class="highlight-python"><pre>wget http://capnproto.org/capnproto-c++-0.3.0-rc5.tar.gz
+tar xzf capnproto-c++-0.3.0-rc5.tar.gz
+cd capnproto-c++-0.3.0-rc5
 ./configure
 make -j8 check
-sudo make install
-sudo ldconfig</pre>
+sudo make install</pre>
 </div>
 </div>
 <div class="section" id="pip">
@@ -72,27 +71,32 @@ sudo ldconfig</pre>
 <p>Using pip is by far the easiest way to install the library. After you&#8217;ve installed the C++ library, all you need to run is:</p>
 <div class="highlight-python"><pre>pip install -U cython
 pip install -U setuptools
-pip install capnp</pre>
+pip install pycapnp</pre>
 </div>
-<p>You can control the compiler version with the environment variable CC, ie. <cite>CC=gcc-4.8 pip install capnp</cite>. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.</p>
+<p>You can control the compiler version with the environment variable CC, ie. <cite>CC=gcc-4.8 pip install pycapnp</cite>. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.</p>
 </div>
 <div class="section" id="from-source">
 <h2>From Source<a class="headerlink" href="#from-source" title="Permalink to this headline">¶</a></h2>
 <p>If you want the latest development version, you can clone the github repo and install like so:</p>
-<div class="highlight-python"><pre>git clone https://github.com/jparyani/capnpc-python-cpp.git
-pip install capnpc-python-cpp</pre>
+<div class="highlight-python"><pre>git clone https://github.com/jparyani/pycapnp.git
+cd pycapnp
+pip install .</pre>
 </div>
 <p>or:</p>
-<div class="highlight-python"><pre>cd capnpc-python-cpp
+<div class="highlight-python"><pre>cd pycapnp
 python setup.py install</pre>
 </div>
 <p>If you don&#8217;t use pip, you will need to manually install Cython, and a setuptools with a version &gt;= .8.</p>
 </div>
 <div class="section" id="development">
 <h2>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h2>
-<p>Clone the repo from <a class="reference external" href="https://github.com/jparyani/capnpc-python-cpp.git">https://github.com/jparyani/capnpc-python-cpp.git</a> and use the <cite>develop</cite> branch. I&#8217;ll probably ask you to redo pull requests that target <cite>master</cite> and aren&#8217;t easily mergable to <cite>develop</cite>:</p>
-<div class="highlight-python"><pre>git clone https://github.com/jparyani/capnpc-python-cpp.git
+<p>Clone the repo from <a class="reference external" href="https://github.com/jparyani/pycapnp.git">https://github.com/jparyani/pycapnp.git</a> and use the <cite>develop</cite> branch. I&#8217;ll probably ask you to redo pull requests that target <cite>master</cite> and aren&#8217;t easily mergable to <cite>develop</cite>:</p>
+<div class="highlight-python"><pre>git clone https://github.com/jparyani/pycapnp.git
 git checkout develop</pre>
+</div>
+<p>Testing is done through pytest, like so:</p>
+<div class="highlight-python"><pre>pip install pytest
+py.test</pre>
 </div>
 <p>Once you&#8217;re done installing, take a look at the <a class="reference internal" href="quickstart.html#quickstart"><em>Quickstart</em></a></p>
 </div>
@@ -158,7 +162,7 @@ git checkout develop</pre>
         <li class="right" >
           <a href="index.html" title="Welcome to capnp’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

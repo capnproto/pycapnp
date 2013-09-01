@@ -10,34 +10,6 @@ API Reference
 Functions
 -------------
 .. autofunction:: load
-.. autofunction:: writeMessageToFd
-.. autofunction:: writePackedMessageToFd
-
-Readers
--------------
-
-.. autoclass:: StreamFdMessageReader
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-.. autoclass:: PackedFdMessageReader
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-Builders
--------------
-
-.. autoclass:: MessageBuilder
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-.. autoclass:: MallocMessageBuilder
-  :members:
-  :undoc-members:
-  :inherited-members:
 
 Internal Classes
 ----------------
