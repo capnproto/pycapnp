@@ -45,7 +45,7 @@ except (IOError, ImportError):
     long_description = ''
 
 setup(
-    name="capnp",
+    name="pycapnp",
     packages=["capnp"],
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.pyx', '*.h']},
