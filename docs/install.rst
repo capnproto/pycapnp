@@ -6,15 +6,14 @@ Installation
 C++ Cap'n Proto Library
 ------------------------
 
-You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at `http://kentonv.github.io/capnproto/install.html <http://kentonv.github.io/capnproto/install.html>`_ with an added `sudo ldconfig` after you're done installing, or if you're feeling lazy, you can run the commands below::
+You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at `http://kentonv.github.io/capnproto/install.html <http://kentonv.github.io/capnproto/install.html>`_, or if you're feeling lazy, you can run the commands below::
 
-    wget http://capnproto.org/capnproto-c++-0.3.0-rc2.tar.gz
-    tar xzf capnproto-c++-0.3.0-rc2.tar.gz
-    cd capnproto-c++-0.3.0-rc2
+    wget http://capnproto.org/capnproto-c++-0.3.0-rc5.tar.gz
+    tar xzf capnproto-c++-0.3.0-rc5.tar.gz
+    cd capnproto-c++-0.3.0-rc5
     ./configure
     make -j8 check
     sudo make install
-    sudo ldconfig
 
 Pip
 ---------------------

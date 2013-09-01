@@ -4,16 +4,15 @@ More thorough docs are available at [http://jparyani.github.io/capnpc-python-cpp
 
 ## Requirements
 
-First you need a system-wide installation of the Cap'n Proto C++ library >= 0.3. Unfortunately, as of now, that means you have to build from the HEAD of Cap'n Proto. Follow these instructions to do so:
+First you need a system-wide installation of the Cap'n Proto C++ library >= 0.3. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
 
 ```bash
-wget http://capnproto.org/capnproto-c++-0.3.0-rc2.tar.gz
-tar xzf capnproto-c++-0.3.0-rc2.tar.gz
-cd capnproto-c++-0.3.0-rc2
+wget http://capnproto.org/capnproto-c++-0.3.0-rc5.tar.gz
+tar xzf capnproto-c++-0.3.0-rc5.tar.gz
+cd capnproto-c++-0.3.0-rc5
 ./configure
 make -j8 check
 sudo make install
-sudo ldconfig
 ```
 
 A recent version of cython and setuptools is also required. You can install these with:
@@ -25,7 +24,7 @@ pip install -U setuptools
 
 ## Building and installation
 
-Install with `pip install capnp`
+Install with `pip install capnp`. You can set the CC environment variable to control the compiler version, ie `CC=gcc-4.8 pip install capnp`.
 
 Or you can clone the repo like so:
 
