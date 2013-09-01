@@ -281,6 +281,15 @@ def test_binary_read(all_types):
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
 
+    # Test setRoot().
+    builder = capnp.MallocMessageBuilder()
+    builder.setRoot(root)
+    check_all_types(builder.getRoot(all_types.TestAllTypes))
+
+    builder2 = capnp.MallocMessageBuilder()
+    builder2.setRoot(builder.getRoot(all_types.TestAllTypes))
+    check_all_types(builder2.getRoot(all_types.TestAllTypes))
+
 def test_packed_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.packed'), 'r')
     message = capnp.PackedFdMessageReader(f.fileno())

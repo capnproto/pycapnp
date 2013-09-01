@@ -32,6 +32,10 @@ ctypedef double Float64
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool as cbool
 
+ctypedef fused _DynamicStructReaderOrBuilder:
+    _DynamicStructReader
+    _DynamicStructBuilder
+
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
     reverse = dict((value, key) for key, value in enums.iteritems())
@@ -971,6 +975,19 @@ cdef class MessageBuilder:
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
+    
+    cpdef setRoot(self, value):
+        """A method for instantiating Cap'n Proto structs by copying from an existing struct
+
+        :type value: :class:`_DynamicStructReader`
+        :param value: A Cap'n Proto struct value to copy
+
+        :rtype: void
+        """
+        
+        if type(value) is _DynamicStructBuilder:
+            value = value.asReader();
+        self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
 
     cpdef newOrphan(self, schema):
         """A method for instantiating Cap'n Proto orphans
