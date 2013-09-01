@@ -1,6 +1,6 @@
-#capnpc-python-cpp
+#pycapnp
 
-More thorough docs are available at [http://jparyani.github.io/capnpc-python-cpp/](http://jparyani.github.io/capnpc-python-cpp/).
+More thorough docs are available at [http://jparyani.github.io/pycapnp/](http://jparyani.github.io/pycapnp/).
 
 ## Requirements
 
@@ -24,20 +24,20 @@ pip install -U setuptools
 
 ## Building and installation
 
-Install with `pip install capnp`. You can set the CC environment variable to control the compiler version, ie `CC=gcc-4.8 pip install capnp`.
+Install with `pip install pycapnp`. You can set the CC environment variable to control the compiler version, ie `CC=gcc-4.8 pip install capnp`.
 
 Or you can clone the repo like so:
 
-    git clone https://github.com/jparyani/capnpc-python-cpp.git
+    git clone https://github.com/jparyani/pycapnp.git
 
 `cd` into the repo directory and run `pip install .`
 
 ## Development
 
-This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/). Essentially, just make sure you do your changes in the `develop` branch.
+This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/). Essentially, just make sure you do your changes in the `develop` branch. You can run the tests by installing pytest with `pip install pytest`, and then run `py.test`
 
 ## Documentation/Example
-There is some basic documentation [here](http://jparyani.github.io/capnpc-python-cpp/).
+There is some basic documentation [here](http://jparyani.github.io/pycapnp/).
 
 The examples directory has one example that shows off the capabilities quite nicely. Here it is, reproduced:
 
@@ -112,5 +112,5 @@ If you get an error on installation like:
 
 Then you have too old a version of setuptools. Run `pip install -U setuptools` then try again.
 
-[![Build Status](https://travis-ci.org/jparyani/capnpc-python-cpp.png?branch=master)](https://travis-ci.org/jparyani/capnpc-python-cpp)
+[![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=master)](https://travis-ci.org/jparyani/pycapnp)
 

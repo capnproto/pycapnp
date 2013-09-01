@@ -22,7 +22,7 @@ Using pip is by far the easiest way to install the library. After you've install
     
     pip install -U cython
     pip install -U setuptools
-    pip install capnp
+    pip install pycapnp
 
 You can control the compiler version with the environment variable CC, ie. `CC=gcc-4.8 pip install capnp`. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
 
@@ -31,12 +31,13 @@ From Source
 
 If you want the latest development version, you can clone the github repo and install like so::
 
-    git clone https://github.com/jparyani/capnpc-python-cpp.git
-    pip install capnpc-python-cpp
+    git clone https://github.com/jparyani/pycapnp.git
+    cd pycapnp
+    pip install .
 
 or::
 
-    cd capnpc-python-cpp
+    cd pycapnp
     python setup.py install
 
 If you don't use pip, you will need to manually install Cython, and a setuptools with a version >= .8.
@@ -44,10 +45,14 @@ If you don't use pip, you will need to manually install Cython, and a setuptools
 Development
 -------------------
 
-Clone the repo from https://github.com/jparyani/capnpc-python-cpp.git and use the `develop` branch. I'll probably ask you to redo pull requests that target `master` and aren't easily mergable to `develop`::
+Clone the repo from https://github.com/jparyani/pycapnp.git and use the `develop` branch. I'll probably ask you to redo pull requests that target `master` and aren't easily mergable to `develop`::
     
-    git clone https://github.com/jparyani/capnpc-python-cpp.git
+    git clone https://github.com/jparyani/pycapnp.git
     git checkout develop
 
+Testing is done through pytest, like so::
+
+    pip install pytest
+    py.test
 
 Once you're done installing, take a look at the :ref:`quickstart`

@@ -59,8 +59,8 @@ setup(
     license='BSD',
     author="Jason Paryani",
     author_email="pypi-contact@jparyani.com",
-    url = 'https://github.com/jparyani/capnpc-python-cpp',
-    download_url = 'https://github.com/jparyani/capnpc-python-cpp/archive/v%s.zip' % VERSION,
+    url = 'https://github.com/jparyani/pycapnp',
+    download_url = 'https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
     keywords = ['capnp', 'capnproto'],
     classifiers = [
         'Development Status :: 3 - Alpha',

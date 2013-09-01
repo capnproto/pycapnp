@@ -215,7 +215,7 @@ The only tricky one is unions, where you need to call `.which()` to determine th
 Full Example
 ------------------
 
-Here is a full example reproduced from `examples/example.py <https://github.com/jparyani/capnpc-python-cpp/blob/master/examples/example.py>`_::
+Here is a full example reproduced from `examples/example.py <https://github.com/jparyani/pycapnp/blob/master/examples/example.py>`_::
     
     from __future__ import print_function
     import os
