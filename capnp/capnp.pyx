@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, DynamicOrphan as C_DynamicOrphan
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -30,14 +30,11 @@ ctypedef bint Bool
 ctypedef float Float32
 ctypedef double Float64
 from libc.stdlib cimport malloc, free
+from libcpp cimport bool as cbool
 
-ctypedef fused valid_values:
-    int
-    long
-    float
-    double
-    bint
-    cython.p_char
+ctypedef fused _DynamicStructReaderOrBuilder:
+    _DynamicStructReader
+    _DynamicStructBuilder
 
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -72,6 +69,18 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
 
 cdef extern from "<utility>" namespace "std":
     C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
+
+cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
+    StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
+    StringTree printStructBuilder" ::capnp::prettyPrint"(C_DynamicStruct.Builder)
+    StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader)
+    StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder)
+
+cdef extern from "<kj/string.h>" namespace " ::kj":
+    String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
+    String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
+    String strListReader" ::kj::str"(C_DynamicList.Reader)
+    String strListBuilder" ::kj::str"(C_DynamicList.Builder)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -143,6 +152,13 @@ cdef class _DynamicListReader:
 
     def __len__(self):
         return self.thisptr.size()
+
+    def __str__(self):
+        return printListReader(self.thisptr).flatten().cStr()
+
+    def __repr__(self):
+        # TODO:  Print the list type.
+        return '<capnp list reader %s>' % strListReader(self.thisptr).cStr()
 
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
@@ -225,18 +241,15 @@ cdef class _DynamicListBuilder:
         for phone in phones:
             print phone.number
     """
-    cdef C_DynamicList.Builder * thisptr
+    cdef C_DynamicList.Builder thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Builder other, object parent):
-        self.thisptr = new C_DynamicList.Builder(other)
+        self.thisptr = other
         self._parent = parent
         return self
 
-    def __dealloc__(self):
-        del self.thisptr
-
     cdef _get(self, index) except +ValueError:
-        return toPython(deref(self.thisptr)[index], self._parent)
+        return toPython(self.thisptr[index], self._parent)
 
     def __getitem__(self, index):
         size = self.thisptr.size()
@@ -245,31 +258,76 @@ cdef class _DynamicListBuilder:
         index = index % size
         return self._get(index)
 
-    def _setitem(self, index, valid_values value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value)
+    cdef _setitemInt(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
         self.thisptr.set(index, temp)
 
-    cdef _setattrDynamicStructBuilder(self, index, _DynamicStructBuilder value):
+    cdef _setitemLong(self, index, value):
+        cdef C_DynamicValue.Reader temp
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemDouble(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<double>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemBool(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<cbool>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemString(self, index, value):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<char*>value)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemVoid(self, index):
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
+        self.thisptr.set(index, temp)
+
+    cdef _setitemList(self, index, value):
+        builder = toPython(self.thisptr.init(index, len(value)), self._parent)
+        for (i, v) in enumerate(value):
+            builder[i] = v
+
+    cdef _setitemDynamicStructBuilder(self, index, _DynamicStructBuilder value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
         self.thisptr.set(index, temp)
 
-    cdef _setattrDynamicStructReader(self, index, _DynamicStructReader value):
+    cdef _setitemDynamicStructReader(self, index, _DynamicStructReader value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr)
         self.thisptr.set(index, temp)
 
     def __setitem__(self, index, value):
+        # TODO: share code with _DynamicStructBuilder.__setattr__
+        
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         value_type = type(value)
 
-        if value_type is _DynamicStructBuilder:
+        if value_type is int:
+            self._setitemInt(index, value)
+        elif value_type is long:
+            self._setitemLong(index, value)
+        elif value_type is float:
+            self._setitemDouble(index, value)
+        elif value_type is bool:
+            self._setitemBool(index, value)
+        elif value_type is str:
+            self._setitemString(index, value)
+        elif value_type is list:
+            self._setitemList(index, value)
+        elif value is None:
+            self._setitemVoid(index)
+        elif value_type is _DynamicStructBuilder:
             self._setattrDynamicStructBuilder(index, value)
         elif value_type is _DynamicStructReader:
             self._setattrDynamicStructReader(index, value)
         else:
-            self._setitem(index, value)
+            raise ValueError("Non primitive type")
 
     def __len__(self):
         return self.thisptr.size()
@@ -315,6 +373,13 @@ cdef class _DynamicListBuilder:
         """
         return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
+    def __str__(self):
+        return printListBuilder(self.thisptr).flatten().cStr()
+
+    def __repr__(self):
+        # TODO:  Print the list type.
+        return '<capnp list builder %s>' % strListBuilder(self.thisptr).cStr()
+
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
     cdef _init(self, List[C_Node.NestedNode].Reader other):
@@ -347,7 +412,6 @@ cdef toPythonReader(C_DynamicValue.Reader self, object parent):
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
     elif type == capnp.TYPE_LIST:
-        print 'list'
         return list(_DynamicListReader()._init(self.asList(), parent))
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
@@ -440,6 +504,12 @@ cdef class _DynamicStructReader:
     def __dir__(self):
         return list(self.schema.fieldnames)
 
+    def __str__(self):
+        return printStructReader(self.thisptr).flatten().cStr()
+
+    def __repr__(self):
+        return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
 
@@ -453,15 +523,48 @@ cdef class _DynamicStructBuilder:
         setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef C_DynamicStruct.Builder * thisptr
+    cdef C_DynamicStruct.Builder thisptr
     cdef public object _parent
-    cdef _init(self, C_DynamicStruct.Builder other, object parent):
-        self.thisptr = new C_DynamicStruct.Builder(other)
+    cdef bint _isRoot
+    cdef _init(self, C_DynamicStruct.Builder other, object parent, bint isRoot = False):
+        self.thisptr = other
         self._parent = parent
+        self._isRoot = isRoot
         return self
+    
+    def writeTo(self, file):
+        """Writes the struct's containing message to the given file object in unpacked binary format.
+        
+        This is a shortcut for calling capnp.writeMessageToFd().  This can only be called on the
+        message's root struct.
+        
+        :type file: file
+        :param file: A file or socket object (or anything with a fileno() method), open for write.
+        
+        :rtype: void
+        
+        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        """
+        if not self._isRoot:
+            raise ValueError("You can only call writeTo() on the message's root struct.")
+        writeMessageToFd(file.fileno(), self._parent)
 
-    def __dealloc__(self):
-        del self.thisptr
+    def writePackedTo(self, file):
+        """Writes the struct's containing message to the given file object in packed binary format.
+        
+        This is a shortcut for calling capnp.writePackedMessageToFd().  This can only be called on
+        the message's root struct.
+        
+        :type file: file
+        :param file: A file or socket object (or anything with a fileno() method), open for write.
+        
+        :rtype: void
+        
+        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        """
+        if not self._isRoot:
+            raise ValueError("You can only call writeTo() on the message's root struct.")
+        writePackedMessageToFd(file.fileno(), self._parent)
 
     cdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
@@ -473,12 +576,20 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
         self.thisptr.set(field, temp)
 
+    cdef _setattrLong(self, field, value):
+        cdef C_DynamicValue.Reader temp
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        self.thisptr.set(field, temp)
+
     cdef _setattrDouble(self, field, value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<double>value)
         self.thisptr.set(field, temp)
 
     cdef _setattrBool(self, field, value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<bint>value)
+        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<cbool>value)
         self.thisptr.set(field, temp)
 
     cdef _setattrString(self, field, value):
@@ -489,6 +600,11 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(VOID)
         self.thisptr.set(field, temp)
 
+    cdef _setattrList(self, field, value):
+        builder = toPython(self.thisptr.init(field, len(value)), self._parent)
+        for (i, v) in enumerate(value):
+            builder[i] = v
+
     cdef _setattrDynamicStructBuilder(self, field, _DynamicStructBuilder value):
         cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(value.thisptr.asReader())
         self.thisptr.set(field, temp)
@@ -498,16 +614,21 @@ cdef class _DynamicStructBuilder:
         self.thisptr.set(field, temp)
 
     def __setattr__(self, field, value):
+        # TODO: share code with _DynamicListBuilder.__setitem__
         value_type = type(value)
 
         if value_type is int:
             self._setattrInt(field, value)
+        elif value_type is long:
+            self._setattrLong(field, value)
         elif value_type is float:
             self._setattrDouble(field, value)
         elif value_type is bool:
             self._setattrBool(field, value)
         elif value_type is str:
             self._setattrString(field, value)
+        elif value_type is list:
+            self._setattrList(field, value)
         elif value is None:
             self._setattrVoid(field)
         elif value_type is _DynamicStructBuilder:
@@ -639,6 +760,12 @@ cdef class _DynamicStructBuilder:
     def __dir__(self):
         return list(self.schema.fieldnames)
 
+    def __str__(self):
+        return printStructBuilder(self.thisptr).flatten().cStr()
+
+    def __repr__(self):
+        return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(self.thisptr).cStr())
+
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
     cdef public object _parent
@@ -656,6 +783,12 @@ cdef class _DynamicOrphan:
         Use this DynamicValue to set fields inside the orphan
         """
         return toPython(self.thisptr.get(), self._parent)
+
+    def __str__(self):
+        return str(self.get())
+
+    def __repr__(self):
+        return repr(self.get())
 
 cdef class _Schema:
     cdef C_Schema thisptr
@@ -698,6 +831,9 @@ cdef class _StructSchema:
         """The raw schema node"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+
+    def __repr__(self):
+        return '<schema for %s>' % self.node.displayName
 
 cdef class _ParsedSchema:
     cdef C_ParsedSchema thisptr
@@ -792,6 +928,18 @@ cdef class SchemaParser:
                 proto = schema.getProto()
                 if proto.isStruct:
                     local_module.schema = schema.asStruct()
+                    def readFrom(file):
+                        reader = StreamFdMessageReader(file.fileno())
+                        return reader.getRoot(local_module)
+                    def readPackedFrom(file):
+                        reader = PackedFdMessageReader(file.fileno())
+                        return reader.getRoot(local_module)
+                    def newMessage():
+                        builder = MallocMessageBuilder()
+                        return builder.initRoot(local_module)
+                    local_module.readFrom = readFrom
+                    local_module.readPackedFrom = readPackedFrom
+                    local_module.newMessage = newMessage
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.asConstValue()
 
@@ -843,7 +991,7 @@ cdef class MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
+        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self, True)
 
     cpdef getRoot(self, schema):
         """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
@@ -868,7 +1016,20 @@ cdef class MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
+        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self, True)
+    
+    cpdef setRoot(self, value):
+        """A method for instantiating Cap'n Proto structs by copying from an existing struct
+
+        :type value: :class:`_DynamicStructReader`
+        :param value: A Cap'n Proto struct value to copy
+
+        :rtype: void
+        """
+        
+        if type(value) is _DynamicStructBuilder:
+            value = value.asReader();
+        self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
 
     cpdef newOrphan(self, schema):
         """A method for instantiating Cap'n Proto orphans

@@ -6,6 +6,7 @@ from schema_cpp cimport Node, Data, StructNode, EnumNode
 
 from libc.stdint cimport *
 ctypedef unsigned int uint
+from libcpp cimport bool as cbool
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
@@ -14,6 +15,12 @@ cdef extern from "capnp/common.h" namespace " ::capnp":
 cdef extern from "kj/string.h" namespace " ::kj":
     cdef cppclass StringPtr:
         StringPtr(char *)
+    cdef cppclass String:
+        char* cStr()
+
+cdef extern from "kj/string-tree.h" namespace " ::kj":
+    cdef cppclass StringTree:
+        String flatten()
 
 cdef extern from "kj/common.h" namespace " ::kj":
     cdef cppclass Maybe[T]:
@@ -92,6 +99,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
         cppclass Builder:
+            Builder()
             Builder(Builder &)
             DynamicValueForward.Builder get(char *)
             bint has(char *) except +ValueError
@@ -118,6 +126,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Reader operator[](uint) except +ValueError
             uint size()
         cppclass Builder:
+            Builder()
             Builder(Builder &)
             DynamicValueForward.Builder operator[](uint)
             uint size()
@@ -131,7 +140,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Reader:
             Reader()
             Reader(Void value)
-            Reader(bint value)
+            Reader(cbool value)
             Reader(char value)
             Reader(short value)
             Reader(int value)
@@ -160,6 +169,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Data.Reader asData"as< ::capnp::Data>"()
 
         cppclass Builder:
+            Builder()
             Type getType()
             int64_t asInt"as<int64_t>"()
             uint64_t asUint"as<uint64_t>"()
