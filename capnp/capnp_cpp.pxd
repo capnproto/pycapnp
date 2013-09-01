@@ -103,7 +103,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Builder(Builder &)
             DynamicValueForward.Builder get(char *)
             bint has(char *) except +ValueError
-            void set(char *, DynamicValueForward.Reader&) except +ValueError
+            void set(char *, DynamicValueForward.Reader) except +ValueError
             DynamicValueForward.Builder init(char *, uint size)
             DynamicValueForward.Builder init(char *)
             StructSchema getSchema()
@@ -130,7 +130,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Builder(Builder &)
             DynamicValueForward.Builder operator[](uint)
             uint size()
-            void set(uint index, DynamicValueForward.Reader& value) except +ValueError
+            void set(uint index, DynamicValueForward.Reader value) except +ValueError
             DynamicValueForward.Builder init(uint index, uint size) except +ValueError
             void adopt(uint, DynamicOrphan)
             DynamicOrphan disown(uint)
