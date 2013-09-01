@@ -347,7 +347,6 @@ cdef toPythonReader(C_DynamicValue.Reader self, object parent):
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
     elif type == capnp.TYPE_LIST:
-        print 'list'
         return list(_DynamicListReader()._init(self.asList(), parent))
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
