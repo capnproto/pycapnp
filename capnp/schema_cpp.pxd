@@ -664,6 +664,7 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         
         DynamicStruct.Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
         DynamicStruct.Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
+        void setRootDynamicStruct'setRoot< ::capnp::DynamicStruct::Reader>'(DynamicStruct.Reader)
 
         DynamicOrphan newOrphan'getOrphanage().newOrphan'(StructSchema)
 
