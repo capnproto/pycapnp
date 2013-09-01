@@ -24,7 +24,7 @@ pip install -U setuptools
 
 ## Building and installation
 
-Install with `pip install pycapnp`. You can set the CC environment variable to control the compiler version, ie `CC=gcc-4.8 pip install capnp`.
+Install with `pip install pycapnp`. You can set the CC environment variable to control the compiler version, ie `CC=gcc-4.8 pip install pycapnp`.
 
 Or you can clone the repo like so:
 

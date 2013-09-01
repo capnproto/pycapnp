@@ -24,7 +24,7 @@ Using pip is by far the easiest way to install the library. After you've install
     pip install -U setuptools
     pip install pycapnp
 
-You can control the compiler version with the environment variable CC, ie. `CC=gcc-4.8 pip install capnp`. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
+You can control the compiler version with the environment variable CC, ie. `CC=gcc-4.8 pip install pycapnp`. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
 
 From Source
 ---------------------
