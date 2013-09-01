@@ -241,18 +241,15 @@ cdef class _DynamicListBuilder:
         for phone in phones:
             print phone.number
     """
-    cdef C_DynamicList.Builder * thisptr
+    cdef C_DynamicList.Builder thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Builder other, object parent):
-        self.thisptr = new C_DynamicList.Builder(other)
+        self.thisptr = other
         self._parent = parent
         return self
 
-    def __dealloc__(self):
-        del self.thisptr
-
     cdef _get(self, index) except +ValueError:
-        return toPython(deref(self.thisptr)[index], self._parent)
+        return toPython(self.thisptr[index], self._parent)
 
     def __getitem__(self, index):
         size = self.thisptr.size()
@@ -377,11 +374,11 @@ cdef class _DynamicListBuilder:
         return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
     def __str__(self):
-        return printListBuilder(deref(self.thisptr)).flatten().cStr()
+        return printListBuilder(self.thisptr).flatten().cStr()
 
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list builder %s>' % strListBuilder(deref(self.thisptr)).cStr()
+        return '<capnp list builder %s>' % strListBuilder(self.thisptr).cStr()
 
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
@@ -526,15 +523,12 @@ cdef class _DynamicStructBuilder:
         setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef C_DynamicStruct.Builder * thisptr
+    cdef C_DynamicStruct.Builder thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicStruct.Builder other, object parent):
-        self.thisptr = new C_DynamicStruct.Builder(other)
+        self.thisptr = other
         self._parent = parent
         return self
-
-    def __dealloc__(self):
-        del self.thisptr
 
     cdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
@@ -731,10 +725,10 @@ cdef class _DynamicStructBuilder:
         return list(self.schema.fieldnames)
 
     def __str__(self):
-        return printStructBuilder(deref(self.thisptr)).flatten().cStr()
+        return printStructBuilder(self.thisptr).flatten().cStr()
 
     def __repr__(self):
-        return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(deref(self.thisptr)).cStr())
+        return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(self.thisptr).cStr())
 
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
