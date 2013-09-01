@@ -32,6 +32,7 @@ ctypedef double Float64
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool as cbool
 
+_MAX_INT = 2**63 - 1
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader
     _DynamicStructBuilder
@@ -259,15 +260,11 @@ cdef class _DynamicListBuilder:
         return self._get(index)
 
     cdef _setitemInt(self, index, value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
-        self.thisptr.set(index, temp)
-
-    cdef _setitemLong(self, index, value):
         cdef C_DynamicValue.Reader temp
         if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
+            temp = C_DynamicValue.Reader(<long long>value)
         else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
+            temp = C_DynamicValue.Reader(<unsigned long long>value)
         self.thisptr.set(index, temp)
 
     cdef _setitemDouble(self, index, value):
@@ -308,10 +305,8 @@ cdef class _DynamicListBuilder:
         index = index % size
         value_type = type(value)
 
-        if value_type is int:
+        if value_type is int or value_type is long:
             self._setitemInt(index, value)
-        elif value_type is long:
-            self._setitemLong(index, value)
         elif value_type is float:
             self._setitemDouble(index, value)
         elif value_type is bool:
@@ -573,10 +568,6 @@ cdef class _DynamicStructBuilder:
         return self._get(field)
 
     cdef _setattrInt(self, field, value):
-        cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(<long long>value)
-        self.thisptr.set(field, temp)
-
-    cdef _setattrLong(self, field, value):
         cdef C_DynamicValue.Reader temp
         if value < 0:
            temp = C_DynamicValue.Reader(<long long>value)
@@ -617,10 +608,8 @@ cdef class _DynamicStructBuilder:
         # TODO: share code with _DynamicListBuilder.__setitem__
         value_type = type(value)
 
-        if value_type is int:
+        if value_type is int or value_type is long:
             self._setattrInt(field, value)
-        elif value_type is long:
-            self._setattrLong(field, value)
         elif value_type is float:
             self._setattrDouble(field, value)
         elif value_type is bool:
