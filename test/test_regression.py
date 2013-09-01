@@ -266,16 +266,14 @@ def check_all_types(reader):
     check_list(reader.enumList, ["foo", "garply"])
 
 def test_build(all_types):
-    builder = capnp.MallocMessageBuilder()
-    root = builder.getRoot(all_types.TestAllTypes)
+    root = all_types.TestAllTypes.newMessage()
     init_all_types(root)
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
 
 def test_binary_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.binary'), 'r')
-    message = capnp.StreamFdMessageReader(f.fileno())
-    root = message.getRoot(all_types.TestAllTypes)
+    root = all_types.TestAllTypes.readFrom(f)
     check_all_types(root)
 
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
@@ -292,9 +290,22 @@ def test_binary_read(all_types):
 
 def test_packed_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.packed'), 'r')
-    message = capnp.PackedFdMessageReader(f.fileno())
-    root = message.getRoot(all_types.TestAllTypes)
+    root = all_types.TestAllTypes.readPackedFrom(f)
     check_all_types(root)
 
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
+
+def test_binary_write(all_types):
+    root = all_types.TestAllTypes.newMessage()
+    init_all_types(root)
+    root.writeTo(open('example', 'w'))
+
+    check_all_types(all_types.TestAllTypes.readFrom(open('example', 'r')))
+
+def test_packed_write(all_types):
+    root = all_types.TestAllTypes.newMessage()
+    init_all_types(root)
+    root.writePackedTo(open('example', 'w'))
+
+    check_all_types(all_types.TestAllTypes.readPackedFrom(open('example', 'r')))

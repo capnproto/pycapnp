@@ -525,10 +525,46 @@ cdef class _DynamicStructBuilder:
     """
     cdef C_DynamicStruct.Builder thisptr
     cdef public object _parent
-    cdef _init(self, C_DynamicStruct.Builder other, object parent):
+    cdef bint _isRoot
+    cdef _init(self, C_DynamicStruct.Builder other, object parent, bint isRoot = False):
         self.thisptr = other
         self._parent = parent
+        self._isRoot = isRoot
         return self
+    
+    def writeTo(self, file):
+        """Writes the struct's containing message to the given file object in unpacked binary format.
+        
+        This is a shortcut for calling capnp.writeMessageToFd().  This can only be called on the
+        message's root struct.
+        
+        :type file: file
+        :param file: A file or socket object (or anything with a fileno() method), open for write.
+        
+        :rtype: void
+        
+        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        """
+        if not self._isRoot:
+            raise ValueError("You can only call writeTo() on the message's root struct.")
+        writeMessageToFd(file.fileno(), self._parent)
+
+    def writePackedTo(self, file):
+        """Writes the struct's containing message to the given file object in packed binary format.
+        
+        This is a shortcut for calling capnp.writePackedMessageToFd().  This can only be called on
+        the message's root struct.
+        
+        :type file: file
+        :param file: A file or socket object (or anything with a fileno() method), open for write.
+        
+        :rtype: void
+        
+        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        """
+        if not self._isRoot:
+            raise ValueError("You can only call writeTo() on the message's root struct.")
+        writePackedMessageToFd(file.fileno(), self._parent)
 
     cdef _get(self, field) except +ValueError:
         return toPython(self.thisptr.get(field), self._parent)
@@ -892,6 +928,18 @@ cdef class SchemaParser:
                 proto = schema.getProto()
                 if proto.isStruct:
                     local_module.schema = schema.asStruct()
+                    def readFrom(file):
+                        reader = StreamFdMessageReader(file.fileno())
+                        return reader.getRoot(local_module)
+                    def readPackedFrom(file):
+                        reader = PackedFdMessageReader(file.fileno())
+                        return reader.getRoot(local_module)
+                    def newMessage():
+                        builder = MallocMessageBuilder()
+                        return builder.initRoot(local_module)
+                    local_module.readFrom = readFrom
+                    local_module.readPackedFrom = readPackedFrom
+                    local_module.newMessage = newMessage
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.asConstValue()
 
@@ -943,7 +991,7 @@ cdef class MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self)
+        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self, True)
 
     cpdef getRoot(self, schema):
         """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
@@ -968,7 +1016,7 @@ cdef class MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
+        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self, True)
     
     cpdef setRoot(self, value):
         """A method for instantiating Cap'n Proto structs by copying from an existing struct
