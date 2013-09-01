@@ -7,9 +7,8 @@ Example Usage::
     addressbook = capnp.load('addressbook.capnp')
 
     # Building
-    message = capnp.MallocMessageBuilder()
-    addressBook = message.initRoot(addressbook.AddressBook)
-    people = addressBook.init('people', 1)
+    addresses = addressbook.AddressBook.newMessage()
+    people = addresses.init('people', 1)
 
     alice = people[0]
     alice.id = 123
@@ -19,16 +18,15 @@ Example Usage::
     alicePhone.type = 'mobile'
 
     f = open('example.bin', 'w')
-    capnp.writePackedMessageToFd(f.fileno(), message)
+    addresses.writeTo(f)
     f.close()
 
     # Reading
     f = open('example.bin')
-    message = capnp.PackedFdMessageReader(f.fileno())
 
-    addressBook = message.getRoot(addressbook.AddressBook)
+    addresses = addressbook.AddressBook.readFrom(f)
 
-    for person in addressBook.people:
+    for person in addresses.people:
         print(person.name, ':', person.email)
         for phone in person.phones:
             print(phone.type, ':', phone.number)

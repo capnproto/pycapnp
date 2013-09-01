@@ -61,7 +61,7 @@ setup(
     author_email="pypi-contact@jparyani.com",
     url = 'https://github.com/jparyani/pycapnp',
     download_url = 'https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
-    keywords = ['capnp', 'capnproto'],
+    keywords = ['capnp', 'capnproto', "Cap'n Proto"],
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',

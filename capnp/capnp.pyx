@@ -32,7 +32,6 @@ ctypedef double Float64
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool as cbool
 
-_MAX_INT = 2**63 - 1
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader
     _DynamicStructBuilder
@@ -131,7 +130,7 @@ cdef class _DynamicListReader:
     This class thinly wraps the C++ Cap'n Proto DynamicList::Reader class. __getitem__ and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
 
         ...
-        person = message.getRoot(addressbook.Person)
+        person = addressbook.Person.readFrom(file)
 
         phones = person.phones # This returns a _DynamicListReader
 
@@ -170,10 +169,10 @@ cdef class _DynamicResizableListBuilder:
 
     .. warning:: You need to call :meth:`finish` on this object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
 
-    This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you're much better off using a normal python list and then serializing straight to a Cap'n Proto list. It has __getitem__ and __len__ defined, but not __setitem__.
+    This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you're much better off using a normal python list and then serializing straight to a Cap'n Proto list. It has __getitem__ and __len__ defined, but not __setitem__::
 
         ...
-        person = message.initRoot(addressbook.Person)
+        person = addressbook.Person.newMessage()
 
         phones = person.initResizableList('phones') # This returns a _DynamicResizableListBuilder
         
@@ -184,7 +183,8 @@ cdef class _DynamicResizableListBuilder:
 
         people.finish()
 
-        capnp.writePackedMessageToFd(fd, message)
+        f = open('example', 'w')
+        person.writeTo(f)
     """
     cdef public object _parent, _message, _field, _schema
     cdef public list _list
@@ -234,7 +234,7 @@ cdef class _DynamicListBuilder:
     This class thinly wraps the C++ Cap'n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
 
         ...
-        person = message.initRoot(addressbook.Person)
+        person = addressbook.Person.newMessage()
 
         phones = person.init('phones', 2) # This returns a _DynamicListBuilder
         
@@ -278,21 +278,7 @@ cdef class _DynamicListBuilder:
     cpdef adopt(self, index, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
-
-            message = capnp.MallocMessageBuilder()
-
-            alice = m.newOrphan(addressbook.Person)
-            alice.get().name = 'alice'
-
-            bob = m.newOrphan(addressbook.Person)
-            bob.get().name = 'bob'
-
-            addressBook = message.initRoot(addressbook.AddressBook)
-            people = addressBook.init('people', 2)
-
-            people.adopt(0, alice)
-            people.adopt(1, bob)
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list.
 
         :type index: int
         :param index: The index of the element in the list to replace with the newly adopted object
@@ -439,7 +425,7 @@ cdef class _DynamicStructReader:
 
     This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Reader. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
 
-        person = message.getRoot(addressbook.Person) # This returns a _DynamicStructReader
+        person = addressbook.Person.readFrom(file) # This returns a _DynamicStructReader
         print person.name # using . syntax
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
@@ -462,7 +448,7 @@ cdef class _DynamicStructReader:
 
         Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
 
-            person = message.initRoot(addressbook.Person)
+            person = addressbook.Person.newMessage()
             
             person.which()
             # ValueError: member was null
@@ -497,7 +483,7 @@ cdef class _DynamicStructBuilder:
 
     This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder. The only difference is that instead of a `get`/`set` method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don't follow valid python naming convention for fields, use the global functions :py:func:`getattr`/:py:func:`setattr`::
 
-        person = message.initRoot(addressbook.Person) # This returns a _DynamicStructBuilder
+        person = addressbook.Person.newMessage() # This returns a _DynamicStructBuilder
         
         person.name = 'foo' # using . syntax
         print person.name # using . syntax
@@ -601,7 +587,7 @@ cdef class _DynamicStructBuilder:
 
         Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
 
-            person = message.initRoot(addressbook.Person)
+            person = addressbook.Person.newMessage()
             
             person.which()
             # ValueError: member was null
@@ -620,21 +606,7 @@ cdef class _DynamicStructBuilder:
     cpdef adopt(self, field, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
-
-            message = capnp.MallocMessageBuilder()
-
-            alice = m.newOrphan(addressbook.Person)
-            alice.get().name = 'alice'
-
-            bob = m.newOrphan(addressbook.Person)
-            bob.get().name = 'bob'
-
-            addressBook = message.initRoot(addressbook.AddressBook)
-            people = addressBook.init('people', 2)
-
-            people.adopt(0, alice)
-            people.adopt(1, bob)
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list.
 
         :type field: str
         :param field: The field name in the struct
@@ -814,8 +786,7 @@ cdef class SchemaParser:
             addressbook = parser.load('addressbook.capnp')
             print addressbook.qux # qux is a top level constant
             # 123
-            message = capnp.MallocMessageBuilder()
-            person = message.initRoot(addressbook.Person)
+            person = addressbook.Person.newMessage()
 
         :type file_name: str
         :param file_name: A relative or absolute path to a Cap'n Proto schema
@@ -956,7 +927,7 @@ cdef class MessageBuilder:
         Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
 
             addressbook = capnp.load('addressbook.capnp')
-
+            m = capnp.MallocMessageBuilder()
             alice = m.newOrphan(addressbook.Person)
 
         :type schema: Schema
@@ -1129,8 +1100,7 @@ def load(file_name, display_name=None, imports=[]):
         addressbook = capnp.load('addressbook.capnp')
         print addressbook.qux # qux is a top level constant in the addressbook.capnp schema
         # 123
-        message = capnp.MallocMessageBuilder()
-        person = message.initRoot(addressbook.Person)
+        person = addressbook.Person.newMessage()
 
     :type file_name: str
     :param file_name: A relative or absolute path to a Cap'n Proto schema
