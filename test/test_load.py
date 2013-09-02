@@ -1,6 +1,7 @@
 import pytest
 import capnp
 import os
+import sys
 
 this_dir = os.path.dirname(__file__)
 
@@ -57,5 +58,23 @@ def test_failed_import():
 def test_add_import_hook():
     capnp.add_import_hook([this_dir])
 
-    import addressbook
-    addressbook.AddressBook.new_message()
+    import addressbook_capnp
+    addressbook_capnp.AddressBook.new_message()
+
+def test_multiple_add_import_hook():
+    capnp.add_import_hook()
+    capnp.add_import_hook()
+    capnp.add_import_hook([this_dir])
+
+    import addressbook_capnp
+    addressbook_capnp.AddressBook.new_message()
+
+def test_remove_import_hook():
+    capnp.add_import_hook([this_dir])
+    capnp.remove_import_hook()
+
+    if 'addressbook_capnp' in sys.modules:
+        del sys.modules['addressbook_capnp'] # hack to deal with it being imported already
+
+    with pytest.raises(ImportError):
+        import addressbook_capnp

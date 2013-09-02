@@ -1165,6 +1165,11 @@ class _Importer:
             module_name = mod_parts[-1]
         else:
             module_name = fullname
+
+        if not module_name.endswith('_capnp'):
+            return None
+
+        module_name = module_name.rstrip('_capnp')
         capnp_module_name = module_name + self.extension
 
         if package_path:
