@@ -75,7 +75,7 @@ Initialize a New Cap'n Proto Object
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
-    addresses = addressbook.AddressBook.newMessage()
+    addresses = addressbook.AddressBook.new_message()
 
 Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
 
@@ -146,7 +146,7 @@ Writing to a File
 For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon)::
 
     f = open('example.bin', 'w')
-    addresses.writeTo(f)
+    addresses.write(f)
 
 Note the call to fileno(), since it expects a raw file descriptor. There is also `writeMessageToFd` instead of `writePackedMessageToFd`. Make sure your reader uses the same packing type.
 
@@ -159,7 +159,7 @@ Reading from a file
 Much like before, you will have to de-serialize the message from a file descriptor::
 
     f = open('example.bin')
-    addresses = addressbook.AddressBook.readFrom(f
+    addresses = addressbook.AddressBook.read(f)
 
 Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so::
 
@@ -211,7 +211,7 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
     addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
     def writeAddressBook(file):
-        addresses = addressbook.AddressBook.newMessage()
+        addresses = addressbook.AddressBook.new_message()
         people = addresses.init('people', 2)
 
         alice = people[0]
@@ -234,11 +234,11 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
         bobPhones[1].type = 'work'
         bob.employment.unemployed = None
 
-        addresses.writeTo(file)
+        addresses.write(file)
 
 
     def printAddressBook(file):
-        addresses = addressbook.AddressBook.readFrom(file)
+        addresses = addressbook.AddressBook.read(file)
 
         for person in addresses.people:
             print(person.name, ':', person.email)
@@ -265,3 +265,4 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
 
         f = open('example', 'r')
         printAddressBook(f)
+

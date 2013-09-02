@@ -11,8 +11,8 @@ def addressbook():
 
 def test_addressbook_message_classes(addressbook):
     def writeAddressBook(fd):
-        message = capnp.MallocMessageBuilder()
-        addressBook = message.initRoot(addressbook.AddressBook)
+        message = capnp._MallocMessageBuilder()
+        addressBook = message.init_root(addressbook.AddressBook)
         people = addressBook.init('people', 2)
 
         alice = people[0]
@@ -35,31 +35,34 @@ def test_addressbook_message_classes(addressbook):
         bobPhones[1].type = 'work'
         bob.employment.unemployed = None
 
-        capnp.writePackedMessageToFd(fd, message)
+        capnp._write_packed_message_to_fd(fd, message)
 
 
     def printAddressBook(fd):
-        message = capnp.PackedFdMessageReader(f.fileno())
-        addressBook = message.getRoot(addressbook.AddressBook)
+        message = capnp._PackedFdMessageReader(f.fileno())
+        addressBook = message.get_root(addressbook.AddressBook)
 
-        for person in addressBook.people:
-            print(person.name, ':', person.email)
-            for phone in person.phones:
-                print(phone.type, ':', phone.number)
+        people = addressBook.people
 
-            which = person.employment.which()
-            print(which)
+        alice = people[0]
+        assert alice.id == 123
+        assert alice.name == 'Alice'
+        assert alice.email == 'alice@example.com'
+        alicePhones = alice.phones
+        assert alicePhones[0].number == "555-1212"
+        assert alicePhones[0].type == 'mobile'
+        assert alice.employment.school == "MIT"
 
-            if which == 'unemployed':
-                print('unemployed')
-            elif which == 'employer':
-                print('employer:', person.employment.employer)
-            elif which == 'school':
-                print('student at:', person.employment.school)
-            elif which == 'selfEmployed':
-                print('self employed')
-            print()
-
+        bob = people[1]
+        assert bob.id == 456
+        assert bob.name == 'Bob'
+        assert bob.email == 'bob@example.com'
+        bobPhones = bob.phones
+        assert bobPhones[0].number == "555-4567"
+        assert bobPhones[0].type == 'home'
+        assert bobPhones[1].number == "555-7654"
+        assert bobPhones[1].type == 'work'
+        assert bob.employment.unemployed == None
 
     f = open('example', 'w')
     writeAddressBook(f.fileno())
@@ -69,7 +72,7 @@ def test_addressbook_message_classes(addressbook):
 
 def test_addressbook(addressbook):
     def writeAddressBook(file):
-        addresses = addressbook.AddressBook.newMessage()
+        addresses = addressbook.AddressBook.new_message()
         people = addresses.init('people', 2)
 
         alice = people[0]
@@ -92,29 +95,95 @@ def test_addressbook(addressbook):
         bobPhones[1].type = 'work'
         bob.employment.unemployed = None
 
-        addresses.writeTo(file)
+        addresses.write(file)
 
 
     def printAddressBook(file):
-        addresses = addressbook.AddressBook.readFrom(file)
+        addresses = addressbook.AddressBook.read(file)
 
-        for person in addresses.people:
-            print(person.name, ':', person.email)
-            for phone in person.phones:
-                print(phone.type, ':', phone.number)
+        people = addresses.people
 
-            which = person.employment.which()
-            print(which)
+        alice = people[0]
+        assert alice.id == 123
+        assert alice.name == 'Alice'
+        assert alice.email == 'alice@example.com'
+        alicePhones = alice.phones
+        assert alicePhones[0].number == "555-1212"
+        assert alicePhones[0].type == 'mobile'
+        assert alice.employment.school == "MIT"
 
-            if which == 'unemployed':
-                print('unemployed')
-            elif which == 'employer':
-                print('employer:', person.employment.employer)
-            elif which == 'school':
-                print('student at:', person.employment.school)
-            elif which == 'selfEmployed':
-                print('self employed')
-            print()
+        bob = people[1]
+        assert bob.id == 456
+        assert bob.name == 'Bob'
+        assert bob.email == 'bob@example.com'
+        bobPhones = bob.phones
+        assert bobPhones[0].number == "555-4567"
+        assert bobPhones[0].type == 'home'
+        assert bobPhones[1].number == "555-7654"
+        assert bobPhones[1].type == 'work'
+        assert bob.employment.unemployed == None
+
+
+    f = open('example', 'w')
+    writeAddressBook(f)
+
+    f = open('example', 'r')
+    printAddressBook(f)
+
+def test_addressbook_resizable(addressbook):
+    def writeAddressBook(file):
+        addresses = addressbook.AddressBook.new_message()
+        people = addresses.init_resizable_list('people')
+
+        alice = people.add()
+        alice.id = 123
+        alice.name = 'Alice'
+        alice.email = 'alice@example.com'
+        alicePhones = alice.init('phones', 1)
+        alicePhones[0].number = "555-1212"
+        alicePhones[0].type = 'mobile'
+        alice.employment.school = "MIT"
+
+        bob = people.add()
+        bob.id = 456
+        bob.name = 'Bob'
+        bob.email = 'bob@example.com'
+        bobPhones = bob.init('phones', 2)
+        bobPhones[0].number = "555-4567"
+        bobPhones[0].type = 'home'
+        bobPhones[1].number = "555-7654"
+        bobPhones[1].type = 'work'
+        bob.employment.unemployed = None
+
+        people.finish()
+        
+        addresses.write(file)
+
+
+    def printAddressBook(file):
+        addresses = addressbook.AddressBook.read(file)
+
+        people = addresses.people
+
+        alice = people[0]
+        assert alice.id == 123
+        assert alice.name == 'Alice'
+        assert alice.email == 'alice@example.com'
+        alicePhones = alice.phones
+        assert alicePhones[0].number == "555-1212"
+        assert alicePhones[0].type == 'mobile'
+        assert alice.employment.school == "MIT"
+
+        bob = people[1]
+        assert bob.id == 456
+        assert bob.name == 'Bob'
+        assert bob.email == 'bob@example.com'
+        bobPhones = bob.phones
+        assert bobPhones[0].number == "555-4567"
+        assert bobPhones[0].type == 'home'
+        assert bobPhones[1].number == "555-7654"
+        assert bobPhones[1].type == 'work'
+        assert bob.employment.unemployed == None
 
 
     f = open('example', 'w')
@@ -323,46 +392,46 @@ def check_all_types(reader):
     check_list(reader.enumList, ["foo", "garply"])
 
 def test_build(all_types):
-    root = all_types.TestAllTypes.newMessage()
+    root = all_types.TestAllTypes.new_message()
     init_all_types(root)
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
 
 def test_binary_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.binary'), 'r')
-    root = all_types.TestAllTypes.readFrom(f)
+    root = all_types.TestAllTypes.read(f)
     check_all_types(root)
 
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
 
-    # Test setRoot().
-    builder = capnp.MallocMessageBuilder()
-    builder.setRoot(root)
-    check_all_types(builder.getRoot(all_types.TestAllTypes))
+    # Test set_root().
+    builder = capnp._MallocMessageBuilder()
+    builder.set_root(root)
+    check_all_types(builder.get_root(all_types.TestAllTypes))
 
-    builder2 = capnp.MallocMessageBuilder()
-    builder2.setRoot(builder.getRoot(all_types.TestAllTypes))
-    check_all_types(builder2.getRoot(all_types.TestAllTypes))
+    builder2 = capnp._MallocMessageBuilder()
+    builder2.set_root(builder.get_root(all_types.TestAllTypes))
+    check_all_types(builder2.get_root(all_types.TestAllTypes))
 
 def test_packed_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.packed'), 'r')
-    root = all_types.TestAllTypes.readPackedFrom(f)
+    root = all_types.TestAllTypes.read_packed(f)
     check_all_types(root)
 
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
 
 def test_binary_write(all_types):
-    root = all_types.TestAllTypes.newMessage()
+    root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    root.writeTo(open('example', 'w'))
+    root.write(open('example', 'w'))
 
-    check_all_types(all_types.TestAllTypes.readFrom(open('example', 'r')))
+    check_all_types(all_types.TestAllTypes.read(open('example', 'r')))
 
 def test_packed_write(all_types):
-    root = all_types.TestAllTypes.newMessage()
+    root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    root.writePackedTo(open('example', 'w'))
+    root.write_packed(open('example', 'w'))
 
-    check_all_types(all_types.TestAllTypes.readPackedFrom(open('example', 'r')))
+    check_all_types(all_types.TestAllTypes.read_packed(open('example', 'r')))

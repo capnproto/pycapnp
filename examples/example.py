@@ -6,7 +6,7 @@ this_dir = os.path.dirname(__file__)
 addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
 def writeAddressBook(file):
-    addresses = addressbook.AddressBook.newMessage()
+    addresses = addressbook.AddressBook.new_message()
     people = addresses.init('people', 2)
 
     alice = people[0]
@@ -29,11 +29,11 @@ def writeAddressBook(file):
     bobPhones[1].type = 'work'
     bob.employment.unemployed = None
 
-    addresses.writeTo(file)
+    addresses.write(file)
 
 
 def printAddressBook(file):
-    addresses = addressbook.AddressBook.readFrom(file)
+    addresses = addressbook.AddressBook.read(file)
 
     for person in addresses.people:
         print(person.name, ':', person.email)

@@ -152,7 +152,7 @@ cdef class _DynamicListReader:
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        return toPythonReader(self.thisptr[index], self._parent)
+        return to_python_reader(self.thisptr[index], self._parent)
 
     def __len__(self):
         return self.thisptr.size()
@@ -174,7 +174,7 @@ cdef class _DynamicResizableListBuilder:
         ...
         person = addressbook.Person.newMessage()
 
-        phones = person.initResizableList('phones') # This returns a _DynamicResizableListBuilder
+        phones = person.init_resizable_list('phones') # This returns a _DynamicResizableListBuilder
         
         phone = phones.add()
         phone.number = 'foo'
@@ -184,7 +184,7 @@ cdef class _DynamicResizableListBuilder:
         people.finish()
 
         f = open('example', 'w')
-        person.writeTo(f)
+        person.write(f)
     """
     cdef public object _parent, _message, _field, _schema
     cdef public list _list
@@ -203,7 +203,7 @@ cdef class _DynamicResizableListBuilder:
 
         :rtype: :class:`_DynamicStructBuilder`
         """
-        orphan = self._message.newOrphan(self._schema)
+        orphan = self._message.new_orphan(self._schema)
         orphan_val = orphan.get()
         self._list.append((orphan, orphan_val))
         return orphan_val
@@ -254,7 +254,7 @@ cdef class _DynamicListBuilder:
         return self
 
     cdef _get(self, index) except +ValueError:
-        return toPython(self.thisptr[index], self._parent)
+        return to_python_builder(self.thisptr[index], self._parent)
 
     def __getitem__(self, index):
         size = self.thisptr.size()
@@ -325,7 +325,7 @@ cdef class _List_NestedNode_Reader:
     def __len__(self):
         return self.thisptr.size()
 
-cdef toPythonReader(C_DynamicValue.Reader self, object parent):
+cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     cdef int type = self.getType()
     if type == capnp.TYPE_BOOL:
         return self.asBool()
@@ -353,7 +353,7 @@ cdef toPythonReader(C_DynamicValue.Reader self, object parent):
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
-cdef toPython(C_DynamicValue.Builder self, object parent):
+cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     cdef int type = self.getType()
     if type == capnp.TYPE_BOOL:
         return self.asBool()
@@ -381,10 +381,10 @@ cdef toPython(C_DynamicValue.Builder self, object parent):
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
-cdef C_DynamicValue.Reader _extractDynamicStructBuilder(_DynamicStructBuilder value):
+cdef C_DynamicValue.Reader _extract_dynamic_struct_builder(_DynamicStructBuilder value):
     return C_DynamicValue.Reader(value.thisptr.asReader())
 
-cdef C_DynamicValue.Reader _extractDynamicStructReader(_DynamicStructReader value):
+cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader value):
     return C_DynamicValue.Reader(value.thisptr)
 
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
@@ -407,16 +407,16 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         temp = C_DynamicValue.Reader(<char*>value)
         thisptr.set(field, temp)
     elif value_type is list:
-        builder = toPython(thisptr.init(field, len(value)), parent)
+        builder = to_python_builder(thisptr.init(field, len(value)), parent)
         for (i, v) in enumerate(value):
             builder[i] = v
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
         thisptr.set(field, temp)
     elif value_type is _DynamicStructBuilder:
-        thisptr.set(field, _extractDynamicStructBuilder(value))
+        thisptr.set(field, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
-        thisptr.set(field, _extractDynamicStructReader(value))
+        thisptr.set(field, _extract_dynamic_struct_reader(value))
     else:
         raise ValueError("Non primitive type")
 
@@ -438,7 +438,7 @@ cdef class _DynamicStructReader:
         return self
 
     def __getattr__(self, field):
-        return toPythonReader(self.thisptr.get(field), self._parent)
+        return to_python_reader(self.thisptr.get(field), self._parent)
 
     def _has(self, field):
         return self.thisptr.has(field)
@@ -500,10 +500,10 @@ cdef class _DynamicStructBuilder:
         self._isRoot = isRoot
         return self
     
-    def writeTo(self, file):
+    def write(self, file):
         """Writes the struct's containing message to the given file object in unpacked binary format.
         
-        This is a shortcut for calling capnp.writeMessageToFd().  This can only be called on the
+        This is a shortcut for calling capnp._write_message_to_fd().  This can only be called on the
         message's root struct.
         
         :type file: file
@@ -514,13 +514,13 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
         if not self._isRoot:
-            raise ValueError("You can only call writeTo() on the message's root struct.")
-        writeMessageToFd(file.fileno(), self._parent)
+            raise ValueError("You can only call write() on the message's root struct.")
+        _write_message_to_fd(file.fileno(), self._parent)
 
-    def writePackedTo(self, file):
+    def write_packed(self, file):
         """Writes the struct's containing message to the given file object in packed binary format.
         
-        This is a shortcut for calling capnp.writePackedMessageToFd().  This can only be called on
+        This is a shortcut for calling capnp._write_packed_message_to_fd().  This can only be called on
         the message's root struct.
         
         :type file: file
@@ -531,11 +531,11 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
         if not self._isRoot:
-            raise ValueError("You can only call writeTo() on the message's root struct.")
-        writePackedMessageToFd(file.fileno(), self._parent)
+            raise ValueError("You can only call write() on the message's root struct.")
+        _write_packed_message_to_fd(file.fileno(), self._parent)
 
     cdef _get(self, field) except +ValueError:
-        return toPython(self.thisptr.get(field), self._parent)
+        return to_python_builder(self.thisptr.get(field), self._parent)
 
     def __getattr__(self, field):
         return self._get(field)
@@ -562,11 +562,11 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`exceptions.AttributeError` if the field isn't in this struct
         """
         if size is None:
-            return toPython(self.thisptr.init(field), self._parent)
+            return to_python_builder(self.thisptr.init(field), self._parent)
         else:
-            return toPython(self.thisptr.init(field, size), self._parent)
+            return to_python_builder(self.thisptr.init(field, size), self._parent)
 
-    cpdef initResizableList(self, field):
+    cpdef init_resizable_list(self, field):
         """Method for initializing fields that are of type list (of structs)
 
         This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since for primitive types you can just define a normal python list and fill it yourself. 
@@ -630,7 +630,7 @@ cdef class _DynamicStructBuilder:
         """
         return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
 
-    cpdef asReader(self):
+    cpdef as_reader(self):
         """A method for casting this Builder to a Reader
 
         Don't use this method unless you know what you're doing.
@@ -673,7 +673,7 @@ cdef class _DynamicOrphan:
 
         Use this DynamicValue to set fields inside the orphan
         """
-        return toPython(self.thisptr.get(), self._parent)
+        return to_python_builder(self.thisptr.get(), self._parent)
 
     def __str__(self):
         return str(self.get())
@@ -687,16 +687,16 @@ cdef class _Schema:
         self.thisptr = other
         return self
 
-    cpdef asConstValue(self):
-        return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
+    cpdef as_const_value(self):
+        return to_python_reader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
-    cpdef asStruct(self):
+    cpdef as_struct(self):
         return _StructSchema()._init(self.thisptr.asStruct())
 
-    cpdef getDependency(self, id):
+    cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
 
-    cpdef getProto(self):
+    cpdef get_proto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
 cdef class _StructSchema:
@@ -732,16 +732,16 @@ cdef class _ParsedSchema:
         self.thisptr = other
         return self
 
-    cpdef asConstValue(self):
-        return toPythonReader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
+    cpdef as_const_value(self):
+        return to_python_reader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
-    cpdef asStruct(self):
+    cpdef as_struct(self):
         return _StructSchema()._init(self.thisptr.asStruct())
 
-    cpdef getDependency(self, id):
+    cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
 
-    cpdef getProto(self):
+    cpdef get_proto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
     cpdef getNested(self, name):
@@ -759,7 +759,7 @@ cdef class SchemaParser:
     def __dealloc__(self):
         del self.thisptr
 
-    def _parseDiskFile(self, displayName, diskPath, imports):
+    def _parse_disk_file(self, displayName, diskPath, imports):
         cdef StringPtr * importArray = <StringPtr *>malloc(sizeof(StringPtr) * len(imports))
 
         for i in range(len(imports)):
@@ -807,7 +807,7 @@ cdef class SchemaParser:
         """
         def _load(nodeSchema, module):
             module._nodeSchema = nodeSchema
-            nodeProto = nodeSchema.getProto()
+            nodeProto = nodeSchema.get_proto()
             module._nodeProto = nodeProto
 
             for node in nodeProto.nestedNodes:
@@ -815,23 +815,23 @@ cdef class SchemaParser:
                 module.__dict__[node.name] = local_module
 
                 schema = nodeSchema.getNested(node.name)
-                proto = schema.getProto()
+                proto = schema.get_proto()
                 if proto.isStruct:
-                    local_module.schema = schema.asStruct()
-                    def readFrom(file):
-                        reader = StreamFdMessageReader(file.fileno())
-                        return reader.getRoot(local_module)
-                    def readPackedFrom(file):
-                        reader = PackedFdMessageReader(file.fileno())
-                        return reader.getRoot(local_module)
-                    def newMessage():
-                        builder = MallocMessageBuilder()
-                        return builder.initRoot(local_module)
-                    local_module.readFrom = readFrom
-                    local_module.readPackedFrom = readPackedFrom
-                    local_module.newMessage = newMessage
+                    local_module.schema = schema.as_struct()
+                    def read(file):
+                        reader = _StreamFdMessageReader(file.fileno())
+                        return reader.get_root(local_module)
+                    def read_packed(file):
+                        reader = _PackedFdMessageReader(file.fileno())
+                        return reader.get_root(local_module)
+                    def new_message():
+                        builder = _MallocMessageBuilder()
+                        return builder.init_root(local_module)
+                    local_module.read = read
+                    local_module.read_packed = read_packed
+                    local_module.new_message = new_message
                 elif proto.isConst:
-                    module.__dict__[node.name] = schema.asConstValue()
+                    module.__dict__[node.name] = schema.as_const_value()
 
                 _load(schema, local_module)
 
@@ -843,12 +843,12 @@ cdef class SchemaParser:
 
         module._parser = parser
 
-        fileSchema = parser._parseDiskFile(display_name, file_name, imports)
+        fileSchema = parser._parse_disk_file(display_name, file_name, imports)
         _load(fileSchema, module)
 
         return module
 
-cdef class MessageBuilder:
+cdef class _MessageBuilder:
     """An abstract base class for building Cap'n Proto messages
 
     .. warning:: Don't ever instantiate this class directly. It is only used for inheritance.
@@ -860,7 +860,7 @@ cdef class MessageBuilder:
     def __init__(self):
         raise NotImplementedError("This is an abstract base class. You should use MallocMessageBuilder instead")
 
-    cpdef initRoot(self, schema):
+    cpdef init_root(self, schema):
         """A method for instantiating Cap'n Proto structs
 
         You will need to pass in a schema to specify which struct to
@@ -868,7 +868,7 @@ cdef class MessageBuilder:
 
             addressbook = capnp.load('addressbook.capnp')
             ...
-            person = message.initRoot(addressbook.Person)
+            person = message.init_root(addressbook.Person)
 
         :type schema: Schema
         :param schema: A Cap'n proto schema specifying which struct to instantiate
@@ -883,17 +883,17 @@ cdef class MessageBuilder:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self, True)
 
-    cpdef getRoot(self, schema):
+    cpdef get_root(self, schema):
         """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
 
         Don't use this method unless you know what you're doing. You probably
-        want to use initRoot instead::
+        want to use init_root instead::
 
             addressbook = capnp.load('addressbook.capnp')
             ...
-            person = message.initRoot(addressbook.Person)
+            person = message.init_root(addressbook.Person)
             ...
-            person = message.getRoot(addressbook.Person)
+            person = message.get_root(addressbook.Person)
 
         :type schema: Schema
         :param schema: A Cap'n proto schema specifying which struct to instantiate
@@ -908,7 +908,7 @@ cdef class MessageBuilder:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self, True)
     
-    cpdef setRoot(self, value):
+    cpdef set_root(self, value):
         """A method for instantiating Cap'n Proto structs by copying from an existing struct
 
         :type value: :class:`_DynamicStructReader`
@@ -918,17 +918,17 @@ cdef class MessageBuilder:
         """
         
         if type(value) is _DynamicStructBuilder:
-            value = value.asReader();
+            value = value.as_reader();
         self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
 
-    cpdef newOrphan(self, schema):
+    cpdef new_orphan(self, schema):
         """A method for instantiating Cap'n Proto orphans
 
         Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
 
             addressbook = capnp.load('addressbook.capnp')
-            m = capnp.MallocMessageBuilder()
-            alice = m.newOrphan(addressbook.Person)
+            m = capnp._MallocMessageBuilder()
+            alice = m.new_orphan(addressbook.Person)
 
         :type schema: Schema
         :param schema: A Cap'n proto schema specifying which struct to instantiate
@@ -944,7 +944,7 @@ cdef class MessageBuilder:
 
         return _DynamicOrphan()._init(self.thisptr.newOrphan(s.thisptr), self)
 
-cdef class MallocMessageBuilder(MessageBuilder):
+cdef class _MallocMessageBuilder(_MessageBuilder):
     """The main class for building Cap'n Proto messages
 
     You will use this class to handle arena allocation of the Cap'n Proto
@@ -952,12 +952,12 @@ cdef class MallocMessageBuilder(MessageBuilder):
     Proto objects, and wish to serialize them::
 
         addressbook = capnp.load('addressbook.capnp')
-        message = capnp.MallocMessageBuilder()
-        person = message.initRoot(addressbook.Person)
+        message = capnp._MallocMessageBuilder()
+        person = message.init_root(addressbook.Person)
         person.name = 'alice'
         ...
         f = open('out.txt', 'w')
-        writeMessageToFd(f.fileno(), message)
+        _write_message_to_fd(f.fileno(), message)
     """
     def __cinit__(self):
         self.thisptr = new schema_cpp.MallocMessageBuilder()
@@ -976,10 +976,10 @@ cdef class _MessageReader:
     def __init__(self):
         raise NotImplementedError("This is an abstract base class")
 
-    cpdef _getRootNode(self):
+    cpdef _get_root_node(self):
         return _NodeReader().init(self.thisptr.getRootNode())
 
-    cpdef getRoot(self, schema):
+    cpdef get_root(self, schema):
         """A method for instantiating Cap'n Proto structs
 
         You will need to pass in a schema to specify which struct to
@@ -987,7 +987,7 @@ cdef class _MessageReader:
 
             addressbook = capnp.load('addressbook.capnp')
             ...
-            person = message.getRoot(addressbook.Person)
+            person = message.get_root(addressbook.Person)
 
         :type schema: Schema
         :param schema: A Cap'n proto schema specifying which struct to instantiate
@@ -1003,14 +1003,14 @@ cdef class _MessageReader:
             s = schema
         return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
-cdef class StreamFdMessageReader(_MessageReader):
+cdef class _StreamFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`writeMessageToFd` and :class:`MessageBuilder`, but in one class::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_message_to_fd` and :class:`_MessageBuilder`, but in one class::
 
         f = open('out.txt')
-        message = StreamFdMessageReader(f.fileno())
-        person = message.getRoot(addressbook.Person)
+        message = _StreamFdMessageReader(f.fileno())
+        person = message.get_root(addressbook.Person)
         print person.name
 
     :Parameters: - fd (`int`) - A file descriptor
@@ -1018,14 +1018,14 @@ cdef class StreamFdMessageReader(_MessageReader):
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd)
 
-cdef class PackedFdMessageReader(_MessageReader):
+cdef class _PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`writePackedMessageToFd` and :class:`MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
 
         f = open('out.txt')
-        message = StreamFdMessageReader(f.fileno())
-        person = message.getRoot(addressbook.Person)
+        message = _PackedFdMessageReader(f.fileno())
+        person = message.get_root(addressbook.Person)
         print person.name
 
     :Parameters: - fd (`int`) - A file descriptor
@@ -1033,51 +1033,51 @@ cdef class PackedFdMessageReader(_MessageReader):
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd)
 
-def writeMessageToFd(int fd, MessageBuilder message):
+def _write_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor
 
     You use this method to serialize your message to a file. Please note that
     you must pass a file descriptor (ie. an int), not a file object. Make sure
-    you use the proper reader to match this (ie. don't use PackedFdMessageReader)::
+    you use the proper reader to match this (ie. don't use _PackedFdMessageReader)::
 
-        message = capnp.MallocMessageBuilder()
+        message = capnp._MallocMessageBuilder()
         ...
         f = open('out.txt', 'w')
-        writeMessageToFd(f.fileno(), message)
+        _write_message_to_fd(f.fileno(), message)
         ...
         f = open('out.txt')
-        StreamFdMessageReader(f.fileno())
+        _StreamFdMessageReader(f.fileno())
 
     :type fd: int
     :param fd: A file descriptor
 
-    :type message: :class:`MessageBuilder`
+    :type message: :class:`_MessageBuilder`
     :param message: The Cap'n Proto message to serialize
 
     :rtype: void
     """
     schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
 
-def writePackedMessageToFd(int fd, MessageBuilder message):
+def _write_packed_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor in a packed manner
 
     You use this method to serialize your message to a file. Please note that
     you must pass a file descriptor (ie. an int), not a file object. Also, note
-    the difference in names with writeMessageToFd. This method uses a different
+    the difference in names with _write_message_to_fd. This method uses a different
     serialization specification, and your reader will need to match.::
 
-        message = capnp.MallocMessageBuilder()
+        message = capnp._MallocMessageBuilder()
         ...
         f = open('out.txt', 'w')
-        writePackedMessageToFd(f.fileno(), message)
+        _write_packed_message_to_fd(f.fileno(), message)
         ...
         f = open('out.txt')
-        PackedFdMessageReader(f.fileno())
+        _PackedFdMessageReader(f.fileno())
 
     :type fd: int
     :param fd: A file descriptor
 
-    :type message: :class:`MessageBuilder`
+    :type message: :class:`_MessageBuilder`
     :param message: The Cap'n Proto message to serialize
 
     :rtype: void

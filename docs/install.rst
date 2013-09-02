@@ -20,9 +20,13 @@ Pip
 
 Using pip is by far the easiest way to install the library. After you've installed the C++ library, all you need to run is::
     
-    pip install -U cython
-    pip install -U setuptools
-    pip install pycapnp
+    [sudo] pip install -U cython
+    [sudo] pip install -U setuptools
+    [sudo] pip install pycapnp
+
+On some systems you will have to install Python's headers before doing any of this. For Debian/Ubuntu, this is::
+
+    sudo apt-get install python-dev
 
 You can control the compiler version with the environment variable CC, ie. `CC=gcc-4.8 pip install pycapnp`. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
 

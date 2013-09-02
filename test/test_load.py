@@ -27,10 +27,10 @@ def test_classes(addressbook):
     assert addressbook.Person
 
 def test_import(foo, bar):
-    m = capnp.MallocMessageBuilder()
-    foo = m.initRoot(foo.Foo)
-    m2 = capnp.MallocMessageBuilder()
-    bar = m2.initRoot(bar.Bar)
+    m = capnp._MallocMessageBuilder()
+    foo = m.init_root(foo.Foo)
+    m2 = capnp._MallocMessageBuilder()
+    bar = m2.init_root(bar.Bar)
 
     foo.name = 'foo'
     bar.foo = foo
@@ -44,10 +44,10 @@ def test_failed_import():
     foo = s.load(os.path.join(this_dir, 'foo.capnp'))
     bar = s2.load(os.path.join(this_dir, 'bar.capnp'))
 
-    m = capnp.MallocMessageBuilder()
-    foo = m.initRoot(foo.Foo)
-    m2 = capnp.MallocMessageBuilder()
-    bar = m2.initRoot(bar.Bar)
+    m = capnp._MallocMessageBuilder()
+    foo = m.init_root(foo.Foo)
+    m2 = capnp._MallocMessageBuilder()
+    bar = m2.init_root(bar.Bar)
 
     foo.name = 'foo'
 
