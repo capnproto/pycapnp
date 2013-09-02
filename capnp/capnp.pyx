@@ -802,7 +802,9 @@ cdef class SchemaParser:
         :return: A module corresponding to the loaded schema. You can access
             parsed schemas and constants with . syntax
 
-        :Raises: :exc:`exceptions.ValueError` if `file_name` doesn't exist
+        :Raises:
+            - :exc:`exceptions.IOError` if `file_name` doesn't exist
+            - :exc:`exceptions.RuntimeError` if the Cap'n Proto C++ library has any problems loading the schema
 
         """
         def _load(nodeSchema, module):
@@ -834,6 +836,8 @@ cdef class SchemaParser:
                     module.__dict__[node.name] = schema.as_const_value()
 
                 _load(schema, local_module)
+        if not _os.path.isfile(file_name):
+            raise IOError("File not found: " + file_name)
 
         if display_name is None:
             display_name = _os.path.basename(file_name)
@@ -1086,6 +1090,8 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
 
 from types import ModuleType as _ModuleType
 import os as _os
+import sys as _sys
+import imp as _imp
 
 _global_schema_parser = None
 
@@ -1124,3 +1130,82 @@ def load(file_name, display_name=None, imports=[]):
         _global_schema_parser = SchemaParser()
 
     return _global_schema_parser.load(file_name, display_name, imports)
+
+class _Loader:
+    def __init__(self, fullname, path, additional_paths):
+        self.fullname = fullname
+        self.path = path
+        self.additional_paths = additional_paths
+
+    def load_module(self, fullname):
+        assert self.fullname == fullname, (
+            "invalid module, expected %s, got %s" % (
+            self.fullname, fullname))
+
+        imports = self.additional_paths + _sys.path
+        return load(self.path, fullname, imports=imports)
+
+class _Importer:
+    def __init__(self, additional_paths):
+        self.extension = '.capnp'
+        self.additional_paths = additional_paths
+    def find_module(self, fullname, package_path=None):
+        if fullname in _sys.modules: # Don't allow re-imports
+            return None
+
+        if '.' in fullname: # only when package_path anyway?
+            mod_parts = fullname.split('.')
+            module_name = mod_parts[-1]
+        else:
+            module_name = fullname
+        capnp_module_name = module_name + self.extension
+
+        if package_path:
+            paths = package_path
+        else:
+            paths = _sys.path
+        join_path = _os.path.join
+        is_file = _os.path.isfile
+        is_abs = _os.path.isabs
+        abspath = _os.path.abspath
+        #is_dir = os.path.isdir
+        sep = _os.path.sep
+
+        paths = self.additional_paths + paths
+        for path in paths:
+            if not path:
+                path = _os.getcwd()
+            elif not is_abs(path):
+                path = abspath(path)
+            if is_file(path+sep+capnp_module_name):
+                return _Loader(fullname, join_path(path, capnp_module_name), self.additional_paths)
+
+_importer = None
+
+def add_import_hook(additional_paths=[]):
+    """Add a hook to the python import system, so that Cap'n Proto modules are directly importable
+
+    After calling this function, you can use the python import syntax to directly import capnproto schemas::
+
+        import capnp
+        capnp.add_import_hook()
+
+        import addressbook
+        # equivalent to capnp.load('addressbook.capnp', 'addressbook', sys.path), except it will search for 'addressbook.capnp' in all directories of sys.path
+
+    :type additional_paths: list
+    :param additional_paths: Additional paths, listed as strings, to be used to search for the .capnp files. It is prepended to the beginning of sys.path. It also affects imports inside of Cap'n Proto schemas.
+    """
+    global _importer
+    if _importer is not None:
+        return
+
+    _importer = _Importer(additional_paths)
+    _sys.meta_path.append(_importer)
+
+def remove_import_hook():
+    """Remove the import hook, and return python's import to normal"""
+    global _importer
+    if _importer is not None:
+        _sys.meta_path.remove(_importer)
+    _importer = None
