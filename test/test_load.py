@@ -56,13 +56,6 @@ def test_failed_import():
 
 def test_add_import_hook():
     capnp.add_import_hook([this_dir])
-    
+
     import addressbook
     addressbook.AddressBook.new_message()
-
-def test_remove_import_hook():
-    capnp.add_import_hook([this_dir])
-    capnp.remove_import_hook()
-
-    with pytest.raises(ImportError):
-        import addressbook

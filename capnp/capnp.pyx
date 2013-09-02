@@ -850,6 +850,10 @@ cdef class SchemaParser:
         fileSchema = parser._parse_disk_file(display_name, file_name, imports)
         _load(fileSchema, module)
 
+        abs_path = _os.path.abspath(file_name)
+        module.__path__ = _os.path.dirname(abs_path)
+        module.__file__ = abs_path
+
         return module
 
 cdef class _MessageBuilder:
@@ -1143,7 +1147,10 @@ class _Loader:
             self.fullname, fullname))
 
         imports = self.additional_paths + _sys.path
-        return load(self.path, fullname, imports=imports)
+        module = load(self.path, fullname, imports=imports)
+        _sys.modules[fullname] = module
+
+        return module
 
 class _Importer:
     def __init__(self, additional_paths):
@@ -1198,7 +1205,7 @@ def add_import_hook(additional_paths=[]):
     """
     global _importer
     if _importer is not None:
-        return
+        remove_import_hook()
 
     _importer = _Importer(additional_paths)
     _sys.meta_path.append(_importer)
