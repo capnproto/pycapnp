@@ -2,11 +2,10 @@ from __future__ import print_function
 import os
 import capnp
 
-this_dir = os.path.dirname(__file__)
-addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+import addressbook_capnp
 
 def writeAddressBook(file):
-    addresses = addressbook.AddressBook.new_message()
+    addresses = addressbook_capnp.AddressBook.new_message()
     people = addresses.init('people', 2)
 
     alice = people[0]
@@ -33,7 +32,7 @@ def writeAddressBook(file):
 
 
 def printAddressBook(file):
-    addresses = addressbook.AddressBook.read(file)
+    addresses = addressbook_capnp.AddressBook.read(file)
 
     for person in addresses.people:
         print(person.name, ':', person.email)

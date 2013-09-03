@@ -16,12 +16,13 @@ First you need to import the library::
 
 Then you can load the Cap'n Proto schema with::
 
-    addressbook = capnp.load('addressbook.capnp')
+    import addressbook_capnp
 
-Note that we assign the loaded module to a variable, named `addressbook`. We'll use this from now on to access the Cap'n Proto schema, ie. when we need to get a Struct's class or accessing const values.
+This will look all through all the directories in your sys.path/PYTHONPATH, and try to find a file of the form 'addressbook.capnp'. If you want to disable the import hook magic that `import capnp` adds, and load manually, here's how::
 
-You can also provide an absolute path to the Cap'n Proto schema you wish to load. Otherwise, it will only look in the current working directory.
-
+    capnp.remove_import_hook()
+    addressbook_capnp = capnp.load('addressbook.capnp')
+    
 For future reference, here is the Cap'n Proto schema. Also available in the github repository under `examples/addressbook.capnp <https://github.com/jparyani/pycapnp/tree/master/examples>`_::
 
     # addressbook.capnp
@@ -207,11 +208,10 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
     import os
     import capnp
 
-    this_dir = os.path.dirname(__file__)
-    addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    import addressbook_capnp
 
     def writeAddressBook(file):
-        addresses = addressbook.AddressBook.new_message()
+        addresses = addressbook_capnp.AddressBook.new_message()
         people = addresses.init('people', 2)
 
         alice = people[0]
@@ -238,7 +238,7 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
 
 
     def printAddressBook(file):
-        addresses = addressbook.AddressBook.read(file)
+        addresses = addressbook_capnp.AddressBook.read(file)
 
         for person in addresses.people:
             print(person.name, ':', person.email)
