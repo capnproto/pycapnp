@@ -1251,7 +1251,8 @@ class _Loader:
             "invalid module, expected %s, got %s" % (
             self.fullname, fullname))
 
-        imports = self.additional_paths + _sys.path # TODO: change '' to '.' in sys.path
+        imports = self.additional_paths + _sys.path
+        imports = [path if path != '' else '.' for path in imports] # convert empty path '' to '.'
         module = load(self.path, fullname, imports=imports)
         _sys.modules[fullname] = module
 
