@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, WordArrayPtr
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -39,6 +39,9 @@ ctypedef fused _DynamicStructReaderOrBuilder:
 ctypedef fused _DynamicSetterClasses:
     C_DynamicList.Builder
     C_DynamicStruct.Builder
+
+cdef extern from "Python.h":
+    cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
 
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -587,6 +590,22 @@ cdef class _DynamicStructBuilder:
             raise ValueError("You can only call write() on the message's root struct.")
         _write_packed_message_to_fd(file.fileno(), self._parent)
 
+    def to_bytes(_DynamicStructBuilder self):
+        """Returns the struct's containing message as a Python bytes object in the unpacked binary format.
+
+        This is inefficient; it makes several copies.
+
+        :rtype: bytes
+
+        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        """
+        if not self._isRoot:
+            raise ValueError("You can only call write() on the message's root struct.")
+        cdef _MessageBuilder builder = self._parent
+        array = schema_cpp.messageToFlatArray(deref(builder.thisptr))
+        cdef const char* ptr = <const char *>array.begin()
+        return ptr[:8*array.size()]
+
     cdef _get(self, field):
         return to_python_builder(self.thisptr.get(field), self._parent)
 
@@ -927,7 +946,16 @@ cdef class SchemaParser:
                             reader = _PackedFdMessageReader(file.fileno())
                             return reader.get_root(bound_local_module)
                         return helper
-                    def new_message(bound_local_module):
+                    def make_from_bytes(local_module):
+                        def from_bytes(buf):
+                            """Returns a Reader for the unpacked object in buf.
+
+                            :type buf: buffer
+                            :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern."""
+                            reader = _FlatArrayMessageReader(buf)
+                            return reader.get_root(local_module)
+                        return from_bytes
+                    def new_message(local_module):
                         def helper():
                             builder = _MallocMessageBuilder()
                             return builder.init_root(bound_local_module)
@@ -959,6 +987,7 @@ cdef class SchemaParser:
                     local_module.read_packed = read_packed(local_module)
                     local_module.new_message = new_message(local_module)
                     local_module.from_dict = from_dict(local_module)
+                    local_module.from_bytes = make_from_bytes(local_module)
                     local_module.Reader = Reader
                     local_module.Builder = Builder
                 elif proto.isConst:
@@ -1169,6 +1198,18 @@ cdef class _PackedFdMessageReader(_MessageReader):
     """
     def __init__(self, int fd):
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd)
+
+@cython.internal
+cdef class _FlatArrayMessageReader(_MessageReader):
+    cdef object _object_to_pin
+    def __init__(self, buf):
+        cdef const void *ptr
+        cdef Py_ssize_t sz
+        PyObject_AsReadBuffer(buf, &ptr, &sz)
+        if sz % 8 != 0:
+            raise ValueError("input length must be a multiple of eight bytes")
+        self._object_to_pin = buf
+        self.thisptr = new schema_cpp.FlatArrayMessageReader(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8))
 
 def _write_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor
