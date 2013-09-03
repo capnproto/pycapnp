@@ -422,10 +422,10 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
 
 cdef _to_dict(msg):
     msg_type = type(msg)
-    if msg_type is _DynamicListBuilder:
+    if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
         return [_to_dict(x) for x in msg]
 
-    if msg_type is _DynamicStructBuilder:
+    if msg_type is _DynamicStructBuilder or msg_type is _DynamicStructReader:
         ret = {}
         try:
             which = msg.which()
@@ -440,6 +440,31 @@ cdef _to_dict(msg):
         return ret
 
     return msg
+
+import collections as _collections
+cdef _from_dict_helper(msg, field, d):
+    if isinstance(d, dict):
+        sub_msg = getattr(msg, field)
+        for key, val in d.iteritems():
+            if key != 'which':
+                _from_dict_helper(sub_msg, key, val)
+    elif isinstance(d, _collections.Iterable) and not isinstance(d, basestring):
+        l = msg.init(field, len(d))
+        for i in range(len(d)):
+            if isinstance(d[i], dict):
+                for key, val in d[i].iteritems():
+                    if key != 'which':
+                        _from_dict_helper(l[i], key, val)
+            else:
+                l[i] = d[i]
+    else:
+        setattr(msg, field, d)
+
+cdef _from_dict(msg, d):
+    for key, val in d.iteritems():
+        if key != 'which':
+            _from_dict_helper(msg, key, val)
+
 
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
@@ -894,9 +919,18 @@ cdef class SchemaParser:
                             builder = _MallocMessageBuilder()
                             return builder.init_root(local_module)
                         return helper
+                    def from_dict(local_module):
+                        def helper(d):
+                            builder = _MallocMessageBuilder()
+                            msg = builder.init_root(local_module)
+                            _from_dict(msg, d)
+                            return msg
+                        return helper
+
                     local_module.read = read(local_module)
                     local_module.read_packed = read_packed(local_module)
                     local_module.new_message = new_message(local_module)
+                    local_module.from_dict = from_dict(local_module)
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
 

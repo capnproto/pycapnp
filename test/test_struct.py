@@ -25,6 +25,11 @@ def test_which_builder(addressbook):
 
     assert bob.employment.which() == "unemployed"
 
+    with pytest.raises(ValueError):
+        addresses.which()
+    with pytest.raises(ValueError):
+        addresses.which()
+
 def test_which_reader(addressbook):
     def writeAddressBook(fd):
         message = capnp._MallocMessageBuilder()
@@ -52,6 +57,11 @@ def test_which_reader(addressbook):
 
     bob = people[1]
     assert bob.employment.which() == "unemployed"
+
+    with pytest.raises(ValueError):
+        addresses.which()
+    with pytest.raises(ValueError):
+        addresses.which()
 
 def test_builder_set(addressbook):
     person = addressbook.Person.new_message()
