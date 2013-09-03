@@ -16,11 +16,12 @@ First you need to import the library::
 
 Then you can load the Cap'n Proto schema with::
 
-    addressbook = capnp.load('addressbook.capnp')
+    import addressbook_capnp
 
-Note that we assign the loaded module to a variable, named `addressbook`. We'll use this from now on to access the Cap'n Proto schema, ie. when we need to get a Struct's class or accessing const values.
+This will look all through all the directories in your sys.path/PYTHONPATH, and try to find a file of the form 'addressbook.capnp'. If you want to disable the import hook magic that `import capnp` adds, and load manually, here's how::
 
-You can also provide an absolute path to the Cap'n Proto schema you wish to load. Otherwise, it will only look in the current working directory.
+    capnp.remove_import_hook()
+    addressbook_capnp = capnp.load('addressbook.capnp')
 
 For future reference, here is the Cap'n Proto schema. Also available in the github repository under `examples/addressbook.capnp <https://github.com/jparyani/pycapnp/tree/master/examples>`_::
 
@@ -75,7 +76,7 @@ Initialize a New Cap'n Proto Object
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
-    addresses = addressbook.AddressBook.newMessage()
+    addresses = addressbook.AddressBook.new_message()
 
 Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
 
@@ -146,7 +147,7 @@ Writing to a File
 For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon)::
 
     f = open('example.bin', 'w')
-    addresses.writeTo(f)
+    addresses.write(f)
 
 Note the call to fileno(), since it expects a raw file descriptor. There is also `writeMessageToFd` instead of `writePackedMessageToFd`. Make sure your reader uses the same packing type.
 
@@ -159,7 +160,7 @@ Reading from a file
 Much like before, you will have to de-serialize the message from a file descriptor::
 
     f = open('example.bin')
-    addresses = addressbook.AddressBook.readFrom(f
+    addresses = addressbook.AddressBook.read(f)
 
 Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so::
 
@@ -198,6 +199,24 @@ The only tricky one is unions, where you need to call `.which()` to determine th
             print('self employed')
         print()
 
+Dictionaries
+--------------
+
+Converting to a dictionary
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is a convenience method for converting Cap'n Proto messages to a dictionary. This works for both Builder and Reader type messages::
+
+    alice.to_dict()
+
+Reading froma dictionary
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of `Converting to a dictionary`_::
+
+    my_dict = {'name' : 'alice'}
+    alice = addressbook.Person.from_dict(my_dict)
+
 Full Example
 ------------------
 
@@ -207,11 +226,10 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
     import os
     import capnp
 
-    this_dir = os.path.dirname(__file__)
-    addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    import addressbook_capnp
 
     def writeAddressBook(file):
-        addresses = addressbook.AddressBook.newMessage()
+        addresses = addressbook_capnp.AddressBook.new_message()
         people = addresses.init('people', 2)
 
         alice = people[0]
@@ -234,11 +252,11 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
         bobPhones[1].type = 'work'
         bob.employment.unemployed = None
 
-        addresses.writeTo(file)
+        addresses.write(file)
 
 
     def printAddressBook(file):
-        addresses = addressbook.AddressBook.readFrom(file)
+        addresses = addressbook_capnp.AddressBook.read(file)
 
         for person in addresses.people:
             print(person.name, ':', person.email)
@@ -265,3 +283,4 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
 
         f = open('example', 'r')
         printAddressBook(f)
+

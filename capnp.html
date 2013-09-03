@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.3.11 documentation</title>
+    <title>API Reference &mdash; capnp 0.3.12 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.11',
+        VERSION:     '0.3.12',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.11 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.12 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -96,7 +96,7 @@ loaded, you use it much like any other Module:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
 <span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant in the addressbook.capnp schema</span>
 <span class="c"># 123</span>
-<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 </pre></div>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
@@ -137,7 +137,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicStructReader</tt><a class="headerlink" href="#capnp._DynamicStructReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads Cap&#8217;n Proto structs</p>
 <p>This class is almost a 1 for 1 wrapping of the Cap&#8217;n Proto C++ DynamicStruct::Reader. The only difference is that instead of a <cite>get</cite> method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent <cite>get</cite>. This means you just use . syntax to access any field. For field names that don&#8217;t follow valid python naming convention for fields, use the global function <a class="reference external" href="http://docs.python.org/library/functions.html#getattr" title="(in Python v2.7)"><tt class="xref py py-func docutils literal"><span class="pre">getattr()</span></tt></a>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">readFrom</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span> <span class="c"># This returns a _DynamicStructReader</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span> <span class="c"># This returns a _DynamicStructReader</span>
 <span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="c"># using . syntax</span>
 <span class="k">print</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="s">&#39;field-with-hyphens&#39;</span><span class="p">)</span> <span class="c"># for names that are invalid for python, use getattr</span>
 </pre></div>
@@ -149,11 +149,16 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="capnp._DynamicStructReader.to_dict">
+<tt class="descname">to_dict</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="capnp._DynamicStructReader.which">
 <tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.which" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the enum corresponding to the union in this struct</p>
 <p>Enums are just strings in the python Cap&#8217;n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn&#8217;t a union, or a struct with an unnamed union:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 
 <span class="n">person</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
 <span class="c"># ValueError: member was null</span>
@@ -185,7 +190,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <dd><p>Class for reading Cap&#8217;n Proto Lists</p>
 <p>This class thinly wraps the C++ Cap&#8217;n Proto DynamicList::Reader class. __getitem__ and __len__ have been defined properly, so you can treat this class mostly like any other iterable class:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="o">...</span>
-<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">readFrom</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
 
 <span class="n">phones</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span> <span class="c"># This returns a _DynamicListReader</span>
 
@@ -206,7 +211,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicStructBuilder</tt><a class="headerlink" href="#capnp._DynamicStructBuilder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds Cap&#8217;n Proto structs</p>
 <p>This class is almost a 1 for 1 wrapping of the Cap&#8217;n Proto C++ DynamicStruct::Builder. The only difference is that instead of a <cite>get</cite>/<cite>set</cite> method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don&#8217;t follow valid python naming convention for fields, use the global functions <a class="reference external" href="http://docs.python.org/library/functions.html#getattr" title="(in Python v2.7)"><tt class="xref py py-func docutils literal"><span class="pre">getattr()</span></tt></a>/<a class="reference external" href="http://docs.python.org/library/functions.html#setattr" title="(in Python v2.7)"><tt class="xref py py-func docutils literal"><span class="pre">setattr()</span></tt></a>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span> <span class="c"># This returns a _DynamicStructBuilder</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span> <span class="c"># This returns a _DynamicStructBuilder</span>
 
 <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span> <span class="c"># using . syntax</span>
 <span class="k">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="c"># using . syntax</span>
@@ -238,8 +243,8 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="capnp._DynamicStructBuilder.asReader">
-<tt class="descname">asReader</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.asReader" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp._DynamicStructBuilder.as_reader">
+<tt class="descname">as_reader</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.as_reader" title="Permalink to this definition">¶</a></dt>
 <dd><p>A method for casting this Builder to a Reader</p>
 <p>Don&#8217;t use this method unless you know what you&#8217;re doing.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -287,7 +292,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a> or <a class="reference internal" href="#capnp._DynamicListBuilder" title="capnp._DynamicListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicListBuilder</span></tt></a></p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.AttributeError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.AttributeError</span></tt></a> if the field isn&#8217;t in this struct</p>
+<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if the field isn&#8217;t in this struct</p>
 </td>
 </tr>
 </tbody>
@@ -295,8 +300,8 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="capnp._DynamicStructBuilder.initResizableList">
-<tt class="descname">initResizableList</tt><big>(</big><em>self</em>, <em>field</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.initResizableList" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp._DynamicStructBuilder.init_resizable_list">
+<tt class="descname">init_resizable_list</tt><big>(</big><em>self</em>, <em>field</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.init_resizable_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method for initializing fields that are of type list (of structs)</p>
 <p>This version of init returns a <a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicResizableListBuilder</span></tt></a> that allows you to add members one at a time (ie. if you don&#8217;t know the size for sure). This is only meant for lists of Cap&#8217;n Proto objects, since for primitive types you can just define a normal python list and fill it yourself.</p>
 <div class="admonition warning">
@@ -311,7 +316,7 @@ one yourself, but you may end up using some of their member methods.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicResizableListBuilder</span></tt></a></td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.AttributeError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.AttributeError</span></tt></a> if the field isn&#8217;t in this struct</td>
+<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if the field isn&#8217;t in this struct</td>
 </tr>
 </tbody>
 </table>
@@ -324,11 +329,16 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="capnp._DynamicStructBuilder.to_dict">
+<tt class="descname">to_dict</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="capnp._DynamicStructBuilder.which">
 <tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.which" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the enum corresponding to the union in this struct</p>
 <p>Enums are just strings in the python Cap&#8217;n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn&#8217;t a union, or a struct with an unnamed union:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 
 <span class="n">person</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
 <span class="c"># ValueError: member was null</span>
@@ -353,11 +363,11 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="capnp._DynamicStructBuilder.writePackedTo">
-<tt class="descname">writePackedTo</tt><big>(</big><em>self</em>, <em>file</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.writePackedTo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Writes the struct&#8217;s containing message to the given file object in packed binary format.</p>
-<p>This is a shortcut for calling capnp.writePackedMessageToFd().  This can only be called on
-the message&#8217;s root struct.</p>
+<dt id="capnp._DynamicStructBuilder.write">
+<tt class="descname">write</tt><big>(</big><em>self</em>, <em>file</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the struct&#8217;s containing message to the given file object in unpacked binary format.</p>
+<p>This is a shortcut for calling capnp._write_message_to_fd().  This can only be called on the
+message&#8217;s root struct.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -373,11 +383,11 @@ the message&#8217;s root struct.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="capnp._DynamicStructBuilder.writeTo">
-<tt class="descname">writeTo</tt><big>(</big><em>self</em>, <em>file</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.writeTo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Writes the struct&#8217;s containing message to the given file object in unpacked binary format.</p>
-<p>This is a shortcut for calling capnp.writeMessageToFd().  This can only be called on the
-message&#8217;s root struct.</p>
+<dt id="capnp._DynamicStructBuilder.write_packed">
+<tt class="descname">write_packed</tt><big>(</big><em>self</em>, <em>file</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.write_packed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the struct&#8217;s containing message to the given file object in packed binary format.</p>
+<p>This is a shortcut for calling capnp._write_packed_message_to_fd().  This can only be called on
+the message&#8217;s root struct.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -400,7 +410,7 @@ message&#8217;s root struct.</p>
 <dd><p>Class for building Cap&#8217;n Proto Lists</p>
 <p>This class thinly wraps the C++ Cap&#8217;n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__ have been defined properly, so you can treat this class mostly like any other iterable class:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="o">...</span>
-<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 
 <span class="n">phones</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="c"># This returns a _DynamicListBuilder</span>
 
@@ -466,9 +476,9 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 </div>
 <p>This class works much like <a class="reference internal" href="#capnp._DynamicListBuilder" title="capnp._DynamicListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicListBuilder</span></tt></a>, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you&#8217;re much better off using a normal python list and then serializing straight to a Cap&#8217;n Proto list. It has __getitem__ and __len__ defined, but not __setitem__:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="o">...</span>
-<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 
-<span class="n">phones</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">initResizableList</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">)</span> <span class="c"># This returns a _DynamicResizableListBuilder</span>
+<span class="n">phones</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">init_resizable_list</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">)</span> <span class="c"># This returns a _DynamicResizableListBuilder</span>
 
 <span class="n">phone</span> <span class="o">=</span> <span class="n">phones</span><span class="o">.</span><span class="n">add</span><span class="p">()</span>
 <span class="n">phone</span><span class="o">.</span><span class="n">number</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
@@ -478,7 +488,7 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 <span class="n">people</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
 
 <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
-<span class="n">person</span><span class="o">.</span><span class="n">writeTo</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="n">person</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -582,7 +592,7 @@ Class for building growable Cap&#8217;n Proto Lists</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

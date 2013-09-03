@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Quickstart &mdash; capnp 0.3.11 documentation</title>
+    <title>Quickstart &mdash; capnp 0.3.12 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.11',
+        VERSION:     '0.3.12',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.11 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.12 documentation" href="index.html" />
     <link rel="next" title="API Reference" href="capnp.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -64,11 +64,14 @@
 </pre></div>
 </div>
 <p>Then you can load the Cap&#8217;n Proto schema with:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">addressbook_capnp</span>
 </pre></div>
 </div>
-<p>Note that we assign the loaded module to a variable, named <cite>addressbook</cite>. We&#8217;ll use this from now on to access the Cap&#8217;n Proto schema, ie. when we need to get a Struct&#8217;s class or accessing const values.</p>
-<p>You can also provide an absolute path to the Cap&#8217;n Proto schema you wish to load. Otherwise, it will only look in the current working directory.</p>
+<p>This will look all through all the directories in your sys.path/PYTHONPATH, and try to find a file of the form &#8216;addressbook.capnp&#8217;. If you want to disable the import hook magic that <cite>import capnp</cite> adds, and load manually, here&#8217;s how:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">capnp</span><span class="o">.</span><span class="n">remove_import_hook</span><span class="p">()</span>
+<span class="n">addressbook_capnp</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>For future reference, here is the Cap&#8217;n Proto schema. Also available in the github repository under <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/examples">examples/addressbook.capnp</a>:</p>
 <div class="highlight-python"><pre># addressbook.capnp
 0x934efea7f017fff0;
@@ -119,7 +122,7 @@ struct AddressBook {
 <div class="section" id="initialize-a-new-cap-n-proto-object">
 <h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#initialize-a-new-cap-n-proto-object" title="Permalink to this headline">¶</a></h3>
 <p>Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Notice that we used <cite>addressbook</cite> from the previous section: <a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a>.</p>
@@ -187,7 +190,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <h3>Writing to a File<a class="headerlink" href="#writing-to-a-file" title="Permalink to this headline">¶</a></h3>
 <p>For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon):</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
-<span class="n">addresses</span><span class="o">.</span><span class="n">writeTo</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note the call to fileno(), since it expects a raw file descriptor. There is also <cite>writeMessageToFd</cite> instead of <cite>writePackedMessageToFd</cite>. Make sure your reader uses the same packing type.</p>
@@ -198,8 +201,9 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <div class="section" id="reading-from-a-file">
 <h3>Reading from a file<a class="headerlink" href="#reading-from-a-file" title="Permalink to this headline">¶</a></h3>
 <p>Much like before, you will have to de-serialize the message from a file descriptor:</p>
-<div class="highlight-python"><pre>f = open('example.bin')
-addresses = addressbook.AddressBook.readFrom(f</pre>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">)</span>
+<span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
 </div>
 <p>Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so:</p>
 <div class="highlight-python"><pre>struct Message {
@@ -239,6 +243,24 @@ addresses = addressbook.AddressBook.readFrom(f</pre>
 </div>
 </div>
 </div>
+<div class="section" id="dictionaries">
+<h2>Dictionaries<a class="headerlink" href="#dictionaries" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="converting-to-a-dictionary">
+<h3>Converting to a dictionary<a class="headerlink" href="#converting-to-a-dictionary" title="Permalink to this headline">¶</a></h3>
+<p>There is a convenience method for converting Cap&#8217;n Proto messages to a dictionary. This works for both Builder and Reader type messages:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reading-froma-dictionary">
+<h3>Reading froma dictionary<a class="headerlink" href="#reading-froma-dictionary" title="Permalink to this headline">¶</a></h3>
+<p>There is a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of <a class="reference internal" href="#converting-to-a-dictionary">Converting to a dictionary</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">my_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span> <span class="p">:</span> <span class="s">&#39;alice&#39;</span><span class="p">}</span>
+<span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">my_dict</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
 <div class="section" id="full-example">
 <h2>Full Example<a class="headerlink" href="#full-example" title="Permalink to this headline">¶</a></h2>
 <p>Here is a full example reproduced from <a class="reference external" href="https://github.com/jparyani/pycapnp/blob/master/examples/example.py">examples/example.py</a>:</p>
@@ -246,11 +268,10 @@ addresses = addressbook.AddressBook.readFrom(f</pre>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">capnp</span>
 
-<span class="n">this_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">)</span>
-<span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">this_dir</span><span class="p">,</span> <span class="s">&#39;addressbook.capnp&#39;</span><span class="p">))</span>
+<span class="kn">import</span> <span class="nn">addressbook_capnp</span>
 
 <span class="k">def</span> <span class="nf">writeAddressBook</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
-    <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">newMessage</span><span class="p">()</span>
+    <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
     <span class="n">people</span> <span class="o">=</span> <span class="n">addresses</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
     <span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -273,11 +294,11 @@ addresses = addressbook.AddressBook.readFrom(f</pre>
     <span class="n">bobPhones</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;work&#39;</span>
     <span class="n">bob</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">unemployed</span> <span class="o">=</span> <span class="bp">None</span>
 
-    <span class="n">addresses</span><span class="o">.</span><span class="n">writeTo</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
+    <span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">printAddressBook</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
-    <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">readFrom</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
+    <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addresses</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
         <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
@@ -337,6 +358,11 @@ addresses = addressbook.AddressBook.readFrom(f</pre>
 <li><a class="reference internal" href="#reading-unions">Reading Unions</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#dictionaries">Dictionaries</a><ul>
+<li><a class="reference internal" href="#converting-to-a-dictionary">Converting to a dictionary</a></li>
+<li><a class="reference internal" href="#reading-froma-dictionary">Reading froma dictionary</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#full-example">Full Example</a></li>
 </ul>
 </li>
@@ -385,7 +411,7 @@ addresses = addressbook.AddressBook.readFrom(f</pre>
         <li class="right" >
           <a href="install.html" title="Installation"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

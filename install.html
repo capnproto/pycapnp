@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Installation &mdash; capnp 0.3.11 documentation</title>
+    <title>Installation &mdash; capnp 0.3.12 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.11',
+        VERSION:     '0.3.12',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.11 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.12 documentation" href="index.html" />
     <link rel="next" title="Quickstart" href="quickstart.html" />
     <link rel="prev" title="Welcome to capnp’s documentation!" href="index.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to capnp’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -69,9 +69,12 @@ sudo make install</pre>
 <div class="section" id="pip">
 <h2>Pip<a class="headerlink" href="#pip" title="Permalink to this headline">¶</a></h2>
 <p>Using pip is by far the easiest way to install the library. After you&#8217;ve installed the C++ library, all you need to run is:</p>
-<div class="highlight-python"><pre>pip install -U cython
-pip install -U setuptools
-pip install pycapnp</pre>
+<div class="highlight-python"><pre>[sudo] pip install -U cython
+[sudo] pip install -U setuptools
+[sudo] pip install pycapnp</pre>
+</div>
+<p>On some systems you will have to install Python&#8217;s headers before doing any of this. For Debian/Ubuntu, this is:</p>
+<div class="highlight-python"><pre>sudo apt-get install python-dev</pre>
 </div>
 <p>You can control the compiler version with the environment variable CC, ie. <cite>CC=gcc-4.8 pip install pycapnp</cite>. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.</p>
 </div>
@@ -162,7 +165,7 @@ py.test</pre>
         <li class="right" >
           <a href="index.html" title="Welcome to capnp’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.11 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
