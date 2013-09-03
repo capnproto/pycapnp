@@ -946,16 +946,16 @@ cdef class SchemaParser:
                             reader = _PackedFdMessageReader(file.fileno())
                             return reader.get_root(bound_local_module)
                         return helper
-                    def make_from_bytes(local_module):
+                    def make_from_bytes(bound_local_module):
                         def from_bytes(buf):
                             """Returns a Reader for the unpacked object in buf.
 
                             :type buf: buffer
                             :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern."""
                             reader = _FlatArrayMessageReader(buf)
-                            return reader.get_root(local_module)
+                            return reader.get_root(bound_local_module)
                         return from_bytes
-                    def new_message(local_module):
+                    def new_message(bound_local_module):
                         def helper():
                             builder = _MallocMessageBuilder()
                             return builder.init_root(bound_local_module)
