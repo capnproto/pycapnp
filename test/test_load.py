@@ -55,6 +55,9 @@ def test_failed_import():
     with pytest.raises(ValueError):
         bar.foo = foo
 
+def test_defualt_import_hook():
+    import addressbook_capnp
+
 def test_add_import_hook():
     capnp.add_import_hook([this_dir])
 

@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -130,7 +130,7 @@ cdef class _DynamicListReader:
     This class thinly wraps the C++ Cap'n Proto DynamicList::Reader class. __getitem__ and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
 
         ...
-        person = addressbook.Person.readFrom(file)
+        person = addressbook.Person.read(file)
 
         phones = person.phones # This returns a _DynamicListReader
 
@@ -172,7 +172,7 @@ cdef class _DynamicResizableListBuilder:
     This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you're much better off using a normal python list and then serializing straight to a Cap'n Proto list. It has __getitem__ and __len__ defined, but not __setitem__::
 
         ...
-        person = addressbook.Person.newMessage()
+        person = addressbook.Person.new_message()
 
         phones = person.init_resizable_list('phones') # This returns a _DynamicResizableListBuilder
         
@@ -234,7 +234,7 @@ cdef class _DynamicListBuilder:
     This class thinly wraps the C++ Cap'n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
 
         ...
-        person = addressbook.Person.newMessage()
+        person = addressbook.Person.new_message()
 
         phones = person.init('phones', 2) # This returns a _DynamicListBuilder
         
@@ -253,7 +253,7 @@ cdef class _DynamicListBuilder:
         self._parent = parent
         return self
 
-    cdef _get(self, index) except +ValueError:
+    cdef _get(self, index):
         return to_python_builder(self.thisptr[index], self._parent)
 
     def __getitem__(self, index):
@@ -420,12 +420,33 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     else:
         raise ValueError("Non primitive type")
 
+cdef _to_dict(msg):
+    msg_type = type(msg)
+    if msg_type is _DynamicListBuilder:
+        return [_to_dict(x) for x in msg]
+
+    if msg_type is _DynamicStructBuilder:
+        ret = {}
+        try:
+            which = msg.which()
+            ret['which'] = which
+            ret[which] = getattr(msg, which)
+        except ValueError:
+            pass
+
+        for field in msg.schema.non_union_fields:
+            ret[field] = _to_dict(getattr(msg, field))
+
+        return ret
+
+    return msg
+
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
 
     This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Reader. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
 
-        person = addressbook.Person.readFrom(file) # This returns a _DynamicStructReader
+        person = addressbook.Person.read(file) # This returns a _DynamicStructReader
         print person.name # using . syntax
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
@@ -443,12 +464,12 @@ cdef class _DynamicStructReader:
     def _has(self, field):
         return self.thisptr.has(field)
 
-    cpdef which(self) except +ValueError:
+    cpdef which(self):
         """Returns the enum corresponding to the union in this struct
 
         Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
 
-            person = addressbook.Person.newMessage()
+            person = addressbook.Person.new_message()
             
             person.which()
             # ValueError: member was null
@@ -462,7 +483,11 @@ cdef class _DynamicStructReader:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
+        cdef object which = getEnumString(self.thisptr)
+        if len(which) == 0:
+            raise ValueError("Attempted to call which on a non-union type")
+
+        return which
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -478,12 +503,15 @@ cdef class _DynamicStructReader:
     def __repr__(self):
         return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
 
+    def to_dict(self):
+        return _to_dict(self)
+
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
 
     This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder. The only difference is that instead of a `get`/`set` method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don't follow valid python naming convention for fields, use the global functions :py:func:`getattr`/:py:func:`setattr`::
 
-        person = addressbook.Person.newMessage() # This returns a _DynamicStructBuilder
+        person = addressbook.Person.new_message() # This returns a _DynamicStructBuilder
         
         person.name = 'foo' # using . syntax
         print person.name # using . syntax
@@ -534,7 +562,7 @@ cdef class _DynamicStructBuilder:
             raise ValueError("You can only call write() on the message's root struct.")
         _write_packed_message_to_fd(file.fileno(), self._parent)
 
-    cdef _get(self, field) except +ValueError:
+    cdef _get(self, field):
         return to_python_builder(self.thisptr.get(field), self._parent)
 
     def __getattr__(self, field):
@@ -546,7 +574,7 @@ cdef class _DynamicStructBuilder:
     def _has(self, field):
         return self.thisptr.has(field)
 
-    cpdef init(self, field, size=None) except +AttributeError:
+    cpdef init(self, field, size=None):
         """Method for initializing fields that are of type union/struct/list
 
         Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists. 
@@ -559,7 +587,7 @@ cdef class _DynamicStructBuilder:
 
         :rtype: :class:`_DynamicStructBuilder` or :class:`_DynamicListBuilder`
 
-        :Raises: :exc:`exceptions.AttributeError` if the field isn't in this struct
+        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
         """
         if size is None:
             return to_python_builder(self.thisptr.init(field), self._parent)
@@ -578,16 +606,16 @@ cdef class _DynamicStructBuilder:
 
         :rtype: :class:`_DynamicResizableListBuilder`
 
-        :Raises: :exc:`exceptions.AttributeError` if the field isn't in this struct
+        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
         """
         return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
-    cpdef which(self) except +ValueError:
+    cpdef which(self):
         """Returns the enum corresponding to the union in this struct
 
         Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
 
-            person = addressbook.Person.newMessage()
+            person = addressbook.Person.new_message()
             
             person.which()
             # ValueError: member was null
@@ -601,7 +629,11 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        return fixMaybe(self.thisptr.which()).getProto().getName().cStr()
+        cdef object which = getEnumString(self.thisptr)
+        if len(which) == 0:
+            raise ValueError("Attempted to call which on a non-union type")
+
+        return which
 
     cpdef adopt(self, field, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
@@ -657,6 +689,9 @@ cdef class _DynamicStructBuilder:
     def __repr__(self):
         return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(self.thisptr).cStr())
 
+    def to_dict(self):
+        return _to_dict(self)
+
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
     cdef public object _parent
@@ -701,10 +736,12 @@ cdef class _Schema:
 
 cdef class _StructSchema:
     cdef C_StructSchema thisptr
-    cdef object __fieldnames
+    cdef object __fieldnames, __union_fields, __non_union_fields
     cdef _init(self, C_StructSchema other):
         self.thisptr = other
         self.__fieldnames = None
+        self.__union_fields = None
+        self.__non_union_fields = None
         return self
 
     property fieldnames:
@@ -717,6 +754,28 @@ cdef class _StructSchema:
             self.__fieldnames = tuple(fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__fieldnames
+
+    property union_fields:
+        """A tuple of the field names in the struct."""
+        def __get__(self):
+            if self.__union_fields is not None:
+               return self.__union_fields
+            fieldlist = self.thisptr.getUnionFields()
+            nfields = fieldlist.size()
+            self.__union_fields = tuple(fieldlist[i].getProto().getName().cStr()
+                                      for i in xrange(nfields))
+            return self.__union_fields
+
+    property non_union_fields:
+        """A tuple of the field names in the struct."""
+        def __get__(self):
+            if self.__non_union_fields is not None:
+               return self.__non_union_fields
+            fieldlist = self.thisptr.getNonUnionFields()
+            nfields = fieldlist.size()
+            self.__non_union_fields = tuple(fieldlist[i].getProto().getName().cStr()
+                                      for i in xrange(nfields))
+            return self.__non_union_fields
 
     property node:
         """The raw schema node"""
@@ -786,7 +845,7 @@ cdef class SchemaParser:
             addressbook = parser.load('addressbook.capnp')
             print addressbook.qux # qux is a top level constant
             # 123
-            person = addressbook.Person.newMessage()
+            person = addressbook.Person.new_message()
 
         :type file_name: str
         :param file_name: A relative or absolute path to a Cap'n Proto schema
@@ -820,18 +879,24 @@ cdef class SchemaParser:
                 proto = schema.get_proto()
                 if proto.isStruct:
                     local_module.schema = schema.as_struct()
-                    def read(file):
-                        reader = _StreamFdMessageReader(file.fileno())
-                        return reader.get_root(local_module)
+                    def read(local_module):
+                        def read_helper(file):
+                            reader = _StreamFdMessageReader(file.fileno())
+                            return reader.get_root(local_module)
+                        return read_helper
                     def read_packed(file):
-                        reader = _PackedFdMessageReader(file.fileno())
-                        return reader.get_root(local_module)
-                    def new_message():
-                        builder = _MallocMessageBuilder()
-                        return builder.init_root(local_module)
-                    local_module.read = read
-                    local_module.read_packed = read_packed
-                    local_module.new_message = new_message
+                        def read_helper(file):
+                            reader = _PackedFdMessageReader(file.fileno())
+                            return reader.get_root(local_module)
+                        return read_helper
+                    def new_message(local_module):
+                        def helper():
+                            builder = _MallocMessageBuilder()
+                            return builder.init_root(local_module)
+                        return helper
+                    local_module.read = read(local_module)
+                    local_module.read_packed = read_packed(local_module)
+                    local_module.new_message = new_message(local_module)
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
 
@@ -1110,7 +1175,7 @@ def load(file_name, display_name=None, imports=[]):
         addressbook = capnp.load('addressbook.capnp')
         print addressbook.qux # qux is a top level constant in the addressbook.capnp schema
         # 123
-        person = addressbook.Person.newMessage()
+        person = addressbook.Person.new_message()
 
     :type file_name: str
     :param file_name: A relative or absolute path to a Cap'n Proto schema

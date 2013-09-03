@@ -50,7 +50,14 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
             uint size()
             Field operator[](uint index)
 
+        cppclass FieldSubset:
+            uint size()
+            Field operator[](uint index)
+
         FieldList getFields()
+        FieldSubset getUnionFields()
+        FieldSubset getNonUnionFields()
+
         Field getFieldByName(char * name)
 
     cdef cppclass EnumSchema:
@@ -101,20 +108,21 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Builder:
             Builder()
             Builder(Builder &)
-            DynamicValueForward.Builder get(char *)
+            DynamicValueForward.Builder get(char *) except +ValueError
             bint has(char *) except +ValueError
             void set(char *, DynamicValueForward.Reader) except +ValueError
-            DynamicValueForward.Builder init(char *, uint size)
-            DynamicValueForward.Builder init(char *)
+            DynamicValueForward.Builder init(char *, uint size) except +ValueError
+            DynamicValueForward.Builder init(char *) except +ValueError
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
-            void adopt(char *, DynamicOrphan)
+            void adopt(char *, DynamicOrphan) except +ValueError
             DynamicOrphan disown(char *)
             DynamicStruct.Reader asReader()
 
 cdef extern from "fixMaybe.h":
-    StructSchema.Field fixMaybe(Maybe[StructSchema.Field]) except+
-    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except+
+    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +ValueError
+    char * getEnumString(DynamicStruct.Reader val)
+    char * getEnumString(DynamicStruct.Builder val)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
@@ -128,11 +136,11 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Builder:
             Builder()
             Builder(Builder &)
-            DynamicValueForward.Builder operator[](uint)
+            DynamicValueForward.Builder operator[](uint) except +ValueError
             uint size()
             void set(uint index, DynamicValueForward.Reader value) except +ValueError
             DynamicValueForward.Builder init(uint index, uint size) except +ValueError
-            void adopt(uint, DynamicOrphan)
+            void adopt(uint, DynamicOrphan) except +ValueError
             DynamicOrphan disown(uint)
             StructSchema getStructElementType'getSchema().getStructElementType'()
 
