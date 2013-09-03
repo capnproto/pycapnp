@@ -807,6 +807,14 @@ cdef class _StructSchema:
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), None)
 
+    def __richcmp__(_StructSchema self, _StructSchema other, mode):
+        if mode == 2:
+            return bool(self.thisptr == other.thisptr)
+        elif mode == 3:
+            return not (self.thisptr == other.thisptr)
+        else:
+            raise NotImplementedError()
+
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
 
@@ -830,6 +838,11 @@ cdef class _ParsedSchema:
 
     cpdef getNested(self, name):
         return _ParsedSchema()._init(self.thisptr.getNested(name))
+
+class _StructABCMeta(type):
+    """A metaclass for the Type.Reader and Type.Builder ABCs."""
+    def __instancecheck__(cls, obj):
+        return isinstance(obj, cls.__base__) and obj.schema == cls._schema
 
 cdef class SchemaParser:
     """A class for loading Cap'n Proto schema files.
@@ -926,11 +939,28 @@ cdef class SchemaParser:
                             _from_dict(msg, d)
                             return msg
                         return helper
+                    class Reader(_DynamicStructReader):
+                        """An abstract base class.  Readers are 'instances' of this class."""
+                        __metaclass__ = _StructABCMeta
+                        __slots__ = []
+                        _schema = local_module.schema
+                        def __new__(self):
+                            raise TypeError('This is an abstract base class')
+                    Reader._module = local_module
+                    class Builder(_DynamicStructBuilder):
+                        """An abstract base class.  Builders are 'instances' of this class."""
+                        __metaclass__ = _StructABCMeta
+                        __slots__ = []
+                        _schema = local_module.schema
+                        def __new__(self):
+                            raise TypeError('This is an abstract base class')
 
                     local_module.read = read(local_module)
                     local_module.read_packed = read_packed(local_module)
                     local_module.new_message = new_message(local_module)
                     local_module.from_dict = from_dict(local_module)
+                    local_module.Reader = Reader
+                    local_module.Builder = Builder
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
 
