@@ -809,7 +809,7 @@ cdef class _StructSchema:
 
     def __richcmp__(_StructSchema self, _StructSchema other, mode):
         if mode == 2:
-            return bool(self.thisptr == other.thisptr)
+            return self.thisptr == other.thisptr
         elif mode == 3:
             return not (self.thisptr == other.thisptr)
         else:
