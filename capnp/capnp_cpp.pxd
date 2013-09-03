@@ -60,6 +60,8 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
 
         Field getFieldByName(char * name)
 
+        int operator == (StructSchema)
+
     cdef cppclass EnumSchema:
         cppclass Enumerant:
             EnumNode.Enumerant.Reader getProto()
