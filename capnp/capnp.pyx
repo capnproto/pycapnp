@@ -1139,6 +1139,12 @@ class _Loader:
     def __init__(self, fullname, path, additional_paths):
         self.fullname = fullname
         self.path = path
+
+        # Add current directory of the capnp schema to search path
+        dir_name = _os.path.dirname(path)
+        if path is not '':
+            additional_paths = [dir_name] + additional_paths
+
         self.additional_paths = additional_paths
 
     def load_module(self, fullname):
@@ -1146,7 +1152,7 @@ class _Loader:
             "invalid module, expected %s, got %s" % (
             self.fullname, fullname))
 
-        imports = self.additional_paths + _sys.path
+        imports = self.additional_paths + _sys.path # TODO: change '' to '.' in sys.path
         module = load(self.path, fullname, imports=imports)
         _sys.modules[fullname] = module
 
@@ -1169,7 +1175,7 @@ class _Importer:
         if not module_name.endswith('_capnp'):
             return None
 
-        module_name = module_name.rstrip('_capnp')
+        module_name = module_name[:-len('_capnp')]
         capnp_module_name = module_name + self.extension
 
         if package_path:
