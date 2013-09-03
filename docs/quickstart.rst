@@ -22,7 +22,7 @@ This will look all through all the directories in your sys.path/PYTHONPATH, and 
 
     capnp.remove_import_hook()
     addressbook_capnp = capnp.load('addressbook.capnp')
-    
+
 For future reference, here is the Cap'n Proto schema. Also available in the github repository under `examples/addressbook.capnp <https://github.com/jparyani/pycapnp/tree/master/examples>`_::
 
     # addressbook.capnp
@@ -198,6 +198,24 @@ The only tricky one is unions, where you need to call `.which()` to determine th
         elif which == 'selfEmployed':
             print('self employed')
         print()
+
+Dictionaries
+--------------
+
+Converting to a dictionary
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is a convenience method for converting Cap'n Proto messages to a dictionary. This works for both Builder and Reader type messages::
+
+    alice.to_dict()
+
+Reading froma dictionary
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of `Converting to a dictionary`_::
+
+    my_dict = {'name' : 'alice'}
+    alice = addressbook.Person.from_dict(my_dict)
 
 Full Example
 ------------------
