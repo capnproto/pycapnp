@@ -917,25 +917,25 @@ cdef class SchemaParser:
                 proto = schema.get_proto()
                 if proto.isStruct:
                     local_module.schema = schema.as_struct()
-                    def read(local_module):
-                        def read_helper(file):
+                    def read(bound_local_module):
+                        def helper(file):
                             reader = _StreamFdMessageReader(file.fileno())
-                            return reader.get_root(local_module)
+                            return reader.get_root(bound_local_module)
                         return read_helper
-                    def read_packed(file):
-                        def read_helper(file):
+                    def read_packed(bound_local_module):
+                        def helper(file):
                             reader = _PackedFdMessageReader(file.fileno())
-                            return reader.get_root(local_module)
+                            return reader.get_root(bound_local_module)
                         return read_helper
-                    def new_message(local_module):
+                    def new_message(bound_local_module):
                         def helper():
                             builder = _MallocMessageBuilder()
-                            return builder.init_root(local_module)
+                            return builder.init_root(bound_local_module)
                         return helper
-                    def from_dict(local_module):
+                    def from_dict(bound_local_module):
                         def helper(d):
                             builder = _MallocMessageBuilder()
-                            msg = builder.init_root(local_module)
+                            msg = builder.init_root(bound_local_module)
                             _from_dict(msg, d)
                             return msg
                         return helper
