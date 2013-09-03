@@ -921,12 +921,12 @@ cdef class SchemaParser:
                         def helper(file):
                             reader = _StreamFdMessageReader(file.fileno())
                             return reader.get_root(bound_local_module)
-                        return read_helper
+                        return helper
                     def read_packed(bound_local_module):
                         def helper(file):
                             reader = _PackedFdMessageReader(file.fileno())
                             return reader.get_root(bound_local_module)
-                        return read_helper
+                        return helper
                     def new_message(bound_local_module):
                         def helper():
                             builder = _MallocMessageBuilder()
