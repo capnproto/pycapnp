@@ -1,6 +1,7 @@
 import pytest
 import capnp
 import os
+import platform
 
 this_dir = os.path.dirname(__file__)
 
@@ -83,6 +84,7 @@ def test_roundtrip_bytes(addressbook):
     msg = addressbook.AddressBook.from_bytes(message_bytes)
     check_msg(msg)
 
+@pytest.mark.skipif("platform.python_implementation() == 'PyPy'")
 def test_roundtrip_dict(addressbook):
     msg = build_message(addressbook)
     d = msg.to_dict()
