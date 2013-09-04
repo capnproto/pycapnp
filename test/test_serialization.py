@@ -67,6 +67,15 @@ def test_roundtrip_file(addressbook):
     msg = addressbook.AddressBook.read(f)
     check_msg(msg)
 
+def test_roundtrip_file_packed(addressbook):
+    f = open('example', 'w')
+    msg = build_message(addressbook)
+    msg.write_packed(f)
+
+    f = open('example', 'r')
+    msg = addressbook.AddressBook.read_packed(f)
+    check_msg(msg)
+
 def test_roundtrip_bytes(addressbook):
     msg = build_message(addressbook)
     message_bytes = msg.to_bytes()
