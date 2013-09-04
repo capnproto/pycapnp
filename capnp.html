@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.3.12 documentation</title>
+    <title>API Reference &mdash; capnp 0.3.13 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.12',
+        VERSION:     '0.3.13',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.12 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.13 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.13 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -329,6 +329,23 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="capnp._DynamicStructBuilder.to_bytes">
+<tt class="descname">to_bytes</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the struct&#8217;s containing message as a Python bytes object in the unpacked binary format.</p>
+<p>This is inefficient; it makes several copies.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bytes</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this isn&#8217;t the message&#8217;s root struct.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="capnp._DynamicStructBuilder.to_dict">
 <tt class="descname">to_dict</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -592,7 +609,7 @@ Class for building growable Cap&#8217;n Proto Lists</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.13 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Installation &mdash; capnp 0.3.12 documentation</title>
+    <title>Installation &mdash; capnp 0.3.13 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.12',
+        VERSION:     '0.3.13',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.12 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.13 documentation" href="index.html" />
     <link rel="next" title="Quickstart" href="quickstart.html" />
     <link rel="prev" title="Welcome to capnp’s documentation!" href="index.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to capnp’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.13 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -58,11 +58,11 @@
 <div class="section" id="c-cap-n-proto-library">
 <h2>C++ Cap&#8217;n Proto Library<a class="headerlink" href="#c-cap-n-proto-library" title="Permalink to this headline">¶</a></h2>
 <p>You need to install the C++ Cap&#8217;n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at <a class="reference external" href="http://kentonv.github.io/capnproto/install.html">http://kentonv.github.io/capnproto/install.html</a>, or if you&#8217;re feeling lazy, you can run the commands below:</p>
-<div class="highlight-python"><pre>wget http://capnproto.org/capnproto-c++-0.3.0-rc5.tar.gz
-tar xzf capnproto-c++-0.3.0-rc5.tar.gz
-cd capnproto-c++-0.3.0-rc5
+<div class="highlight-python"><pre>curl -O http://capnproto.org/capnproto-c++-0.3.0.tar.gz
+tar zxf capnproto-c++-0.3.0.tar.gz
+cd capnproto-c++-0.3.0
 ./configure
-make -j8 check
+make -j6 check
 sudo make install</pre>
 </div>
 </div>
@@ -76,7 +76,7 @@ sudo make install</pre>
 <p>On some systems you will have to install Python&#8217;s headers before doing any of this. For Debian/Ubuntu, this is:</p>
 <div class="highlight-python"><pre>sudo apt-get install python-dev</pre>
 </div>
-<p>You can control the compiler version with the environment variable CC, ie. <cite>CC=gcc-4.8 pip install pycapnp</cite>. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.</p>
+<p>You can control what compiler is used with the environment variable CC, ie. <cite>CC=gcc-4.8 pip install pycapnp</cite>. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.</p>
 </div>
 <div class="section" id="from-source">
 <h2>From Source<a class="headerlink" href="#from-source" title="Permalink to this headline">¶</a></h2>
@@ -165,7 +165,7 @@ py.test</pre>
         <li class="right" >
           <a href="index.html" title="Welcome to capnp’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.13 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

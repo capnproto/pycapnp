@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Quickstart &mdash; capnp 0.3.12 documentation</title>
+    <title>Quickstart &mdash; capnp 0.3.13 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.12',
+        VERSION:     '0.3.13',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.12 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.3.13 documentation" href="index.html" />
     <link rel="next" title="API Reference" href="capnp.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.13 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -243,21 +243,43 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 </div>
 </div>
-<div class="section" id="dictionaries">
-<h2>Dictionaries<a class="headerlink" href="#dictionaries" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="converting-to-a-dictionary">
-<h3>Converting to a dictionary<a class="headerlink" href="#converting-to-a-dictionary" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="serializing-deserializing">
+<h2>Serializing/Deserializing<a class="headerlink" href="#serializing-deserializing" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="files">
+<h3>Files<a class="headerlink" href="#files" title="Permalink to this headline">¶</a></h3>
+<p>As shown in the examples above, there is file serialization with <cite>write()</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+<span class="o">...</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>And similarly for reading:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">)</span>
+<span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dictionaries-experimental">
+<h3>Dictionaries (Experimental)<a class="headerlink" href="#dictionaries-experimental" title="Permalink to this headline">¶</a></h3>
 <p>There is a convenience method for converting Cap&#8217;n Proto messages to a dictionary. This works for both Builder and Reader type messages:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="reading-froma-dictionary">
-<h3>Reading froma dictionary<a class="headerlink" href="#reading-froma-dictionary" title="Permalink to this headline">¶</a></h3>
-<p>There is a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of <a class="reference internal" href="#converting-to-a-dictionary">Converting to a dictionary</a>:</p>
+<p>There is also a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of the above:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">my_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span> <span class="p">:</span> <span class="s">&#39;alice&#39;</span><span class="p">}</span>
 <span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">my_dict</span><span class="p">)</span>
 </pre></div>
+</div>
+</div>
+<div class="section" id="byte-strings-buffers">
+<h3>Byte Strings/Buffers<a class="headerlink" href="#byte-strings-buffers" title="Permalink to this headline">¶</a></h3>
+<p>There is serialization to a byte string available:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">encoded_message</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>And a corresponding from_bytes function:</p>
+<div class="highlight-python"><pre>alice addressbook.Person.from_bytes(encoded_message)</pre>
 </div>
 </div>
 </div>
@@ -358,9 +380,10 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <li><a class="reference internal" href="#reading-unions">Reading Unions</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#dictionaries">Dictionaries</a><ul>
-<li><a class="reference internal" href="#converting-to-a-dictionary">Converting to a dictionary</a></li>
-<li><a class="reference internal" href="#reading-froma-dictionary">Reading froma dictionary</a></li>
+<li><a class="reference internal" href="#serializing-deserializing">Serializing/Deserializing</a><ul>
+<li><a class="reference internal" href="#files">Files</a></li>
+<li><a class="reference internal" href="#dictionaries-experimental">Dictionaries (Experimental)</a></li>
+<li><a class="reference internal" href="#byte-strings-buffers">Byte Strings/Buffers</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#full-example">Full Example</a></li>
@@ -411,7 +434,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
         <li class="right" >
           <a href="install.html" title="Installation"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.12 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.3.13 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
