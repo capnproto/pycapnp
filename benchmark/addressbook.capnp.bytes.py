@@ -30,11 +30,11 @@ def writeAddressBook(f):
     bobPhones[1].number = "555-7654"
     bobPhones[1].type = 'work'
 
-    addressBook.write(f)
+    msg_bytes = addressBook.to_bytes()
+    f.write(msg_bytes)
 
-
-def printAddressBook(f):
-    addressBook = addressbook.AddressBook.read(f)
+def printAddressBook(msg_bytes):
+    addressBook = addressbook.AddressBook.from_bytes(msg_bytes)
 
     for person in addressBook.people:
         print(person.name, ':', person.email)
@@ -49,6 +49,6 @@ if __name__ == '__main__':
         writeAddressBook(f)
 
         f = open('example', 'r')
-        printAddressBook(f)
+        printAddressBook(f.read())
 
 os.remove('example')
