@@ -217,7 +217,7 @@ And similarly for reading::
     f = open('example.bin')
     addresses = addressbook.AddressBook.read(f)
 
-Dictionaries (Experimental)
+Dictionaries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There is a convenience method for converting Cap'n Proto messages to a dictionary. This works for both Builder and Reader type messages::
@@ -238,7 +238,7 @@ There is serialization to a byte string available::
 
 And a corresponding from_bytes function::
 
-    alice addressbook.Person.from_bytes(encoded_message)
+    alice = addressbook.Person.from_bytes(encoded_message)
 
 Full Example
 ------------------
