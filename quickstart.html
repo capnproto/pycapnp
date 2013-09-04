@@ -111,7 +111,7 @@ struct AddressBook {
 <div class="section" id="const-values">
 <h3>Const values<a class="headerlink" href="#const-values" title="Permalink to this headline">¶</a></h3>
 <p>Const values show up just as you&#8217;d expect under the loaded schema. For example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">addressbook_capnpqux</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">qux</span>
 <span class="c"># 123</span>
 </pre></div>
 </div>
@@ -122,7 +122,7 @@ struct AddressBook {
 <div class="section" id="initialize-a-new-cap-n-proto-object">
 <h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#initialize-a-new-cap-n-proto-object" title="Permalink to this headline">¶</a></h3>
 <p>Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnpAddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Notice that we used <cite>addressbook</cite> from the previous section: <a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a>.</p>
@@ -268,7 +268,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 <p>There is also a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of the above:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">my_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span> <span class="p">:</span> <span class="s">&#39;alice&#39;</span><span class="p">}</span>
-<span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">my_dict</span><span class="p">)</span>
+<span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">my_dict</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -279,7 +279,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </pre></div>
 </div>
 <p>And a corresponding from_bytes function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">encoded_message</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">encoded_message</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

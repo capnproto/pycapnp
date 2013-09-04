@@ -65,7 +65,7 @@ Const values
 
 Const values show up just as you'd expect under the loaded schema. For example::
     
-    print addressbook_capnpqux
+    print addressbook_capnp.qux
     # 123
 
 Build a message
@@ -76,7 +76,7 @@ Initialize a New Cap'n Proto Object
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
-    addresses = addressbook_capnpAddressBook.new_message()
+    addresses = addressbook_capnp.AddressBook.new_message()
 
 Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
 
@@ -227,7 +227,7 @@ There is a convenience method for converting Cap'n Proto messages to a dictionar
 There is also a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of the above::
 
     my_dict = {'name' : 'alice'}
-    alice = addressbook_capnp.Person.from_dict(my_dict)
+    alice = addressbook.Person.from_dict(my_dict)
 
 Byte Strings/Buffers
 ~~~~~~~~~~~~~~~~~~~~~
@@ -238,7 +238,7 @@ There is serialization to a byte string available::
 
 And a corresponding from_bytes function::
 
-    alice = addressbook_capnp.Person.from_bytes(encoded_message)
+    alice = addressbook.Person.from_bytes(encoded_message)
 
 Full Example
 ------------------
