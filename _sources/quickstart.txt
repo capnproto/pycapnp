@@ -144,12 +144,12 @@ Also, one weird case is for Void types in Unions (and in general, but Void is re
 Writing to a File
 ~~~~~~~~~~~~~~~~~~~
 
-For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon)::
+Once you're done assigning to all the fields in a message, you can write it to a file like so::
 
     f = open('example.bin', 'w')
     addresses.write(f)
 
-Note the call to fileno(), since it expects a raw file descriptor. There is also `writeMessageToFd` instead of `writePackedMessageToFd`. Make sure your reader uses the same packing type.
+There is also a `write_packed` function, that writes out the message more space-efficientally. If you use write_packed, make sure to use read_packed when reading the message.
 
 Read a message
 -----------------
