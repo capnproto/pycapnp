@@ -5,6 +5,7 @@
 
 from libc.stdint cimport *
 from capnp_cpp cimport DynamicOrphan
+cimport capnp_cpp
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
 ctypedef uint16_t UInt16
@@ -664,6 +665,7 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         
         DynamicStruct.Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
         DynamicStruct.Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
+        void setRootDynamicStruct'setRoot< ::capnp::DynamicStruct::Reader>'(DynamicStruct.Reader)
 
         DynamicOrphan newOrphan'getOrphanage().newOrphan'(StructSchema)
 
@@ -694,7 +696,13 @@ cdef extern from "capnp/serialize.h" namespace " ::capnp":
         StreamFdMessageReader(int)
         StreamFdMessageReader(int, ReaderOptions)
 
+    cdef cppclass FlatArrayMessageReader(MessageReader):
+        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array)
+        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array, ReaderOptions)
+
     void writeMessageToFd(int, MessageBuilder&)
+
+    capnp_cpp.WordArray messageToFlatArray(MessageBuilder &)
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
     cdef cppclass PackedFdMessageReader(MessageReader):

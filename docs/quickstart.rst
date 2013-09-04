@@ -16,13 +16,14 @@ First you need to import the library::
 
 Then you can load the Cap'n Proto schema with::
 
-    addressbook = capnp.load('addressbook.capnp')
+    import addressbook_capnp
 
-Note that we assign the loaded module to a variable, named `addressbook`. We'll use this from now on to access the Cap'n Proto schema, ie. when we need to get a Struct's class or accessing const values.
+This will look all through all the directories in your sys.path/PYTHONPATH, and try to find a file of the form 'addressbook.capnp'. If you want to disable the import hook magic that `import capnp` adds, and load manually, here's how::
 
-You can also provide an absolute path to the Cap'n Proto schema you wish to load. Otherwise, it will only look in the current working directory.
+    capnp.remove_import_hook()
+    addressbook_capnp = capnp.load('addressbook.capnp')
 
-For future reference, here is the Cap'n Proto schema. Also available in the github repository under examples/addressbook.capnp::
+For future reference, here is the Cap'n Proto schema. Also available in the github repository under `examples/addressbook.capnp <https://github.com/jparyani/pycapnp/tree/master/examples>`_::
 
     # addressbook.capnp
     0x934efea7f017fff0;
@@ -70,19 +71,12 @@ Const values show up just as you'd expect under the loaded schema. For example::
 Build a message
 ------------------
 
-Message Builder
-~~~~~~~~~~~~~~~~~~~
-
-First you need to allocate a MessageBuilder for your message to go in. There is only 1 message allocator available at the moment (Malloc), although there may be more varied kinds in the future::
-
-    message = capnp.MallocMessageBuilder()
-
 Initialize a New Cap'n Proto Object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
-    addressBook = message.initRoot(addressbook.AddressBook)
+    addresses = addressbook.AddressBook.new_message()
 
 Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
 
@@ -153,7 +147,7 @@ Writing to a File
 For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon)::
 
     f = open('example.bin', 'w')
-    capnp.writePackedMessageToFd(f.fileno(), message)
+    addresses.write(f)
 
 Note the call to fileno(), since it expects a raw file descriptor. There is also `writeMessageToFd` instead of `writePackedMessageToFd`. Make sure your reader uses the same packing type.
 
@@ -166,16 +160,9 @@ Reading from a file
 Much like before, you will have to de-serialize the message from a file descriptor::
 
     f = open('example.bin')
-    message = capnp.PackedFdMessageReader(f.fileno())
+    addresses = addressbook.AddressBook.read(f)
 
-Initialize a New Cap'n Proto Object
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Just like when building, you have to actually specify which message you want to read out of buffer::
-
-    addressBook = message.getRoot(addressbook.AddressBook)
-
-Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel, wrap all your types in an unnamed enum, or you need some out of band method for communicating what type a message is. Unnamed unions are defined in the .capnp file like so::
+Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so::
 
     struct Message {
         union {
@@ -189,7 +176,7 @@ Reading Fields
 
 Fields are very easy to read. You just use the `.` syntax as before. Lists behave just like normal Python lists::
 
-    for person in addressBook.people:
+    for person in addresses.people:
         print(person.name, ':', person.email)
         for phone in person.phones:
             print(phone.type, ':', phone.number)
@@ -212,22 +199,61 @@ The only tricky one is unions, where you need to call `.which()` to determine th
             print('self employed')
         print()
 
+Serializing/Deserializing
+--------------
+
+Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As shown in the examples above, there is file serialization with `write()`::
+    
+    addresses = addressbook.AddressBook.new_message()
+    ...
+    f = open('example.bin', 'w')
+    addresses.write(f)
+
+And similarly for reading::
+
+    f = open('example.bin')
+    addresses = addressbook.AddressBook.read(f)
+
+Dictionaries (Experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is a convenience method for converting Cap'n Proto messages to a dictionary. This works for both Builder and Reader type messages::
+
+    alice.to_dict()
+
+There is also a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of the above::
+
+    my_dict = {'name' : 'alice'}
+    alice = addressbook.Person.from_dict(my_dict)
+
+Byte Strings/Buffers
+~~~~~~~~~~~~~~~~~~~~~
+
+There is serialization to a byte string available::
+
+    encoded_message = alice.to_bytes()
+
+And a corresponding from_bytes function::
+
+    alice addressbook.Person.from_bytes(encoded_message)
+
 Full Example
 ------------------
 
-Here is a full example reproduced from `examples/example.py <https://github.com/jparyani/capnpc-python-cpp/blob/master/examples/example.py>`_::
+Here is a full example reproduced from `examples/example.py <https://github.com/jparyani/pycapnp/blob/master/examples/example.py>`_::
     
     from __future__ import print_function
     import os
     import capnp
 
-    this_dir = os.path.dirname(__file__)
-    addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    import addressbook_capnp
 
-    def writeAddressBook(fd):
-        message = capnp.MallocMessageBuilder()
-        addressBook = message.initRoot(addressbook.AddressBook)
-        people = addressBook.init('people', 2)
+    def writeAddressBook(file):
+        addresses = addressbook_capnp.AddressBook.new_message()
+        people = addresses.init('people', 2)
 
         alice = people[0]
         alice.id = 123
@@ -249,14 +275,13 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
         bobPhones[1].type = 'work'
         bob.employment.unemployed = None
 
-        capnp.writePackedMessageToFd(fd, message)
+        addresses.write(file)
 
 
-    def printAddressBook(fd):
-        message = capnp.PackedFdMessageReader(f.fileno())
-        addressBook = message.getRoot(addressbook.AddressBook)
+    def printAddressBook(file):
+        addresses = addressbook_capnp.AddressBook.read(file)
 
-        for person in addressBook.people:
+        for person in addresses.people:
             print(person.name, ':', person.email)
             for phone in person.phones:
                 print(phone.type, ':', phone.number)
@@ -277,7 +302,8 @@ Here is a full example reproduced from `examples/example.py <https://github.com/
 
     if __name__ == '__main__':
         f = open('example', 'w')
-        writeAddressBook(f.fileno())
+        writeAddressBook(f)
 
         f = open('example', 'r')
-        printAddressBook(f.fileno())
+        printAddressBook(f)
+

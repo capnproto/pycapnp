@@ -18,7 +18,7 @@ import os
 
 MAJOR = 0
 MINOR = 3
-MICRO = 9
+MICRO = 13
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 def write_version_py(filename=None):
@@ -45,7 +45,7 @@ except (IOError, ImportError):
     long_description = ''
 
 setup(
-    name="capnp",
+    name="pycapnp",
     packages=["capnp"],
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.pyx', '*.h']},
@@ -59,9 +59,9 @@ setup(
     license='BSD',
     author="Jason Paryani",
     author_email="pypi-contact@jparyani.com",
-    url = 'https://github.com/jparyani/capnpc-python-cpp',
-    download_url = 'https://github.com/jparyani/capnpc-python-cpp/archive/v%s.zip' % VERSION,
-    keywords = ['capnp', 'capnproto'],
+    url = 'https://github.com/jparyani/pycapnp',
+    download_url = 'https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
+    keywords = ['capnp', 'capnproto', "Cap'n Proto"],
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',

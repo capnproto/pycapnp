@@ -6,14 +6,23 @@ from schema_cpp cimport Node, Data, StructNode, EnumNode
 
 from libc.stdint cimport *
 ctypedef unsigned int uint
+from libcpp cimport bool as cbool
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
         VOID " ::capnp::VOID"
+    cdef cppclass word:
+        pass
 
 cdef extern from "kj/string.h" namespace " ::kj":
     cdef cppclass StringPtr:
         StringPtr(char *)
+    cdef cppclass String:
+        char* cStr()
+
+cdef extern from "kj/string-tree.h" namespace " ::kj":
+    cdef cppclass StringTree:
+        String flatten()
 
 cdef extern from "kj/common.h" namespace " ::kj":
     cdef cppclass Maybe[T]:
@@ -23,6 +32,23 @@ cdef extern from "kj/common.h" namespace " ::kj":
         ArrayPtr(T *, size_t size)
         size_t size()
         T& operator[](size_t index)
+
+    # Cython can't handle ArrayPtr[word] as a function argument
+    cdef cppclass WordArrayPtr "::kj::ArrayPtr<::capnp::word>":
+        WordArrayPtr()
+        WordArrayPtr(word *, size_t size)
+        size_t size()
+        word& operator[](size_t index)
+
+cdef extern from "kj/array.h" namespace " ::kj":
+    cdef cppclass Array[T]:
+        T* begin()
+        size_t size()
+
+    # Cython can't handle Array[word] as a function argument
+    cdef cppclass WordArray "::kj::Array<::capnp::word>":
+        word* begin()
+        size_t size()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
@@ -43,8 +69,17 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
             uint size()
             Field operator[](uint index)
 
+        cppclass FieldSubset:
+            uint size()
+            Field operator[](uint index)
+
         FieldList getFields()
+        FieldSubset getUnionFields()
+        FieldSubset getNonUnionFields()
+
         Field getFieldByName(char * name)
+
+        cbool operator == (StructSchema)
 
     cdef cppclass EnumSchema:
         cppclass Enumerant:
@@ -92,21 +127,23 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
         cppclass Builder:
+            Builder()
             Builder(Builder &)
-            DynamicValueForward.Builder get(char *)
+            DynamicValueForward.Builder get(char *) except +ValueError
             bint has(char *) except +ValueError
-            void set(char *, DynamicValueForward.Reader&) except +ValueError
-            DynamicValueForward.Builder init(char *, uint size)
-            DynamicValueForward.Builder init(char *)
+            void set(char *, DynamicValueForward.Reader) except +ValueError
+            DynamicValueForward.Builder init(char *, uint size) except +ValueError
+            DynamicValueForward.Builder init(char *) except +ValueError
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
-            void adopt(char *, DynamicOrphan)
+            void adopt(char *, DynamicOrphan) except +ValueError
             DynamicOrphan disown(char *)
             DynamicStruct.Reader asReader()
 
 cdef extern from "fixMaybe.h":
-    StructSchema.Field fixMaybe(Maybe[StructSchema.Field]) except+
-    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except+
+    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +ValueError
+    char * getEnumString(DynamicStruct.Reader val)
+    char * getEnumString(DynamicStruct.Builder val)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
@@ -118,12 +155,13 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Reader operator[](uint) except +ValueError
             uint size()
         cppclass Builder:
+            Builder()
             Builder(Builder &)
-            DynamicValueForward.Builder operator[](uint)
+            DynamicValueForward.Builder operator[](uint) except +ValueError
             uint size()
-            void set(uint index, DynamicValueForward.Reader& value) except +ValueError
+            void set(uint index, DynamicValueForward.Reader value) except +ValueError
             DynamicValueForward.Builder init(uint index, uint size) except +ValueError
-            void adopt(uint, DynamicOrphan)
+            void adopt(uint, DynamicOrphan) except +ValueError
             DynamicOrphan disown(uint)
             StructSchema getStructElementType'getSchema().getStructElementType'()
 
@@ -131,7 +169,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Reader:
             Reader()
             Reader(Void value)
-            Reader(bint value)
+            Reader(cbool value)
             Reader(char value)
             Reader(short value)
             Reader(int value)
@@ -160,6 +198,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Data.Reader asData"as< ::capnp::Data>"()
 
         cppclass Builder:
+            Builder()
             Type getType()
             int64_t asInt"as<int64_t>"()
             uint64_t asUint"as<uint64_t>"()

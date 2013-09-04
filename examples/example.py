@@ -2,13 +2,11 @@ from __future__ import print_function
 import os
 import capnp
 
-this_dir = os.path.dirname(__file__)
-addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+import addressbook_capnp
 
-def writeAddressBook(fd):
-    message = capnp.MallocMessageBuilder()
-    addressBook = message.initRoot(addressbook.AddressBook)
-    people = addressBook.init('people', 2)
+def writeAddressBook(file):
+    addresses = addressbook_capnp.AddressBook.new_message()
+    people = addresses.init('people', 2)
 
     alice = people[0]
     alice.id = 123
@@ -30,14 +28,13 @@ def writeAddressBook(fd):
     bobPhones[1].type = 'work'
     bob.employment.unemployed = None
 
-    capnp.writePackedMessageToFd(fd, message)
+    addresses.write(file)
 
 
-def printAddressBook(fd):
-    message = capnp.PackedFdMessageReader(f.fileno())
-    addressBook = message.getRoot(addressbook.AddressBook)
+def printAddressBook(file):
+    addresses = addressbook_capnp.AddressBook.read(file)
 
-    for person in addressBook.people:
+    for person in addresses.people:
         print(person.name, ':', person.email)
         for phone in person.phones:
             print(phone.type, ':', phone.number)
@@ -58,7 +55,7 @@ def printAddressBook(fd):
 
 if __name__ == '__main__':
     f = open('example', 'w')
-    writeAddressBook(f.fileno())
+    writeAddressBook(f)
 
     f = open('example', 'r')
-    printAddressBook(f.fileno())
+    printAddressBook(f)
