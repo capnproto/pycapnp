@@ -199,23 +199,46 @@ The only tricky one is unions, where you need to call `.which()` to determine th
             print('self employed')
         print()
 
-Dictionaries
+Serializing/Deserializing
 --------------
 
-Converting to a dictionary
+Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As shown in the examples above, there is file serialization with `write()`::
+    
+    addresses = addressbook.AddressBook.new_message()
+    ...
+    f = open('example.bin', 'w')
+    addresses.write(f)
+
+And similarly for reading::
+
+    f = open('example.bin')
+    addresses = addressbook.AddressBook.read(f)
+
+Dictionaries
+~~~~~~~~~~~~~~
 
 There is a convenience method for converting Cap'n Proto messages to a dictionary. This works for both Builder and Reader type messages::
 
     alice.to_dict()
 
-Reading froma dictionary
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There is a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of `Converting to a dictionary`_::
+There is also a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of the above::
 
     my_dict = {'name' : 'alice'}
     alice = addressbook.Person.from_dict(my_dict)
+
+Byte Strings/Buffers
+~~~~~~~~~~~~~~~~~~~~~
+
+There is serialization to a byte string available::
+
+    encoded_message = alice.to_bytes()
+
+And a corresponding from_bytes function::
+
+    alice addressbook.Person.from_bytes(encoded_message)
 
 Full Example
 ------------------

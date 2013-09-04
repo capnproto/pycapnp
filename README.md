@@ -24,7 +24,7 @@ pip install -U setuptools
 
 ## Building and installation
 
-Install with `pip install pycapnp`. You can set the CC environment variable to control the compiler version, ie `CC=gcc-4.8 pip install pycapnp`.
+Install with `pip install pycapnp`. You can set the CC environment variable to control which compiler is used, ie `CC=gcc-4.8 pip install pycapnp`.
 
 Or you can clone the repo like so:
 
@@ -116,5 +116,5 @@ If you get an error on installation like:
 
 Then you have too old a version of setuptools. Run `pip install -U setuptools` then try again.
 
-[![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=master)](https://travis-ci.org/jparyani/pycapnp)
+[![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)
 
