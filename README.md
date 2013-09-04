@@ -7,11 +7,11 @@ More thorough docs are available at [http://jparyani.github.io/pycapnp/](http://
 First you need a system-wide installation of the Cap'n Proto C++ library >= 0.3. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
 
 ```bash
-wget http://capnproto.org/capnproto-c++-0.3.0-rc5.tar.gz
-tar xzf capnproto-c++-0.3.0-rc5.tar.gz
-cd capnproto-c++-0.3.0-rc5
+curl -O http://capnproto.org/capnproto-c++-0.3.0.tar.gz
+tar zxf capnproto-c++-0.3.0.tar.gz
+cd capnproto-c++-0.3.0
 ./configure
-make -j8 check
+make -j6 check
 sudo make install
 ```
 

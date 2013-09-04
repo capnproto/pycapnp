@@ -217,8 +217,8 @@ And similarly for reading::
     f = open('example.bin')
     addresses = addressbook.AddressBook.read(f)
 
-Dictionaries
-~~~~~~~~~~~~~~
+Dictionaries (Experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There is a convenience method for converting Cap'n Proto messages to a dictionary. This works for both Builder and Reader type messages::
 
