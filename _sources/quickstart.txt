@@ -65,7 +65,7 @@ Const values
 
 Const values show up just as you'd expect under the loaded schema. For example::
     
-    print addressbook.qux
+    print addressbook_capnpqux
     # 123
 
 Build a message
@@ -76,7 +76,7 @@ Initialize a New Cap'n Proto Object
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
-    addresses = addressbook.AddressBook.new_message()
+    addresses = addressbook_capnpAddressBook.new_message()
 
 Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
 
@@ -85,7 +85,7 @@ List
 
 Allocating a list inside of an object requires use of the `init` function::
     
-    people = addressBook.init('people', 2)
+    people = addresses.init('people', 2)
 
 For now, let's grab the first element out of this list and assign it to a variable named `alice`::
 
@@ -160,7 +160,7 @@ Reading from a file
 Much like before, you will have to de-serialize the message from a file descriptor::
 
     f = open('example.bin')
-    addresses = addressbook.AddressBook.read(f)
+    addresses = addressbook_capnp.AddressBook.read(f)
 
 Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so::
 
@@ -207,7 +207,7 @@ Files
 
 As shown in the examples above, there is file serialization with `write()`::
     
-    addresses = addressbook.AddressBook.new_message()
+    addresses = addressbook_capnp.AddressBook.new_message()
     ...
     f = open('example.bin', 'w')
     addresses.write(f)
@@ -215,7 +215,7 @@ As shown in the examples above, there is file serialization with `write()`::
 And similarly for reading::
 
     f = open('example.bin')
-    addresses = addressbook.AddressBook.read(f)
+    addresses = addressbook_capnp.AddressBook.read(f)
 
 Dictionaries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -227,7 +227,7 @@ There is a convenience method for converting Cap'n Proto messages to a dictionar
 There is also a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of the above::
 
     my_dict = {'name' : 'alice'}
-    alice = addressbook.Person.from_dict(my_dict)
+    alice = addressbook_capnp.Person.from_dict(my_dict)
 
 Byte Strings/Buffers
 ~~~~~~~~~~~~~~~~~~~~~
@@ -238,7 +238,7 @@ There is serialization to a byte string available::
 
 And a corresponding from_bytes function::
 
-    alice = addressbook.Person.from_bytes(encoded_message)
+    alice = addressbook_capnp.Person.from_bytes(encoded_message)
 
 Full Example
 ------------------
