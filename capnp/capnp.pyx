@@ -604,7 +604,8 @@ cdef class _DynamicStructBuilder:
         cdef _MessageBuilder builder = self._parent
         array = schema_cpp.messageToFlatArray(deref(builder.thisptr))
         cdef const char* ptr = <const char *>array.begin()
-        return ptr[:8*array.size()]
+        cdef bytes ret = ptr[:8*array.size()]
+        return ret
 
     cdef _get(self, field):
         return to_python_builder(self.thisptr.get(field), self._parent)
