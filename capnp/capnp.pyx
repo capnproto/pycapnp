@@ -438,7 +438,8 @@ cdef _to_dict(msg):
             pass
 
         for field in msg.schema.non_union_fields:
-            ret[field] = _to_dict(getattr(msg, field))
+            if msg._has(field):
+                ret[field] = _to_dict(getattr(msg, field))
 
         return ret
 

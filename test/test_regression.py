@@ -195,7 +195,7 @@ def test_addressbook_resizable(addressbook):
 
 @pytest.fixture
 def all_types():
-    return capnp.load(os.path.join(this_dir, 'all-types.capnp'))
+    return capnp.load(os.path.join(this_dir, 'all_types.capnp'))
 
 # TODO:  These tests should be extended to:
 # - Read each field in Python and assert that it is equal to the expected value.
