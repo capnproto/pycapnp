@@ -351,7 +351,9 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
         return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
-    elif type == capnp.TYPE_UNKOWN:
+    elif type == capnp.TYPE_OBJECT:
+        raise ValueError("Cannot convert type to Python. Object type is not supported in pycapnp yet")
+    elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
@@ -379,7 +381,9 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
         return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
-    elif type == capnp.TYPE_UNKOWN:
+    elif type == capnp.TYPE_OBJECT:
+        raise ValueError("Cannot convert type to Python. Object type is not supported in pycapnp yet")
+    elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
@@ -425,19 +429,23 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
 
 cdef _to_dict(msg):
     msg_type = type(msg)
+    print msg_type
     if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
+        print 'in list'
         return [_to_dict(x) for x in msg]
 
     if msg_type is _DynamicStructBuilder or msg_type is _DynamicStructReader:
+        print 'in struct'
         ret = {}
         try:
             which = msg.which()
             ret['which'] = which
-            ret[which] = getattr(msg, which)
+            ret[which] = _to_dict(getattr(msg, which))
         except ValueError:
             pass
 
         for field in msg.schema.non_union_fields:
+            print field
             if msg._has(field):
                 ret[field] = _to_dict(getattr(msg, field))
 
