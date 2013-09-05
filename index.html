@@ -54,7 +54,7 @@
 <p>This is a python wrapping of the C++ implementation of the <a class="reference external" href="http://kentonv.github.io/capnproto/">Cap&#8217;n Proto</a> library. Here is a short description, quoted from its docs:</p>
 <blockquote>
 <div>Cap’n Proto is an insanely fast data interchange format and capability-based RPC system. Think JSON, except binary. Or think Protocol Buffers, except faster. In fact, in benchmarks, Cap’n Proto is INFINITY TIMES faster than Protocol Buffers.</div></blockquote>
-<p>The INFINITY TIMES faster part isn&#8217;t so true for python, but in some simplistic benchmarks (available in the <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/benchmark">benchmark directory of the repo</a>), capnp has proven to be decently faster than Protocol Buffers. Also, the python capnp library can load Cap&#8217;n Proto schema files directly, without the need for a seperate compile step like with Protocol Buffers or Thrift.</p>
+<p>Since the python library is just a thin wrapping of the C++ library, we inherit a lot of what makes Cap&#8217;n Proto fast. In some simplistic benchmarks (available in the <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/benchmark">benchmark directory of the repo</a>), pycapnp has proven to be decently faster than Protocol Buffers (both pure python and C++ implementations). Also, the python capnp library can load Cap&#8217;n Proto schema files directly, without the need for a seperate compile step like with Protocol Buffers or Thrift.</p>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul>
