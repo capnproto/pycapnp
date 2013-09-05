@@ -453,10 +453,10 @@ cdef _from_dict_helper(msg, field, d):
         for key, val in d.iteritems():
             if key != 'which':
                 _from_dict_helper(sub_msg, key, val)
-    elif d_type is list:
+    elif d_type is list and len(d) > 0:
         l = msg.init(field, len(d))
         for i in range(len(d)):
-            if d_type is dict:
+            if isinstance(d[i], (dict, list)):
                 for key, val in d[i].iteritems():
                     if key != 'which':
                         _from_dict_helper(l[i], key, val)
