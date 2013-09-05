@@ -78,7 +78,7 @@ Now that you have a message buffer, you need to allocate an actual object that i
 
     addresses = addressbook_capnp.AddressBook.new_message()
 
-Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
+Notice that we used `addressbook_capnp` from the previous section: `Load a Cap'n Proto Schema`_.
 
 List
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
