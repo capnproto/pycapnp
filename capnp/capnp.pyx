@@ -1,7 +1,7 @@
 # capnp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11 -fpermissive
-# distutils: libraries = capnpc
+# distutils: libraries = capnpc capnp
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
@@ -447,12 +447,13 @@ cdef _to_dict(msg):
 
 import collections as _collections
 cdef _from_dict_helper(msg, field, d):
-    if isinstance(d, dict):
+    d_type = type(d)
+    if d_type is dict:
         sub_msg = getattr(msg, field)
         for key, val in d.iteritems():
             if key != 'which':
                 _from_dict_helper(sub_msg, key, val)
-    elif isinstance(d, _collections.Iterable) and not isinstance(d, basestring):
+    elif d_type is list and not isinstance(d, basestring):
         l = msg.init(field, len(d))
         for i in range(len(d)):
             if isinstance(d[i], dict):

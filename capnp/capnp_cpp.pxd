@@ -1,7 +1,6 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-# distutils: libraries = capnpc
 from schema_cpp cimport Node, Data, StructNode, EnumNode
 
 from libc.stdint cimport *
