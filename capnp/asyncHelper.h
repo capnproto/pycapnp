@@ -1,0 +1,25 @@
+#include "kj/async.h"
+#include "Python.h"
+#include <iostream>
+extern "C" {
+   PyObject * wrap_kj_exception(kj::Exception &);
+}
+
+PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
+    PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
+    Py_DECREF(func);
+    Py_DECREF(arg);
+    return result;
+}
+
+::kj::Promise<PyObject *> evalLater(kj::EventLoop & loop, PyObject * func) {
+  return loop.evalLater([func]() { return wrapPyFunc(func, NULL); } );
+}
+
+::kj::Promise<PyObject *> there(kj::EventLoop & loop, kj::Promise<PyObject *> & promise, PyObject * func, PyObject * error_func) {
+  if(error_func == Py_None)
+    return loop.there(kj::mv(promise), [func](PyObject * arg) { return wrapPyFunc(func, arg); } );
+  else
+    return loop.there(kj::mv(promise), [func](PyObject * arg) { return wrapPyFunc(func, arg); } 
+                                     , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
+}
