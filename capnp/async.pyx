@@ -14,7 +14,7 @@ from cython.operator cimport dereference as deref
 cdef extern from "<utility>" namespace "std":
     async.PyPromise movePromise"std::move"(async.PyPromise)
 
-# This is a really weird function. By making it public, we'll be able to call it from asyncHelper.h
+# By making it public, we'll be able to call it from asyncHelper.h
 cdef public object wrap_kj_exception(async.Exception & exception):
     return None # TODO
 

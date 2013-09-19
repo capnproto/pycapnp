@@ -1,6 +1,6 @@
 #include "kj/async.h"
 #include "Python.h"
-#include <iostream>
+
 extern "C" {
    PyObject * wrap_kj_exception(kj::Exception &);
 }
@@ -8,7 +8,6 @@ extern "C" {
 PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
     PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
     Py_DECREF(func);
-    Py_DECREF(arg);
     return result;
 }
 
