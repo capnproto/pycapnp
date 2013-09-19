@@ -18,9 +18,9 @@ ctypedef Promise[PyObject *] PyPromise
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:
         EventLoop()
-        # Promise[void] yieldFrom'yield'()
-        object wait(PyPromise)
-        object there(PyPromise)
+        # Promise[void] yield_end'yield'()
+        object wait(PyPromise) except+
+        object there(PyPromise) except+
         PyPromise evalLater(PyObject * func)
         PyPromise there(PyPromise, PyObject * func)
     cdef cppclass SimpleEventLoop(EventLoop):
@@ -28,4 +28,9 @@ cdef extern from "kj/async.h" namespace " ::kj":
 
 cdef extern from "asyncHelper.h":
     PyPromise evalLater(EventLoop &, PyObject * func)
-    PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func) 
+    PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
+    PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
+    PyPromise yield_end(EventLoop & loop)
+
+    # cdef cppclass PyEventLoop(EventLoop):
+    #     pass
