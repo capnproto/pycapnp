@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, WordArrayPtr
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, DynamicObject as C_DynamicObject, WordArrayPtr
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -352,7 +352,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_OBJECT:
-        raise ValueError("Cannot convert type to Python. Object type is not supported in pycapnp yet")
+        return _DynamicObjectReader()._init(self.asObject(), parent)
     elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
@@ -382,7 +382,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_OBJECT:
-        raise ValueError("Cannot convert type to Python. Object type is not supported in pycapnp yet")
+        raise ValueError("Cannot convert type to Python. Type is 'Object', but is being used improperly. You can only get 'Object' types from a struct")
     elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
@@ -618,7 +618,21 @@ cdef class _DynamicStructBuilder:
         return ret
 
     cdef _get(self, field):
-        return to_python_builder(self.thisptr.get(field), self._parent)
+        cdef C_DynamicValue.Builder value = self.thisptr.get(field)
+
+        if value.getType() == capnp.TYPE_OBJECT:
+            return _DynamicObjectBuilder(field, self)
+        else:
+            return to_python_builder(value, self._parent)
+
+    cpdef _get_object(self, field, schema):
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicStructBuilder()._init(self.thisptr.getObject(field, s.thisptr), self._parent)
 
     def __getattr__(self, field):
         return self._get(field)
@@ -770,6 +784,32 @@ cdef class _DynamicOrphan:
 
     def __repr__(self):
         return repr(self.get())
+
+cdef class _DynamicObjectReader:
+    cdef C_DynamicObject.Reader thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicObject.Reader other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+    cpdef as_struct(self, schema):
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicStructReader()._init(self.thisptr.as(s.thisptr), self._parent)
+
+cdef class _DynamicObjectBuilder:
+    cdef public object _field, _parent_struct
+    def __init__(self, field, parent_struct):
+        self._field = field
+        self._parent_struct = parent_struct
+
+    cpdef as_struct(self, schema):
+        return self._parent_struct._get_object(self._field, schema)
 
 cdef class _Schema:
     cdef C_Schema thisptr
