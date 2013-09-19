@@ -7,15 +7,8 @@ import test_capnp
 
 import sys
 
-def format_decode(val):
-    val = val.replace('\n ', '')
-    val = val.replace('( ', '(')
-    val = val.replace(' )', ')')
-
-    return val
-
 def decode(name):
-    print format_decode(str(getattr(test_capnp, name)))
+    print getattr(test_capnp, name)._short_str()
 
 def encode(name):
     val = getattr(test_capnp, name)

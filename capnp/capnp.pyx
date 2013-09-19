@@ -163,9 +163,12 @@ cdef class _DynamicListReader:
     def __str__(self):
         return printListReader(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strListReader(self.thisptr).cStr()
+
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list reader %s>' % strListReader(self.thisptr).cStr()
+        return '<capnp list reader %s>' % self._short_str()
 
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
@@ -308,9 +311,12 @@ cdef class _DynamicListBuilder:
     def __str__(self):
         return printListBuilder(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strListBuilder(self.thisptr).cStr()
+
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list builder %s>' % strListBuilder(self.thisptr).cStr()
+        return '<capnp list builder %s>' % self._short_str()
 
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
@@ -534,8 +540,11 @@ cdef class _DynamicStructReader:
     def __str__(self):
         return printStructReader(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strStructReader(self.thisptr).cStr()
+
     def __repr__(self):
-        return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+        return '<%s reader %s>' % (self.schema.node.displayName, self._short_str())
 
     def to_dict(self):
         return _to_dict(self)
@@ -751,8 +760,11 @@ cdef class _DynamicStructBuilder:
     def __str__(self):
         return printStructBuilder(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strStructBuilder(self.thisptr).cStr()
+
     def __repr__(self):
-        return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(self.thisptr).cStr())
+        return '<%s builder %s>' % (self.schema.node.displayName, self._short_str)
 
     def to_dict(self):
         return _to_dict(self)
