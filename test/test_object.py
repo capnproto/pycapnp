@@ -1,7 +1,6 @@
 import pytest
 import capnp
 import os
-import math
 
 this_dir = os.path.dirname(__file__)
 
