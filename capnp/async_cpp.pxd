@@ -30,7 +30,6 @@ cdef extern from "asyncHelper.h":
     PyPromise evalLater(EventLoop &, PyObject * func)
     PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise yield_end(EventLoop & loop)
 
     # cdef cppclass PyEventLoop(EventLoop):
     #     pass

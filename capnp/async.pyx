@@ -42,9 +42,6 @@ cdef class EventLoop:
         Py_INCREF(error_func)
         return Promise()._init(async.there(self.thisptr, deref(promise.thisptr), <PyObject *>func, <PyObject *>error_func))
 
-    cpdef yield_end(self):
-        return Promise()._init(async.yield_end(self.thisptr))
-
 cdef class Promise:
     cdef async.PyPromise * thisptr
     cdef public bint is_consumed

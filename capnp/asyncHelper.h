@@ -33,10 +33,6 @@ PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
-::kj::Promise<PyObject *> yield_end(kj::EventLoop & loop) {
-  return loop.there(loop.yield(), []() { Py_RETURN_NONE; } );
-}
-
 // class PyEventLoop final: public ::kj::EventLoop {
 // public:
 //   PyEventLoop() {}
