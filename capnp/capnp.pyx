@@ -1,7 +1,7 @@
 # capnp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11 -fpermissive
-# distutils: libraries = capnpc
+# distutils: libraries = capnpc capnp
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, WordArrayPtr
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, DynamicObject as C_DynamicObject, WordArrayPtr
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -163,9 +163,12 @@ cdef class _DynamicListReader:
     def __str__(self):
         return printListReader(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strListReader(self.thisptr).cStr()
+
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list reader %s>' % strListReader(self.thisptr).cStr()
+        return '<capnp list reader %s>' % self._short_str()
 
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
@@ -308,9 +311,12 @@ cdef class _DynamicListBuilder:
     def __str__(self):
         return printListBuilder(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strListBuilder(self.thisptr).cStr()
+
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list builder %s>' % strListBuilder(self.thisptr).cStr()
+        return '<capnp list builder %s>' % self._short_str()
 
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
@@ -351,7 +357,9 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
         return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
-    elif type == capnp.TYPE_UNKOWN:
+    elif type == capnp.TYPE_OBJECT:
+        return _DynamicObjectReader()._init(self.asObject(), parent)
+    elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
@@ -379,7 +387,9 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
         return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
-    elif type == capnp.TYPE_UNKOWN:
+    elif type == capnp.TYPE_OBJECT:
+        raise ValueError("Cannot convert type to Python. Type is 'Object', but is being used improperly. You can only get 'Object' types from a struct")
+    elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
@@ -433,7 +443,7 @@ cdef _to_dict(msg):
         try:
             which = msg.which()
             ret['which'] = which
-            ret[which] = getattr(msg, which)
+            ret[which] = _to_dict(getattr(msg, which))
         except ValueError:
             pass
 
@@ -447,15 +457,16 @@ cdef _to_dict(msg):
 
 import collections as _collections
 cdef _from_dict_helper(msg, field, d):
-    if isinstance(d, dict):
+    d_type = type(d)
+    if d_type is dict:
         sub_msg = getattr(msg, field)
         for key, val in d.iteritems():
             if key != 'which':
                 _from_dict_helper(sub_msg, key, val)
-    elif isinstance(d, _collections.Iterable) and not isinstance(d, basestring):
+    elif d_type is list and len(d) > 0:
         l = msg.init(field, len(d))
         for i in range(len(d)):
-            if isinstance(d[i], dict):
+            if isinstance(d[i], (dict, list)):
                 for key, val in d[i].iteritems():
                     if key != 'which':
                         _from_dict_helper(l[i], key, val)
@@ -529,8 +540,11 @@ cdef class _DynamicStructReader:
     def __str__(self):
         return printStructReader(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strStructReader(self.thisptr).cStr()
+
     def __repr__(self):
-        return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+        return '<%s reader %s>' % (self.schema.node.displayName, self._short_str())
 
     def to_dict(self):
         return _to_dict(self)
@@ -609,7 +623,21 @@ cdef class _DynamicStructBuilder:
         return ret
 
     cdef _get(self, field):
-        return to_python_builder(self.thisptr.get(field), self._parent)
+        cdef C_DynamicValue.Builder value = self.thisptr.get(field)
+
+        if value.getType() == capnp.TYPE_OBJECT:
+            return _DynamicObjectBuilder(field, self)
+        else:
+            return to_python_builder(value, self._parent)
+
+    cpdef _get_object(self, field, schema):
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicStructBuilder()._init(self.thisptr.getObject(field, s.thisptr), self._parent)
 
     def __getattr__(self, field):
         return self._get(field)
@@ -732,8 +760,11 @@ cdef class _DynamicStructBuilder:
     def __str__(self):
         return printStructBuilder(self.thisptr).flatten().cStr()
 
+    cpdef _short_str(self):
+        return strStructBuilder(self.thisptr).cStr()
+
     def __repr__(self):
-        return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(self.thisptr).cStr())
+        return '<%s builder %s>' % (self.schema.node.displayName, self._short_str)
 
     def to_dict(self):
         return _to_dict(self)
@@ -761,6 +792,32 @@ cdef class _DynamicOrphan:
 
     def __repr__(self):
         return repr(self.get())
+
+cdef class _DynamicObjectReader:
+    cdef C_DynamicObject.Reader thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicObject.Reader other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+    cpdef as_struct(self, schema):
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicStructReader()._init(self.thisptr.as(s.thisptr), self._parent)
+
+cdef class _DynamicObjectBuilder:
+    cdef public object _field, _parent_struct
+    def __init__(self, field, parent_struct):
+        self._field = field
+        self._parent_struct = parent_struct
+
+    cpdef as_struct(self, schema):
+        return self._parent_struct._get_object(self._field, schema)
 
 cdef class _Schema:
     cdef C_Schema thisptr

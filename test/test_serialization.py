@@ -38,7 +38,6 @@ def test_roundtrip_bytes(all_types):
     msg = all_types.TestAllTypes.from_bytes(message_bytes)
     test_regression.check_all_types(msg)
 
-@pytest.mark.skipif("platform.python_implementation() == 'PyPy'")
 def test_roundtrip_dict(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)

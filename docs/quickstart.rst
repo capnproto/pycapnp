@@ -65,7 +65,7 @@ Const values
 
 Const values show up just as you'd expect under the loaded schema. For example::
     
-    print addressbook.qux
+    print addressbook_capnp.qux
     # 123
 
 Build a message
@@ -76,16 +76,16 @@ Initialize a New Cap'n Proto Object
 
 Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
 
-    addresses = addressbook.AddressBook.new_message()
+    addresses = addressbook_capnp.AddressBook.new_message()
 
-Notice that we used `addressbook` from the previous section: `Load a Cap'n Proto Schema`_.
+Notice that we used `addressbook_capnp` from the previous section: `Load a Cap'n Proto Schema`_.
 
 List
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Allocating a list inside of an object requires use of the `init` function::
     
-    people = addressBook.init('people', 2)
+    people = addresses.init('people', 2)
 
 For now, let's grab the first element out of this list and assign it to a variable named `alice`::
 
@@ -144,12 +144,12 @@ Also, one weird case is for Void types in Unions (and in general, but Void is re
 Writing to a File
 ~~~~~~~~~~~~~~~~~~~
 
-For now, the only way to serialize a message is to write it directly to a file descriptor (expect serializing to strings at some point soon)::
+Once you're done assigning to all the fields in a message, you can write it to a file like so::
 
     f = open('example.bin', 'w')
     addresses.write(f)
 
-Note the call to fileno(), since it expects a raw file descriptor. There is also `writeMessageToFd` instead of `writePackedMessageToFd`. Make sure your reader uses the same packing type.
+There is also a `write_packed` function, that writes out the message more space-efficientally. If you use write_packed, make sure to use read_packed when reading the message.
 
 Read a message
 -----------------
@@ -160,7 +160,7 @@ Reading from a file
 Much like before, you will have to de-serialize the message from a file descriptor::
 
     f = open('example.bin')
-    addresses = addressbook.AddressBook.read(f)
+    addresses = addressbook_capnp.AddressBook.read(f)
 
 Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so::
 
@@ -207,7 +207,7 @@ Files
 
 As shown in the examples above, there is file serialization with `write()`::
     
-    addresses = addressbook.AddressBook.new_message()
+    addresses = addressbook_capnp.AddressBook.new_message()
     ...
     f = open('example.bin', 'w')
     addresses.write(f)
@@ -215,9 +215,9 @@ As shown in the examples above, there is file serialization with `write()`::
 And similarly for reading::
 
     f = open('example.bin')
-    addresses = addressbook.AddressBook.read(f)
+    addresses = addressbook_capnp.AddressBook.read(f)
 
-Dictionaries (Experimental)
+Dictionaries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There is a convenience method for converting Cap'n Proto messages to a dictionary. This works for both Builder and Reader type messages::
@@ -238,7 +238,7 @@ There is serialization to a byte string available::
 
 And a corresponding from_bytes function::
 
-    alice addressbook.Person.from_bytes(encoded_message)
+    alice = addressbook.Person.from_bytes(encoded_message)
 
 Full Example
 ------------------

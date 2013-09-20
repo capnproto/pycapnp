@@ -116,5 +116,14 @@ If you get an error on installation like:
 
 Then you have too old a version of setuptools. Run `pip install -U setuptools` then try again.
 
-[![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)
 
+An error like:
+
+    ...
+    capnp/capnp.cpp:312:10: fatal error: 'capnp/dynamic.h' file not found
+    #include "capnp/dynamic.h"
+
+Means you haven't installed the Cap'n Proto C++ library. Please follow the directions at the [official installation docs](http://kentonv.github.io/capnproto/install.html)
+
+
+[![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)

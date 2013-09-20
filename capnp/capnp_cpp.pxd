@@ -1,7 +1,6 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-# distutils: libraries = capnpc
 from schema_cpp cimport Node, Data, StructNode, EnumNode
 
 from libc.stdint cimport *
@@ -139,6 +138,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             void adopt(char *, DynamicOrphan) except +ValueError
             DynamicOrphan disown(char *)
             DynamicStruct.Reader asReader()
+            DynamicStruct.Builder getObject(char *, StructSchema)
 
 cdef extern from "fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +ValueError
@@ -149,6 +149,13 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
         uint16_t getRaw()
         Maybe[EnumSchema.Enumerant] getEnumerant()
+
+    cdef cppclass DynamicObject:
+        cppclass Reader:
+            DynamicStruct.Reader as(StructSchema schema)
+        cppclass Builder:
+            DynamicObject.Reader asReader()
+            # DynamicList::Reader as(ListSchema schema) const;
 
     cdef cppclass DynamicList:
         cppclass Reader:
@@ -194,6 +201,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             char * asText"as< ::capnp::Text>().cStr"()
             DynamicList.Reader asList"as< ::capnp::DynamicList>"()
             DynamicStruct.Reader asStruct"as< ::capnp::DynamicStruct>"()
+            DynamicObject.Reader asObject"as< ::capnp::DynamicObject>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
             Data.Reader asData"as< ::capnp::Data>"()
 
