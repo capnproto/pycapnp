@@ -688,6 +688,10 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         MallocMessageBuilder()
         MallocMessageBuilder(int)
 
+    cdef cppclass FlatMessageBuilder(MessageBuilder):
+        FlatMessageBuilder(capnp_cpp.WordArrayPtr array)
+        FlatMessageBuilder(capnp_cpp.WordArrayPtr array, ReaderOptions)
+
     enum Void:
         VOID
 

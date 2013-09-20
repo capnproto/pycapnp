@@ -42,6 +42,7 @@ ctypedef fused _DynamicSetterClasses:
 
 cdef extern from "Python.h":
     cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
+    cdef int PyObject_AsWriteBuffer(object, void** b, Py_ssize_t* c)
 
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -764,7 +765,7 @@ cdef class _DynamicStructBuilder:
         return strStructBuilder(self.thisptr).cStr()
 
     def __repr__(self):
-        return '<%s builder %s>' % (self.schema.node.displayName, self._short_str)
+        return '<%s builder %s>' % (self.schema.node.displayName, self._short_str())
 
     def to_dict(self):
         return _to_dict(self)
@@ -1006,13 +1007,18 @@ cdef class SchemaParser:
                             return reader.get_root(bound_local_module)
                         return helper
                     def make_from_bytes(bound_local_module):
-                        def from_bytes(buf):
+                        def from_bytes(buf, builder=False):
                             """Returns a Reader for the unpacked object in buf.
 
                             :type buf: buffer
-                            :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern."""
-                            reader = _FlatArrayMessageReader(buf)
-                            return reader.get_root(bound_local_module)
+                            :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern.
+                            :type bool: builder
+                            :param buf: If true, return a builder object"""
+                            if builder:
+                                message = _FlatMessageBuilder(buf)
+                            else:
+                                message = _FlatArrayMessageReader(buf)
+                            return message.get_root(bound_local_module)
                         return from_bytes
                     def new_message(bound_local_module):
                         def helper():
@@ -1269,6 +1275,18 @@ cdef class _FlatArrayMessageReader(_MessageReader):
             raise ValueError("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
         self.thisptr = new schema_cpp.FlatArrayMessageReader(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8))
+
+@cython.internal
+cdef class _FlatMessageBuilder(_MessageBuilder):
+    cdef object _object_to_pin
+    def __init__(self, buf):
+        cdef void *ptr
+        cdef Py_ssize_t sz
+        PyObject_AsWriteBuffer(buf, &ptr, &sz)
+        if sz % 8 != 0:
+            raise ValueError("input length must be a multiple of eight bytes")
+        self._object_to_pin = buf
+        self.thisptr = new schema_cpp.FlatMessageBuilder(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8))
 
 def _write_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor
