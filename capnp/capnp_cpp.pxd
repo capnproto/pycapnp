@@ -33,7 +33,7 @@ cdef extern from "kj/common.h" namespace " ::kj":
         T& operator[](size_t index)
 
     # Cython can't handle ArrayPtr[word] as a function argument
-    cdef cppclass WordArrayPtr "::kj::ArrayPtr<::capnp::word>":
+    cdef cppclass WordArrayPtr " ::kj::ArrayPtr< ::capnp::word>":
         WordArrayPtr()
         WordArrayPtr(word *, size_t size)
         size_t size()
@@ -45,7 +45,7 @@ cdef extern from "kj/array.h" namespace " ::kj":
         size_t size()
 
     # Cython can't handle Array[word] as a function argument
-    cdef cppclass WordArray "::kj::Array<::capnp::word>":
+    cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
         word* begin()
         size_t size()
 
