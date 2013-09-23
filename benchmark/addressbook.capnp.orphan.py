@@ -8,10 +8,9 @@ addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 print = lambda *x: x
 
 
-def writeAddressBook(fd):
-    message = capnp.MallocMessageBuilder()
-    addressBook = message.initRoot(addressbook.AddressBook)
-    people = addressBook.initResizableList('people')
+def writeAddressBook():
+    addressBook = addressbook.AddressBook.new_message()
+    people = addressBook.init_resizable_list('people')
 
     alice = people.add()
     alice.id = 123
@@ -32,13 +31,11 @@ def writeAddressBook(fd):
     bobPhones[1].type = 'work'
 
     people.finish()
+    msg_bytes = addressBook.to_bytes()
+    return msg_bytes
 
-    capnp.writePackedMessageToFd(fd, message)
-
-
-def printAddressBook(fd):
-    message = capnp.PackedFdMessageReader(f.fileno())
-    addressBook = message.getRoot(addressbook.AddressBook)
+def printAddressBook(msg_bytes):
+    addressBook = addressbook.AddressBook.from_bytes(msg_bytes)
 
     for person in addressBook.people:
         print(person.name, ':', person.email)
@@ -49,10 +46,7 @@ def printAddressBook(fd):
 
 if __name__ == '__main__':
     for i in range(10000):
-        f = open('example', 'w')
-        writeAddressBook(f.fileno())
+        msg_bytes = writeAddressBook()
 
-        f = open('example', 'r')
-        printAddressBook(f.fileno())
+        printAddressBook(msg_bytes)
 
-os.remove('example')
