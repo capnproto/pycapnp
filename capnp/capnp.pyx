@@ -776,6 +776,7 @@ cdef class _DynamicOrphan:
 cdef class _DynamicObjectReader:
     cdef C_DynamicObject.Reader thisptr
     cdef public object _parent
+    
     cdef _init(self, C_DynamicObject.Reader other, object parent):
         self.thisptr = other
         self._parent = parent
@@ -793,10 +794,14 @@ cdef class _DynamicObjectReader:
 cdef class _DynamicObjectBuilder:
     cdef C_DynamicObject.Builder * thisptr
     cdef public object _parent
+
     cdef _init(self, C_DynamicObject.Builder other, object parent):
         self.thisptr = new C_DynamicObject.Builder(other)
         self._parent = parent
         return self
+
+    def __dealloc__(self):
+        del self.thisptr
 
     cpdef as_struct(self, schema):
         cdef _StructSchema s
