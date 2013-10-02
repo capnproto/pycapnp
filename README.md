@@ -4,7 +4,7 @@ More thorough docs are available at [http://jparyani.github.io/pycapnp/](http://
 
 ## Requirements
 
-First you need a system-wide installation of the Cap'n Proto C++ library >= 0.3. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
+First you need a system-wide installation of the Cap'n Proto C++ library == 0.3.x. .0.4.x currently requires a branch of pycapnp, accessible with `git checkout feature/v0.4` in a git clone of pycapnp. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
 
 ```bash
 curl -O http://capnproto.org/capnproto-c++-0.3.0.tar.gz
@@ -29,8 +29,11 @@ Install with `pip install pycapnp`. You can set the CC environment variable to c
 Or you can clone the repo like so:
 
     git clone https://github.com/jparyani/pycapnp.git
+    pip install ./pycapnp
 
-`cd` into the repo directory and run `pip install .`
+Note: for OSX, if using clang from Xcode 5, you will need to set `CFLAGS` like so:
+
+    CFLAGS='-stdlib=libc++' pip install pycapnp
 
 ## Development
 
