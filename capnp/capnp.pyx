@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, WordArrayPtr
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, WordArrayPtr
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -61,7 +61,7 @@ _Type = _make_enum('DynamicValue.Type',
                     LIST = capnp.TYPE_LIST,
                     ENUM = capnp.TYPE_ENUM,
                     STRUCT = capnp.TYPE_STRUCT,
-                    INTERFACE = capnp.TYPE_INTERFACE,
+                    # INTERFACE = capnp.TYPE_INTERFACE,
                     OBJECT = capnp.TYPE_OBJECT)
 
 # Templated classes are weird in cython. I couldn't put it in a pxd header for some reason
@@ -113,6 +113,9 @@ cdef class _NodeReader:
     property isConst:
         def __get__(self):
             return self.thisptr.isConst()
+    property isInterface:
+        def __get__(self):
+            return self.thisptr.isInterface()
 
 cdef class _NestedNodeReader:
     cdef C_Node.NestedNode.Reader thisptr
@@ -820,6 +823,9 @@ cdef class _Schema:
     cpdef as_struct(self):
         return _StructSchema()._init(self.thisptr.asStruct())
 
+    cpdef as_interface(self):
+        return _InterfaceSchema()._init(self.thisptr.asInterface())
+
     cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
 
@@ -885,26 +891,22 @@ cdef class _StructSchema:
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
 
-cdef class _ParsedSchema:
-    cdef C_ParsedSchema thisptr
-    cdef _init(self, C_ParsedSchema other):
+cdef class _InterfaceSchema:
+    cdef C_InterfaceSchema thisptr
+
+    cdef _init(self, C_InterfaceSchema other):
         self.thisptr = other
         return self
 
-    cpdef as_const_value(self):
-        return to_python_reader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
+cdef class _ParsedSchema(_Schema):
+    cdef C_ParsedSchema thisptr_child
+    cdef _init_child(self, C_ParsedSchema other):
+        self.thisptr_child = other
+        self._init(other)
+        return self
 
-    cpdef as_struct(self):
-        return _StructSchema()._init(self.thisptr.asStruct())
-
-    cpdef get_dependency(self, id):
-        return _Schema()._init(self.thisptr.getDependency(id))
-
-    cpdef get_proto(self):
-        return _NodeReader().init(self.thisptr.getProto())
-
-    cpdef getNested(self, name):
-        return _ParsedSchema()._init(self.thisptr.getNested(name))
+    cpdef get_nested(self, name):
+        return _ParsedSchema()._init_child(self.thisptr_child.getNested(name))
 
 class _StructABCMeta(type):
     """A metaclass for the Type.Reader and Type.Builder ABCs."""
@@ -932,7 +934,7 @@ cdef class SchemaParser:
         cdef ArrayPtr[StringPtr] importsPtr = ArrayPtr[StringPtr](importArray, <size_t>len(imports))
 
         ret = _ParsedSchema()
-        ret._init(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
+        ret._init_child(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
 
         free(importArray)
 
@@ -980,7 +982,7 @@ cdef class SchemaParser:
                 local_module = _ModuleType(node.name)
                 module.__dict__[node.name] = local_module
 
-                schema = nodeSchema.getNested(node.name)
+                schema = nodeSchema.get_nested(node.name)
                 proto = schema.get_proto()
                 if proto.isStruct:
                     local_module.schema = schema.as_struct()
@@ -1015,6 +1017,11 @@ cdef class SchemaParser:
                             _from_dict(msg, d)
                             return msg
                         return helper
+                    def from_object():
+                        def helper(obj):
+                            builder = _MallocMessageBuilder()
+                            return builder.set_root(obj)
+                        return helper
                     class Reader(_DynamicStructReader):
                         """An abstract base class.  Readers are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta
@@ -1034,12 +1041,15 @@ cdef class SchemaParser:
                     local_module.read = read(local_module)
                     local_module.read_packed = read_packed(local_module)
                     local_module.new_message = new_message(local_module)
+                    local_module.from_object = from_object()
                     local_module.from_dict = from_dict(local_module)
                     local_module.from_bytes = make_from_bytes(local_module)
                     local_module.Reader = Reader
                     local_module.Builder = Builder
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
+                elif proto.isInterface:
+                    local_module.schema = schema.as_interface()
 
                 _load(schema, local_module)
         if not _os.path.isfile(file_name):
@@ -1134,6 +1144,7 @@ cdef class _MessageBuilder:
         if type(value) is _DynamicStructBuilder:
             value = value.as_reader();
         self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
+        return self.get_root(value.schema)
 
     cpdef new_orphan(self, schema):
         """A method for instantiating Cap'n Proto orphans

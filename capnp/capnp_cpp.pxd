@@ -56,7 +56,10 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         EnumSchema asEnum() except +
         ConstSchema asConst() except +
         Schema getDependency(uint64_t id) except +
-        #InterfaceSchema asInterface() const;
+        InterfaceSchema asInterface() except +
+
+    cdef cppclass InterfaceSchema(Schema):
+        pass
 
     cdef cppclass StructSchema(Schema):
         cppclass Field:
@@ -116,7 +119,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         TYPE_LIST " ::capnp::DynamicValue::LIST"
         TYPE_ENUM " ::capnp::DynamicValue::ENUM"
         TYPE_STRUCT " ::capnp::DynamicValue::STRUCT"
-        TYPE_INTERFACE " ::capnp::DynamicValue::INTERFACE"
+        # TYPE_INTERFACE " ::capnp::DynamicValue::INTERFACE"
         TYPE_OBJECT " ::capnp::DynamicValue::OBJECT"
 
     cdef cppclass DynamicStruct:
