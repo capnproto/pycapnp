@@ -9,11 +9,13 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, WordArrayPtr
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, WordArrayPtr, DynamicCapability as C_DynamicCapability, new_client, Request, RemotePromise, convert_to_pypromise, SimpleEventLoop, PyPromise, CallContext
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
+cimport async_cpp
 
+from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
 from libc.stdint cimport *
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
@@ -32,6 +34,21 @@ ctypedef double Float64
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool as cbool
 
+# By making it public, we'll be able to call it from capabilityHelper.h
+cdef public object wrap_dynamic_struct_reader(C_DynamicStruct.Reader & reader):
+    return _DynamicStructReader()._init(reader, None)
+
+cdef public void call_server_method(PyObject * _server, char * _method_name, CallContext & _context):
+    server = <object>_server
+    method_name = <object>_method_name
+
+    context = _CallContext()._init(_context)
+    getattr(server, method_name)(context)
+
+# By making it public, we'll be able to call it from asyncHelper.h
+cdef public object wrap_kj_exception(capnp.Exception & exception):
+    return None # TODO
+
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader
     _DynamicStructBuilder
@@ -39,6 +56,7 @@ ctypedef fused _DynamicStructReaderOrBuilder:
 ctypedef fused _DynamicSetterClasses:
     C_DynamicList.Builder
     C_DynamicStruct.Builder
+    Request
 
 cdef extern from "Python.h":
     cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
@@ -61,7 +79,7 @@ _Type = _make_enum('DynamicValue.Type',
                     LIST = capnp.TYPE_LIST,
                     ENUM = capnp.TYPE_ENUM,
                     STRUCT = capnp.TYPE_STRUCT,
-                    # INTERFACE = capnp.TYPE_INTERFACE,
+                    CAPABILITY = capnp.TYPE_CAPABILITY,
                     OBJECT = capnp.TYPE_OBJECT)
 
 # Templated classes are weird in cython. I couldn't put it in a pxd header for some reason
@@ -76,16 +94,22 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
 
 cdef extern from "<utility>" namespace "std":
     C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
+    Request moveRequest"std::move"(Request)
+    PyPromise movePromise"std::move"(PyPromise)
+    RemotePromise moveRemotePromise"std::move"(RemotePromise)
+    CallContext moveCallContext"std::move"(CallContext)
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
     StringTree printStructBuilder" ::capnp::prettyPrint"(C_DynamicStruct.Builder)
+    StringTree printRequest" ::capnp::prettyPrint"(Request &)
     StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader)
     StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder)
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
     String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
     String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
+    String strRequest" ::kj::str"(Request &)
     String strListReader" ::kj::str"(C_DynamicList.Reader)
     String strListBuilder" ::kj::str"(C_DynamicList.Builder)
 
@@ -398,6 +422,39 @@ cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader v
     return C_DynamicValue.Reader(value.thisptr)
 
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
+    cdef C_DynamicValue.Reader temp
+    value_type = type(value)
+
+    if value_type is int or value_type is long:
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        thisptr.set(field, temp)
+    elif value_type is float:
+        temp = C_DynamicValue.Reader(<double>value)
+        thisptr.set(field, temp)
+    elif value_type is bool:
+        temp = C_DynamicValue.Reader(<cbool>value)
+        thisptr.set(field, temp)
+    elif isinstance(value, basestring):
+        temp = C_DynamicValue.Reader(<char*>value)
+        thisptr.set(field, temp)
+    elif value_type is list:
+        builder = to_python_builder(thisptr.init(field, len(value)), parent)
+        for (i, v) in enumerate(value):
+            builder[i] = v
+    elif value is None:
+        temp = C_DynamicValue.Reader(VOID)
+        thisptr.set(field, temp)
+    elif value_type is _DynamicStructBuilder:
+        thisptr.set(field, _extract_dynamic_struct_builder(value))
+    elif value_type is _DynamicStructReader:
+        thisptr.set(field, _extract_dynamic_struct_reader(value))
+    else:
+        raise ValueError("Non primitive type")
+
+cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
 
@@ -811,6 +868,253 @@ cdef class _DynamicObjectBuilder:
 
         return _DynamicStructBuilder()._init(self.thisptr.getAs(s.thisptr), self._parent)
 
+cdef class _CallContext:
+    cdef CallContext * thisptr
+
+    cdef _init(self, CallContext other):
+        self.thisptr = new CallContext(moveCallContext(other))
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    property params:
+        def __get__(self):
+           return _DynamicStructReader()._init(self.thisptr.getParams(), self)
+
+    cpdef _get_results(self, uint firstSegmentWordSize=0):
+        return _DynamicStructBuilder()._init(self.thisptr.getResults(firstSegmentWordSize), self)
+
+    property results:
+        def __get__(self):
+           return self._get_results()
+
+cdef class Promise:
+    cdef PyPromise * thisptr
+
+    def __init__(self):
+        self.is_consumed = True
+
+    cdef _init(self, PyPromise other):
+        self.is_consumed = False
+        self.thisptr = new PyPromise(movePromise(other))
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef wait(self) except+:
+        if self.is_consumed:
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = <object>self.thisptr.wait()
+        self.is_consumed = True
+
+        return ret
+
+    cpdef then(self, func, error_func=None) except+:
+        if self.is_consumed:
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        Py_INCREF(func)
+        Py_INCREF(error_func)
+
+        return Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+cdef class _RemotePromise:
+    cdef RemotePromise * thisptr
+    cdef public bint is_consumed
+    cdef public object _parent
+
+    def __init__(self):
+        self.is_consumed = True
+
+    cdef _init(self, RemotePromise other, parent):
+        self.is_consumed = False
+        self.thisptr = new RemotePromise(moveRemotePromise(other))
+        self._parent = parent
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef wait(self) except+:
+        if self.is_consumed:
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = _DynamicStructReader()._init(self.thisptr.wait(), self._parent)
+        self.is_consumed = True
+
+        return ret
+
+    cpdef as_pypromise(self) except +:
+        Promise()._init(convert_to_pypromise(deref(self.thisptr)))
+
+    # cpdef then(self, func, error_func=None) except+:
+    #     if self.is_consumed:
+    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+    #     Py_INCREF(func)
+    #     Py_INCREF(error_func)
+
+    #     return _RemotePromise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+cdef class EventLoop:
+    cdef SimpleEventLoop thisptr
+    cpdef evalLater(self, func):
+        Py_INCREF(func)
+        return Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
+
+    cpdef wait_remote(self, _RemotePromise promise) except +:
+        if promise.is_consumed:
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = _DynamicStructReader()._init(self.thisptr.wait_remote(moveRemotePromise(deref(promise.thisptr))), promise._parent)
+        promise.is_consumed = True
+
+        return ret
+
+    # cpdef there(self, Promise promise, object func, object error_func=None):
+    #     if promise.is_consumed:
+    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+    #     Py_INCREF(func)
+    #     Py_INCREF(error_func)
+    #     return Promise()._init(capnp.there(self.thisptr, deref(promise.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+cdef class _Request:
+    cdef Request * thisptr
+    cdef public object _parent
+
+    cdef _init(self, Request other, parent):
+        self.thisptr = new Request(moveRequest(other))
+        self._parent = parent
+        return self
+
+    cpdef send(self):
+        return _RemotePromise()._init(self.thisptr.send(), self._parent)
+    cdef _get(self, field):
+        cdef C_DynamicValue.Builder value = self.thisptr.get(field)
+
+        return to_python_builder(value, self._parent)
+        
+    def __getattr__(self, field):
+        return self._get(field)
+
+    def __setattr__(self, field, value):
+        _setDynamicFieldPtr(self.thisptr, field, value, self._parent)
+
+    def _has(self, field):
+        return self.thisptr.has(field)
+
+    cpdef init(self, field, size=None):
+        """Method for initializing fields that are of type union/struct/list
+
+        Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists. 
+
+        :type field: str
+        :param field: The field name to initialize
+
+        :type size: int
+        :param size: The size of the list to initiialize. This should be None for struct/union initialization.
+
+        :rtype: :class:`_DynamicStructBuilder` or :class:`_DynamicListBuilder`
+
+        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
+        """
+        if size is None:
+            return to_python_builder(self.thisptr.init(field), self._parent)
+        else:
+            return to_python_builder(self.thisptr.init(field, size), self._parent)
+
+    cpdef init_resizable_list(self, field):
+        """Method for initializing fields that are of type list (of structs)
+
+        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since for primitive types you can just define a normal python list and fill it yourself. 
+
+        .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the list object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+
+        :type field: str
+        :param field: The field name to initialize
+
+        :rtype: :class:`_DynamicResizableListBuilder`
+
+        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
+        """
+        return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
+
+    cpdef which(self):
+        """Returns the enum corresponding to the union in this struct
+
+        Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
+
+            person = addressbook.Person.new_message()
+            
+            person.which()
+            # ValueError: member was null
+
+            a.employment.employer = 'foo'
+            print employment.which()
+            # 'employer'
+            
+        :rtype: str
+        :return: A string/enum corresponding to what field is set in the union
+
+        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        """
+        cdef object which = getEnumString(deref(self.thisptr))
+        if len(which) == 0:
+            raise ValueError("Attempted to call which on a non-union type")
+
+        return which
+
+    property schema:
+        """A property that returns the _StructSchema object matching this writer"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
+
+    def __str__(self):
+        return printRequest(deref(self.thisptr)).flatten().cStr()
+
+    def __repr__(self):
+        return '<%s builder %s>' % (self.schema.node.displayName, strRequest(deref(self.thisptr)).cStr())
+
+    def to_dict(self):
+        return _to_dict(self)
+
+cdef class _DynamicCapabilityClient:
+    cdef C_DynamicCapability.Client thisptr
+    cdef public object _event_loop, _server
+
+    def __init__(self, schema, server, event_loop):
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        cdef EventLoop loop = event_loop
+        self._event_loop = event_loop
+        self.thisptr = new_client(s.thisptr, <PyObject *>server, loop.thisptr)
+        self._server = server
+
+    cpdef _new_request_helper(self, name, firstSegmentWordSize, kwargs) except +ValueError:
+        cdef Request * request = new Request(self.thisptr.newRequest(name, firstSegmentWordSize))
+
+        for key, val in kwargs.items():
+            _setDynamicFieldPtr(request, key, val, self)
+
+        return _RemotePromise()._init(request.send(), self)
+
+    cpdef request(self, name, firstSegmentWordSize=0) except +ValueError:
+        return _Request()._init(self.thisptr.newRequest(name, firstSegmentWordSize), self)
+
+    def send(self, name, firstSegmentWordSize=0, **kwargs):
+        return self._new_request_helper(name, firstSegmentWordSize, kwargs)
+
 cdef class _Schema:
     cdef C_Schema thisptr
     cdef _init(self, C_Schema other):
@@ -1049,7 +1353,12 @@ cdef class SchemaParser:
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
                 elif proto.isInterface:
+                    def new_client(bound_local_module):
+                        def helper(server, loop):
+                            return _DynamicCapabilityClient(bound_local_module, server, loop)
+                        return helper
                     local_module.schema = schema.as_interface()
+                    local_module.new_client = new_client(local_module)
 
                 _load(schema, local_module)
         if not _os.path.isfile(file_name):

@@ -10,6 +10,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
         
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass Promise[T]:
+        Promise()
         Promise(Promise)
         T wait()
 
@@ -25,11 +26,3 @@ cdef extern from "kj/async.h" namespace " ::kj":
         PyPromise there(PyPromise, PyObject * func)
     cdef cppclass SimpleEventLoop(EventLoop):
         pass
-
-cdef extern from "asyncHelper.h":
-    PyPromise evalLater(EventLoop &, PyObject * func)
-    PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
-
-    # cdef cppclass PyEventLoop(EventLoop):
-    #     pass

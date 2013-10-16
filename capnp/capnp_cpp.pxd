@@ -2,7 +2,9 @@
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
 from schema_cpp cimport Node, Data, StructNode, EnumNode
+from async_cpp cimport PyPromise, Promise
 
+from cpython.ref cimport PyObject
 from libc.stdint cimport *
 ctypedef unsigned int uint
 from libcpp cimport bool as cbool
@@ -11,6 +13,10 @@ cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
         VOID " ::capnp::VOID"
     cdef cppclass word:
+        pass
+
+cdef extern from "kj/exception.h" namespace " ::kj":
+    cdef cppclass Exception:
         pass
 
 cdef extern from "kj/string.h" namespace " ::kj":
@@ -119,7 +125,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         TYPE_LIST " ::capnp::DynamicValue::LIST"
         TYPE_ENUM " ::capnp::DynamicValue::ENUM"
         TYPE_STRUCT " ::capnp::DynamicValue::STRUCT"
-        # TYPE_INTERFACE " ::capnp::DynamicValue::INTERFACE"
+        TYPE_CAPABILITY " ::capnp::DynamicValue::CAPABILITY"
         TYPE_OBJECT " ::capnp::DynamicValue::OBJECT"
 
     cdef cppclass DynamicStruct:
@@ -142,6 +148,31 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicOrphan disown(char *)
             DynamicStruct.Reader asReader()
 
+cdef extern from "capnp/capability.h" namespace " ::capnp":
+    cdef cppclass Response" ::capnp::Response< ::capnp::DynamicStruct>"(DynamicStruct.Reader):
+        pass
+    cdef cppclass RemotePromise" ::capnp::RemotePromise< ::capnp::DynamicStruct>"(Promise[Response]):
+        RemotePromise(RemotePromise)
+
+cdef extern from "capnp/dynamic.h" namespace " ::capnp":
+    cdef cppclass Request" ::capnp::Request< ::capnp::DynamicStruct, ::capnp::DynamicStruct>":
+        Request()
+        Request(Request &)
+        DynamicValueForward.Builder get(char *) except +ValueError
+        bint has(char *) except +ValueError
+        void set(char *, DynamicValueForward.Reader) except +ValueError
+        DynamicValueForward.Builder init(char *, uint size) except +ValueError
+        DynamicValueForward.Builder init(char *) except +ValueError
+        StructSchema getSchema()
+        Maybe[StructSchema.Field] which()
+        RemotePromise send()
+
+    cdef cppclass DynamicCapability:
+        cppclass Client:
+            Client upcast(InterfaceSchema requestedSchema)
+            InterfaceSchema getSchema()
+            Request newRequest(char * methodName, uint firstSegmentWordSize)
+
 cdef extern from "capnp/object.h" namespace " ::capnp":
     cdef cppclass ObjectPointer:
         cppclass Reader:
@@ -154,6 +185,14 @@ cdef extern from "fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +ValueError
     char * getEnumString(DynamicStruct.Reader val)
     char * getEnumString(DynamicStruct.Builder val)
+    char * getEnumString(Request val)
+
+
+cdef extern from "capabilityHelper.h":
+    cppclass PythonInterfaceDynamicImpl:
+        pass
+    DynamicCapability.Client new_client(InterfaceSchema&, PyObject *, EventLoop&)
+    PyPromise convert_to_pypromise(RemotePromise&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
@@ -232,3 +271,34 @@ cdef extern from "capnp/orphan.h" namespace " ::capnp":
     cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>":
         DynamicValue.Builder get()
         DynamicValue.Reader getReader()
+
+cdef extern from "capnp/capability.h" namespace " ::capnp":
+    cdef cppclass CallContext' ::capnp::CallContext< ::capnp::DynamicStruct, ::capnp::DynamicStruct>':
+        CallContext(CallContext&)
+        DynamicStruct.Reader getParams() except +
+        void releaseParams()
+
+        DynamicStruct.Builder getResults(uint firstSegmentWordSize)
+        DynamicStruct.Builder initResults(uint firstSegmentWordSize)
+        void setResults(DynamicStruct.Reader value)
+        # void adoptResults(Orphan<Results>&& value);
+        # Orphanage getResultsOrphanage(uint firstSegmentWordSize = 0);
+        void allowAsyncCancellation(bint allow = true)
+        bint isCanceled()
+
+cdef extern from "kj/async.h" namespace " ::kj":
+    cdef cppclass EventLoop:
+        EventLoop()
+        # Promise[void] yield_end'yield'()
+        object wait(PyPromise) except+
+        DynamicStruct.Reader wait_remote'wait'(RemotePromise) except+
+        object there(PyPromise) except+
+        PyPromise evalLater(PyObject * func)
+        PyPromise there(PyPromise, PyObject * func)
+    cdef cppclass SimpleEventLoop(EventLoop):
+        pass
+
+cdef extern from "asyncHelper.h":
+    PyPromise evalLater(EventLoop &, PyObject * func)
+    PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
+    PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
