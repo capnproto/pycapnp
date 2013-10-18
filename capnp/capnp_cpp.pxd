@@ -150,7 +150,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
 
 cdef extern from "capnp/capability.h" namespace " ::capnp":
     cdef cppclass Response" ::capnp::Response< ::capnp::DynamicStruct>"(DynamicStruct.Reader):
-        pass
+        Response(Response)
     cdef cppclass RemotePromise" ::capnp::RemotePromise< ::capnp::DynamicStruct>"(Promise[Response]):
         RemotePromise(RemotePromise)
 
@@ -291,7 +291,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
         EventLoop()
         # Promise[void] yield_end'yield'()
         object wait(PyPromise) except+
-        DynamicStruct.Reader wait_remote'wait'(RemotePromise) except+
+        Response wait_remote'wait'(RemotePromise)
         object there(PyPromise) except+
         PyPromise evalLater(PyObject * func)
         PyPromise there(PyPromise, PyObject * func)

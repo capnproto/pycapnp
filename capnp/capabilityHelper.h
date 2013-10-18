@@ -12,8 +12,14 @@ class PythonInterfaceDynamicImpl final: public capnp::DynamicCapability::Server 
 public:
   PyObject * py_server;
 
-  PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema, PyObject * py_server)
-      : capnp::DynamicCapability::Server(schema), py_server(py_server) {}
+  PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema, PyObject * _py_server)
+      : capnp::DynamicCapability::Server(schema), py_server(_py_server) {
+        Py_INCREF(_py_server);
+      }
+
+  ~PythonInterfaceDynamicImpl() {
+    Py_DECREF(py_server);
+  }
 
   kj::Promise<void> call(capnp::InterfaceSchema::Method method,
                          capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> context) {
