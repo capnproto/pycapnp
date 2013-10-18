@@ -15,6 +15,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
         T wait()
 
 ctypedef Promise[PyObject *] PyPromise
+ctypedef Promise[void] VoidPromise
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:

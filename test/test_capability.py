@@ -9,10 +9,21 @@ def capability():
      return capnp.load(os.path.join(this_dir, 'test_capability.capnp'))
 
 class Server:
-    def foo(self, context):
-        context.results.x = str(context.params.i * 5 + 1)
+    def __init__(self, val=1):
+        self.val = val
 
-def test_basic_client(capability):
+    def foo(self, context):
+        context.results.x = str(context.params.i * 5 + self.val)
+
+class PipelineServer:
+    def getCap(self, context):
+        def _then(response):
+            context.results.s = response.x + '_foo'
+            context.results.outBox.outCap = Server(100)
+
+        return context.params.inCap.foo(i=context.params.n).then(_then)
+
+def test_client(capability):
     loop = capnp.EventLoop()
 
     client = capability.TestInterface.new_client(Server(), loop)
@@ -70,3 +81,16 @@ def test_simple_client(capability):
 
     with pytest.raises(ValueError):
         remote = client.foo(baz=5)
+
+def test_pipeline(capability):
+    loop = capnp.EventLoop()
+
+    client = capability.TestPipeline.new_client(PipelineServer(), loop)
+    foo_client = capability.TestInterface.new_client(Server(), loop)
+
+    remote = client.getCap(n=5, inCap=foo_client)
+    response = loop.wait_remote(remote)
+
+    assert response.s == '26_foo'
+
+

@@ -4,9 +4,45 @@
 #include <iostream>
 
 extern "C" {
+   void wrap_remote_call(PyObject * func, capnp::Response<capnp::DynamicStruct> &);
    PyObject * wrap_dynamic_struct_reader(capnp::DynamicStruct::Reader &);
-   void call_server_method(PyObject * py_server, char * name, capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> & context);
+   ::kj::Promise<void> * call_server_method(PyObject * py_server, char * name, capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> & context);
+   PyObject * wrap_kj_exception(kj::Exception &);
  }
+
+PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
+    PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
+    Py_DECREF(func);
+    return result;
+}
+
+::kj::Promise<PyObject *> evalLater(kj::EventLoop & loop, PyObject * func) {
+  return loop.evalLater([func]() { return wrapPyFunc(func, NULL); } );
+}
+
+::kj::Promise<PyObject *> there(kj::EventLoop & loop, kj::Promise<PyObject *> & promise, PyObject * func, PyObject * error_func) {
+  if(error_func == Py_None)
+    return loop.there(kj::mv(promise), [func](PyObject * arg) { return wrapPyFunc(func, arg); } );
+  else
+    return loop.there(kj::mv(promise), [func](PyObject * arg) { return wrapPyFunc(func, arg); } 
+                                     , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
+}
+
+::kj::Promise<PyObject *> then(kj::Promise<PyObject *> & promise, PyObject * func, PyObject * error_func) {
+  if(error_func == Py_None)
+    return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); } );
+  else
+    return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); } 
+                                     , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
+}
+
+::kj::Promise<void> then(::capnp::RemotePromise< ::capnp::DynamicStruct> & promise, PyObject * func, PyObject * error_func) {
+  if(error_func == Py_None)
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrap_remote_call(func, arg); } );
+  else
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrap_remote_call(func, arg); } 
+                                     , [error_func](kj::Exception arg) { wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
+}
 
 class PythonInterfaceDynamicImpl final: public capnp::DynamicCapability::Server {
 public:
@@ -24,8 +60,13 @@ public:
   kj::Promise<void> call(capnp::InterfaceSchema::Method method,
                          capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> context) {
     auto methodName = method.getProto().getName();
-    call_server_method(py_server, const_cast<char *>(methodName.cStr()), context);
-    return kj::READY_NOW;
+    kj::Promise<void> * promise = call_server_method(py_server, const_cast<char *>(methodName.cStr()), context);
+    if(promise == nullptr)
+      return kj::READY_NOW;
+
+    kj::Promise<void> ret(kj::mv(*promise));
+    delete promise;
+    return ret;
   }
 };
 

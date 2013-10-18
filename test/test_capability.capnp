@@ -35,11 +35,11 @@ interface TestInterface {
 #   grault @2 () -> TestAllTypes;
 # }
 
-# interface TestPipeline {
-#   getCap @0 (n: UInt32, inCap :TestInterface) -> (s: Text, outBox :Box);
-#   testPointers @1 (cap :TestInterface, obj :Object, list :List(TestInterface)) -> ();
+interface TestPipeline {
+  getCap @0 (n: UInt32, inCap :TestInterface) -> (s: Text, outBox :Box);
+  testPointers @1 (cap :TestInterface, obj :Object, list :List(TestInterface)) -> ();
 
-#   struct Box {
-#     cap @0 :TestInterface;
-#   }
-# }
+  struct Box {
+    cap @0 :TestInterface;
+  }
+}
