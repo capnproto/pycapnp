@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, WordArrayPtr, DynamicCapability as C_DynamicCapability, new_client, Request, Response, RemotePromise, convert_to_pypromise, SimpleEventLoop, PyPromise, VoidPromise, CallContext
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, WordArrayPtr, DynamicCapability as C_DynamicCapability, new_client, new_server, Request, Response, RemotePromise, convert_to_pypromise, SimpleEventLoop, PyPromise, VoidPromise, CallContext
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -113,6 +113,7 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
             uint size()
 
 cdef extern from "<utility>" namespace "std":
+    C_DynamicStruct.Pipeline moveStructPipeline"std::move"(C_DynamicStruct.Pipeline)
     C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
     Request moveRequest"std::move"(Request)
     Response moveResponse"std::move"(Response)
@@ -375,6 +376,17 @@ cdef class _List_NestedNode_Reader:
     def __len__(self):
         return self.thisptr.size()
 
+# cdef to_python_pipeline(C_DynamicValue.Pipeline self, object parent):
+#     cdef int type = self.getType()
+#     if type == capnp.TYPE_CAPABILITY:
+#         return _DynamicCapabilityClient()._init(self.asCapability(), parent)
+#     # elif type == capnp.TYPE_STRUCT:
+#     #     return _DynamicStructReader()._init(self.asStruct(), parent)
+#     elif type == capnp.TYPE_UNKNOWN:
+#         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+#     else:
+#         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+
 cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     cdef int type = self.getType()
     if type == capnp.TYPE_BOOL:
@@ -448,6 +460,9 @@ cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader v
 cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient value):
     return C_DynamicValue.Reader(value.thisptr)
 
+cdef C_DynamicValue.Reader _extract_dynamic_server(_DynamicCapabilityServer value):
+    return new_server(value.schema.thisptr, <PyObject *>value.server)
+
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
@@ -480,6 +495,8 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
+    elif value_type is _DynamicCapabilityServer:
+        thisptr.set(field, _extract_dynamic_server(value))
     else:
         raise ValueError("Non primitive type")
 
@@ -836,6 +853,53 @@ cdef class _DynamicStructBuilder:
     def to_dict(self):
         return _to_dict(self)
 
+cdef class _DynamicStructPipeline:
+    """Reads Cap'n Proto structs
+
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Pipeline. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
+    """
+    cdef C_DynamicStruct.Pipeline * thisptr
+    cdef public object _parent
+
+    cdef _init(self, C_DynamicStruct.Pipeline * other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef _get(self, field) except +ValueError:
+        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
+        if type == capnp.TYPE_CAPABILITY:
+            return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+        elif type == capnp.TYPE_STRUCT:
+            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
+        elif type == capnp.TYPE_UNKNOWN:
+            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+        else:
+            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+
+    def __getattr__(self, field):
+        return self._get(field)
+
+    property schema:
+        """A property that returns the _StructSchema object matching this reader"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
+
+    # def __str__(self):
+    #     return printStructReader(self.thisptr).flatten().cStr()
+
+    # def __repr__(self):
+    #     return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+
+    def to_dict(self):
+        return _to_dict(self)
+
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
     cdef public object _parent
@@ -1024,7 +1088,15 @@ cdef class _RemotePromise:
         return _VoidPromise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
 
     cpdef _get(self, field) except +ValueError:
-        return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
+        if type == capnp.TYPE_CAPABILITY:
+            return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+        elif type == capnp.TYPE_STRUCT:
+            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
+        elif type == capnp.TYPE_UNKNOWN:
+            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+        else:
+            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
 
     def __getattr__(self, field):
         return self._get(field)
@@ -1036,6 +1108,15 @@ cdef class _RemotePromise:
 
     def __dir__(self):
         return list(self.schema.fieldnames)
+
+    # def __str__(self):
+    #     return printStructReader(self.thisptr).flatten().cStr()
+
+    # def __repr__(self):
+    #     return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+
+    def to_dict(self):
+        return _to_dict(self)
 
 cdef class EventLoop:
     cdef SimpleEventLoop thisptr
@@ -1083,6 +1164,20 @@ cdef class _Response(_DynamicStructReader):
         self.thisptr_child = other
         self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
         return self
+
+cdef class _DynamicCapabilityServer:
+    cdef public _InterfaceSchema schema
+    cdef public object server
+
+    def __init__(self, schema, server):
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        self.schema = s
+        self.server = server
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
@@ -1371,8 +1466,13 @@ cdef class SchemaParser:
                         def helper(server, loop):
                             return _DynamicCapabilityClient()._init_vals(bound_local_module, server, loop)
                         return helper
+                    def new_server(bound_local_module):
+                        def helper(server):
+                            return _DynamicCapabilityServer(bound_local_module, server)
+                        return helper
                     local_module.schema = schema.as_interface()
                     local_module.new_client = new_client(local_module)
+                    local_module.new_server = new_server(local_module)
 
                 _load(schema, local_module)
         if not _os.path.isfile(file_name):

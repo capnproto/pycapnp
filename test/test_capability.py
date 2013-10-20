@@ -16,10 +16,13 @@ class Server:
         context.results.x = str(context.params.i * 5 + self.val)
 
 class PipelineServer:
+    def __init__(self, capability):
+        self.capability = capability
+
     def getCap(self, context):
         def _then(response):
             context.results.s = response.x + '_foo'
-            context.results.outBox.outCap = Server(100)
+            context.results.outBox.cap = self.capability.TestInterface.new_server(Server(100))
 
         return context.params.inCap.foo(i=context.params.n).then(_then)
 
@@ -85,12 +88,20 @@ def test_simple_client(capability):
 def test_pipeline(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestPipeline.new_client(PipelineServer(), loop)
+    client = capability.TestPipeline.new_client(PipelineServer(capability), loop)
     foo_client = capability.TestInterface.new_client(Server(), loop)
 
     remote = client.getCap(n=5, inCap=foo_client)
-    response = loop.wait_remote(remote)
 
+    outCap = remote.outBox.cap
+    pipelinePromise = outCap.foo(i=10)
+
+    response = loop.wait_remote(pipelinePromise)
+    assert response.x == '150'
+
+    response = loop.wait_remote(remote)
     assert response.s == '26_foo'
+
+
 
 

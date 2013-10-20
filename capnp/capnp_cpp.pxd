@@ -150,6 +150,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicOrphan disown(char *)
             DynamicStruct.Reader asReader()
         cppclass Pipeline:
+            Pipeline()
+            Pipeline(Pipeline &)
             DynamicValueForward.Pipeline get(char *)
             StructSchema getSchema()
 
@@ -199,8 +201,9 @@ cdef extern from "capabilityHelper.h":
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
     VoidPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
     cppclass PythonInterfaceDynamicImpl:
-        pass
+        PythonInterfaceDynamicImpl(PyObject *)
     DynamicCapability.Client new_client(InterfaceSchema&, PyObject *, EventLoop&)
+    DynamicValueForward.Reader new_server(InterfaceSchema&, PyObject *)
     PyPromise convert_to_pypromise(RemotePromise&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
@@ -245,6 +248,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Reader(DynamicEnum value)
             Reader(DynamicStruct.Reader& value)
             Reader(DynamicCapability.Client& value)
+            Reader(PythonInterfaceDynamicImpl& value)
             Type getType()
             int64_t asInt"as<int64_t>"()
             uint64_t asUint"as<uint64_t>"()
@@ -275,6 +279,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Pipeline:
             Pipeline(Pipeline)
             DynamicCapability.Client asCapability"releaseAs< ::capnp::DynamicCapability>"()
+            DynamicStruct.Pipeline asStruct"releaseAs< ::capnp::DynamicStruct>"()
+            Type getType()
 
 cdef extern from "capnp/schema-parser.h" namespace " ::capnp":
     cdef cppclass ParsedSchema(Schema):

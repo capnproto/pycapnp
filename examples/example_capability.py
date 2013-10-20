@@ -12,7 +12,7 @@ def example_client():
 
     client = example_capability_capnp.TestInterface.new_client(Server(), loop)
     
-    req = client.request('foo')
+    req = client._request('foo')
     req.i = 5
 
     remote = req.send()

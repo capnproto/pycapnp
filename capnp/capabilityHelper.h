@@ -73,6 +73,9 @@ public:
 capnp::DynamicCapability::Client new_client(capnp::InterfaceSchema & schema, PyObject * server, kj::EventLoop & loop) {
   return capnp::DynamicCapability::Client(kj::heap<PythonInterfaceDynamicImpl>(schema, server), loop);
 }
+capnp::DynamicValue::Reader new_server(capnp::InterfaceSchema & schema, PyObject * server) {
+  return capnp::DynamicValue::Reader(kj::heap<PythonInterfaceDynamicImpl>(schema, server));
+}
 
 ::kj::Promise<PyObject *> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> & promise) {
     return promise.then([](capnp::Response<capnp::DynamicStruct>&& response) { return wrap_dynamic_struct_reader(response); } );
