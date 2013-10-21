@@ -655,6 +655,16 @@ cdef class _DynamicStructReader:
     def to_dict(self):
         return _to_dict(self)
 
+    cpdef as_builder(self):
+        """A method for casting this Builder to a Reader
+
+        Don't use this method unless you know what you're doing.
+
+        :rtype: :class:`_DynamicStructReader`
+        """
+        builder = _MallocMessageBuilder()
+        return builder.set_root(self)
+
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
 
