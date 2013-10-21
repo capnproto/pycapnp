@@ -130,3 +130,4 @@ Means you haven't installed the Cap'n Proto C++ library. Please follow the direc
 
 
 [![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/jparyani/pycapnp/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
