@@ -113,7 +113,7 @@ def test_exception_client(capability):
     client = capability.TestInterface.new_client(BadServer(), loop)
     
     remote = client._send('foo', i=5)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         loop.wait_remote(remote)
 
 class BadPipelineServer:
@@ -137,7 +137,7 @@ def test_exception_chain(capability):
     try:
         loop.wait_remote(remote)
     except Exception as e:
-        assert e.message == 'test'
+        assert str(e) == 'test'
 
 def test_pipeline_exception(capability):
     loop = capnp.EventLoop()

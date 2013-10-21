@@ -10,28 +10,26 @@ extern "C" {
    PyObject * wrap_kj_exception(kj::Exception &);
  }
 
+void check_py_error() {
+    PyObject * err = PyErr_Occurred();
+    if(err) {
+        // PyErr_Clear();
+        throw std::exception();
+    }
+}
+
 PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
     PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
     Py_DECREF(func);
 
-    PyObject * err = PyErr_Occurred();
-    if(err) {
-        char * errorMsg = PyString_AsString(PyObject_Repr(err));
-        // PyErr_Clear();
-        throw std::invalid_argument(errorMsg);
-    }
+    check_py_error();
     return result;
 }
 
 void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg) {
     wrap_remote_call(func, arg);
 
-    PyObject * err = PyErr_Occurred();
-    if(err) {
-        char * errorMsg = PyString_AsString(PyObject_Repr(err));
-        // PyErr_Clear();
-        throw std::invalid_argument(errorMsg);
-    }
+    check_py_error();
 }
 
 ::kj::Promise<PyObject *> evalLater(kj::EventLoop & loop, PyObject * func) {
@@ -81,15 +79,7 @@ public:
 
     kj::Promise<void> * promise = call_server_method(py_server, const_cast<char *>(methodName.cStr()), context);
 
-    PyObject * err = PyErr_Occurred();
-    if(err) {
-        PyObject *ptype, *pvalue, *ptraceback;
-        PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-
-        char * errorMsg = PyString_AsString(pvalue);
-        PyErr_Clear();
-        throw std::invalid_argument(errorMsg);
-    }
+    check_py_error();
 
     if(promise == nullptr)
       return kj::READY_NOW;
