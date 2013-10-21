@@ -1,6 +1,6 @@
 # capnp.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++11 -fpermissive
+# distutils: extra_compile_args = --std=c++11
 # distutils: libraries = capnpc capnp
 # cython: c_string_type = str
 # cython: c_string_encoding = default
@@ -151,7 +151,7 @@ cdef class _NodeReader:
 
     property displayName:
         def __get__(self):
-            return self.thisptr.getDisplayName().cStr()
+            return <char*>self.thisptr.getDisplayName().cStr()
     property scopeId:
         def __get__(self):
             return self.thisptr.getScopeId()
@@ -179,7 +179,7 @@ cdef class _NestedNodeReader:
 
     property name:
         def __get__(self):
-            return self.thisptr.getName().cStr()
+            return <char*>self.thisptr.getName().cStr()
     property id:
         def __get__(self):
             return self.thisptr.getId()
@@ -218,11 +218,11 @@ cdef class _DynamicListReader:
         return self.thisptr.size()
 
     def __str__(self):
-        return printListReader(self.thisptr).flatten().cStr()
+        return <char*>printListReader(self.thisptr).flatten().cStr()
 
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list reader %s>' % strListReader(self.thisptr).cStr()
+        return '<capnp list reader %s>' % <char*>strListReader(self.thisptr).cStr()
 
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
@@ -361,11 +361,11 @@ cdef class _DynamicListBuilder:
         return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
     def __str__(self):
-        return printListBuilder(self.thisptr).flatten().cStr()
+        return <char*>printListBuilder(self.thisptr).flatten().cStr()
 
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list builder %s>' % strListBuilder(self.thisptr).cStr()
+        return '<capnp list builder %s>' % <char*>strListBuilder(self.thisptr).cStr()
 
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
@@ -405,7 +405,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_FLOAT:
         return self.asDouble()
     elif type == capnp.TYPE_TEXT:
-        return self.asText()[:]
+        return (<char*>self.asText().cStr())[:]
     elif type == capnp.TYPE_DATA:
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
@@ -414,7 +414,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_OBJECT:
@@ -437,7 +437,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_FLOAT:
         return self.asDouble()
     elif type == capnp.TYPE_TEXT:
-        return self.asText()[:]
+        return (<char*>self.asText().cStr())[:]
     elif type == capnp.TYPE_DATA:
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
@@ -446,7 +446,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructBuilder()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_OBJECT:
@@ -632,7 +632,7 @@ cdef class _DynamicStructReader:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = getEnumString(self.thisptr)
+        cdef object which = <char*>getEnumString(self.thisptr)
         if len(which) == 0:
             raise ValueError("Attempted to call which on a non-union type")
 
@@ -647,10 +647,10 @@ cdef class _DynamicStructReader:
         return list(self.schema.fieldnames)
 
     def __str__(self):
-        return printStructReader(self.thisptr).flatten().cStr()
+        return <char*>printStructReader(self.thisptr).flatten().cStr()
 
     def __repr__(self):
-        return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+        return '<%s reader %s>' % (self.schema.node.displayName, <char*>strStructReader(self.thisptr).cStr())
 
     def to_dict(self):
         return _to_dict(self)
@@ -814,7 +814,7 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = getEnumString(self.thisptr)
+        cdef object which = <char*>getEnumString(self.thisptr)
         if len(which) == 0:
             raise ValueError("Attempted to call which on a non-union type")
 
@@ -869,10 +869,10 @@ cdef class _DynamicStructBuilder:
         return list(self.schema.fieldnames)
 
     def __str__(self):
-        return printStructBuilder(self.thisptr).flatten().cStr()
+        return <char*>printStructBuilder(self.thisptr).flatten().cStr()
 
     def __repr__(self):
-        return '<%s builder %s>' % (self.schema.node.displayName, strStructBuilder(self.thisptr).cStr())
+        return '<%s builder %s>' % (self.schema.node.displayName, <char*>strStructBuilder(self.thisptr).cStr())
 
     def to_dict(self):
         return _to_dict(self)
@@ -1286,7 +1286,7 @@ cdef class _StructSchema:
                return self.__fieldnames
             fieldlist = self.thisptr.getFields()
             nfields = fieldlist.size()
-            self.__fieldnames = tuple(fieldlist[i].getProto().getName().cStr()
+            self.__fieldnames = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__fieldnames
 
@@ -1297,7 +1297,7 @@ cdef class _StructSchema:
                return self.__union_fields
             fieldlist = self.thisptr.getUnionFields()
             nfields = fieldlist.size()
-            self.__union_fields = tuple(fieldlist[i].getProto().getName().cStr()
+            self.__union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__union_fields
 
@@ -1308,7 +1308,7 @@ cdef class _StructSchema:
                return self.__non_union_fields
             fieldlist = self.thisptr.getNonUnionFields()
             nfields = fieldlist.size()
-            self.__non_union_fields = tuple(fieldlist[i].getProto().getName().cStr()
+            self.__non_union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__non_union_fields
 
