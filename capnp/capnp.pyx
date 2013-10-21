@@ -39,30 +39,37 @@ import os as _os
 import sys as _sys
 import imp as _imp
 from functools import partial as _partial
+import warnings as _warnings
+import inspect as _inspect
 
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef public object wrap_dynamic_struct_reader(C_DynamicStruct.Reader & reader):
     return _DynamicStructReader()._init(reader, None)
 
-cdef public void wrap_remote_call(PyObject * func, Response & r):
+cdef public void wrap_remote_call(PyObject * func, Response & r) except *:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
 
     func_obj = <object>func
     # TODO: decref func?
     func_obj(response)
 
-cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context):
+cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except *:
     server = <object>_server
     method_name = <object>_method_name
 
     context = _CallContext()._init(_context)
-    ret = getattr(server, method_name)(context)
+    func = getattr(server, method_name)
+    ret = func(context)
 
     if ret is not None:
         if type(ret) is _VoidPromise:
             return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
         else:
-            raise ValueError('Server function returned a value that was not a VoidPromise: ' + str(ret))
+            try:
+                warning_msg = 'Server function (%s) returned a value that was not a VoidPromise: return = %s' % (method_name, str(ret))
+            except:
+                warning_msg = 'Server function (%s) returned a value that was not a VoidPromise' % (method_name)
+            _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
 
     return NULL
     

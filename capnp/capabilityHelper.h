@@ -13,7 +13,25 @@ extern "C" {
 PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
     PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
     Py_DECREF(func);
+
+    PyObject * err = PyErr_Occurred();
+    if(err) {
+        char * errorMsg = PyString_AsString(PyObject_Repr(err));
+        // PyErr_Clear();
+        throw std::invalid_argument(errorMsg);
+    }
     return result;
+}
+
+void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg) {
+    wrap_remote_call(func, arg);
+
+    PyObject * err = PyErr_Occurred();
+    if(err) {
+        char * errorMsg = PyString_AsString(PyObject_Repr(err));
+        // PyErr_Clear();
+        throw std::invalid_argument(errorMsg);
+    }
 }
 
 ::kj::Promise<PyObject *> evalLater(kj::EventLoop & loop, PyObject * func) {
@@ -38,9 +56,9 @@ PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
 
 ::kj::Promise<void> then(::capnp::RemotePromise< ::capnp::DynamicStruct> & promise, PyObject * func, PyObject * error_func) {
   if(error_func == Py_None)
-    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrap_remote_call(func, arg); } );
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrapRemoteCall(func, arg); } );
   else
-    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrap_remote_call(func, arg); } 
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrapRemoteCall(func, arg); } 
                                      , [error_func](kj::Exception arg) { wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
@@ -60,7 +78,19 @@ public:
   kj::Promise<void> call(capnp::InterfaceSchema::Method method,
                          capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> context) {
     auto methodName = method.getProto().getName();
+
     kj::Promise<void> * promise = call_server_method(py_server, const_cast<char *>(methodName.cStr()), context);
+
+    PyObject * err = PyErr_Occurred();
+    if(err) {
+        PyObject *ptype, *pvalue, *ptraceback;
+        PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+
+        char * errorMsg = PyString_AsString(pvalue);
+        PyErr_Clear();
+        throw std::invalid_argument(errorMsg);
+    }
+
     if(promise == nullptr)
       return kj::READY_NOW;
 

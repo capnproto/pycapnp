@@ -98,3 +98,60 @@ def test_pipeline(capability):
 
     response = loop.wait_remote(remote)
     assert response.s == '26_foo'
+
+class BadServer:
+    def __init__(self, val=1):
+        self.val = val
+
+    def foo(self, context):
+        context.results.x = str(context.params.i * 5 + self.val)
+        context.results.x2 = 5 # raises exception
+
+def test_exception_client(capability):
+    loop = capnp.EventLoop()
+
+    client = capability.TestInterface.new_client(BadServer(), loop)
+    
+    remote = client._send('foo', i=5)
+    with pytest.raises(RuntimeError):
+        loop.wait_remote(remote)
+
+class BadPipelineServer:
+    def getCap(self, context):
+        def _then(response):
+            context.results.s = response.x + '_foo'
+            context.results.outBox.cap = capability().TestInterface.new_server(Server(100))
+        def _error(error):
+            raise Exception('test')
+
+        return context.params.inCap.foo(i=context.params.n).then(_then, _error)
+
+def test_exception_chain(capability):
+    loop = capnp.EventLoop()
+
+    client = capability.TestPipeline.new_client(BadPipelineServer(), loop)
+    foo_client = capability.TestInterface.new_client(BadServer(), loop)
+
+    remote = client.getCap(n=5, inCap=foo_client)
+
+    try:
+        loop.wait_remote(remote)
+    except Exception as e:
+        assert e.message == 'test'
+
+def test_pipeline_exception(capability):
+    loop = capnp.EventLoop()
+
+    client = capability.TestPipeline.new_client(BadPipelineServer(), loop)
+    foo_client = capability.TestInterface.new_client(BadServer(), loop)
+
+    remote = client.getCap(n=5, inCap=foo_client)
+
+    outCap = remote.outBox.cap
+    pipelinePromise = outCap.foo(i=10)
+
+    with pytest.raises(Exception):
+        loop.wait_remote(pipelinePromise)
+
+    with pytest.raises(Exception):
+        loop.wait_remote(remote)
