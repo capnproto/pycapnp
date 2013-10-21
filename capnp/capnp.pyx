@@ -670,13 +670,20 @@ cdef class _DynamicStructBuilder:
     """
     cdef C_DynamicStruct.Builder thisptr
     cdef public object _parent
-    cdef bint _isRoot
+    cdef bint _is_root, _is_written
     cdef _init(self, C_DynamicStruct.Builder other, object parent, bint isRoot = False):
         self.thisptr = other
         self._parent = parent
-        self._isRoot = isRoot
+        self._is_root = isRoot
+        self._is_written = False
         return self
-    
+
+    cdef _check_write(self):
+        if not self._is_root:
+            raise ValueError("You can only call write() on the message's root struct.")
+        if self._is_written:
+            _warnings.warn("This message has already been written once. Be very careful that you're not setting Text/Struct/List fields more than once, since that will cause memory leaks (both in memory and in the serialized data). You can disable this warning by setting the `_is_written` field of this object to False after every write.")
+
     def write(self, file):
         """Writes the struct's containing message to the given file object in unpacked binary format.
         
@@ -690,9 +697,9 @@ cdef class _DynamicStructBuilder:
         
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
-        if not self._isRoot:
-            raise ValueError("You can only call write() on the message's root struct.")
+        self._check_write()
         _write_message_to_fd(file.fileno(), self._parent)
+        self._is_written = True
 
     def write_packed(self, file):
         """Writes the struct's containing message to the given file object in packed binary format.
@@ -707,9 +714,9 @@ cdef class _DynamicStructBuilder:
         
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
-        if not self._isRoot:
-            raise ValueError("You can only call write() on the message's root struct.")
+        self._check_write()
         _write_packed_message_to_fd(file.fileno(), self._parent)
+        self._is_written = True
 
     def to_bytes(_DynamicStructBuilder self):
         """Returns the struct's containing message as a Python bytes object in the unpacked binary format.
@@ -720,12 +727,12 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
-        if not self._isRoot:
-            raise ValueError("You can only call write() on the message's root struct.")
+        self._check_write()
         cdef _MessageBuilder builder = self._parent
         array = schema_cpp.messageToFlatArray(deref(builder.thisptr))
         cdef const char* ptr = <const char *>array.begin()
         cdef bytes ret = ptr[:8*array.size()]
+        self._is_written = True
         return ret
 
     cdef _get(self, field):
