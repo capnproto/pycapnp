@@ -568,7 +568,15 @@ import collections as _collections
 cdef _from_dict_helper(msg, field, d):
     d_type = type(d)
     if d_type is dict:
-        sub_msg = getattr(msg, field)
+        try:
+            sub_msg = getattr(msg, field)
+        except Exception as e:
+            str_error = str(e)
+            if 'expected isSetInUnion(field)' in str_error:
+                msg.init(field)
+                sub_msg = getattr(msg, field)
+            else:
+                raise
         for key, val in d.iteritems():
             if key != 'which':
                 _from_dict_helper(sub_msg, key, val)
@@ -583,6 +591,7 @@ cdef _from_dict_helper(msg, field, d):
                 l[i] = d[i]
     else:
         setattr(msg, field, d)
+
 
 cdef _from_dict(msg, d):
     for key, val in d.iteritems():
