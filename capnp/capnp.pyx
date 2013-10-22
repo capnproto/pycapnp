@@ -542,29 +542,27 @@ cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
     else:
         raise ValueError("Non primitive type")
 
-cdef _to_dict(msg):
+cdef _to_dict(msg, bint verbose):
     msg_type = type(msg)
     if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
-        return [_to_dict(x) for x in msg]
+        return [_to_dict(x, verbose) for x in msg]
 
     if msg_type is _DynamicStructBuilder or msg_type is _DynamicStructReader:
         ret = {}
         try:
             which = msg.which()
-            ret['which'] = which
-            ret[which] = _to_dict(getattr(msg, which))
+            ret[which] = _to_dict(getattr(msg, which), verbose)
         except ValueError:
             pass
 
         for field in msg.schema.non_union_fields:
-            if msg._has(field):
-                ret[field] = _to_dict(getattr(msg, field))
+            if verbose or msg._has(field):
+                ret[field] = _to_dict(getattr(msg, field), verbose)
 
         return ret
 
     return msg
 
-import collections as _collections
 cdef _from_dict_helper(msg, field, d):
     d_type = type(d)
     if d_type is dict:
@@ -578,15 +576,13 @@ cdef _from_dict_helper(msg, field, d):
             else:
                 raise
         for key, val in d.iteritems():
-            if key != 'which':
-                _from_dict_helper(sub_msg, key, val)
+            _from_dict_helper(sub_msg, key, val)
     elif d_type is list and len(d) > 0:
         l = msg.init(field, len(d))
         for i in range(len(d)):
             if isinstance(d[i], (dict, list)):
                 for key, val in d[i].iteritems():
-                    if key != 'which':
-                        _from_dict_helper(l[i], key, val)
+                    _from_dict_helper(l[i], key, val)
             else:
                 l[i] = d[i]
     else:
@@ -661,8 +657,8 @@ cdef class _DynamicStructReader:
     def __repr__(self):
         return '<%s reader %s>' % (self.schema.node.displayName, <char*>strStructReader(self.thisptr).cStr())
 
-    def to_dict(self):
-        return _to_dict(self)
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
 
     cpdef as_builder(self):
         """A method for casting this Builder to a Reader
@@ -883,8 +879,8 @@ cdef class _DynamicStructBuilder:
     def __repr__(self):
         return '<%s builder %s>' % (self.schema.node.displayName, <char*>strStructBuilder(self.thisptr).cStr())
 
-    def to_dict(self):
-        return _to_dict(self)
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
 
 cdef class _DynamicStructPipeline:
     """Reads Cap'n Proto structs
@@ -930,8 +926,8 @@ cdef class _DynamicStructPipeline:
     # def __repr__(self):
     #     return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
 
-    def to_dict(self):
-        return _to_dict(self)
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
 
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
@@ -1148,8 +1144,8 @@ cdef class _RemotePromise:
     # def __repr__(self):
     #     return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
 
-    def to_dict(self):
-        return _to_dict(self)
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
 
 cdef class EventLoop:
     cdef SimpleEventLoop thisptr

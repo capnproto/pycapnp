@@ -10,10 +10,11 @@ def parse_args():
     parser.add_argument("command")
     parser.add_argument("schema_file")
     parser.add_argument("struct_name")
+    parser.add_argument("-d", "--defaults", help="include default values in json output", action="store_true")
 
     return parser.parse_args()
 
-def encode(schema_file, struct_name):
+def encode(schema_file, struct_name, **kwargs):
     schema = capnp.load(schema_file)
 
     struct_schema = getattr(schema, struct_name)
@@ -23,13 +24,13 @@ def encode(schema_file, struct_name):
 
     struct.write(sys.stdout)
 
-def decode(schema_file, struct_name):
+def decode(schema_file, struct_name, defaults):
     schema = capnp.load(schema_file)
 
     struct_schema = getattr(schema, struct_name)
     struct = struct_schema.read(sys.stdin)
     
-    json.dump(struct.to_dict(), sys.stdout)
+    json.dump(struct.to_dict(defaults), sys.stdout)
 
 def main():
     args = parse_args()
