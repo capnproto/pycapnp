@@ -693,20 +693,20 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
 
 cdef extern from "capnp/serialize.h" namespace " ::capnp":
     cdef cppclass StreamFdMessageReader(MessageReader):
-        StreamFdMessageReader(int)
-        StreamFdMessageReader(int, ReaderOptions)
+        StreamFdMessageReader(int) except +
+        StreamFdMessageReader(int, ReaderOptions) except +
 
     cdef cppclass FlatArrayMessageReader(MessageReader):
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array)
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array, ReaderOptions)
+        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array) except +
+        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array, ReaderOptions) except +
 
-    void writeMessageToFd(int, MessageBuilder&)
+    void writeMessageToFd(int, MessageBuilder&) except +
 
     capnp_cpp.WordArray messageToFlatArray(MessageBuilder &)
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
     cdef cppclass PackedFdMessageReader(MessageReader):
-        PackedFdMessageReader(int)
-        StreamFdMessageReader(int, ReaderOptions)
+        PackedFdMessageReader(int) except +
+        StreamFdMessageReader(int, ReaderOptions) except +
 
-    void writePackedMessageToFd(int, MessageBuilder&)
+    void writePackedMessageToFd(int, MessageBuilder&) except +
