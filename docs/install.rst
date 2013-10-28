@@ -36,8 +36,7 @@ From Source
 If you want the latest development version, you can clone the github repo and install like so::
 
     git clone https://github.com/jparyani/pycapnp.git
-    cd pycapnp
-    pip install .
+    pip install ./pycapnp
 
 or::
 

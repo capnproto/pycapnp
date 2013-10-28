@@ -8,7 +8,7 @@ addressbook = capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 print = lambda *x: x
 
 
-def writeAddressBook(f):
+def writeAddressBook():
     addressBook = addressbook.AddressBook.new_message()
     people = addressBook.init('people', 2)
 
@@ -30,11 +30,11 @@ def writeAddressBook(f):
     bobPhones[1].number = "555-7654"
     bobPhones[1].type = 'work'
 
-    addressBook.write(f)
+    msg_bytes = addressBook.to_bytes()
+    return msg_bytes
 
-
-def printAddressBook(f):
-    addressBook = addressbook.AddressBook.read(f)
+def printAddressBook(msg_bytes):
+    addressBook = addressbook.AddressBook.from_bytes(msg_bytes)
 
     for person in addressBook.people:
         print(person.name, ':', person.email)
@@ -45,10 +45,7 @@ def printAddressBook(f):
 
 if __name__ == '__main__':
     for i in range(10000):
-        f = open('example', 'w')
-        writeAddressBook(f)
+        msg_bytes = writeAddressBook()
 
-        f = open('example', 'r')
-        printAddressBook(f)
+        printAddressBook(msg_bytes)
 
-os.remove('example')

@@ -4,7 +4,7 @@ More thorough docs are available at [http://jparyani.github.io/pycapnp/](http://
 
 ## Requirements
 
-First you need a system-wide installation of the Cap'n Proto C++ library >= 0.3. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
+First you need a system-wide installation of the Cap'n Proto C++ library == 0.3.x. .0.4.x currently requires a branch of pycapnp, accessible with `git checkout feature/v0.4` in a git clone of pycapnp. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
 
 ```bash
 curl -O http://capnproto.org/capnproto-c++-0.3.0.tar.gz
@@ -29,12 +29,15 @@ Install with `pip install pycapnp`. You can set the CC environment variable to c
 Or you can clone the repo like so:
 
     git clone https://github.com/jparyani/pycapnp.git
+    pip install ./pycapnp
 
-`cd` into the repo directory and run `pip install .`
+Note: for OSX, if using clang from Xcode 5, you will need to set `CFLAGS` like so:
+
+    CFLAGS='-stdlib=libc++' pip install pycapnp
 
 ## Development
 
-This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/). Essentially, just make sure you do your changes in the `develop` branch. You can run the tests by installing pytest with `pip install pytest`, and then run `py.test`
+This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/). Essentially, just make sure you do your changes in the `develop` branch. You can run the tests by installing pytest with `pip install pytest`, and then run `py.test` from the `test` directory.
 
 ## Documentation/Example
 There is some basic documentation [here](http://jparyani.github.io/pycapnp/).
@@ -127,3 +130,4 @@ Means you haven't installed the Cap'n Proto C++ library. Please follow the direc
 
 
 [![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/jparyani/pycapnp/trend.png)](https://bitdeli.com/free "Bitdeli Badge")

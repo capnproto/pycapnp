@@ -5,7 +5,7 @@ import os
 print = lambda *x: x
 
 
-def writeAddressBook(fd):
+def writeAddressBook():
     addressBook = addressbook.AddressBook()
 
     alice = addressBook.person.add()
@@ -27,12 +27,12 @@ def writeAddressBook(fd):
     bobPhones[1].type = addressbook.Person.WORK
 
     message_string = addressBook.SerializeToString()
-    fd.write(message_string)
+    return message_string
 
 
-def printAddressBook(fd):
+def printAddressBook(message_string):
     addressBook = addressbook.AddressBook()
-    addressBook.ParseFromString(fd.read())
+    addressBook.ParseFromString(message_string)
 
     for person in addressBook.person:
         print(person.name, ':', person.email)
@@ -43,10 +43,7 @@ def printAddressBook(fd):
 
 if __name__ == '__main__':
     for i in range(10000):
-        f = open('example', 'w')
-        writeAddressBook(f)
+        message_string = writeAddressBook()
 
-        f = open('example', 'r')
-        printAddressBook(f)
+        printAddressBook(message_string)
 
-os.remove('example')
