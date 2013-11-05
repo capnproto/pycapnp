@@ -1885,7 +1885,7 @@ def add_import_hook(additional_paths=[]):
         import capnp
         capnp.add_import_hook()
 
-        import addressbook
+        import addressbook_capnp
         # equivalent to capnp.load('addressbook.capnp', 'addressbook', sys.path), except it will search for 'addressbook.capnp' in all directories of sys.path
 
     :type additional_paths: list
