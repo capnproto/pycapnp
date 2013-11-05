@@ -997,17 +997,17 @@ cdef class SchemaParser:
                 if proto.isStruct:
                     local_module.schema = schema.as_struct()
                     def read(bound_local_module):
-                        def helper(file, traversalLimitInWords = None, nestingLimit = None):
-                            reader = _StreamFdMessageReader(file.fileno(), traversalLimitInWords, nestingLimit)
+                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
+                            reader = _StreamFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
                             return reader.get_root(bound_local_module)
                         return helper
                     def read_packed(bound_local_module):
-                        def helper(file, traversalLimitInWords = None, nestingLimit = None):
-                            reader = _PackedFdMessageReader(file.fileno(), traversalLimitInWords, nestingLimit)
+                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
+                            reader = _PackedFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
                             return reader.get_root(bound_local_module)
                         return helper
                     def make_from_bytes(bound_local_module):
-                        def from_bytes(buf, traversalLimitInWords = None, nestingLimit = None, builder=False):
+                        def from_bytes(buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
                             """Returns a Reader for the unpacked object in buf.
 
                             :type buf: buffer
@@ -1017,7 +1017,7 @@ cdef class SchemaParser:
                             if builder:
                                 message = _FlatMessageBuilder(buf)
                             else:
-                                message = _FlatArrayMessageReader(buf, traversalLimitInWords, nestingLimit)
+                                message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
                             return message.get_root(bound_local_module)
                         return from_bytes
                     def new_message(bound_local_module):
@@ -1246,13 +1246,13 @@ cdef class _StreamFdMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, int fd, traversalLimitInWords = None, nestingLimit = None):
+    def __init__(self, int fd, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts
 
-        if traversalLimitInWords is not None:
-            opts.traversalLimitInWords = traversalLimitInWords
-        if nestingLimit is not None:
-            opts.nestingLimit = nestingLimit
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
 
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
 
@@ -1268,26 +1268,26 @@ cdef class _PackedFdMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, int fd, traversalLimitInWords = None, nestingLimit = None):
+    def __init__(self, int fd, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts
 
-        if traversalLimitInWords is not None:
-            opts.traversalLimitInWords = traversalLimitInWords
-        if nestingLimit is not None:
-            opts.nestingLimit = nestingLimit
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
             
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
 
 @cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
     cdef object _object_to_pin
-    def __init__(self, buf, traversalLimitInWords = None, nestingLimit = None):
+    def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts
 
-        if traversalLimitInWords is not None:
-            opts.traversalLimitInWords = traversalLimitInWords
-        if nestingLimit is not None:
-            opts.nestingLimit = nestingLimit
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
             
         cdef const void *ptr
         cdef Py_ssize_t sz
