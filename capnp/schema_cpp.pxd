@@ -711,6 +711,6 @@ cdef extern from "capnp/serialize.h" namespace " ::capnp":
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
     cdef cppclass PackedFdMessageReader(MessageReader):
         PackedFdMessageReader(int) except +
-        StreamFdMessageReader(int, ReaderOptions) except +
+        PackedFdMessageReader(int, ReaderOptions) except +
 
     void writePackedMessageToFd(int, MessageBuilder&) except +
