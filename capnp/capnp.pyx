@@ -997,17 +997,17 @@ cdef class SchemaParser:
                 if proto.isStruct:
                     local_module.schema = schema.as_struct()
                     def read(bound_local_module):
-                        def helper(file):
-                            reader = _StreamFdMessageReader(file.fileno())
+                        def helper(file, traversalLimitInWords = None, nestingLimit = None):
+                            reader = _StreamFdMessageReader(file.fileno(), traversalLimitInWords, nestingLimit)
                             return reader.get_root(bound_local_module)
                         return helper
                     def read_packed(bound_local_module):
-                        def helper(file):
-                            reader = _PackedFdMessageReader(file.fileno())
+                        def helper(file, traversalLimitInWords = None, nestingLimit = None):
+                            reader = _PackedFdMessageReader(file.fileno(), traversalLimitInWords, nestingLimit)
                             return reader.get_root(bound_local_module)
                         return helper
                     def make_from_bytes(bound_local_module):
-                        def from_bytes(buf, builder=False):
+                        def from_bytes(buf, traversalLimitInWords = None, nestingLimit = None, builder=False):
                             """Returns a Reader for the unpacked object in buf.
 
                             :type buf: buffer
@@ -1017,7 +1017,7 @@ cdef class SchemaParser:
                             if builder:
                                 message = _FlatMessageBuilder(buf)
                             else:
-                                message = _FlatArrayMessageReader(buf)
+                                message = _FlatArrayMessageReader(buf, traversalLimitInWords, nestingLimit)
                             return message.get_root(bound_local_module)
                         return from_bytes
                     def new_message(bound_local_module):
@@ -1246,8 +1246,15 @@ cdef class _StreamFdMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, int fd):
-        self.thisptr = new schema_cpp.StreamFdMessageReader(fd)
+    def __init__(self, int fd, traversalLimitInWords = None, nestingLimit = None):
+        cdef schema_cpp.ReaderOptions opts
+
+        if traversalLimitInWords is not None:
+            opts.traversalLimitInWords = traversalLimitInWords
+        if nestingLimit is not None:
+            opts.nestingLimit = nestingLimit
+
+        self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
 
 cdef class _PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
@@ -1261,20 +1268,34 @@ cdef class _PackedFdMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, int fd):
-        self.thisptr = new schema_cpp.PackedFdMessageReader(fd)
+    def __init__(self, int fd, traversalLimitInWords = None, nestingLimit = None):
+        cdef schema_cpp.ReaderOptions opts
+
+        if traversalLimitInWords is not None:
+            opts.traversalLimitInWords = traversalLimitInWords
+        if nestingLimit is not None:
+            opts.nestingLimit = nestingLimit
+            
+        self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
 
 @cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
     cdef object _object_to_pin
-    def __init__(self, buf):
+    def __init__(self, buf, traversalLimitInWords = None, nestingLimit = None):
+        cdef schema_cpp.ReaderOptions opts
+
+        if traversalLimitInWords is not None:
+            opts.traversalLimitInWords = traversalLimitInWords
+        if nestingLimit is not None:
+            opts.nestingLimit = nestingLimit
+            
         cdef const void *ptr
         cdef Py_ssize_t sz
         PyObject_AsReadBuffer(buf, &ptr, &sz)
         if sz % 8 != 0:
             raise ValueError("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
-        self.thisptr = new schema_cpp.FlatArrayMessageReader(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8))
+        self.thisptr = new schema_cpp.FlatArrayMessageReader(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8), opts)
 
 @cython.internal
 cdef class _FlatMessageBuilder(_MessageBuilder):
