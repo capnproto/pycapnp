@@ -5,7 +5,6 @@
 
 from libc.stdint cimport *
 from capnp_cpp cimport DynamicOrphan
-cimport capnp_cpp
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
 ctypedef uint16_t UInt16
@@ -691,18 +690,36 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
     enum Void:
         VOID
 
+cdef extern from "capnp/common.h" namespace " ::capnp":
+    cdef cppclass word:
+        pass
+
+cdef extern from "kj/common.h" namespace " ::kj":
+    # Cython can't handle ArrayPtr[word] as a function argument
+    cdef cppclass WordArrayPtr " ::kj::ArrayPtr< ::capnp::word>":
+        WordArrayPtr()
+        WordArrayPtr(word *, size_t size)
+        size_t size()
+        word& operator[](size_t index)
+
+cdef extern from "kj/array.h" namespace " ::kj":
+    # Cython can't handle Array[word] as a function argument
+    cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
+        word* begin()
+        size_t size()
+
 cdef extern from "capnp/serialize.h" namespace " ::capnp":
     cdef cppclass StreamFdMessageReader(MessageReader):
         StreamFdMessageReader(int) except +
         StreamFdMessageReader(int, ReaderOptions) except +
 
     cdef cppclass FlatArrayMessageReader(MessageReader):
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array) except +
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array, ReaderOptions) except +
+        FlatArrayMessageReader(WordArrayPtr array) except +
+        FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +
 
     void writeMessageToFd(int, MessageBuilder&) except +
 
-    capnp_cpp.WordArray messageToFlatArray(MessageBuilder &)
+    WordArray messageToFlatArray(MessageBuilder &)
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
     cdef cppclass PackedFdMessageReader(MessageReader):

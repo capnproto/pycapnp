@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, WordArrayPtr, DynamicCapability as C_DynamicCapability, new_client, new_server, Request, Response, RemotePromise, convert_to_pypromise, SimpleEventLoop, PyPromise, VoidPromise, CallContext
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, Request, Response, RemotePromise, convert_to_pypromise, SimpleEventLoop, PyPromise, VoidPromise, CallContext
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -1720,7 +1720,7 @@ cdef class _FlatArrayMessageReader(_MessageReader):
         if sz % 8 != 0:
             raise ValueError("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
-        self.thisptr = new schema_cpp.FlatArrayMessageReader(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8))
+        self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
 
 def _write_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor

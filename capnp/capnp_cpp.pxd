@@ -12,8 +12,6 @@ from libcpp cimport bool as cbool
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
         VOID " ::capnp::VOID"
-    cdef cppclass word:
-        pass
 
 cdef extern from "kj/exception.h" namespace " ::kj":
     cdef cppclass Exception:
@@ -38,21 +36,9 @@ cdef extern from "kj/common.h" namespace " ::kj":
         size_t size()
         T& operator[](size_t index)
 
-    # Cython can't handle ArrayPtr[word] as a function argument
-    cdef cppclass WordArrayPtr "::kj::ArrayPtr<::capnp::word>":
-        WordArrayPtr()
-        WordArrayPtr(word *, size_t size)
-        size_t size()
-        word& operator[](size_t index)
-
 cdef extern from "kj/array.h" namespace " ::kj":
     cdef cppclass Array[T]:
         T* begin()
-        size_t size()
-
-    # Cython can't handle Array[word] as a function argument
-    cdef cppclass WordArray "::kj::Array<::capnp::word>":
-        word* begin()
         size_t size()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
@@ -193,7 +179,6 @@ cdef extern from "fixMaybe.h":
     char * getEnumString(DynamicStruct.Reader val)
     char * getEnumString(DynamicStruct.Builder val)
     char * getEnumString(Request val)
-
 
 cdef extern from "capabilityHelper.h":
     PyPromise evalLater(EventLoop &, PyObject * func)
