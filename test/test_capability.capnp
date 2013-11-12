@@ -43,3 +43,16 @@ interface TestPipeline {
     cap @0 :TestInterface;
   }
 }
+
+struct TestSturdyRefHostId {
+  host @0 :Text;
+}
+
+struct TestSturdyRefObjectId {
+  tag @0 :Tag;
+  enum Tag {
+    testInterface @0;
+    testExtends @1;
+    testPipeline @2;
+  }
+}

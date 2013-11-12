@@ -1,3 +1,5 @@
+#pragma once
+
 #include "capnp/dynamic.h"
 #include <stdexcept>
 #include "Python.h"
@@ -95,6 +97,10 @@ capnp::DynamicCapability::Client new_client(capnp::InterfaceSchema & schema, PyO
 }
 capnp::DynamicValue::Reader new_server(capnp::InterfaceSchema & schema, PyObject * server) {
   return capnp::DynamicValue::Reader(kj::heap<PythonInterfaceDynamicImpl>(schema, server));
+}
+
+capnp::Capability::Client server_to_client(capnp::InterfaceSchema & schema, PyObject * server) {
+  return kj::heap<PythonInterfaceDynamicImpl>(schema, server);
 }
 
 ::kj::Promise<PyObject *> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> & promise) {

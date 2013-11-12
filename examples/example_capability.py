@@ -4,21 +4,30 @@ import capnp
 import example_capability_capnp
 
 class Server:
+    def __init__(self, val=1):
+        self.val = val
+
     def foo(self, context):
-        context.results.x = str(context.params.i * 5 + 1)
+        context.results.x = str(context.params.i * 5 + self.val)
 
-def example_client():
+def test_simple_rpc():
+    def _restore(ref_id):
+        return example_capability_capnp.TestInterface.new_server(Server(100))
+
     loop = capnp.EventLoop()
-
-    client = example_capability_capnp.TestInterface.new_client(Server(), loop)
     
-    req = client._request('foo')
-    req.i = 5
+    pipe = capnp.TwoWayPipe()
+    restorer = capnp.Restorer(example_capability_capnp.TestSturdyRefObjectId, _restore)
+    server = capnp.RpcServer(loop, restorer, pipe)
+    client = capnp.RpcClient(loop, pipe)
 
-    remote = req.send()
+    ref = example_capability_capnp.TestSturdyRefObjectId.new_message()
+    cap = client.restore(ref.as_reader())
+    cap = cap.cast_as(example_capability_capnp.TestInterface)
+
+    remote = cap.foo(i=5)
     response = loop.wait_remote(remote)
 
-    print(response.x)
+    assert response.x == '125'
 
-if __name__ == '__main__':
-    example_client()
+test_simple_rpc()

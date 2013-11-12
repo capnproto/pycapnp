@@ -16,14 +16,3 @@ cdef extern from "kj/async.h" namespace " ::kj":
 
 ctypedef Promise[PyObject *] PyPromise
 ctypedef Promise[void] VoidPromise
-
-cdef extern from "kj/async.h" namespace " ::kj":
-    cdef cppclass EventLoop:
-        EventLoop()
-        # Promise[void] yield_end'yield'()
-        object wait(PyPromise) except+
-        object there(PyPromise) except+
-        PyPromise evalLater(PyObject * func)
-        PyPromise there(PyPromise, PyObject * func)
-    cdef cppclass SimpleEventLoop(EventLoop):
-        pass

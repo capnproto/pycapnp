@@ -1,7 +1,7 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-from schema_cpp cimport Node, Data, StructNode, EnumNode
+from schema_cpp cimport Node, Data, StructNode, EnumNode, MessageBuilder
 from async_cpp cimport PyPromise, VoidPromise, Promise
 
 from cpython.ref cimport PyObject
@@ -40,6 +40,16 @@ cdef extern from "kj/array.h" namespace " ::kj":
     cdef cppclass Array[T]:
         T* begin()
         size_t size()
+
+cdef extern from "kj/async-io.h" namespace " ::kj":
+    cdef cppclass Own[T]:
+        T& operator*()
+
+    cdef cppclass AsyncIoStream:
+        pass
+    cdef cppclass TwoWayPipe:
+        Own[AsyncIoStream] * ends
+    TwoWayPipe newTwoWayPipe()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
@@ -141,11 +151,35 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Pipeline get(char *)
             StructSchema getSchema()
 
+cdef extern from "capnp/dynamic.h" namespace " ::capnp":
+    cdef cppclass DynamicCapability:
+        cppclass Client:
+            Client()
+            Client(Client&)
+            Client upcast(InterfaceSchema requestedSchema)
+            InterfaceSchema getSchema()
+            Request newRequest(char * methodName, uint firstSegmentWordSize)
+
 cdef extern from "capnp/capability.h" namespace " ::capnp":
     cdef cppclass Response" ::capnp::Response< ::capnp::DynamicStruct>"(DynamicStruct.Reader):
         Response(Response)
     cdef cppclass RemotePromise" ::capnp::RemotePromise< ::capnp::DynamicStruct>"(Promise[Response], DynamicStruct.Pipeline):
         RemotePromise(RemotePromise)
+    cdef cppclass Capability:
+        cppclass Client:
+            Client(Client&)
+            DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
+
+cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
+    cdef cppclass RpcSystem" ::capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>":
+        RpcSystem(RpcSystem&&)
+    enum Side" ::capnp::rpc::twoparty::Side":
+        CLIENT" ::capnp::rpc::twoparty::Side::CLIENT"
+        SERVER" ::capnp::rpc::twoparty::Side::SERVER"
+    cdef cppclass TwoPartyVatNetwork:
+        TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side)
+    RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&, EventLoop&)
+    RpcSystem makeRpcClient(TwoPartyVatNetwork&, EventLoop&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass Request" ::capnp::Request< ::capnp::DynamicStruct, ::capnp::DynamicStruct>":
@@ -159,12 +193,6 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         StructSchema getSchema()
         Maybe[StructSchema.Field] which()
         RemotePromise send()
-
-    cdef cppclass DynamicCapability:
-        cppclass Client:
-            Client upcast(InterfaceSchema requestedSchema)
-            InterfaceSchema getSchema()
-            Request newRequest(char * methodName, uint firstSegmentWordSize)
 
 cdef extern from "capnp/object.h" namespace " ::capnp":
     cdef cppclass ObjectPointer:
@@ -189,7 +217,13 @@ cdef extern from "capabilityHelper.h":
         PythonInterfaceDynamicImpl(PyObject *)
     DynamicCapability.Client new_client(InterfaceSchema&, PyObject *, EventLoop&)
     DynamicValueForward.Reader new_server(InterfaceSchema&, PyObject *)
+    Capability.Client server_to_client(InterfaceSchema&, PyObject *)
     PyPromise convert_to_pypromise(RemotePromise&)
+
+cdef extern from "rpcHelper.h":
+    cdef cppclass PyRestorer:
+        PyRestorer(PyObject *, StructSchema&)
+    Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
@@ -304,3 +338,8 @@ cdef extern from "kj/async.h" namespace " ::kj":
         PyPromise there(PyPromise, PyObject * func)
     cdef cppclass SimpleEventLoop(EventLoop):
         pass
+
+cdef extern from "kj/async-unix.h" namespace " ::kj":
+    cdef cppclass UnixEventLoop(EventLoop):
+        pass
+

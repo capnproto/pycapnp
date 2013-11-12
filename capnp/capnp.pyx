@@ -1,7 +1,7 @@
 # capnp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-# distutils: libraries = capnpc capnp
+# distutils: libraries = capnpc capnp capnp-rpc
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, Request, Response, RemotePromise, convert_to_pypromise, SimpleEventLoop, PyPromise, VoidPromise, CallContext
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, TwoWayPipe as C_TwoWayPipe, newTwoWayPipe, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -73,6 +73,15 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
 
     return NULL
     
+cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicStruct.Reader & _reader) except *:
+    restorer = <object>_restorer
+    reader = _DynamicStructReader()._init(_reader, None)
+
+    ret = restorer.restore(reader)
+    cdef _DynamicCapabilityServer server = ret
+
+    return new C_Capability.Client(server_to_client(server.schema.thisptr, <PyObject *>server.server))
+
 cdef public object wrap_kj_exception(capnp.Exception & exception):
     return None # TODO
 
@@ -128,6 +137,7 @@ cdef extern from "<utility>" namespace "std":
     VoidPromise moveVoidPromise"std::move"(VoidPromise)
     RemotePromise moveRemotePromise"std::move"(RemotePromise)
     CallContext moveCallContext"std::move"(CallContext)
+    capnp.Own[capnp.AsyncIoStream] moveOwnAsyncIOStream"std::move"(capnp.Own[capnp.AsyncIoStream])
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
@@ -1148,7 +1158,7 @@ cdef class _RemotePromise:
         return _to_dict(self, verbose)
 
 cdef class EventLoop:
-    cdef SimpleEventLoop thisptr
+    cdef UnixEventLoop thisptr
     cpdef evalLater(self, func):
         Py_INCREF(func)
         return Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
@@ -1252,6 +1262,93 @@ cdef class _DynamicCapabilityClient:
             short_name = name[:-8]
             return _partial(self._request, short_name)
         return _partial(self._send, name)
+
+cdef class _CapabilityClient:
+    cdef C_Capability.Client * thisptr
+    cdef public object _parent
+
+    cdef _init(self, C_Capability.Client other, object parent):
+        self.thisptr = new C_Capability.Client(other)
+        self._parent = parent
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef cast_as(self, schema):
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+        return _DynamicCapabilityClient()._init(self.thisptr.castAs(s.thisptr), self._parent)
+
+cdef class Restorer:
+    cdef PyRestorer * thisptr
+    cdef C_StructSchema schema
+
+    cdef public object restore
+
+    def __init__(self, schema, restore_func):
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        self.schema = s.thisptr
+        self.restore = restore_func
+        self.thisptr = new PyRestorer(<PyObject*>self, self.schema)
+
+    def __dealloc__(self):
+        del self.thisptr
+
+cdef class _TwoPartyVatNetwork:
+    cdef C_TwoPartyVatNetwork * thisptr
+
+    cdef _init(self, EventLoop loop, capnp.AsyncIoStream & stream, Side side):
+        self.thisptr = new C_TwoPartyVatNetwork(loop.thisptr, stream, side)
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+cdef class RpcClient:
+    cdef RpcSystem * thisptr
+    cdef public _TwoPartyVatNetwork network
+    cdef public object loop
+
+    def __init__(self, EventLoop loop, TwoWayPipe pipe):
+        self.loop = loop
+        self.network = _TwoPartyVatNetwork()._init(loop, deref(moveOwnAsyncIOStream(pipe.thisptr.ends[0])), capnp.CLIENT)
+        self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr), loop.thisptr))
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef restore(self, _DynamicStructReader objectId) except+:
+        cdef _MessageBuilder builder = objectId._parent
+        return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
+
+cdef class RpcServer:
+    cdef RpcSystem * thisptr
+    cdef public _TwoPartyVatNetwork network
+    cdef public object loop, restorer
+
+    def __init__(self, EventLoop loop, Restorer restorer, TwoWayPipe pipe):
+        self.loop = loop
+        self.restorer = restorer
+        self.network = _TwoPartyVatNetwork()._init(loop, deref(moveOwnAsyncIOStream(pipe.thisptr.ends[1])), capnp.SERVER)
+        self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(restorer.thisptr), loop.thisptr))
+
+    def __dealloc__(self):
+        del self.thisptr
+
+cdef class TwoWayPipe:
+    cdef C_TwoWayPipe thisptr
+
+    def __init__(self):
+        self.thisptr = newTwoWayPipe()
 
 cdef class _Schema:
     cdef C_Schema thisptr
