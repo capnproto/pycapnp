@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, TwoWayPipe as C_TwoWayPipe, newTwoWayPipe, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream_wrapFd, AsyncIoStream, Own
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -137,7 +137,7 @@ cdef extern from "<utility>" namespace "std":
     VoidPromise moveVoidPromise"std::move"(VoidPromise)
     RemotePromise moveRemotePromise"std::move"(RemotePromise)
     CallContext moveCallContext"std::move"(CallContext)
-    capnp.Own[capnp.AsyncIoStream] moveOwnAsyncIOStream"std::move"(capnp.Own[capnp.AsyncIoStream])
+    Own[AsyncIoStream] moveOwnAsyncIOStream"std::move"(Own[AsyncIoStream])
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
@@ -1306,7 +1306,7 @@ cdef class Restorer:
 cdef class _TwoPartyVatNetwork:
     cdef C_TwoPartyVatNetwork * thisptr
 
-    cdef _init(self, EventLoop loop, capnp.AsyncIoStream & stream, Side side):
+    cdef _init(self, EventLoop loop, AsyncIoStream & stream, Side side):
         self.thisptr = new C_TwoPartyVatNetwork(loop.thisptr, stream, side)
         return self
 
@@ -1318,37 +1318,43 @@ cdef class RpcClient:
     cdef public _TwoPartyVatNetwork network
     cdef public object loop
 
-    def __init__(self, EventLoop loop, TwoWayPipe pipe):
+    def __init__(self, EventLoop loop, FdAsyncIoStream stream):
         self.loop = loop
-        self.network = _TwoPartyVatNetwork()._init(loop, deref(moveOwnAsyncIOStream(pipe.thisptr.ends[0])), capnp.CLIENT)
+        self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.CLIENT)
         self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr), loop.thisptr))
 
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef restore(self, _DynamicStructReader objectId) except+:
-        cdef _MessageBuilder builder = objectId._parent
-        return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
+    cpdef restore(self, objectId) except+:
+        cdef _MessageBuilder builder 
+        cdef _MessageReader reader
+        try:
+            builder = objectId._parent
+            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
+        except:
+            reader = objectId._parent
+            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
 
 cdef class RpcServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
     cdef public object loop, restorer
 
-    def __init__(self, EventLoop loop, Restorer restorer, TwoWayPipe pipe):
+    def __init__(self, EventLoop loop, Restorer restorer, FdAsyncIoStream stream):
         self.loop = loop
         self.restorer = restorer
-        self.network = _TwoPartyVatNetwork()._init(loop, deref(moveOwnAsyncIOStream(pipe.thisptr.ends[1])), capnp.SERVER)
+        self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.SERVER)
         self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(restorer.thisptr), loop.thisptr))
 
     def __dealloc__(self):
         del self.thisptr
 
-cdef class TwoWayPipe:
-    cdef C_TwoWayPipe thisptr
+cdef class FdAsyncIoStream:
+    cdef Own[AsyncIoStream] thisptr
 
-    def __init__(self):
-        self.thisptr = newTwoWayPipe()
+    def __init__(self, int fd):
+        self.thisptr = AsyncIoStream_wrapFd(fd)
 
 cdef class _Schema:
     cdef C_Schema thisptr

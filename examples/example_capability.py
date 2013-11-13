@@ -1,7 +1,8 @@
 from __future__ import print_function
 
 import capnp
-import example_capability_capnp
+import example_capability_capnp as capability
+import socket
 
 class Server:
     def __init__(self, val=1):
@@ -10,24 +11,27 @@ class Server:
     def foo(self, context):
         context.results.x = str(context.params.i * 5 + self.val)
 
-def test_simple_rpc():
+def example_simple_rpc():
     def _restore(ref_id):
-        return example_capability_capnp.TestInterface.new_server(Server(100))
+        return capability.TestInterface.new_server(Server(100))
 
     loop = capnp.EventLoop()
     
-    pipe = capnp.TwoWayPipe()
-    restorer = capnp.Restorer(example_capability_capnp.TestSturdyRefObjectId, _restore)
-    server = capnp.RpcServer(loop, restorer, pipe)
-    client = capnp.RpcClient(loop, pipe)
+    read, write = socket.socketpair(socket.AF_UNIX)
+    read_stream = capnp.FdAsyncIoStream(read.fileno())
+    write_stream = capnp.FdAsyncIoStream(write.fileno())
 
-    ref = example_capability_capnp.TestSturdyRefObjectId.new_message()
+    restorer = capnp.Restorer(capability.TestSturdyRefObjectId, _restore)
+    server = capnp.RpcServer(loop, restorer, write_stream)
+    client = capnp.RpcClient(loop, read_stream)
+
+    ref = capability.TestSturdyRefObjectId.new_message()
     cap = client.restore(ref.as_reader())
-    cap = cap.cast_as(example_capability_capnp.TestInterface)
+    cap = cap.cast_as(capability.TestInterface)
 
     remote = cap.foo(i=5)
     response = loop.wait_remote(remote)
 
     assert response.x == '125'
 
-test_simple_rpc()
+example_simple_rpc()

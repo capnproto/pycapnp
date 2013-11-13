@@ -1,6 +1,7 @@
 import pytest
 import capnp
 import os
+import socket
 
 this_dir = os.path.dirname(__file__)
 
@@ -20,14 +21,17 @@ def test_simple_rpc(capability):
         return capability.TestInterface.new_server(Server(100))
 
     loop = capnp.EventLoop()
-    pipe = capnp.TwoWayPipe()
-    
+
+    read, write = socket.socketpair(socket.AF_UNIX)
+    read_stream = capnp.FdAsyncIoStream(read.fileno())
+    write_stream = capnp.FdAsyncIoStream(write.fileno())
+
     restorer = capnp.Restorer(capability.TestSturdyRefObjectId, _restore)
-    server = capnp.RpcServer(loop, restorer, pipe)
-    client = capnp.RpcClient(loop, pipe)
+    server = capnp.RpcServer(loop, restorer, write_stream)
+    client = capnp.RpcClient(loop, read_stream)
 
     ref = capability.TestSturdyRefObjectId.new_message()
-    cap = client.restore(ref.as_reader())
+    cap = client.restore(ref)
     cap = cap.cast_as(capability.TestInterface)
 
     remote = cap.foo(i=5)

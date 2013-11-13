@@ -1,7 +1,7 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-from schema_cpp cimport Node, Data, StructNode, EnumNode, MessageBuilder
+from schema_cpp cimport Node, Data, StructNode, EnumNode, MessageBuilder, MessageReader
 from async_cpp cimport PyPromise, VoidPromise, Promise
 
 from cpython.ref cimport PyObject
@@ -23,6 +23,10 @@ cdef extern from "kj/string.h" namespace " ::kj":
     cdef cppclass String:
         char* cStr()
 
+cdef extern from "kj/memory.h" namespace " ::kj":    
+    cdef cppclass Own[T]:
+        T& operator*()
+
 cdef extern from "kj/string-tree.h" namespace " ::kj":
     cdef cppclass StringTree:
         String flatten()
@@ -42,14 +46,10 @@ cdef extern from "kj/array.h" namespace " ::kj":
         size_t size()
 
 cdef extern from "kj/async-io.h" namespace " ::kj":
-    cdef cppclass Own[T]:
-        T& operator*()
-
     cdef cppclass AsyncIoStream:
         pass
-    cdef cppclass TwoWayPipe:
-        Own[AsyncIoStream] * ends
-    TwoWayPipe newTwoWayPipe()
+
+    Own[AsyncIoStream] AsyncIoStream_wrapFd" ::kj::AsyncIoStream::wrapFd"(int)
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
@@ -224,6 +224,7 @@ cdef extern from "rpcHelper.h":
     cdef cppclass PyRestorer:
         PyRestorer(PyObject *, StructSchema&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
+    Capability.Client restoreHelper(RpcSystem&, MessageReader&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:

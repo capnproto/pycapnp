@@ -40,3 +40,10 @@ capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::S
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
     return client.restore(hostId, objectId.getRoot<capnp::ObjectPointer>());
 }
+
+
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageReader & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
+    auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
+    hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
+    return client.restore(hostId, objectId.getRoot<capnp::ObjectPointer>());
+}
