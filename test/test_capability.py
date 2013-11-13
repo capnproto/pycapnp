@@ -32,7 +32,7 @@ def test_client(capability):
     req.i = 5
 
     remote = req.send()
-    response = loop.wait_remote(remote)
+    response = loop.wait(remote)
 
     assert response.x == '26'
     
@@ -40,7 +40,7 @@ def test_client(capability):
     req.i = 5
 
     remote = req.send()
-    response = loop.wait_remote(remote)
+    response = loop.wait(remote)
 
     assert response.x == '26'
 
@@ -63,13 +63,13 @@ def test_simple_client(capability):
     client = capability.TestInterface.new_client(Server(), loop)
     
     remote = client._send('foo', i=5)
-    response = loop.wait_remote(remote)
+    response = loop.wait(remote)
 
     assert response.x == '26'
 
     
     remote = client.foo(i=5)
-    response = loop.wait_remote(remote)
+    response = loop.wait(remote)
 
     assert response.x == '26'
 
@@ -93,10 +93,10 @@ def test_pipeline(capability):
     outCap = remote.outBox.cap
     pipelinePromise = outCap.foo(i=10)
 
-    response = loop.wait_remote(pipelinePromise)
+    response = loop.wait(pipelinePromise)
     assert response.x == '150'
 
-    response = loop.wait_remote(remote)
+    response = loop.wait(remote)
     assert response.s == '26_foo'
 
 class BadServer:
@@ -114,7 +114,7 @@ def test_exception_client(capability):
     
     remote = client._send('foo', i=5)
     with pytest.raises(ValueError):
-        loop.wait_remote(remote)
+        loop.wait(remote)
 
 class BadPipelineServer:
     def getCap(self, context):
@@ -135,7 +135,7 @@ def test_exception_chain(capability):
     remote = client.getCap(n=5, inCap=foo_client)
 
     try:
-        loop.wait_remote(remote)
+        loop.wait(remote)
     except Exception as e:
         assert str(e) == 'test'
 
@@ -151,7 +151,17 @@ def test_pipeline_exception(capability):
     pipelinePromise = outCap.foo(i=10)
 
     with pytest.raises(Exception):
-        loop.wait_remote(pipelinePromise)
+        loop.wait(pipelinePromise)
 
     with pytest.raises(Exception):
-        loop.wait_remote(remote)
+        loop.wait(remote)
+
+def test_casting(capability):
+    loop = capnp.EventLoop()
+
+    client = capability.TestExtends.new_client(Server(), loop)
+    client2 = client.upcast(capability.TestInterface)
+    client3 = client2.cast_as(capability.TestInterface)
+
+    with pytest.raises(Exception):
+        client.upcast(capability.TestPipeline)

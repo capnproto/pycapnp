@@ -29,11 +29,9 @@ interface TestInterface {
   # baz @2 (s: TestAllTypes);
 }
 
-# interface TestExtends extends(TestInterface) {
-#   qux @0 ();
-#   corge @1 TestAllTypes -> ();
-#   grault @2 () -> TestAllTypes;
-# }
+interface TestExtends extends(TestInterface) {
+  qux @0 ();
+}
 
 interface TestPipeline {
   getCap @0 (n: UInt32, inCap :TestInterface) -> (s: Text, outBox :Box);

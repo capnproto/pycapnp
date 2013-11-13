@@ -157,6 +157,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Client()
             Client(Client&)
             Client upcast(InterfaceSchema requestedSchema)
+            DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
             InterfaceSchema getSchema()
             Request newRequest(char * methodName, uint firstSegmentWordSize)
 

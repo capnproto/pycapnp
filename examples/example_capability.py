@@ -30,7 +30,7 @@ def example_simple_rpc():
     cap = cap.cast_as(capability.TestInterface)
 
     remote = cap.foo(i=5)
-    response = loop.wait_remote(remote)
+    response = loop.wait(remote)
 
     assert response.x == '125'
 

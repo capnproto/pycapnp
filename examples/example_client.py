@@ -18,7 +18,7 @@ def example_client():
     cap = cap.cast_as(test_capnp.TestInterface)
 
     remote = cap.foo(i=5)
-    response = loop.wait_remote(remote)
+    response = loop.wait(remote)
 
     assert response.x == 'foo'
 

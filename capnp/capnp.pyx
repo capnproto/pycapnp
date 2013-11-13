@@ -1163,7 +1163,7 @@ cdef class EventLoop:
         Py_INCREF(func)
         return Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
 
-    cpdef wait_remote(self, _RemotePromise promise) except +:
+    cpdef wait(self, _RemotePromise promise) except +:
         if promise.is_consumed:
             raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
@@ -1262,6 +1262,28 @@ cdef class _DynamicCapabilityClient:
             short_name = name[:-8]
             return _partial(self._request, short_name)
         return _partial(self._send, name)
+
+    cpdef upcast(self, schema) except+:
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicCapabilityClient()._init(self.thisptr.upcast(s.thisptr), self._parent)
+
+    cpdef cast_as(self, schema) except+:
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+        return _DynamicCapabilityClient()._init(self.thisptr.castAs(s.thisptr), self._parent)
+
+    property schema:
+        """A property that returns the _InterfaceSchema object matching this client"""
+        def __get__(self):
+            return _InterfaceSchema()._init(self.thisptr.getSchema())
 
 cdef class _CapabilityClient:
     cdef C_Capability.Client * thisptr
