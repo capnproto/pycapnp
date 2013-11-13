@@ -1469,6 +1469,9 @@ cdef class _StructSchema:
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), None)
 
+    cpdef get_dependency(self, id):
+        return _Schema()._init(self.thisptr.getDependency(id))
+
     def __richcmp__(_StructSchema self, _StructSchema other, mode):
         if mode == 2:
             return self.thisptr == other.thisptr
@@ -1503,6 +1506,9 @@ cdef class _InterfaceSchema:
         """The raw schema node"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+
+    cpdef get_dependency(self, id):
+        return _Schema()._init(self.thisptr.getDependency(id))
 
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
