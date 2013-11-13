@@ -26,6 +26,7 @@ cdef extern from "kj/string.h" namespace " ::kj":
 cdef extern from "kj/memory.h" namespace " ::kj":    
     cdef cppclass Own[T]:
         T& operator*()
+    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(EventLoop &, AsyncIoStream& stream, Side)
 
 cdef extern from "kj/string-tree.h" namespace " ::kj":
     cdef cppclass StringTree:
