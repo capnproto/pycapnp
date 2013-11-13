@@ -47,3 +47,13 @@ capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::S
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
     return client.restore(hostId, objectId.getRoot<capnp::ObjectPointer>());
 }
+
+template <typename SturdyRefHostId, typename ProvisionId,
+          typename RecipientId, typename ThirdPartyCapId, typename JoinAnswer>
+capnp::RpcSystem<SturdyRefHostId> makeRpcClientWithRestorer(
+    capnp::VatNetwork<SturdyRefHostId, ProvisionId, RecipientId, ThirdPartyCapId, JoinAnswer>& network,
+    const kj::EventLoop& eventLoop, PyRestorer& restorer) {
+    using namespace capnp;
+  return RpcSystem<SturdyRefHostId>(network,
+      kj::Maybe<SturdyRefRestorer<ObjectPointer>&>(restorer), eventLoop);
+}

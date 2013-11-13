@@ -1,7 +1,7 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-from schema_cpp cimport Node, Data, StructNode, EnumNode, MessageBuilder, MessageReader
+from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
 from async_cpp cimport PyPromise, VoidPromise, Promise
 
 from cpython.ref cimport PyObject
@@ -61,7 +61,21 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         InterfaceSchema asInterface() except +
 
     cdef cppclass InterfaceSchema(Schema):
-        pass
+        cppclass Method:
+            InterfaceNode.Method.Reader getProto()
+            InterfaceSchema getContainingInterface()
+            uint16_t getOrdinal()
+            uint getIndex()
+
+        cppclass MethodList:
+            uint size()
+            Method operator[](uint index)
+
+        MethodList getMethods()
+        Maybe[Method] findMethodByName(StringPtr name)
+        Method getMethodByName(StringPtr name)
+        bint extends(InterfaceSchema other)
+        # kj::Maybe<InterfaceSchema> findSuperclass(uint64_t typeId) const;
 
     cdef cppclass StructSchema(Schema):
         cppclass Field:
@@ -226,6 +240,7 @@ cdef extern from "rpcHelper.h":
         PyRestorer(PyObject *, StructSchema&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
     Capability.Client restoreHelper(RpcSystem&, MessageReader&)
+    RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, EventLoop&, PyRestorer&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:

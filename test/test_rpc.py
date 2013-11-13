@@ -27,7 +27,7 @@ def test_simple_rpc(capability):
     write_stream = capnp.FdAsyncIoStream(write.fileno())
 
     restorer = capnp.Restorer(capability.TestSturdyRefObjectId, _restore)
-    server = capnp.RpcServer(loop, restorer, write_stream)
+    server = capnp.RpcServer(loop, write_stream, restorer)
     client = capnp.RpcClient(loop, read_stream)
 
     ref = capability.TestSturdyRefObjectId.new_message()

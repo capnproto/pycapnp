@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream_wrapFd, AsyncIoStream, Own
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream_wrapFd, AsyncIoStream, Own
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -616,10 +616,13 @@ cdef class _DynamicStructReader:
     """
     cdef C_DynamicStruct.Reader thisptr
     cdef public object _parent
+    cdef public bint is_root
     cdef object _obj_to_pin
-    cdef _init(self, C_DynamicStruct.Reader other, object parent):
+
+    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=False):
         self.thisptr = other
         self._parent = parent
+        self.is_root = isRoot
         return self
 
     def __getattr__(self, field):
@@ -695,16 +698,17 @@ cdef class _DynamicStructBuilder:
     """
     cdef C_DynamicStruct.Builder thisptr
     cdef public object _parent
-    cdef bint _is_root, _is_written
+    cdef public bint is_root
+    cdef bint _is_written
     cdef _init(self, C_DynamicStruct.Builder other, object parent, bint isRoot = False):
         self.thisptr = other
         self._parent = parent
-        self._is_root = isRoot
+        self.is_root = isRoot
         self._is_written = False
         return self
 
     cdef _check_write(self):
-        if not self._is_root:
+        if not self.is_root:
             raise ValueError("You can only call write() on the message's root struct.")
         if self._is_written:
             _warnings.warn("This message has already been written once. Be very careful that you're not setting Text/Struct/List fields more than once, since that will cause memory leaks (both in memory and in the serialized data). You can disable this warning by setting the `_is_written` field of this object to False after every write.")
@@ -871,7 +875,7 @@ cdef class _DynamicStructBuilder:
         """
         cdef _DynamicStructReader reader
         reader = _DynamicStructReader()._init(self.thisptr.asReader(),
-                                            self._parent)
+                                            self._parent, self.is_root)
         reader._obj_to_pin = self
         return reader
 
@@ -1285,6 +1289,9 @@ cdef class _DynamicCapabilityClient:
         def __get__(self):
             return _InterfaceSchema()._init(self.thisptr.getSchema())
 
+    def __dir__(self):
+        return list(self.schema.method_names)
+
 cdef class _CapabilityClient:
     cdef C_Capability.Client * thisptr
     cdef public object _parent
@@ -1338,12 +1345,16 @@ cdef class _TwoPartyVatNetwork:
 cdef class RpcClient:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
-    cdef public object loop
+    cdef public object loop, restorer
 
-    def __init__(self, EventLoop loop, FdAsyncIoStream stream):
+    def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer=None):
         self.loop = loop
         self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.CLIENT)
-        self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr), loop.thisptr))
+        if restorer is None:
+            self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr), loop.thisptr))
+        else:
+            self.restorer = restorer
+            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), loop.thisptr, deref(restorer.thisptr)))
 
     def __dealloc__(self):
         del self.thisptr
@@ -1351,19 +1362,30 @@ cdef class RpcClient:
     cpdef restore(self, objectId) except+:
         cdef _MessageBuilder builder 
         cdef _MessageReader reader
+
+        if not hasattr(objectId, 'is_root'):
+            raise ValueError("objectId was not a valid Cap'n Proto struct")
+        if not objectId.is_root:
+            raise ValueError("objectId must be the root of a Cap'n Proto message, ie. addressbook_capnp.Person.new_message()")
+
         try:
             builder = objectId._parent
-            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
         except:
             reader = objectId._parent
+
+        if builder is not None:
+            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
+        elif reader is not None:
             return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
+        else:
+            raise ValueError("objectId unexpectedly was not convertible to the proper type")
 
 cdef class RpcServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
     cdef public object loop, restorer
 
-    def __init__(self, EventLoop loop, Restorer restorer, FdAsyncIoStream stream):
+    def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer):
         self.loop = loop
         self.restorer = restorer
         self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.SERVER)
@@ -1460,10 +1482,30 @@ cdef class _StructSchema:
 
 cdef class _InterfaceSchema:
     cdef C_InterfaceSchema thisptr
+    cdef object __method_names
 
     cdef _init(self, C_InterfaceSchema other):
         self.thisptr = other
         return self
+
+    property method_names:
+        """A tuple of the function names in the interface."""
+        def __get__(self):
+            if self.__method_names is not None:
+               return self.__method_names
+            fieldlist = self.thisptr.getMethods()
+            nfields = fieldlist.size()
+            self.__method_names = tuple(<char*>fieldlist[i].getProto().getName().cStr()
+                                      for i in xrange(nfields))
+            return self.__method_names
+
+    property node:
+        """The raw schema node"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+
+    def __repr__(self):
+        return '<schema for %s>' % self.node.displayName
 
 cdef class _ParsedSchema(_Schema):
     cdef C_ParsedSchema thisptr_child
