@@ -37,7 +37,6 @@ void reraise_kj_exception() {
 void check_py_error() {
     PyObject * err = PyErr_Occurred();
     if(err) {
-        // TODO: decref references
         PyObject * ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
 
@@ -51,6 +50,12 @@ void check_py_error() {
 
         PyObject * py_description = PyTuple_GetItem(info, 2);
         kj::String description(kj::heapString(PyBytes_AsString(py_description)));
+
+        Py_DECREF(ptype);
+        Py_DECREF(pvalue);
+        Py_DECREF(ptraceback);
+        Py_DECREF(info);
+        PyErr_Clear();
 
         throw kj::Exception(kj::Exception::Nature::OTHER, kj::Exception::Durability::PERMANENT, kj::mv(filename), line, kj::mv(description));
     }
