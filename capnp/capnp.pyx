@@ -19,6 +19,7 @@ from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
 from cpython.exc cimport PyErr_Clear
 from libc.stdint cimport *
 ctypedef unsigned int uint
+ctypedef uint8_t byte
 ctypedef uint8_t UInt8
 ctypedef uint16_t UInt16
 ctypedef uint32_t UInt32
@@ -887,6 +888,11 @@ cdef class _DynamicStructBuilder:
         self._is_written = True
         return ret
 
+    cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception:
+        self._check_write()
+        cdef _MessageBuilder builder = self._parent
+        return _message_to_packed_bytes(builder)
+
     cdef _get(self, field):
         cdef C_DynamicValue.Builder value = self.thisptr.get(field)
 
@@ -1752,10 +1758,20 @@ cdef class SchemaParser:
                             reader = _StreamFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
                             return reader.get_root(bound_local_module)
                         return helper
+                    def read_multiple(bound_local_module):
+                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
+                            reader = _MultipleMessageReader(file.fileno(), bound_local_module, traversal_limit_in_words, nesting_limit)
+                            return reader
+                        return helper
                     def read_packed(bound_local_module):
                         def helper(file, traversal_limit_in_words = None, nesting_limit = None):
                             reader = _PackedFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
                             return reader.get_root(bound_local_module)
+                        return helper
+                    def read_multiple_packed(bound_local_module):
+                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
+                            reader = _MultiplePackedMessageReader(file.fileno(), bound_local_module, traversal_limit_in_words, nesting_limit)
+                            return reader
                         return helper
                     def make_from_bytes(bound_local_module):
                         def from_bytes(buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
@@ -1771,6 +1787,10 @@ cdef class SchemaParser:
                                 message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
                             return message.get_root(bound_local_module)
                         return from_bytes
+                    def from_bytes_packed(bound_local_module):
+                        def helper(buf, traversal_limit_in_words = None, nesting_limit = None):
+                            return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(bound_local_module)
+                        return helper
                     def new_message(bound_local_module):
                         def helper():
                             builder = _MallocMessageBuilder()
@@ -1805,11 +1825,14 @@ cdef class SchemaParser:
                             raise TypeError('This is an abstract base class')
 
                     local_module.read = read(local_module)
+                    local_module.read_multiple = read_multiple(local_module)
                     local_module.read_packed = read_packed(local_module)
+                    local_module.read_multiple_packed = read_multiple_packed(local_module)
                     local_module.new_message = new_message(local_module)
                     local_module.from_object = from_object()
                     local_module.from_dict = from_dict(local_module)
                     local_module.from_bytes = make_from_bytes(local_module)
+                    local_module.from_bytes_packed = from_bytes_packed(local_module)
                     local_module.Reader = Reader
                     local_module.Builder = Builder
                 elif proto.isConst:
@@ -1883,7 +1906,7 @@ cdef class _MessageBuilder:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self, True)
 
-    cpdef get_root(self, schema):
+    cpdef get_root(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
 
         Don't use this method unless you know what you're doing. You probably
@@ -1908,7 +1931,7 @@ cdef class _MessageBuilder:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self, True)
     
-    cpdef set_root(self, value):
+    cpdef set_root(self, value) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto structs by copying from an existing struct
 
         :type value: :class:`_DynamicStructReader`
@@ -1922,7 +1945,7 @@ cdef class _MessageBuilder:
         self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
         return self.get_root(value.schema)
 
-    cpdef new_orphan(self, schema):
+    cpdef new_orphan(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto orphans
 
         Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
@@ -1980,7 +2003,7 @@ cdef class _MessageReader:
     cpdef _get_root_node(self):
         return _NodeReader().init(self.thisptr.getRootNode())
 
-    cpdef get_root(self, schema):
+    cpdef get_root(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto structs
 
         You will need to pass in a schema to specify which struct to
@@ -2026,6 +2049,89 @@ cdef class _StreamFdMessageReader(_MessageReader):
 
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
 
+cdef class _PackedMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor in a packed manner
+
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
+
+        f = open('out.txt')
+        message = _PackedFdMessageReader(f.fileno())
+        person = message.get_root(addressbook.Person)
+        print person.name
+
+    :Parameters: - fd (`int`) - A file descriptor
+    """
+    cdef public object _parent
+    def __init__(self):
+        pass
+
+    cdef _init(self, schema_cpp.BufferedInputStream & stream, traversal_limit_in_words = None, nesting_limit = None, parent = None):
+        cdef schema_cpp.ReaderOptions opts
+
+        self._parent = parent
+
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
+            
+        self.thisptr = new schema_cpp.PackedMessageReader(stream, opts)
+        return self
+
+cdef class _PackedMessageReaderBytes(_MessageReader):
+    cdef public object _parent
+    cdef schema_cpp.ArrayInputStream * stream
+
+    def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+        cdef schema_cpp.ReaderOptions opts
+
+        self._parent = buf
+
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
+            
+        cdef const void *ptr
+        cdef Py_ssize_t sz
+        PyObject_AsReadBuffer(buf, &ptr, &sz)
+
+        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>ptr, sz))
+            
+        self.thisptr = new schema_cpp.PackedMessageReader(deref(self.stream), opts)
+
+    def __dealloc__(self):
+        del self.stream
+
+cdef class _InputMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor in a packed manner
+
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
+
+        f = open('out.txt')
+        message = _PackedFdMessageReader(f.fileno())
+        person = message.get_root(addressbook.Person)
+        print person.name
+
+    :Parameters: - fd (`int`) - A file descriptor
+    """
+    cdef public object _parent
+    def __init__(self):
+        pass
+
+    cdef _init(self, schema_cpp.BufferedInputStream & stream, traversal_limit_in_words = None, nesting_limit = None, parent = None):
+        cdef schema_cpp.ReaderOptions opts
+
+        self._parent = parent
+
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
+            
+        self.thisptr = new schema_cpp.InputStreamMessageReader(stream, opts)
+        return self
+
 cdef class _PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
@@ -2047,6 +2153,68 @@ cdef class _PackedFdMessageReader(_MessageReader):
             opts.nestingLimit = nesting_limit
             
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
+
+cdef class _MultipleMessageReader:
+    cdef schema_cpp.FdInputStream * stream
+    cdef schema_cpp.BufferedInputStream * buffered_stream
+
+    cdef public object traversal_limit_in_words, nesting_limit, schema
+
+    def __init__(self, int fd, schema, traversal_limit_in_words = None, nesting_limit = None):
+        self.schema = schema
+        self.traversal_limit_in_words = traversal_limit_in_words
+        self.nesting_limit = nesting_limit
+            
+        self.stream = new schema_cpp.FdInputStream(fd)
+        self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
+
+    def __dealloc__(self):
+        del self.stream
+        del self.buffered_stream
+
+    def __next__(self):
+        try:
+            reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            return reader.get_root(self.schema)
+        except ValueError as e:
+            if 'EOF' in str(e):
+                raise StopIteration
+            else:
+                raise
+
+    def __iter__(self):
+        return self
+
+cdef class _MultiplePackedMessageReader:
+    cdef schema_cpp.FdInputStream * stream
+    cdef schema_cpp.BufferedInputStream * buffered_stream
+
+    cdef public object traversal_limit_in_words, nesting_limit, schema
+
+    def __init__(self, int fd, schema, traversal_limit_in_words = None, nesting_limit = None):
+        self.schema = schema
+        self.traversal_limit_in_words = traversal_limit_in_words
+        self.nesting_limit = nesting_limit
+            
+        self.stream = new schema_cpp.FdInputStream(fd)
+        self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
+
+    def __dealloc__(self):
+        del self.stream
+        del self.buffered_stream
+
+    def __next__(self):
+        try:
+            reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            return reader.get_root(self.schema)
+        except ValueError as e:
+            if 'EOF' in str(e):
+                raise StopIteration
+            else:
+                raise
+
+    def __iter__(self):
+        return self
 
 @cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
@@ -2079,6 +2247,21 @@ cdef class _FlatMessageBuilder(_MessageBuilder):
             raise ValueError("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
         self.thisptr = new schema_cpp.FlatMessageBuilder(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
+
+def _message_to_packed_bytes(_MessageBuilder message):
+    r, w = _os.pipe()
+
+    writer = new schema_cpp.FdOutputStream(w)
+    schema_cpp.writePackedMessage(deref(writer), deref(message.thisptr))
+    _os.close(w)
+
+    reader = _os.fdopen(r)
+    ret = reader.read()
+
+    del writer
+    reader.close()
+
+    return ret
 
 def _write_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor

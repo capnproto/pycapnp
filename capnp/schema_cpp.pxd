@@ -6,6 +6,7 @@
 from libc.stdint cimport *
 from capnp_cpp cimport DynamicOrphan
 ctypedef unsigned int uint
+ctypedef uint8_t byte
 ctypedef uint8_t UInt8
 ctypedef uint16_t UInt16
 ctypedef uint32_t UInt32
@@ -705,6 +706,11 @@ cdef extern from "kj/common.h" namespace " ::kj":
         WordArrayPtr(word *, size_t size)
         size_t size()
         word& operator[](size_t index)
+    cdef cppclass ByteArrayPtr " ::kj::ArrayPtr< ::capnp::byte>":
+        ByteArrayPtr()
+        ByteArrayPtr(byte *, size_t size)
+        size_t size()
+        byte& operator[](size_t index)
 
 cdef extern from "kj/array.h" namespace " ::kj":
     # Cython can't handle Array[word] as a function argument
@@ -714,8 +720,46 @@ cdef extern from "kj/array.h" namespace " ::kj":
 
 cdef extern from "capabilityHelper.h":
     void reraise_kj_exception()
-    
+
+cdef extern from "kj/array.h" namespace " ::kj":
+    cdef cppclass InputStream:
+        void read(void* buffer, size_t bytes) except +reraise_kj_exception
+        size_t read(void* buffer, size_t minBytes, size_t maxBytes) except +reraise_kj_exception
+        size_t tryRead(void* buffer, size_t minBytes, size_t maxBytes) except +reraise_kj_exception
+        void skip(size_t bytes) except +reraise_kj_exception
+
+    cdef cppclass OutputStream:
+        void write(const void* buffer, size_t size) except +reraise_kj_exception
+        # void write(ArrayPtr<const ArrayPtr<const byte>> pieces);
+
+    cdef cppclass BufferedInputStream(InputStream):
+        pass
+    cdef cppclass BufferedOutputStream(OutputStream):
+        pass
+
+    cdef cppclass BufferedInputStreamWrapper(BufferedInputStream):
+        BufferedInputStreamWrapper(InputStream&)
+    cdef cppclass BufferedOutputStreamWrapper(BufferedOutputStream):
+        BufferedOutputStreamWrapper(OutputStream&)
+
+    cdef cppclass ArrayInputStream(BufferedInputStream):
+        ArrayInputStream(ByteArrayPtr)
+        ByteArrayPtr getArray()
+        # ByteArrayPtr tryGetReadBuffer() except +reraise_kj_exception
+    cdef cppclass ArrayOutputStream(BufferedOutputStream):
+        ArrayOutputStream(ByteArrayPtr)
+        ByteArrayPtr getArray()
+        ByteArrayPtr getWriteBuffer()
+
+    cdef cppclass FdInputStream(InputStream):
+        FdInputStream(int)
+    cdef cppclass FdOutputStream(OutputStream):
+        FdOutputStream(int)
+
 cdef extern from "capnp/serialize.h" namespace " ::capnp":
+    cdef cppclass InputStreamMessageReader(MessageReader):
+        InputStreamMessageReader(InputStream&) except +reraise_kj_exception
+        InputStreamMessageReader(InputStream&, ReaderOptions) except +reraise_kj_exception
     cdef cppclass StreamFdMessageReader(MessageReader):
         StreamFdMessageReader(int) except +reraise_kj_exception
         StreamFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
@@ -729,8 +773,19 @@ cdef extern from "capnp/serialize.h" namespace " ::capnp":
     WordArray messageToFlatArray(MessageBuilder &)
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
+    cdef cppclass PackedInputStream(InputStream):
+        PackedInputStream(BufferedInputStream&) except +reraise_kj_exception
+    cdef cppclass PackedOutputStream(OutputStream):
+        PackedOutputStream(BufferedOutputStream&) except +reraise_kj_exception
+
+    cdef cppclass PackedMessageReader(MessageReader):
+        PackedMessageReader(BufferedInputStream&) except +reraise_kj_exception
+        PackedMessageReader(BufferedInputStream&, ReaderOptions) except +reraise_kj_exception
+
     cdef cppclass PackedFdMessageReader(MessageReader):
         PackedFdMessageReader(int) except +reraise_kj_exception
         PackedFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
+    void writePackedMessage(BufferedOutputStream&, MessageBuilder&) except +reraise_kj_exception
+    void writePackedMessage(OutputStream&, MessageBuilder&) except +reraise_kj_exception
     void writePackedMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
