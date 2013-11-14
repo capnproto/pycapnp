@@ -869,7 +869,7 @@ cdef class _DynamicStructBuilder:
         _write_packed_message_to_fd(file.fileno(), self._parent)
         self._is_written = True
 
-    def to_bytes(_DynamicStructBuilder self):
+    cpdef to_bytes(_DynamicStructBuilder self) except +reraise_kj_exception:
         """Returns the struct's containing message as a Python bytes object in the unpacked binary format.
 
         This is inefficient; it makes several copies.
