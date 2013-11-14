@@ -1680,6 +1680,48 @@ class _StructABCMeta(type):
     def __instancecheck__(cls, obj):
         return isinstance(obj, cls.__base__) and obj.schema == cls._schema
 
+class StructModule(object):
+    def __init__(self, schema):
+        self.schema = schema
+
+    def read(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        reader = _StreamFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
+        return reader.get_root(self.schema)
+    def read_multiple(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        reader = _MultipleMessageReader(file.fileno(), self.schema, traversal_limit_in_words, nesting_limit)
+        return reader
+    def read_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        reader = _PackedFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
+        return reader.get_root(self.schema)
+    def read_multiple_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        reader = _MultiplePackedMessageReader(file.fileno(), self.schema, traversal_limit_in_words, nesting_limit)
+        return reader
+    def from_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
+        """Returns a Reader for the unpacked object in buf.
+
+        :type buf: buffer
+        :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern.
+        :type bool: builder
+        :param buf: If true, return a builder object"""
+        if builder:
+            message = _FlatMessageBuilder(buf)
+        else:
+            message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
+        return message.get_root(self.schema)
+    def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+        return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(self.schema)
+    def new_message(self):
+        builder = _MallocMessageBuilder()
+        return builder.init_root(self.schema)
+    def from_dict(self, d):
+        builder = _MallocMessageBuilder()
+        msg = builder.init_root(self.schema)
+        _from_dict(msg, d)
+        return msg
+    def from_object(self, obj):
+        builder = _MallocMessageBuilder()
+        return builder.set_root(obj)
+
 cdef class SchemaParser:
     """A class for loading Cap'n Proto schema files.
 
@@ -1747,67 +1789,11 @@ cdef class SchemaParser:
 
             for node in nodeProto.nestedNodes:
                 local_module = _ModuleType(node.name)
-                module.__dict__[node.name] = local_module
 
                 schema = nodeSchema.get_nested(node.name)
                 proto = schema.get_proto()
                 if proto.isStruct:
-                    local_module.schema = schema.as_struct()
-                    def read(bound_local_module):
-                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
-                            reader = _StreamFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
-                            return reader.get_root(bound_local_module)
-                        return helper
-                    def read_multiple(bound_local_module):
-                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
-                            reader = _MultipleMessageReader(file.fileno(), bound_local_module, traversal_limit_in_words, nesting_limit)
-                            return reader
-                        return helper
-                    def read_packed(bound_local_module):
-                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
-                            reader = _PackedFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
-                            return reader.get_root(bound_local_module)
-                        return helper
-                    def read_multiple_packed(bound_local_module):
-                        def helper(file, traversal_limit_in_words = None, nesting_limit = None):
-                            reader = _MultiplePackedMessageReader(file.fileno(), bound_local_module, traversal_limit_in_words, nesting_limit)
-                            return reader
-                        return helper
-                    def make_from_bytes(bound_local_module):
-                        def from_bytes(buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
-                            """Returns a Reader for the unpacked object in buf.
-
-                            :type buf: buffer
-                            :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern.
-                            :type bool: builder
-                            :param buf: If true, return a builder object"""
-                            if builder:
-                                message = _FlatMessageBuilder(buf)
-                            else:
-                                message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
-                            return message.get_root(bound_local_module)
-                        return from_bytes
-                    def from_bytes_packed(bound_local_module):
-                        def helper(buf, traversal_limit_in_words = None, nesting_limit = None):
-                            return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(bound_local_module)
-                        return helper
-                    def new_message(bound_local_module):
-                        def helper():
-                            builder = _MallocMessageBuilder()
-                            return builder.init_root(bound_local_module)
-                        return helper
-                    def from_dict(bound_local_module):
-                        def helper(d):
-                            builder = _MallocMessageBuilder()
-                            msg = builder.init_root(bound_local_module)
-                            _from_dict(msg, d)
-                            return msg
-                        return helper
-                    def from_object():
-                        def helper(obj):
-                            builder = _MallocMessageBuilder()
-                            return builder.set_root(obj)
-                        return helper
+                    local_module = StructModule(schema.as_struct())
                     class Reader(_DynamicStructReader):
                         """An abstract base class.  Readers are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta
@@ -1815,7 +1801,6 @@ cdef class SchemaParser:
                         _schema = local_module.schema
                         def __new__(self):
                             raise TypeError('This is an abstract base class')
-                    Reader._module = local_module
                     class Builder(_DynamicStructBuilder):
                         """An abstract base class.  Builders are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta
@@ -1824,17 +1809,10 @@ cdef class SchemaParser:
                         def __new__(self):
                             raise TypeError('This is an abstract base class')
 
-                    local_module.read = read(local_module)
-                    local_module.read_multiple = read_multiple(local_module)
-                    local_module.read_packed = read_packed(local_module)
-                    local_module.read_multiple_packed = read_multiple_packed(local_module)
-                    local_module.new_message = new_message(local_module)
-                    local_module.from_object = from_object()
-                    local_module.from_dict = from_dict(local_module)
-                    local_module.from_bytes = make_from_bytes(local_module)
-                    local_module.from_bytes_packed = from_bytes_packed(local_module)
                     local_module.Reader = Reader
                     local_module.Builder = Builder
+                    
+                    module.__dict__[node.name] = local_module
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
                 elif proto.isInterface:
@@ -1849,6 +1827,8 @@ cdef class SchemaParser:
                     local_module.schema = schema.as_interface()
                     local_module.new_client = new_client(local_module)
                     local_module.new_server = new_server(local_module)
+
+                    module.__dict__[node.name] = local_module
 
                 _load(schema, local_module)
         if not _os.path.isfile(file_name):
