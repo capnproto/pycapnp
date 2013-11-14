@@ -208,9 +208,9 @@ cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
 
 cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb):
     try:
-        return (exc_tb.tb_frame.f_code.co_filename, exc_tb.tb_lineno, repr(exc_type) + ':' + str(exc_obj))
+        return (exc_tb.tb_frame.f_code.co_filename.encode(), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode())
     except:
-        return ('', 0, "Couldn't determine python exception")
+        return (b'', 0, b"Couldn't determine python exception")
 
 
 ctypedef fused _DynamicStructReaderOrBuilder:
