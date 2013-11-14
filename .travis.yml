@@ -18,7 +18,7 @@ before_install:
                                      --slave   /usr/bin/g++  g++  /usr/bin/g++-4.8
                                      --slave   /usr/bin/gcov gcov /usr/bin/gcov-4.8
   - sudo update-alternatives --quiet --set gcc /usr/bin/gcc-4.8
-  - curl -O http://capnproto.org/capnproto-c++-0.3.0.tar.gz && tar zxf capnproto-c++-0.3.0.tar.gz && cd capnproto-c++-0.3.0 && ./configure && make -j6 check && sudo make install && cd ..
+  - wget https://github.com/kentonv/capnproto/archive/master.zip && unzip master.zip && cd capnproto-master/c++ && ./setup-autotools.sh && autoreconf -i && ./configure && make -j6 check && sudo make install && sudo ldconfig && cd ../..
   - pip install -U setuptools
   - pip install cython
   - pip install pytest
