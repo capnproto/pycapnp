@@ -20,6 +20,7 @@ def example_client():
     remote = cap.foo(i=5)
     response = loop.wait(remote)
 
-    assert response.x == 'foo'
+    assert response.x == '125'
+    c.close()
 
 example_client()
