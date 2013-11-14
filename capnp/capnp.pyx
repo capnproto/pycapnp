@@ -16,6 +16,7 @@ from cython.operator cimport dereference as deref
 cimport async_cpp
 
 from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
+from cpython.exc cimport PyErr_Clear
 from libc.stdint cimport *
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
@@ -181,6 +182,7 @@ class KjException(Exception):
         return self.message
 
 cdef public object wrap_kj_exception(capnp.Exception & exception):
+    PyErr_Clear()
     wrapper = _KjExceptionWrapper()._init(exception)
     ret = KjException(wrapper=wrapper)
 
@@ -203,6 +205,13 @@ cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
 
     ret = KjException(wrapper=wrapper)
     return ret
+
+cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb):
+    try:
+        return (exc_tb.tb_frame.f_code.co_filename, exc_tb.tb_lineno, repr(exc_type) + ':' + str(exc_obj))
+    except:
+        return ('', 0, "Couldn't determine python exception")
+
 
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader

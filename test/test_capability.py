@@ -113,7 +113,7 @@ def test_exception_client(capability):
     client = capability.TestInterface.new_client(BadServer(), loop)
     
     remote = client._send('foo', i=5)
-    with pytest.raises(ValueError):
+    with pytest.raises(capnp.KjException):
         loop.wait(remote)
 
 class BadPipelineServer:
@@ -122,7 +122,7 @@ class BadPipelineServer:
             context.results.s = response.x + '_foo'
             context.results.outBox.cap = capability().TestInterface.new_server(Server(100))
         def _error(error):
-            raise Exception('test')
+            raise Exception('test was a success')
 
         return context.params.inCap.foo(i=context.params.n).then(_then, _error)
 
@@ -137,7 +137,7 @@ def test_exception_chain(capability):
     try:
         loop.wait(remote)
     except Exception as e:
-        assert str(e) == 'test'
+        assert 'test was a success' in str(e)
 
 def test_pipeline_exception(capability):
     loop = capnp.EventLoop()

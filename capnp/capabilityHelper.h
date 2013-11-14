@@ -11,6 +11,7 @@ extern "C" {
    ::kj::Promise<void> * call_server_method(PyObject * py_server, char * name, capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> & context);
    PyObject * wrap_kj_exception(kj::Exception &);
    PyObject * wrap_kj_exception_for_reraise(kj::Exception &);
+   PyObject * get_exception_info(PyObject *, PyObject *, PyObject *);
  }
 
 void reraise_kj_exception() {
@@ -36,8 +37,22 @@ void reraise_kj_exception() {
 void check_py_error() {
     PyObject * err = PyErr_Occurred();
     if(err) {
-        // PyErr_Clear();
-        throw std::exception();
+        // TODO: decref references
+        PyObject * ptype, *pvalue, *ptraceback;
+        PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+
+        PyObject * info = get_exception_info(ptype, pvalue, ptraceback);
+
+        PyObject * py_filename = PyTuple_GetItem(info, 0);
+        kj::String filename(kj::heapString(PyBytes_AsString(py_filename)));
+
+        PyObject * py_line = PyTuple_GetItem(info, 1);
+        int line = PyInt_AsLong(py_line);
+
+        PyObject * py_description = PyTuple_GetItem(info, 2);
+        kj::String description(kj::heapString(PyBytes_AsString(py_description)));
+
+        throw kj::Exception(kj::Exception::Nature::OTHER, kj::Exception::Durability::PERMANENT, kj::mv(filename), line, kj::mv(description));
     }
 }
 
