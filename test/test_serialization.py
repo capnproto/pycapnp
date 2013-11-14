@@ -38,6 +38,38 @@ def test_roundtrip_bytes(all_types):
     msg = all_types.TestAllTypes.from_bytes(message_bytes)
     test_regression.check_all_types(msg)
 
+def test_roundtrip_bytes_packed(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+    message_bytes = msg.to_bytes_packed()
+
+    msg = all_types.TestAllTypes.from_bytes_packed(message_bytes)
+    test_regression.check_all_types(msg)
+
+def test_roundtrip_file_multiple(all_types):
+    f = open('example', 'w')
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+    msg.write(f)
+    msg.write(f)
+    msg.write(f)
+
+    f = open('example', 'r')
+    for msg in all_types.TestAllTypes.read_multiple(f):
+        test_regression.check_all_types(msg)
+
+def test_roundtrip_file_multiple_packed(all_types):
+    f = open('example', 'w')
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+    msg.write_packed(f)
+    msg.write_packed(f)
+    msg.write_packed(f)
+
+    f = open('example', 'r')
+    for msg in all_types.TestAllTypes.read_multiple_packed(f):
+        test_regression.check_all_types(msg)
+
 def test_roundtrip_dict(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
