@@ -2255,7 +2255,7 @@ def _message_to_packed_bytes(_MessageBuilder message):
     schema_cpp.writePackedMessage(deref(writer), deref(message.thisptr))
     _os.close(w)
 
-    reader = _os.fdopen(r)
+    reader = _os.fdopen(r, 'rb')
     ret = reader.read()
 
     del writer
