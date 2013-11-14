@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream_wrapFd, AsyncIoStream, Own, makeTwoPartyVatNetwork
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream_wrapFd, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, reraise_kj_exception
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -82,8 +82,127 @@ cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_Dynam
 
     return new C_Capability.Client(server_to_client(server.schema.thisptr, <PyObject *>server.server))
 
+cdef extern from "<kj/string.h>" namespace " ::kj":
+    String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
+    String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
+    String strRequest" ::kj::str"(Request &)
+    String strListReader" ::kj::str"(C_DynamicList.Reader)
+    String strListBuilder" ::kj::str"(C_DynamicList.Builder)
+    String strException" ::kj::str"(capnp.Exception)
+
+def _make_enum(enum_name, *sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    reverse = dict((value, key) for key, value in enums.iteritems())
+    enums['reverse_mapping'] = reverse
+    return type(enum_name, (), enums)
+
+_Nature = _make_enum('Nature', 
+                    PRECONDITION = 0,
+                    LOCAL_BUG = 1,
+                    OS_ERROR = 2,
+                    NETWORK_FAILURE = 3,
+                    OTHER = 4)
+_Durability = _make_enum('Durability', 
+                    PERMANENT = 0,
+                    TEMPORARY = 1,
+                    OVERLOADED = 2)
+
+cdef class _KjExceptionWrapper:
+    cdef capnp.Exception * thisptr
+
+    cdef _init(self, capnp.Exception & other):
+        self.thisptr = new capnp.Exception(moveException(other))
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    property file:
+        def __get__(self):
+            return <char*>self.thisptr.getFile()
+    property line:
+        def __get__(self):
+            return self.thisptr.getLine()
+    property nature:
+        def __get__(self):
+            cdef int temp = <int>self.thisptr.getNature()
+            return _Nature.reverse_mapping[temp]
+    property durability:
+        def __get__(self):
+            cdef int temp = <int>self.thisptr.getDurability()
+            return _Durability.reverse_mapping[temp]
+    property description:
+        def __get__(self):
+            return <char*>self.thisptr.getDescription().cStr()
+
+    def __str__(self):
+        return <char*>strException(deref(self.thisptr)).cStr()
+
+# Extension classes can't inherit from Exception, so we're going to proxy wrap kj::Exception, and forward all calls to it from this Python class
+class KjException(Exception):
+    Nature = _Nature
+    Durability = _Durability
+
+    def __init__(self, message=None, nature=None, durability=None, wrapper=None):
+        if wrapper is not None:
+            self.wrapper = wrapper
+            self.message = str(wrapper)
+        else:
+            self.message = message
+            self.nature = nature
+            self.durability = durability
+    
+    @property
+    def file(self):
+        return self.wrapper.file
+    @property
+    def line(self):
+        return self.wrapper.line
+    @property
+    def nature(self):
+        if self.wrapper is not None:
+            return self.wrapper.nature
+        else:
+            return self.nature
+    @property
+    def durability(self):
+        if self.wrapper is not None:
+            return self.wrapper.durability
+        else:
+            return self.durability
+    @property
+    def description(self):
+        if self.wrapper is not None:
+            return self.wrapper.description
+        else:
+            return self.message
+
+    def __str__(self):
+        return self.message
+
 cdef public object wrap_kj_exception(capnp.Exception & exception):
-    return None # TODO
+    wrapper = _KjExceptionWrapper()._init(exception)
+    ret = KjException(wrapper=wrapper)
+
+    return ret
+
+cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
+    wrapper = _KjExceptionWrapper()._init(exception)
+    
+    nature = wrapper.nature
+
+    if wrapper.nature == 'PRECONDITION':
+        return ValueError(str(wrapper))
+    # elif wrapper.nature == 'LOCAL_BUG':
+    #     return ValueError(str(wrapper))
+    if wrapper.nature == 'OS_ERROR':
+        return OSError(str(wrapper))
+    if wrapper.nature == 'NETWORK_FAILURE':
+        return IOError(str(wrapper))
+
+
+    ret = KjException(wrapper=wrapper)
+    return ret
 
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader
@@ -94,16 +213,16 @@ ctypedef fused _DynamicSetterClasses:
     C_DynamicStruct.Builder
     Request
 
+ctypedef fused _PromiseTypes:
+    Promise
+    _RemotePromise
+    _VoidPromise
+    PromiseFulfillerPair
+
 cdef extern from "Python.h":
     cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
 
-def _make_enum(enum_name, *sequential, **named):
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = dict((value, key) for key, value in enums.iteritems())
-    enums['reverse_mapping'] = reverse
-    return type(enum_name, (), enums)
-
-_Type = _make_enum('DynamicValue.Type', 
+Type = _make_enum('DynamicValue.Type', 
                     UNKNOWN = capnp.TYPE_UNKNOWN,
                     VOID = capnp.TYPE_VOID,
                     BOOL = capnp.TYPE_BOOL,
@@ -122,10 +241,10 @@ _Type = _make_enum('DynamicValue.Type',
 cdef extern from "capnp/list.h" namespace " ::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
-            T operator[](uint) except +ValueError
+            T operator[](uint) except +reraise_kj_exception
             uint size()
         cppclass Builder:
-            T operator[](uint) except +ValueError
+            T operator[](uint) except +reraise_kj_exception
             uint size()
 
 cdef extern from "<utility>" namespace "std":
@@ -138,6 +257,7 @@ cdef extern from "<utility>" namespace "std":
     RemotePromise moveRemotePromise"std::move"(RemotePromise)
     CallContext moveCallContext"std::move"(CallContext)
     Own[AsyncIoStream] moveOwnAsyncIOStream"std::move"(Own[AsyncIoStream])
+    capnp.Exception moveException"std::move"(capnp.Exception)
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
@@ -145,13 +265,6 @@ cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printRequest" ::capnp::prettyPrint"(Request &)
     StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader)
     StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder)
-
-cdef extern from "<kj/string.h>" namespace " ::kj":
-    String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
-    String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
-    String strRequest" ::kj::str"(Request &)
-    String strListReader" ::kj::str"(C_DynamicList.Reader)
-    String strListBuilder" ::kj::str"(C_DynamicList.Builder)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -912,7 +1025,7 @@ cdef class _DynamicStructPipeline:
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef _get(self, field) except +ValueError:
+    cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
         if type == capnp.TYPE_CAPABILITY:
             return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
@@ -1042,18 +1155,18 @@ cdef class Promise:
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef wait(self) except+:
+    cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         ret = <object>self.thisptr.wait()
         self.is_consumed = True
 
         return ret
 
-    cpdef then(self, func, error_func=None) except+:
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         Py_INCREF(func)
         Py_INCREF(error_func)
@@ -1075,15 +1188,15 @@ cdef class _VoidPromise:
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef wait(self) except+:
+    cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         self.thisptr.wait()
         self.is_consumed = True
 
 
-    # cpdef then(self, func, error_func=None) except+:
+    # cpdef then(self, func, error_func=None) except +reraise_kj_exception:
     #     if self.is_consumed:
     #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
@@ -1109,28 +1222,28 @@ cdef class _RemotePromise:
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef wait(self) except+:
+    cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         ret = _DynamicStructReader()._init(self.thisptr.wait(), self._parent)
         self.is_consumed = True
 
         return ret
 
-    cpdef as_pypromise(self) except +:
+    cpdef as_pypromise(self) except +reraise_kj_exception:
         Promise()._init(convert_to_pypromise(deref(self.thisptr)))
 
-    cpdef then(self, func, error_func=None) except+:
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         Py_INCREF(func)
         Py_INCREF(error_func)
 
         return _VoidPromise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
 
-    cpdef _get(self, field) except +ValueError:
+    cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
         if type == capnp.TYPE_CAPABILITY:
             return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
@@ -1167,11 +1280,22 @@ cdef class EventLoop:
         Py_INCREF(func)
         return Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
 
-    cpdef wait(self, _RemotePromise promise) except +:
+    cpdef wait(self, _PromiseTypes promise) except +reraise_kj_exception:
         if promise.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = _Response()._init_child(self.thisptr.wait_remote(moveRemotePromise(deref(promise.thisptr))), promise._parent)
+        ret = None
+        if _PromiseTypes is _RemotePromise:
+            ret = _Response()._init_child(self.thisptr.wait_remote(moveRemotePromise(deref(promise.thisptr))), promise._parent)
+        elif _PromiseTypes is _VoidPromise:
+            self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr)))
+        elif _PromiseTypes is PromiseFulfillerPair:
+            self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr).promise))
+        elif _PromiseTypes is Promise:
+            ret = self.thisptr.wait(movePromise(deref(promise.thisptr)))
+        else:
+            raise ValueError("Not a valid promise type")
+
         promise.is_consumed = True
 
         return ret
@@ -1244,7 +1368,7 @@ cdef class _DynamicCapabilityClient:
         self._server = server
         return self
 
-    cpdef _send_helper(self, name, firstSegmentWordSize, kwargs) except +ValueError:
+    cpdef _send_helper(self, name, firstSegmentWordSize, kwargs) except +reraise_kj_exception:
         cdef Request * request = new Request(self.thisptr.newRequest(name, firstSegmentWordSize))
 
         for key, val in kwargs.items():
@@ -1252,7 +1376,7 @@ cdef class _DynamicCapabilityClient:
 
         return _RemotePromise()._init(request.send(), self)
 
-    cpdef _request_helper(self, name, firstSegmentWordSize=0) except +ValueError:
+    cpdef _request_helper(self, name, firstSegmentWordSize=0) except +reraise_kj_exception:
         return _Request()._init_child(self.thisptr.newRequest(name, firstSegmentWordSize), self)
 
     def _request(self, name, firstSegmentWordSize=0):
@@ -1267,7 +1391,7 @@ cdef class _DynamicCapabilityClient:
             return _partial(self._request, short_name)
         return _partial(self._send, name)
 
-    cpdef upcast(self, schema) except+:
+    cpdef upcast(self, schema) except +reraise_kj_exception:
         cdef _InterfaceSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
@@ -1276,7 +1400,7 @@ cdef class _DynamicCapabilityClient:
 
         return _DynamicCapabilityClient()._init(self.thisptr.upcast(s.thisptr), self._parent)
 
-    cpdef cast_as(self, schema) except+:
+    cpdef cast_as(self, schema) except +reraise_kj_exception:
         cdef _InterfaceSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
@@ -1342,10 +1466,11 @@ cdef class _TwoPartyVatNetwork:
 cdef class RpcClient:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
-    cdef public object loop, restorer
+    cdef public object loop, restorer, stream
 
     def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer=None):
         self.loop = loop
+        self.stream = stream
         self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.CLIENT)
         if restorer is None:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr), loop.thisptr))
@@ -1356,7 +1481,7 @@ cdef class RpcClient:
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef restore(self, objectId) except+:
+    cpdef restore(self, objectId) except +reraise_kj_exception:
         cdef _MessageBuilder builder 
         cdef _MessageReader reader
 
@@ -1380,10 +1505,11 @@ cdef class RpcClient:
 cdef class RpcServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
-    cdef public object loop, restorer
+    cdef public object loop, restorer, stream
 
     def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer):
         self.loop = loop
+        self.stream = stream
         self.restorer = restorer
         self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.SERVER)
         self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(restorer.thisptr), loop.thisptr))
@@ -1391,11 +1517,24 @@ cdef class RpcServer:
     def __dealloc__(self):
         del self.thisptr
 
+    # TODO: add restore functionality here?
+
 cdef class FdAsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
 
     def __init__(self, int fd):
         self.thisptr = AsyncIoStream_wrapFd(fd)
+
+cdef class PromiseFulfillerPair:
+    cdef Own[C_PromiseFulfillerPair] thisptr
+    cdef public bint is_consumed
+
+    def __init__(self, EventLoop loop=None):
+        if loop is None:
+            self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller())
+        else:
+            self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller(loop.thisptr))
+        self.is_consumed = False
 
 cdef class _Schema:
     cdef C_Schema thisptr

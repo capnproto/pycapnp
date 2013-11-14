@@ -708,22 +708,25 @@ cdef extern from "kj/array.h" namespace " ::kj":
         word* begin()
         size_t size()
 
+cdef extern from "capabilityHelper.h":
+    void reraise_kj_exception()
+    
 cdef extern from "capnp/serialize.h" namespace " ::capnp":
     cdef cppclass StreamFdMessageReader(MessageReader):
-        StreamFdMessageReader(int) except +
-        StreamFdMessageReader(int, ReaderOptions) except +
+        StreamFdMessageReader(int) except +reraise_kj_exception
+        StreamFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
     cdef cppclass FlatArrayMessageReader(MessageReader):
-        FlatArrayMessageReader(WordArrayPtr array) except +
-        FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +
+        FlatArrayMessageReader(WordArrayPtr array) except +reraise_kj_exception
+        FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +reraise_kj_exception
 
-    void writeMessageToFd(int, MessageBuilder&) except +
+    void writeMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
 
     WordArray messageToFlatArray(MessageBuilder &)
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
     cdef cppclass PackedFdMessageReader(MessageReader):
-        PackedFdMessageReader(int) except +
-        StreamFdMessageReader(int, ReaderOptions) except +
+        PackedFdMessageReader(int) except +reraise_kj_exception
+        StreamFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
-    void writePackedMessageToFd(int, MessageBuilder&) except +
+    void writePackedMessageToFd(int, MessageBuilder&) except +reraise_kj_exception

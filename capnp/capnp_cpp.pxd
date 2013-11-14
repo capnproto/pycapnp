@@ -9,24 +9,34 @@ from libc.stdint cimport *
 ctypedef unsigned int uint
 from libcpp cimport bool as cbool
 
+cdef extern from "capabilityHelper.h":
+    void reraise_kj_exception()
+
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
         VOID " ::capnp::VOID"
 
-cdef extern from "kj/exception.h" namespace " ::kj":
-    cdef cppclass Exception:
-        pass
-
 cdef extern from "kj/string.h" namespace " ::kj":
     cdef cppclass StringPtr:
         StringPtr(char *)
+        char* cStr()
     cdef cppclass String:
         char* cStr()
+
+cdef extern from "kj/exception.h" namespace " ::kj":
+    cdef cppclass Exception:
+        Exception(Exception)
+        char* getFile()
+        int getLine()
+        int getNature()
+        int getDurability()
+        StringPtr getDescription()
 
 cdef extern from "kj/memory.h" namespace " ::kj":    
     cdef cppclass Own[T]:
         T& operator*()
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(EventLoop &, AsyncIoStream& stream, Side)
+    Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(PromiseFulfillerPair&)
 
 cdef extern from "kj/string-tree.h" namespace " ::kj":
     cdef cppclass StringTree:
@@ -54,12 +64,12 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
-        Node.Reader getProto() except +
-        StructSchema asStruct() except +
-        EnumSchema asEnum() except +
-        ConstSchema asConst() except +
-        Schema getDependency(uint64_t id) except +
-        InterfaceSchema asInterface() except +
+        Node.Reader getProto() except +reraise_kj_exception
+        StructSchema asStruct() except +reraise_kj_exception
+        EnumSchema asEnum() except +reraise_kj_exception
+        ConstSchema asConst() except +reraise_kj_exception
+        Schema getDependency(uint64_t id) except +reraise_kj_exception
+        InterfaceSchema asInterface() except +reraise_kj_exception
 
     cdef cppclass InterfaceSchema(Schema):
         cppclass Method:
@@ -143,21 +153,21 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
 
     cdef cppclass DynamicStruct:
         cppclass Reader:
-            DynamicValueForward.Reader get(char *) except +ValueError
-            bint has(char *) except +ValueError
+            DynamicValueForward.Reader get(char *) except +reraise_kj_exception
+            bint has(char *) except +reraise_kj_exception
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
         cppclass Builder:
             Builder()
             Builder(Builder &)
-            DynamicValueForward.Builder get(char *) except +ValueError
-            bint has(char *) except +ValueError
-            void set(char *, DynamicValueForward.Reader) except +ValueError
-            DynamicValueForward.Builder init(char *, uint size) except +ValueError
-            DynamicValueForward.Builder init(char *) except +ValueError
+            DynamicValueForward.Builder get(char *) except +reraise_kj_exception
+            bint has(char *) except +reraise_kj_exception
+            void set(char *, DynamicValueForward.Reader) except +reraise_kj_exception
+            DynamicValueForward.Builder init(char *, uint size) except +reraise_kj_exception
+            DynamicValueForward.Builder init(char *) except +reraise_kj_exception
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
-            void adopt(char *, DynamicOrphan) except +ValueError
+            void adopt(char *, DynamicOrphan) except +reraise_kj_exception
             DynamicOrphan disown(char *)
             DynamicStruct.Reader asReader()
         cppclass Pipeline:
@@ -201,11 +211,11 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass Request" ::capnp::Request< ::capnp::DynamicStruct, ::capnp::DynamicStruct>":
         Request()
         Request(Request &)
-        DynamicValueForward.Builder get(char *) except +ValueError
-        bint has(char *) except +ValueError
-        void set(char *, DynamicValueForward.Reader) except +ValueError
-        DynamicValueForward.Builder init(char *, uint size) except +ValueError
-        DynamicValueForward.Builder init(char *) except +ValueError
+        DynamicValueForward.Builder get(char *) except +reraise_kj_exception
+        bint has(char *) except +reraise_kj_exception
+        void set(char *, DynamicValueForward.Reader) except +reraise_kj_exception
+        DynamicValueForward.Builder init(char *, uint size) except +reraise_kj_exception
+        DynamicValueForward.Builder init(char *) except +reraise_kj_exception
         StructSchema getSchema()
         Maybe[StructSchema.Field] which()
         RemotePromise send()
@@ -219,7 +229,7 @@ cdef extern from "capnp/object.h" namespace " ::capnp":
             DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
 
 cdef extern from "fixMaybe.h":
-    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +ValueError
+    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
     char * getEnumString(DynamicStruct.Reader val)
     char * getEnumString(DynamicStruct.Builder val)
     char * getEnumString(Request val)
@@ -250,16 +260,16 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
 
     cdef cppclass DynamicList:
         cppclass Reader:
-            DynamicValueForward.Reader operator[](uint) except +ValueError
+            DynamicValueForward.Reader operator[](uint) except +reraise_kj_exception
             uint size()
         cppclass Builder:
             Builder()
             Builder(Builder &)
-            DynamicValueForward.Builder operator[](uint) except +ValueError
+            DynamicValueForward.Builder operator[](uint) except +reraise_kj_exception
             uint size()
-            void set(uint index, DynamicValueForward.Reader value) except +ValueError
-            DynamicValueForward.Builder init(uint index, uint size) except +ValueError
-            void adopt(uint, DynamicOrphan) except +ValueError
+            void set(uint index, DynamicValueForward.Reader value) except +reraise_kj_exception
+            DynamicValueForward.Builder init(uint index, uint size) except +reraise_kj_exception
+            void adopt(uint, DynamicOrphan) except +reraise_kj_exception
             DynamicOrphan disown(uint)
             StructSchema getStructElementType'getSchema().getStructElementType'()
 
@@ -321,10 +331,10 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
 
 cdef extern from "capnp/schema-parser.h" namespace " ::capnp":
     cdef cppclass ParsedSchema(Schema):
-        ParsedSchema getNested(char * name) except +
+        ParsedSchema getNested(char * name) except +reraise_kj_exception
     cdef cppclass SchemaParser:
         SchemaParser()
-        ParsedSchema parseDiskFile(char * displayName, char * diskPath, ArrayPtr[StringPtr] importPath) except +
+        ParsedSchema parseDiskFile(char * displayName, char * diskPath, ArrayPtr[StringPtr] importPath) except +reraise_kj_exception
 
 cdef extern from "capnp/orphan.h" namespace " ::capnp":
     cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>":
@@ -334,7 +344,7 @@ cdef extern from "capnp/orphan.h" namespace " ::capnp":
 cdef extern from "capnp/capability.h" namespace " ::capnp":
     cdef cppclass CallContext' ::capnp::CallContext< ::capnp::DynamicStruct, ::capnp::DynamicStruct>':
         CallContext(CallContext&)
-        DynamicStruct.Reader getParams() except +
+        DynamicStruct.Reader getParams() except +reraise_kj_exception
         void releaseParams()
 
         DynamicStruct.Builder getResults(uint firstSegmentWordSize)
@@ -349,13 +359,21 @@ cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:
         EventLoop()
         # Promise[void] yield_end'yield'()
-        object wait(PyPromise) except+
+        object wait(PyPromise) except +reraise_kj_exception
         Response wait_remote'wait'(RemotePromise)
-        object there(PyPromise) except+
+        void wait_void'wait'(VoidPromise)
+        object there(PyPromise) except +reraise_kj_exception
         PyPromise evalLater(PyObject * func)
         PyPromise there(PyPromise, PyObject * func)
     cdef cppclass SimpleEventLoop(EventLoop):
         pass
+    cdef cppclass PromiseFulfiller:
+        pass
+    cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>":
+        VoidPromise promise
+        Own[PromiseFulfiller] fulfiller
+    PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"()
+    PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"(EventLoop&)
 
 cdef extern from "kj/async-unix.h" namespace " ::kj":
     cdef cppclass UnixEventLoop(EventLoop):

@@ -10,7 +10,28 @@ extern "C" {
    PyObject * wrap_dynamic_struct_reader(capnp::DynamicStruct::Reader &);
    ::kj::Promise<void> * call_server_method(PyObject * py_server, char * name, capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> & context);
    PyObject * wrap_kj_exception(kj::Exception &);
+   PyObject * wrap_kj_exception_for_reraise(kj::Exception &);
  }
+
+void reraise_kj_exception() {
+  try {
+    if (PyErr_Occurred())
+      ; // let the latest Python exn pass through and ignore the current one
+    else
+      throw;
+  }
+  catch (kj::Exception& exn) {
+    auto obj = wrap_kj_exception_for_reraise(exn);
+    PyErr_SetObject((PyObject*)obj->ob_type, obj);
+  }
+  catch (const std::exception& exn) {
+    PyErr_SetString(PyExc_RuntimeError, exn.what());
+  }
+  catch (...)
+  {
+    PyErr_SetString(PyExc_RuntimeError, "Unknown exception");
+  }
+}
 
 void check_py_error() {
     PyObject * err = PyErr_Occurred();
