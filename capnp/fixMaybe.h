@@ -13,7 +13,7 @@ T fixMaybe(::kj::Maybe<T> val) {
 }
 
 template<typename T>
-const char * getEnumString(T val) {
+const char * getEnumString(T & val) {
 
   auto maybe_val = val.which();
   KJ_IF_MAYBE(new_val, maybe_val) {

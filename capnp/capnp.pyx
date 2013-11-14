@@ -1,7 +1,7 @@
 # capnp.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++11 -fpermissive
-# distutils: libraries = capnpc capnp
+# distutils: extra_compile_args = --std=c++11
+# distutils: libraries = capnpc capnp capnp-rpc
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
@@ -9,11 +9,14 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, DynamicObject as C_DynamicObject, WordArrayPtr
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream_wrapFd, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, reraise_kj_exception
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
+cimport async_cpp
 
+from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
+from cpython.exc cimport PyErr_Clear
 from libc.stdint cimport *
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
@@ -32,17 +35,61 @@ ctypedef double Float64
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool as cbool
 
-ctypedef fused _DynamicStructReaderOrBuilder:
-    _DynamicStructReader
-    _DynamicStructBuilder
+from types import ModuleType as _ModuleType
+import os as _os
+import sys as _sys
+import imp as _imp
+from functools import partial as _partial
+import warnings as _warnings
+import inspect as _inspect
 
-ctypedef fused _DynamicSetterClasses:
-    C_DynamicList.Builder
-    C_DynamicStruct.Builder
+# By making it public, we'll be able to call it from capabilityHelper.h
+cdef public object wrap_dynamic_struct_reader(C_DynamicStruct.Reader & reader):
+    return _DynamicStructReader()._init(reader, None)
 
-cdef extern from "Python.h":
-    cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
-    cdef int PyObject_AsWriteBuffer(object, void** b, Py_ssize_t* c)
+cdef public void wrap_remote_call(PyObject * func, Response & r) except *:
+    response = _Response()._init_childptr(new Response(moveResponse(r)), None)
+
+    func_obj = <object>func
+    # TODO: decref func?
+    func_obj(response)
+
+cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except *:
+    server = <object>_server
+    method_name = <object>_method_name
+
+    context = _CallContext()._init(_context)
+    func = getattr(server, method_name)
+    ret = func(context)
+
+    if ret is not None:
+        if type(ret) is _VoidPromise:
+            return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
+        else:
+            try:
+                warning_msg = 'Server function (%s) returned a value that was not a VoidPromise: return = %s' % (method_name, str(ret))
+            except:
+                warning_msg = 'Server function (%s) returned a value that was not a VoidPromise' % (method_name)
+            _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
+
+    return NULL
+    
+cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicStruct.Reader & _reader) except *:
+    restorer = <object>_restorer
+    reader = _DynamicStructReader()._init(_reader, None)
+
+    ret = restorer.restore(reader)
+    cdef _DynamicCapabilityServer server = ret
+
+    return new C_Capability.Client(server_to_client(server.schema.thisptr, <PyObject *>server.server))
+
+cdef extern from "<kj/string.h>" namespace " ::kj":
+    String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
+    String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
+    String strRequest" ::kj::str"(Request &)
+    String strListReader" ::kj::str"(C_DynamicList.Reader)
+    String strListBuilder" ::kj::str"(C_DynamicList.Builder)
+    String strException" ::kj::str"(capnp.Exception)
 
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -50,7 +97,142 @@ def _make_enum(enum_name, *sequential, **named):
     enums['reverse_mapping'] = reverse
     return type(enum_name, (), enums)
 
-_Type = _make_enum('DynamicValue.Type', 
+_Nature = _make_enum('Nature', 
+                    PRECONDITION = 0,
+                    LOCAL_BUG = 1,
+                    OS_ERROR = 2,
+                    NETWORK_FAILURE = 3,
+                    OTHER = 4)
+_Durability = _make_enum('Durability', 
+                    PERMANENT = 0,
+                    TEMPORARY = 1,
+                    OVERLOADED = 2)
+
+cdef class _KjExceptionWrapper:
+    cdef capnp.Exception * thisptr
+
+    cdef _init(self, capnp.Exception & other):
+        self.thisptr = new capnp.Exception(moveException(other))
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    property file:
+        def __get__(self):
+            return <char*>self.thisptr.getFile()
+    property line:
+        def __get__(self):
+            return self.thisptr.getLine()
+    property nature:
+        def __get__(self):
+            cdef int temp = <int>self.thisptr.getNature()
+            return _Nature.reverse_mapping[temp]
+    property durability:
+        def __get__(self):
+            cdef int temp = <int>self.thisptr.getDurability()
+            return _Durability.reverse_mapping[temp]
+    property description:
+        def __get__(self):
+            return <char*>self.thisptr.getDescription().cStr()
+
+    def __str__(self):
+        return <char*>strException(deref(self.thisptr)).cStr()
+
+# Extension classes can't inherit from Exception, so we're going to proxy wrap kj::Exception, and forward all calls to it from this Python class
+class KjException(Exception):
+    Nature = _Nature
+    Durability = _Durability
+
+    def __init__(self, message=None, nature=None, durability=None, wrapper=None):
+        if wrapper is not None:
+            self.wrapper = wrapper
+            self.message = str(wrapper)
+        else:
+            self.message = message
+            self.nature = nature
+            self.durability = durability
+    
+    @property
+    def file(self):
+        return self.wrapper.file
+    @property
+    def line(self):
+        return self.wrapper.line
+    @property
+    def nature(self):
+        if self.wrapper is not None:
+            return self.wrapper.nature
+        else:
+            return self.nature
+    @property
+    def durability(self):
+        if self.wrapper is not None:
+            return self.wrapper.durability
+        else:
+            return self.durability
+    @property
+    def description(self):
+        if self.wrapper is not None:
+            return self.wrapper.description
+        else:
+            return self.message
+
+    def __str__(self):
+        return self.message
+
+cdef public object wrap_kj_exception(capnp.Exception & exception):
+    PyErr_Clear()
+    wrapper = _KjExceptionWrapper()._init(exception)
+    ret = KjException(wrapper=wrapper)
+
+    return ret
+
+cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
+    wrapper = _KjExceptionWrapper()._init(exception)
+    
+    nature = wrapper.nature
+
+    if wrapper.nature == 'PRECONDITION':
+        return ValueError(str(wrapper))
+    # elif wrapper.nature == 'LOCAL_BUG':
+    #     return ValueError(str(wrapper))
+    if wrapper.nature == 'OS_ERROR':
+        return OSError(str(wrapper))
+    if wrapper.nature == 'NETWORK_FAILURE':
+        return IOError(str(wrapper))
+
+
+    ret = KjException(wrapper=wrapper)
+    return ret
+
+cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb):
+    try:
+        return (exc_tb.tb_frame.f_code.co_filename.encode(), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode())
+    except:
+        return (b'', 0, b"Couldn't determine python exception")
+
+
+ctypedef fused _DynamicStructReaderOrBuilder:
+    _DynamicStructReader
+    _DynamicStructBuilder
+
+ctypedef fused _DynamicSetterClasses:
+    C_DynamicList.Builder
+    C_DynamicStruct.Builder
+    Request
+
+ctypedef fused _PromiseTypes:
+    Promise
+    _RemotePromise
+    _VoidPromise
+    PromiseFulfillerPair
+
+cdef extern from "Python.h":
+    cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
+    cdef int PyObject_AsWriteBuffer(object, void** b, Py_ssize_t* c)
+
+Type = _make_enum('DynamicValue.Type', 
                     UNKNOWN = capnp.TYPE_UNKNOWN,
                     VOID = capnp.TYPE_VOID,
                     BOOL = capnp.TYPE_BOOL,
@@ -62,33 +244,37 @@ _Type = _make_enum('DynamicValue.Type',
                     LIST = capnp.TYPE_LIST,
                     ENUM = capnp.TYPE_ENUM,
                     STRUCT = capnp.TYPE_STRUCT,
-                    INTERFACE = capnp.TYPE_INTERFACE,
+                    CAPABILITY = capnp.TYPE_CAPABILITY,
                     OBJECT = capnp.TYPE_OBJECT)
 
 # Templated classes are weird in cython. I couldn't put it in a pxd header for some reason
 cdef extern from "capnp/list.h" namespace " ::capnp":
     cdef cppclass List[T]:
         cppclass Reader:
-            T operator[](uint) except +ValueError
+            T operator[](uint) except +reraise_kj_exception
             uint size()
         cppclass Builder:
-            T operator[](uint) except +ValueError
+            T operator[](uint) except +reraise_kj_exception
             uint size()
 
 cdef extern from "<utility>" namespace "std":
+    C_DynamicStruct.Pipeline moveStructPipeline"std::move"(C_DynamicStruct.Pipeline)
     C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
+    Request moveRequest"std::move"(Request)
+    Response moveResponse"std::move"(Response)
+    PyPromise movePromise"std::move"(PyPromise)
+    VoidPromise moveVoidPromise"std::move"(VoidPromise)
+    RemotePromise moveRemotePromise"std::move"(RemotePromise)
+    CallContext moveCallContext"std::move"(CallContext)
+    Own[AsyncIoStream] moveOwnAsyncIOStream"std::move"(Own[AsyncIoStream])
+    capnp.Exception moveException"std::move"(capnp.Exception)
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
     StringTree printStructBuilder" ::capnp::prettyPrint"(C_DynamicStruct.Builder)
+    StringTree printRequest" ::capnp::prettyPrint"(Request &)
     StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader)
     StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder)
-
-cdef extern from "<kj/string.h>" namespace " ::kj":
-    String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
-    String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
-    String strListReader" ::kj::str"(C_DynamicList.Reader)
-    String strListBuilder" ::kj::str"(C_DynamicList.Builder)
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -98,7 +284,7 @@ cdef class _NodeReader:
 
     property displayName:
         def __get__(self):
-            return self.thisptr.getDisplayName().cStr()
+            return <char*>self.thisptr.getDisplayName().cStr()
     property scopeId:
         def __get__(self):
             return self.thisptr.getScopeId()
@@ -114,6 +300,9 @@ cdef class _NodeReader:
     property isConst:
         def __get__(self):
             return self.thisptr.isConst()
+    property isInterface:
+        def __get__(self):
+            return self.thisptr.isInterface()
 
 cdef class _NestedNodeReader:
     cdef C_Node.NestedNode.Reader thisptr
@@ -123,7 +312,7 @@ cdef class _NestedNodeReader:
 
     property name:
         def __get__(self):
-            return self.thisptr.getName().cStr()
+            return <char*>self.thisptr.getName().cStr()
     property id:
         def __get__(self):
             return self.thisptr.getId()
@@ -162,14 +351,14 @@ cdef class _DynamicListReader:
         return self.thisptr.size()
 
     def __str__(self):
-        return printListReader(self.thisptr).flatten().cStr()
+        return <char*>printListReader(self.thisptr).flatten().cStr()
 
     cpdef _short_str(self):
         return strListReader(self.thisptr).cStr()
 
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list reader %s>' % self._short_str()
+        return '<capnp list reader %s>' % <char*>strListReader(self.thisptr).cStr()
 
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
@@ -271,8 +460,6 @@ cdef class _DynamicListBuilder:
         return self._get(index)
 
     def __setitem__(self, index, value):
-        # TODO: share code with _DynamicStructBuilder.__setattr__
-        
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
@@ -310,14 +497,14 @@ cdef class _DynamicListBuilder:
         return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
     def __str__(self):
-        return printListBuilder(self.thisptr).flatten().cStr()
+        return <char*>printListBuilder(self.thisptr).flatten().cStr()
 
     cpdef _short_str(self):
         return strListBuilder(self.thisptr).cStr()
 
     def __repr__(self):
         # TODO:  Print the list type.
-        return '<capnp list builder %s>' % self._short_str()
+        return '<capnp list builder %s>' % <char*>strListBuilder(self.thisptr).cStr()
 
 cdef class _List_NestedNode_Reader:
     cdef List[C_Node.NestedNode].Reader thisptr
@@ -335,6 +522,17 @@ cdef class _List_NestedNode_Reader:
     def __len__(self):
         return self.thisptr.size()
 
+# cdef to_python_pipeline(C_DynamicValue.Pipeline self, object parent):
+#     cdef int type = self.getType()
+#     if type == capnp.TYPE_CAPABILITY:
+#         return _DynamicCapabilityClient()._init(self.asCapability(), parent)
+#     # elif type == capnp.TYPE_STRUCT:
+#     #     return _DynamicStructReader()._init(self.asStruct(), parent)
+#     elif type == capnp.TYPE_UNKNOWN:
+#         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+#     else:
+#         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+
 cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     cdef int type = self.getType()
     if type == capnp.TYPE_BOOL:
@@ -346,7 +544,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_FLOAT:
         return self.asDouble()
     elif type == capnp.TYPE_TEXT:
-        return self.asText()[:]
+        return (<char*>self.asText().cStr())[:]
     elif type == capnp.TYPE_DATA:
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
@@ -355,11 +553,13 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_OBJECT:
         return _DynamicObjectReader()._init(self.asObject(), parent)
+    elif type == capnp.TYPE_CAPABILITY:
+        return _DynamicCapabilityClient()._init(self.asCapability(), parent)
     elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
@@ -376,7 +576,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_FLOAT:
         return self.asDouble()
     elif type == capnp.TYPE_TEXT:
-        return self.asText()[:]
+        return (<char*>self.asText().cStr())[:]
     elif type == capnp.TYPE_DATA:
         temp = self.asData()
         return (<char*>temp.begin())[:temp.size()]
@@ -385,11 +585,13 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructBuilder()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_OBJECT:
-        raise ValueError("Cannot convert type to Python. Type is 'Object', but is being used improperly. You can only get 'Object' types from a struct")
+        return _DynamicObjectBuilder()._init(self.asObject(), parent)
+    elif type == capnp.TYPE_CAPABILITY:
+        return _DynamicCapabilityClient()._init(self.asCapability(), parent)
     elif type == capnp.TYPE_UNKNOWN:
         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
@@ -400,6 +602,12 @@ cdef C_DynamicValue.Reader _extract_dynamic_struct_builder(_DynamicStructBuilder
 
 cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader value):
     return C_DynamicValue.Reader(value.thisptr)
+
+cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient value):
+    return C_DynamicValue.Reader(value.thisptr)
+
+cdef C_DynamicValue.Reader _extract_dynamic_server(_DynamicCapabilityServer value):
+    return new_server(value.schema.thisptr, <PyObject *>value.server)
 
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -417,7 +625,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif value_type is bool:
         temp = C_DynamicValue.Reader(<cbool>value)
         thisptr.set(field, temp)
-    elif value_type is str:
+    elif isinstance(value, basestring):
         temp = C_DynamicValue.Reader(<char*>value)
         thisptr.set(field, temp)
     elif value_type is list:
@@ -431,50 +639,94 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
         thisptr.set(field, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicCapabilityClient:
+        thisptr.set(field, _extract_dynamic_client(value))
+    elif value_type is _DynamicCapabilityServer:
+        thisptr.set(field, _extract_dynamic_server(value))
     else:
         raise ValueError("Non primitive type")
 
-cdef _to_dict(msg):
+cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
+    cdef C_DynamicValue.Reader temp
+    value_type = type(value)
+
+    if value_type is int or value_type is long:
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        thisptr.set(field, temp)
+    elif value_type is float:
+        temp = C_DynamicValue.Reader(<double>value)
+        thisptr.set(field, temp)
+    elif value_type is bool:
+        temp = C_DynamicValue.Reader(<cbool>value)
+        thisptr.set(field, temp)
+    elif isinstance(value, basestring):
+        temp = C_DynamicValue.Reader(<char*>value)
+        thisptr.set(field, temp)
+    elif value_type is list:
+        builder = to_python_builder(thisptr.init(field, len(value)), parent)
+        for (i, v) in enumerate(value):
+            builder[i] = v
+    elif value is None:
+        temp = C_DynamicValue.Reader(VOID)
+        thisptr.set(field, temp)
+    elif value_type is _DynamicStructBuilder:
+        thisptr.set(field, _extract_dynamic_struct_builder(value))
+    elif value_type is _DynamicStructReader:
+        thisptr.set(field, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicCapabilityClient:
+        thisptr.set(field, _extract_dynamic_client(value))
+    else:
+        raise ValueError("Non primitive type")
+
+cdef _to_dict(msg, bint verbose):
     msg_type = type(msg)
     if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
-        return [_to_dict(x) for x in msg]
+        return [_to_dict(x, verbose) for x in msg]
 
     if msg_type is _DynamicStructBuilder or msg_type is _DynamicStructReader:
         ret = {}
         try:
             which = msg.which()
-            ret['which'] = which
-            ret[which] = _to_dict(getattr(msg, which))
+            ret[which] = _to_dict(getattr(msg, which), verbose)
         except ValueError:
             pass
 
         for field in msg.schema.non_union_fields:
-            if msg._has(field):
-                ret[field] = _to_dict(getattr(msg, field))
+            if verbose or msg._has(field):
+                ret[field] = _to_dict(getattr(msg, field), verbose)
 
         return ret
 
     return msg
 
-import collections as _collections
 cdef _from_dict_helper(msg, field, d):
     d_type = type(d)
     if d_type is dict:
-        sub_msg = getattr(msg, field)
+        try:
+            sub_msg = getattr(msg, field)
+        except Exception as e:
+            str_error = str(e)
+            if 'expected isSetInUnion(field)' in str_error:
+                msg.init(field)
+                sub_msg = getattr(msg, field)
+            else:
+                raise
         for key, val in d.iteritems():
-            if key != 'which':
-                _from_dict_helper(sub_msg, key, val)
+            _from_dict_helper(sub_msg, key, val)
     elif d_type is list and len(d) > 0:
         l = msg.init(field, len(d))
         for i in range(len(d)):
             if isinstance(d[i], (dict, list)):
                 for key, val in d[i].iteritems():
-                    if key != 'which':
-                        _from_dict_helper(l[i], key, val)
+                    _from_dict_helper(l[i], key, val)
             else:
                 l[i] = d[i]
     else:
         setattr(msg, field, d)
+
 
 cdef _from_dict(msg, d):
     for key, val in d.iteritems():
@@ -493,10 +745,13 @@ cdef class _DynamicStructReader:
     """
     cdef C_DynamicStruct.Reader thisptr
     cdef public object _parent
+    cdef public bint is_root
     cdef object _obj_to_pin
-    cdef _init(self, C_DynamicStruct.Reader other, object parent):
+
+    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=False):
         self.thisptr = other
         self._parent = parent
+        self.is_root = isRoot
         return self
 
     def __getattr__(self, field):
@@ -524,7 +779,7 @@ cdef class _DynamicStructReader:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = getEnumString(self.thisptr)
+        cdef object which = <char*>getEnumString(self.thisptr)
         if len(which) == 0:
             raise ValueError("Attempted to call which on a non-union type")
 
@@ -539,16 +794,26 @@ cdef class _DynamicStructReader:
         return list(self.schema.fieldnames)
 
     def __str__(self):
-        return printStructReader(self.thisptr).flatten().cStr()
+        return <char*>printStructReader(self.thisptr).flatten().cStr()
 
     cpdef _short_str(self):
         return strStructReader(self.thisptr).cStr()
 
     def __repr__(self):
-        return '<%s reader %s>' % (self.schema.node.displayName, self._short_str())
+        return '<%s reader %s>' % (self.schema.node.displayName, <char*>strStructReader(self.thisptr).cStr())
 
-    def to_dict(self):
-        return _to_dict(self)
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
+
+    cpdef as_builder(self):
+        """A method for casting this Builder to a Reader
+
+        Don't use this method unless you know what you're doing.
+
+        :rtype: :class:`_DynamicStructReader`
+        """
+        builder = _MallocMessageBuilder()
+        return builder.set_root(self)
 
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
@@ -565,13 +830,21 @@ cdef class _DynamicStructBuilder:
     """
     cdef C_DynamicStruct.Builder thisptr
     cdef public object _parent
-    cdef bint _isRoot
+    cdef public bint is_root
+    cdef bint _is_written
     cdef _init(self, C_DynamicStruct.Builder other, object parent, bint isRoot = False):
         self.thisptr = other
         self._parent = parent
-        self._isRoot = isRoot
+        self.is_root = isRoot
+        self._is_written = False
         return self
-    
+
+    cdef _check_write(self):
+        if not self.is_root:
+            raise ValueError("You can only call write() on the message's root struct.")
+        if self._is_written:
+            _warnings.warn("This message has already been written once. Be very careful that you're not setting Text/Struct/List fields more than once, since that will cause memory leaks (both in memory and in the serialized data). You can disable this warning by setting the `_is_written` field of this object to False after every write.")
+
     def write(self, file):
         """Writes the struct's containing message to the given file object in unpacked binary format.
         
@@ -585,9 +858,9 @@ cdef class _DynamicStructBuilder:
         
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
-        if not self._isRoot:
-            raise ValueError("You can only call write() on the message's root struct.")
+        self._check_write()
         _write_message_to_fd(file.fileno(), self._parent)
+        self._is_written = True
 
     def write_packed(self, file):
         """Writes the struct's containing message to the given file object in packed binary format.
@@ -602,11 +875,11 @@ cdef class _DynamicStructBuilder:
         
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
-        if not self._isRoot:
-            raise ValueError("You can only call write() on the message's root struct.")
+        self._check_write()
         _write_packed_message_to_fd(file.fileno(), self._parent)
+        self._is_written = True
 
-    def to_bytes(_DynamicStructBuilder self):
+    cpdef to_bytes(_DynamicStructBuilder self) except +reraise_kj_exception:
         """Returns the struct's containing message as a Python bytes object in the unpacked binary format.
 
         This is inefficient; it makes several copies.
@@ -615,31 +888,19 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
-        if not self._isRoot:
-            raise ValueError("You can only call write() on the message's root struct.")
+        self._check_write()
         cdef _MessageBuilder builder = self._parent
         array = schema_cpp.messageToFlatArray(deref(builder.thisptr))
         cdef const char* ptr = <const char *>array.begin()
         cdef bytes ret = ptr[:8*array.size()]
+        self._is_written = True
         return ret
 
     cdef _get(self, field):
         cdef C_DynamicValue.Builder value = self.thisptr.get(field)
 
-        if value.getType() == capnp.TYPE_OBJECT:
-            return _DynamicObjectBuilder(field, self)
-        else:
-            return to_python_builder(value, self._parent)
-
-    cpdef _get_object(self, field, schema):
-        cdef _StructSchema s
-        if hasattr(schema, 'schema'):
-            s = schema.schema
-        else:
-            s = schema
-
-        return _DynamicStructBuilder()._init(self.thisptr.getObject(field, s.thisptr), self._parent)
-
+        return to_python_builder(value, self._parent)
+        
     def __getattr__(self, field):
         return self._get(field)
 
@@ -704,7 +965,7 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = getEnumString(self.thisptr)
+        cdef object which = <char*>getEnumString(self.thisptr)
         if len(which) == 0:
             raise ValueError("Attempted to call which on a non-union type")
 
@@ -746,7 +1007,7 @@ cdef class _DynamicStructBuilder:
         """
         cdef _DynamicStructReader reader
         reader = _DynamicStructReader()._init(self.thisptr.asReader(),
-                                            self._parent)
+                                            self._parent, self.is_root)
         reader._obj_to_pin = self
         return reader
 
@@ -759,16 +1020,63 @@ cdef class _DynamicStructBuilder:
         return list(self.schema.fieldnames)
 
     def __str__(self):
-        return printStructBuilder(self.thisptr).flatten().cStr()
+        return <char*>printStructBuilder(self.thisptr).flatten().cStr()
 
     cpdef _short_str(self):
         return strStructBuilder(self.thisptr).cStr()
 
     def __repr__(self):
-        return '<%s builder %s>' % (self.schema.node.displayName, self._short_str())
+        return '<%s builder %s>' % (self.schema.node.displayName, <char*>strStructBuilder(self.thisptr).cStr())
 
-    def to_dict(self):
-        return _to_dict(self)
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
+
+cdef class _DynamicStructPipeline:
+    """Reads Cap'n Proto structs
+
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Pipeline. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
+    """
+    cdef C_DynamicStruct.Pipeline * thisptr
+    cdef public object _parent
+
+    cdef _init(self, C_DynamicStruct.Pipeline * other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef _get(self, field) except +reraise_kj_exception:
+        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
+        if type == capnp.TYPE_CAPABILITY:
+            return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+        elif type == capnp.TYPE_STRUCT:
+            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
+        elif type == capnp.TYPE_UNKNOWN:
+            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+        else:
+            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+
+    def __getattr__(self, field):
+        return self._get(field)
+
+    property schema:
+        """A property that returns the _StructSchema object matching this reader"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
+
+    # def __str__(self):
+    #     return printStructReader(self.thisptr).flatten().cStr()
+
+    # def __repr__(self):
+    #     return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
 
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
@@ -797,6 +1105,7 @@ cdef class _DynamicOrphan:
 cdef class _DynamicObjectReader:
     cdef C_DynamicObject.Reader thisptr
     cdef public object _parent
+
     cdef _init(self, C_DynamicObject.Reader other, object parent):
         self.thisptr = other
         self._parent = parent
@@ -809,16 +1118,445 @@ cdef class _DynamicObjectReader:
         else:
             s = schema
 
-        return _DynamicStructReader()._init(self.thisptr.as(s.thisptr), self._parent)
+        return _DynamicStructReader()._init(self.thisptr.getAs(s.thisptr), self._parent)
 
 cdef class _DynamicObjectBuilder:
-    cdef public object _field, _parent_struct
-    def __init__(self, field, parent_struct):
-        self._field = field
-        self._parent_struct = parent_struct
+    cdef C_DynamicObject.Builder * thisptr
+    cdef public object _parent
+
+    cdef _init(self, C_DynamicObject.Builder other, object parent):
+        self.thisptr = new C_DynamicObject.Builder(other)
+        self._parent = parent
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
 
     cpdef as_struct(self, schema):
-        return self._parent_struct._get_object(self._field, schema)
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicStructBuilder()._init(self.thisptr.getAs(s.thisptr), self._parent)
+
+cdef class _CallContext:
+    cdef CallContext * thisptr
+
+    cdef _init(self, CallContext other):
+        self.thisptr = new CallContext(moveCallContext(other))
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    property params:
+        def __get__(self):
+           return _DynamicStructReader()._init(self.thisptr.getParams(), self)
+
+    cpdef _get_results(self, uint firstSegmentWordSize=0):
+        return _DynamicStructBuilder()._init(self.thisptr.getResults(firstSegmentWordSize), self)
+
+    property results:
+        def __get__(self):
+           return self._get_results()
+
+cdef class Promise:
+    cdef PyPromise * thisptr
+    cdef public bint is_consumed
+
+    def __init__(self):
+        self.is_consumed = True
+
+    cdef _init(self, PyPromise other):
+        self.is_consumed = False
+        self.thisptr = new PyPromise(movePromise(other))
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef wait(self) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = <object>self.thisptr.wait()
+        self.is_consumed = True
+
+        return ret
+
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        Py_INCREF(func)
+        Py_INCREF(error_func)
+
+        return Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+cdef class _VoidPromise:
+    cdef VoidPromise * thisptr
+    cdef public bint is_consumed
+
+    def __init__(self):
+        self.is_consumed = True
+
+    cdef _init(self, VoidPromise other):
+        self.is_consumed = False
+        self.thisptr = new VoidPromise(moveVoidPromise(other))
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef wait(self) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        self.thisptr.wait()
+        self.is_consumed = True
+
+
+    # cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+    #     if self.is_consumed:
+    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+    #     Py_INCREF(func)
+    #     Py_INCREF(error_func)
+
+    #     return Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+cdef class _RemotePromise:
+    cdef RemotePromise * thisptr
+    cdef public bint is_consumed
+    cdef public object _parent
+
+    def __init__(self):
+        self.is_consumed = True
+
+    cdef _init(self, RemotePromise other, parent):
+        self.is_consumed = False
+        self.thisptr = new RemotePromise(moveRemotePromise(other))
+        self._parent = parent
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef wait(self) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = _DynamicStructReader()._init(self.thisptr.wait(), self._parent)
+        self.is_consumed = True
+
+        return ret
+
+    cpdef as_pypromise(self) except +reraise_kj_exception:
+        Promise()._init(convert_to_pypromise(deref(self.thisptr)))
+
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        Py_INCREF(func)
+        Py_INCREF(error_func)
+
+        return _VoidPromise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+    cpdef _get(self, field) except +reraise_kj_exception:
+        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
+        if type == capnp.TYPE_CAPABILITY:
+            return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+        elif type == capnp.TYPE_STRUCT:
+            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
+        elif type == capnp.TYPE_UNKNOWN:
+            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+        else:
+            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+
+    def __getattr__(self, field):
+        return self._get(field)
+
+    property schema:
+        """A property that returns the _StructSchema object matching this reader"""
+        def __get__(self):
+            return _StructSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.fieldnames)
+
+    # def __str__(self):
+    #     return printStructReader(self.thisptr).flatten().cStr()
+
+    # def __repr__(self):
+    #     return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
+
+    def to_dict(self, verbose=False):
+        return _to_dict(self, verbose)
+
+cdef class EventLoop:
+    cdef UnixEventLoop thisptr
+    cpdef evalLater(self, func):
+        Py_INCREF(func)
+        return Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
+
+    cpdef wait(self, _PromiseTypes promise) except +reraise_kj_exception:
+        if promise.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = None
+        if _PromiseTypes is _RemotePromise:
+            ret = _Response()._init_child(self.thisptr.wait_remote(moveRemotePromise(deref(promise.thisptr))), promise._parent)
+        elif _PromiseTypes is _VoidPromise:
+            self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr)))
+        elif _PromiseTypes is PromiseFulfillerPair:
+            self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr).promise))
+        elif _PromiseTypes is Promise:
+            ret = self.thisptr.wait(movePromise(deref(promise.thisptr)))
+        else:
+            raise ValueError("Not a valid promise type")
+
+        promise.is_consumed = True
+
+        return ret
+
+    # cpdef there(self, Promise promise, object func, object error_func=None):
+    #     if promise.is_consumed:
+    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+    #     Py_INCREF(func)
+    #     Py_INCREF(error_func)
+    #     return Promise()._init(capnp.there(self.thisptr, deref(promise.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+cdef class _Request(_DynamicStructBuilder):
+    cdef Request * thisptr_child
+
+    cdef _init_child(self, Request other, parent):
+        self.thisptr_child = new Request(moveRequest(other))
+        self._init(<C_DynamicStruct.Builder>deref(self.thisptr_child), parent)
+        return self
+
+    cpdef send(self):
+        return _RemotePromise()._init(self.thisptr_child.send(), self._parent)
+
+cdef class _Response(_DynamicStructReader):
+    cdef Response * thisptr_child
+
+    cdef _init_child(self, Response other, parent):
+        self.thisptr_child = new Response(moveResponse(other))
+        self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
+        return self
+
+    cdef _init_childptr(self, Response * other, parent):
+        self.thisptr_child = other
+        self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
+        return self
+
+cdef class _DynamicCapabilityServer:
+    cdef public _InterfaceSchema schema
+    cdef public object server
+
+    def __init__(self, schema, server):
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        self.schema = s
+        self.server = server
+
+cdef class _DynamicCapabilityClient:
+    cdef C_DynamicCapability.Client thisptr
+    cdef public object _event_loop, _server, _parent
+
+    cdef _init(self, C_DynamicCapability.Client other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+    cdef _init_vals(self, schema, server, event_loop):
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        cdef EventLoop loop = event_loop
+        self._event_loop = event_loop
+        self.thisptr = new_client(s.thisptr, <PyObject *>server, loop.thisptr)
+        self._server = server
+        return self
+
+    cpdef _send_helper(self, name, firstSegmentWordSize, kwargs) except +reraise_kj_exception:
+        cdef Request * request = new Request(self.thisptr.newRequest(name, firstSegmentWordSize))
+
+        for key, val in kwargs.items():
+            _setDynamicFieldPtr(request, key, val, self)
+
+        return _RemotePromise()._init(request.send(), self)
+
+    cpdef _request_helper(self, name, firstSegmentWordSize=0) except +reraise_kj_exception:
+        return _Request()._init_child(self.thisptr.newRequest(name, firstSegmentWordSize), self)
+
+    def _request(self, name, firstSegmentWordSize=0):
+        return self._request_helper(name, firstSegmentWordSize)
+
+    def _send(self, name, *args, firstSegmentWordSize=0, **kwargs):
+        return self._send_helper(name, firstSegmentWordSize, kwargs)
+
+    def __getattr__(self, name):
+        if name.endswith('_request'):
+            short_name = name[:-8]
+            return _partial(self._request, short_name)
+        return _partial(self._send, name)
+
+    cpdef upcast(self, schema) except +reraise_kj_exception:
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicCapabilityClient()._init(self.thisptr.upcast(s.thisptr), self._parent)
+
+    cpdef cast_as(self, schema) except +reraise_kj_exception:
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+        return _DynamicCapabilityClient()._init(self.thisptr.castAs(s.thisptr), self._parent)
+
+    property schema:
+        """A property that returns the _InterfaceSchema object matching this client"""
+        def __get__(self):
+            return _InterfaceSchema()._init(self.thisptr.getSchema())
+
+    def __dir__(self):
+        return list(self.schema.method_names)
+
+cdef class _CapabilityClient:
+    cdef C_Capability.Client * thisptr
+    cdef public object _parent
+
+    cdef _init(self, C_Capability.Client other, object parent):
+        self.thisptr = new C_Capability.Client(other)
+        self._parent = parent
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef cast_as(self, schema):
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+        return _DynamicCapabilityClient()._init(self.thisptr.castAs(s.thisptr), self._parent)
+
+cdef class Restorer:
+    cdef PyRestorer * thisptr
+    cdef C_StructSchema schema
+
+    cdef public object restore
+
+    def __init__(self, schema, restore_func):
+        cdef _StructSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        self.schema = s.thisptr
+        self.restore = restore_func
+        self.thisptr = new PyRestorer(<PyObject*>self, self.schema)
+
+    def __dealloc__(self):
+        del self.thisptr
+
+cdef class _TwoPartyVatNetwork:
+    cdef Own[C_TwoPartyVatNetwork] thisptr
+
+    cdef _init(self, EventLoop loop, AsyncIoStream & stream, Side side):
+        self.thisptr = makeTwoPartyVatNetwork(loop.thisptr, stream, side)
+        return self
+
+cdef class RpcClient:
+    cdef RpcSystem * thisptr
+    cdef public _TwoPartyVatNetwork network
+    cdef public object loop, restorer, stream
+
+    def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer=None):
+        self.loop = loop
+        self.stream = stream
+        self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.CLIENT)
+        if restorer is None:
+            self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr), loop.thisptr))
+        else:
+            self.restorer = restorer
+            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), loop.thisptr, deref(restorer.thisptr)))
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    cpdef restore(self, objectId) except +reraise_kj_exception:
+        cdef _MessageBuilder builder 
+        cdef _MessageReader reader
+
+        if not hasattr(objectId, 'is_root'):
+            raise ValueError("objectId was not a valid Cap'n Proto struct")
+        if not objectId.is_root:
+            raise ValueError("objectId must be the root of a Cap'n Proto message, ie. addressbook_capnp.Person.new_message()")
+
+        try:
+            builder = objectId._parent
+        except:
+            reader = objectId._parent
+
+        if builder is not None:
+            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
+        elif reader is not None:
+            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
+        else:
+            raise ValueError("objectId unexpectedly was not convertible to the proper type")
+
+cdef class RpcServer:
+    cdef RpcSystem * thisptr
+    cdef public _TwoPartyVatNetwork network
+    cdef public object loop, restorer, stream
+
+    def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer):
+        self.loop = loop
+        self.stream = stream
+        self.restorer = restorer
+        self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.SERVER)
+        self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(restorer.thisptr), loop.thisptr))
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    # TODO: add restore functionality here?
+
+cdef class FdAsyncIoStream:
+    cdef Own[AsyncIoStream] thisptr
+
+    def __init__(self, int fd):
+        self.thisptr = AsyncIoStream_wrapFd(fd)
+
+cdef class PromiseFulfillerPair:
+    cdef Own[C_PromiseFulfillerPair] thisptr
+    cdef public bint is_consumed
+
+    def __init__(self, EventLoop loop=None):
+        if loop is None:
+            self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller())
+        else:
+            self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller(loop.thisptr))
+        self.is_consumed = False
 
 cdef class _Schema:
     cdef C_Schema thisptr
@@ -831,6 +1569,9 @@ cdef class _Schema:
 
     cpdef as_struct(self):
         return _StructSchema()._init(self.thisptr.asStruct())
+
+    cpdef as_interface(self):
+        return _InterfaceSchema()._init(self.thisptr.asInterface())
 
     cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
@@ -855,7 +1596,7 @@ cdef class _StructSchema:
                return self.__fieldnames
             fieldlist = self.thisptr.getFields()
             nfields = fieldlist.size()
-            self.__fieldnames = tuple(fieldlist[i].getProto().getName().cStr()
+            self.__fieldnames = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__fieldnames
 
@@ -866,7 +1607,7 @@ cdef class _StructSchema:
                return self.__union_fields
             fieldlist = self.thisptr.getUnionFields()
             nfields = fieldlist.size()
-            self.__union_fields = tuple(fieldlist[i].getProto().getName().cStr()
+            self.__union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__union_fields
 
@@ -877,7 +1618,7 @@ cdef class _StructSchema:
                return self.__non_union_fields
             fieldlist = self.thisptr.getNonUnionFields()
             nfields = fieldlist.size()
-            self.__non_union_fields = tuple(fieldlist[i].getProto().getName().cStr()
+            self.__non_union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__non_union_fields
 
@@ -885,6 +1626,9 @@ cdef class _StructSchema:
         """The raw schema node"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+
+    cpdef get_dependency(self, id):
+        return _Schema()._init(self.thisptr.getDependency(id))
 
     def __richcmp__(_StructSchema self, _StructSchema other, mode):
         if mode == 2:
@@ -897,26 +1641,45 @@ cdef class _StructSchema:
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
 
-cdef class _ParsedSchema:
-    cdef C_ParsedSchema thisptr
-    cdef _init(self, C_ParsedSchema other):
+cdef class _InterfaceSchema:
+    cdef C_InterfaceSchema thisptr
+    cdef object __method_names
+
+    cdef _init(self, C_InterfaceSchema other):
         self.thisptr = other
         return self
 
-    cpdef as_const_value(self):
-        return to_python_reader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
+    property method_names:
+        """A tuple of the function names in the interface."""
+        def __get__(self):
+            if self.__method_names is not None:
+               return self.__method_names
+            fieldlist = self.thisptr.getMethods()
+            nfields = fieldlist.size()
+            self.__method_names = tuple(<char*>fieldlist[i].getProto().getName().cStr()
+                                      for i in xrange(nfields))
+            return self.__method_names
 
-    cpdef as_struct(self):
-        return _StructSchema()._init(self.thisptr.asStruct())
+    property node:
+        """The raw schema node"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), None)
 
     cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
 
-    cpdef get_proto(self):
-        return _NodeReader().init(self.thisptr.getProto())
+    def __repr__(self):
+        return '<schema for %s>' % self.node.displayName
 
-    cpdef getNested(self, name):
-        return _ParsedSchema()._init(self.thisptr.getNested(name))
+cdef class _ParsedSchema(_Schema):
+    cdef C_ParsedSchema thisptr_child
+    cdef _init_child(self, C_ParsedSchema other):
+        self.thisptr_child = other
+        self._init(other)
+        return self
+
+    cpdef get_nested(self, name):
+        return _ParsedSchema()._init_child(self.thisptr_child.getNested(name))
 
 class _StructABCMeta(type):
     """A metaclass for the Type.Reader and Type.Builder ABCs."""
@@ -944,7 +1707,7 @@ cdef class SchemaParser:
         cdef ArrayPtr[StringPtr] importsPtr = ArrayPtr[StringPtr](importArray, <size_t>len(imports))
 
         ret = _ParsedSchema()
-        ret._init(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
+        ret._init_child(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
 
         free(importArray)
 
@@ -992,7 +1755,7 @@ cdef class SchemaParser:
                 local_module = _ModuleType(node.name)
                 module.__dict__[node.name] = local_module
 
-                schema = nodeSchema.getNested(node.name)
+                schema = nodeSchema.get_nested(node.name)
                 proto = schema.get_proto()
                 if proto.isStruct:
                     local_module.schema = schema.as_struct()
@@ -1032,6 +1795,11 @@ cdef class SchemaParser:
                             _from_dict(msg, d)
                             return msg
                         return helper
+                    def from_object():
+                        def helper(obj):
+                            builder = _MallocMessageBuilder()
+                            return builder.set_root(obj)
+                        return helper
                     class Reader(_DynamicStructReader):
                         """An abstract base class.  Readers are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta
@@ -1051,12 +1819,25 @@ cdef class SchemaParser:
                     local_module.read = read(local_module)
                     local_module.read_packed = read_packed(local_module)
                     local_module.new_message = new_message(local_module)
+                    local_module.from_object = from_object()
                     local_module.from_dict = from_dict(local_module)
                     local_module.from_bytes = make_from_bytes(local_module)
                     local_module.Reader = Reader
                     local_module.Builder = Builder
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
+                elif proto.isInterface:
+                    def new_client(bound_local_module):
+                        def helper(server, loop):
+                            return _DynamicCapabilityClient()._init_vals(bound_local_module, server, loop)
+                        return helper
+                    def new_server(bound_local_module):
+                        def helper(server):
+                            return _DynamicCapabilityServer(bound_local_module, server)
+                        return helper
+                    local_module.schema = schema.as_interface()
+                    local_module.new_client = new_client(local_module)
+                    local_module.new_server = new_server(local_module)
 
                 _load(schema, local_module)
         if not _os.path.isfile(file_name):
@@ -1151,6 +1932,7 @@ cdef class _MessageBuilder:
         if type(value) is _DynamicStructBuilder:
             value = value.as_reader();
         self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
+        return self.get_root(value.schema)
 
     cpdef new_orphan(self, schema):
         """A method for instantiating Cap'n Proto orphans
@@ -1295,7 +2077,8 @@ cdef class _FlatArrayMessageReader(_MessageReader):
         if sz % 8 != 0:
             raise ValueError("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
-        self.thisptr = new schema_cpp.FlatArrayMessageReader(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8), opts)
+
+        self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
 
 @cython.internal
 cdef class _FlatMessageBuilder(_MessageBuilder):
@@ -1307,7 +2090,7 @@ cdef class _FlatMessageBuilder(_MessageBuilder):
         if sz % 8 != 0:
             raise ValueError("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
-        self.thisptr = new schema_cpp.FlatMessageBuilder(capnp.WordArrayPtr(<capnp.word*>ptr, sz//8))
+        self.thisptr = new schema_cpp.FlatMessageBuilder(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
 
 def _write_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor
@@ -1359,11 +2142,6 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
     :rtype: void
     """
     schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
-
-from types import ModuleType as _ModuleType
-import os as _os
-import sys as _sys
-import imp as _imp
 
 _global_schema_parser = None
 
@@ -1477,7 +2255,7 @@ def add_import_hook(additional_paths=[]):
         import capnp
         capnp.add_import_hook()
 
-        import addressbook
+        import addressbook_capnp
         # equivalent to capnp.load('addressbook.capnp', 'addressbook', sys.path), except it will search for 'addressbook.capnp' in all directories of sys.path
 
     :type additional_paths: list

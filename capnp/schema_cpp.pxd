@@ -5,7 +5,6 @@
 
 from libc.stdint cimport *
 from capnp_cpp cimport DynamicOrphan
-cimport capnp_cpp
 ctypedef unsigned int uint
 ctypedef uint8_t UInt8
 ctypedef uint16_t UInt16
@@ -689,28 +688,49 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         MallocMessageBuilder(int)
 
     cdef cppclass FlatMessageBuilder(MessageBuilder):
-        FlatMessageBuilder(capnp_cpp.WordArrayPtr array)
-        FlatMessageBuilder(capnp_cpp.WordArrayPtr array, ReaderOptions)
+        FlatMessageBuilder(WordArrayPtr array)
+        FlatMessageBuilder(WordArrayPtr array, ReaderOptions)
 
     enum Void:
         VOID
 
+cdef extern from "capnp/common.h" namespace " ::capnp":
+    cdef cppclass word:
+        pass
+
+cdef extern from "kj/common.h" namespace " ::kj":
+    # Cython can't handle ArrayPtr[word] as a function argument
+    cdef cppclass WordArrayPtr " ::kj::ArrayPtr< ::capnp::word>":
+        WordArrayPtr()
+        WordArrayPtr(word *, size_t size)
+        size_t size()
+        word& operator[](size_t index)
+
+cdef extern from "kj/array.h" namespace " ::kj":
+    # Cython can't handle Array[word] as a function argument
+    cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
+        word* begin()
+        size_t size()
+
+cdef extern from "capabilityHelper.h":
+    void reraise_kj_exception()
+    
 cdef extern from "capnp/serialize.h" namespace " ::capnp":
     cdef cppclass StreamFdMessageReader(MessageReader):
-        StreamFdMessageReader(int) except +
-        StreamFdMessageReader(int, ReaderOptions) except +
+        StreamFdMessageReader(int) except +reraise_kj_exception
+        StreamFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
     cdef cppclass FlatArrayMessageReader(MessageReader):
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array) except +
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array, ReaderOptions) except +
+        FlatArrayMessageReader(WordArrayPtr array) except +reraise_kj_exception
+        FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +reraise_kj_exception
 
-    void writeMessageToFd(int, MessageBuilder&) except +
+    void writeMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
 
-    capnp_cpp.WordArray messageToFlatArray(MessageBuilder &)
+    WordArray messageToFlatArray(MessageBuilder &)
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
     cdef cppclass PackedFdMessageReader(MessageReader):
-        PackedFdMessageReader(int) except +
-        PackedFdMessageReader(int, ReaderOptions) except +
+        PackedFdMessageReader(int) except +reraise_kj_exception
+        PackedFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
-    void writePackedMessageToFd(int, MessageBuilder&) except +
+    void writePackedMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
