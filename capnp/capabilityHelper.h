@@ -61,6 +61,7 @@ void check_py_error() {
     }
 }
 
+// TODO: need to decref error_func as well on successful run
 PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
     PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
     Py_DECREF(func);

@@ -8,8 +8,8 @@ class Server:
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, context):
-        context.results.x = str(context.params.i * 5 + self.val)
+    def foo(self, i, **kwargs):
+        return str(i * 5 + self.val)
 
 def example_simple_rpc():
     def _restore(ref_id):
@@ -17,10 +17,9 @@ def example_simple_rpc():
 
     loop = capnp.EventLoop()
     
-    import os
-    read, write = os.pipe()
-    read_stream = capnp.FdAsyncIoStream(write)
-    write_stream = capnp.FdAsyncIoStream(read)
+    read, write = socket.socketpair(socket.AF_UNIX)
+    read_stream = capnp.FdAsyncIoStream(read.fileno())
+    write_stream = capnp.FdAsyncIoStream(write.fileno())
 
     restorer = capnp.Restorer(capability.TestSturdyRefObjectId, _restore)
     server = capnp.RpcServer(loop, write_stream, restorer)

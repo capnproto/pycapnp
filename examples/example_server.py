@@ -8,8 +8,8 @@ class Server:
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, context):
-        context.results.x = str(context.params.i * 5 + self.val)
+    def foo(self, i, **kwargs):
+        return str(i * 5 + self.val)
 
 def restore(ref_id):
     return test_capnp.TestInterface.new_server(Server(100))
@@ -29,8 +29,7 @@ def example_server(host='localhost', port=49999):
             restorer = capnp.Restorer(test_capnp.TestSturdyRefObjectId, restore)
             server = capnp.RpcServer(loop, stream, restorer)
 
-            waiter = capnp.PromiseFulfillerPair()
-            loop.wait(waiter)
+            server.run_forever()
         except KeyboardInterrupt:
             break
         except:

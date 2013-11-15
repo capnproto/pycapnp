@@ -1581,6 +1581,10 @@ cdef class RpcServer:
     def __dealloc__(self):
         del self.thisptr
 
+    def run_forever(self):
+        p = PromiseFulfillerPair()
+        self.loop.wait(p)
+
     # TODO: add restore functionality here?
 
 cdef class FdAsyncIoStream:
