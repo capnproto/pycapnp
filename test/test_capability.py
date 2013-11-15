@@ -26,7 +26,7 @@ class PipelineServer:
 def test_client(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestInterface.new_client(Server(), loop)
+    client = capability.TestInterface._new_client(Server(), loop)
     
     req = client._request('foo')
     req.i = 5
@@ -60,7 +60,7 @@ def test_client(capability):
 def test_simple_client(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestInterface.new_client(Server(), loop)
+    client = capability.TestInterface._new_client(Server(), loop)
     
     remote = client._send('foo', i=5)
     response = loop.wait(remote)
@@ -69,6 +69,11 @@ def test_simple_client(capability):
 
     
     remote = client.foo(i=5)
+    response = loop.wait(remote)
+
+    assert response.x == '26'
+
+    remote = client.foo(5)
     response = loop.wait(remote)
 
     assert response.x == '26'
@@ -85,8 +90,8 @@ def test_simple_client(capability):
 def test_pipeline(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestPipeline.new_client(PipelineServer(), loop)
-    foo_client = capability.TestInterface.new_client(Server(), loop)
+    client = capability.TestPipeline._new_client(PipelineServer(), loop)
+    foo_client = capability.TestInterface._new_client(Server(), loop)
 
     remote = client.getCap(n=5, inCap=foo_client)
 
@@ -110,7 +115,7 @@ class BadServer:
 def test_exception_client(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestInterface.new_client(BadServer(), loop)
+    client = capability.TestInterface._new_client(BadServer(), loop)
     
     remote = client._send('foo', i=5)
     with pytest.raises(capnp.KjException):
@@ -129,8 +134,8 @@ class BadPipelineServer:
 def test_exception_chain(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestPipeline.new_client(BadPipelineServer(), loop)
-    foo_client = capability.TestInterface.new_client(BadServer(), loop)
+    client = capability.TestPipeline._new_client(BadPipelineServer(), loop)
+    foo_client = capability.TestInterface._new_client(BadServer(), loop)
 
     remote = client.getCap(n=5, inCap=foo_client)
 
@@ -142,8 +147,8 @@ def test_exception_chain(capability):
 def test_pipeline_exception(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestPipeline.new_client(BadPipelineServer(), loop)
-    foo_client = capability.TestInterface.new_client(BadServer(), loop)
+    client = capability.TestPipeline._new_client(BadPipelineServer(), loop)
+    foo_client = capability.TestInterface._new_client(BadServer(), loop)
 
     remote = client.getCap(n=5, inCap=foo_client)
 
@@ -159,7 +164,7 @@ def test_pipeline_exception(capability):
 def test_casting(capability):
     loop = capnp.EventLoop()
 
-    client = capability.TestExtends.new_client(Server(), loop)
+    client = capability.TestExtends._new_client(Server(), loop)
     client2 = client.upcast(capability.TestInterface)
     client3 = client2.cast_as(capability.TestInterface)
 

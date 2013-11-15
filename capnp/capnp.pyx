@@ -98,13 +98,13 @@ def _make_enum(enum_name, *sequential, **named):
     enums['reverse_mapping'] = reverse
     return type(enum_name, (), enums)
 
-_Nature = _make_enum('Nature', 
+_Nature = _make_enum('_Nature', 
                     PRECONDITION = 0,
                     LOCAL_BUG = 1,
                     OS_ERROR = 2,
                     NETWORK_FAILURE = 3,
                     OTHER = 4)
-_Durability = _make_enum('Durability', 
+_Durability = _make_enum('_Durability', 
                     PERMANENT = 0,
                     TEMPORARY = 1,
                     OVERLOADED = 2)
@@ -142,8 +142,8 @@ cdef class _KjExceptionWrapper:
 
 # Extension classes can't inherit from Exception, so we're going to proxy wrap kj::Exception, and forward all calls to it from this Python class
 class KjException(Exception):
-    Nature = _Nature
-    Durability = _Durability
+    Nature = _make_enum('Nature', **{x : x for x in _Nature.reverse_mapping.values()})
+    Durability = _make_enum('Durability', **{x : x for x in _Durability.reverse_mapping.values()})
 
     def __init__(self, message=None, nature=None, durability=None, wrapper=None):
         if wrapper is not None:
@@ -224,7 +224,7 @@ ctypedef fused _DynamicSetterClasses:
     Request
 
 ctypedef fused _PromiseTypes:
-    Promise
+    _Promise
     _RemotePromise
     _VoidPromise
     PromiseFulfillerPair
@@ -232,21 +232,6 @@ ctypedef fused _PromiseTypes:
 cdef extern from "Python.h":
     cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
     cdef int PyObject_AsWriteBuffer(object, void** b, Py_ssize_t* c)
-
-Type = _make_enum('DynamicValue.Type', 
-                    UNKNOWN = capnp.TYPE_UNKNOWN,
-                    VOID = capnp.TYPE_VOID,
-                    BOOL = capnp.TYPE_BOOL,
-                    INT = capnp.TYPE_INT,
-                    UINT = capnp.TYPE_UINT,
-                    FLOAT = capnp.TYPE_FLOAT,
-                    TEXT = capnp.TYPE_TEXT,
-                    DATA = capnp.TYPE_DATA,
-                    LIST = capnp.TYPE_LIST,
-                    ENUM = capnp.TYPE_ENUM,
-                    STRUCT = capnp.TYPE_STRUCT,
-                    CAPABILITY = capnp.TYPE_CAPABILITY,
-                    OBJECT = capnp.TYPE_OBJECT)
 
 # Templated classes are weird in cython. I couldn't put it in a pxd header for some reason
 cdef extern from "capnp/list.h" namespace " ::capnp":
@@ -800,9 +785,9 @@ cdef class _DynamicStructReader:
     cpdef as_builder(self):
         """A method for casting this Builder to a Reader
 
-        Don't use this method unless you know what you're doing.
+        This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
 
-        :rtype: :class:`_DynamicStructReader`
+        :rtype: :class:`_DynamicStructBuilder`
         """
         builder = _MallocMessageBuilder()
         return builder.set_root(self)
@@ -998,7 +983,7 @@ cdef class _DynamicStructBuilder:
     cpdef as_reader(self):
         """A method for casting this Builder to a Reader
 
-        Don't use this method unless you know what you're doing.
+        This is a non-copying operation with respect to the message's buffer. This means changes to the fields in the original struct will carry over to the new reader.
 
         :rtype: :class:`_DynamicStructReader`
         """
@@ -1007,6 +992,16 @@ cdef class _DynamicStructBuilder:
                                             self._parent, self.is_root)
         reader._obj_to_pin = self
         return reader
+
+    cpdef copy(self):
+        """A method for copying this Builder
+
+        This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
+
+        :rtype: :class:`_DynamicStructBuilder`
+        """
+        builder = _MallocMessageBuilder()
+        return builder.set_root(self)
 
     property schema:
         """A property that returns the _StructSchema object matching this writer"""
@@ -1156,7 +1151,7 @@ cdef class _CallContext:
         def __get__(self):
            return self._get_results()
 
-cdef class Promise:
+cdef class _Promise:
     cdef PyPromise * thisptr
     cdef public bint is_consumed
 
@@ -1187,7 +1182,7 @@ cdef class Promise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return _Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
 
 cdef class _VoidPromise:
     cdef VoidPromise * thisptr
@@ -1248,7 +1243,7 @@ cdef class _RemotePromise:
         return ret
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
-        Promise()._init(convert_to_pypromise(deref(self.thisptr)))
+        _Promise()._init(convert_to_pypromise(deref(self.thisptr)))
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1294,7 +1289,7 @@ cdef class EventLoop:
     cdef UnixEventLoop thisptr
     cpdef evalLater(self, func):
         Py_INCREF(func)
-        return Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
+        return _Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
 
     cpdef wait(self, _PromiseTypes promise) except +reraise_kj_exception:
         if promise.is_consumed:
@@ -1307,7 +1302,7 @@ cdef class EventLoop:
             self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr)))
         elif _PromiseTypes is PromiseFulfillerPair:
             self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr).promise))
-        elif _PromiseTypes is Promise:
+        elif _PromiseTypes is _Promise:
             ret = self.thisptr.wait(movePromise(deref(promise.thisptr)))
         else:
             raise ValueError("Not a valid promise type")
@@ -1384,8 +1379,25 @@ cdef class _DynamicCapabilityClient:
         self._server = server
         return self
 
-    cpdef _send_helper(self, name, firstSegmentWordSize, kwargs) except +reraise_kj_exception:
+    cpdef _find_method_args(self, method_name):
+        s = self.schema
+        meth = None
+        for meth in s.node.interface.methods:
+            if meth.name == method_name:
+                break
+
+        params = s.get_dependency(meth.paramStructType).node
+        if params.scopeId != 0:
+            raise ValueError("Cannot call method `%s` with positional args, since its param struct is not implicitly defined and thus does not have a set order of arguments")
+
+        return [f.name for f in params.struct.fields]
+
+    cpdef _send_helper(self, name, firstSegmentWordSize, args, kwargs) except +reraise_kj_exception:
         cdef Request * request = new Request(self.thisptr.newRequest(name, firstSegmentWordSize))
+
+        if args is not None:
+            for arg_name, arg_val in zip(self._find_method_args(name), args):
+                _setDynamicFieldPtr(request, arg_name, arg_val, self)
 
         for key, val in kwargs.items():
             _setDynamicFieldPtr(request, key, val, self)
@@ -1399,7 +1411,7 @@ cdef class _DynamicCapabilityClient:
         return self._request_helper(name, firstSegmentWordSize)
 
     def _send(self, name, *args, firstSegmentWordSize=0, **kwargs):
-        return self._send_helper(name, firstSegmentWordSize, kwargs)
+        return self._send_helper(name, firstSegmentWordSize, args, kwargs)
 
     def __getattr__(self, name):
         if name.endswith('_request'):
@@ -1552,6 +1564,9 @@ cdef class PromiseFulfillerPair:
             self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller(loop.thisptr))
         self.is_consumed = False
 
+    cpdef fulfill(self):
+        pass #TODO
+
 cdef class _Schema:
     cdef C_Schema thisptr
     cdef _init(self, C_Schema other):
@@ -1572,6 +1587,11 @@ cdef class _Schema:
 
     cpdef get_proto(self):
         return _NodeReader().init(self.thisptr.getProto())
+
+    property node:
+        """The raw schema node"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
 cdef class _StructSchema:
     cdef C_StructSchema thisptr
@@ -1619,7 +1639,7 @@ cdef class _StructSchema:
     property node:
         """The raw schema node"""
         def __get__(self):
-            return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+            return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
     cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
@@ -1657,7 +1677,7 @@ cdef class _InterfaceSchema:
     property node:
         """The raw schema node"""
         def __get__(self):
-            return _DynamicStructReader()._init(self.thisptr.getProto(), None)
+            return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
     cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
@@ -1680,7 +1700,7 @@ class _StructABCMeta(type):
     def __instancecheck__(cls, obj):
         return isinstance(obj, cls.__base__) and obj.schema == cls._schema
 
-class StructModule(object):
+class _StructModule(object):
     def __init__(self, schema):
         self.schema = schema
 
@@ -1702,7 +1722,7 @@ class StructModule(object):
         :type buf: buffer
         :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern.
         :type bool: builder
-        :param buf: If true, return a builder object"""
+        :param buf: If true, return a builder object. This will allow you to change the contents of `buf`, so do this with care."""
         if builder:
             message = _FlatMessageBuilder(buf)
         else:
@@ -1719,8 +1739,19 @@ class StructModule(object):
         _from_dict(msg, d)
         return msg
     def from_object(self, obj):
+        _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the `as_builder` or `copy` functions instead', UserWarning)
         builder = _MallocMessageBuilder()
         return builder.set_root(obj)
+
+class _InterfaceModule(object):
+    def __init__(self, schema):
+        self.schema = schema
+
+    def _new_client(self, server, loop):
+        return _DynamicCapabilityClient()._init_vals(self.schema, server, loop)
+
+    def new_server(self, server):
+        return _DynamicCapabilityServer(self.schema, server)
 
 cdef class SchemaParser:
     """A class for loading Cap'n Proto schema files.
@@ -1793,7 +1824,7 @@ cdef class SchemaParser:
                 schema = nodeSchema.get_nested(node.name)
                 proto = schema.get_proto()
                 if proto.isStruct:
-                    local_module = StructModule(schema.as_struct())
+                    local_module = _StructModule(schema.as_struct())
                     class Reader(_DynamicStructReader):
                         """An abstract base class.  Readers are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta
@@ -1811,22 +1842,12 @@ cdef class SchemaParser:
 
                     local_module.Reader = Reader
                     local_module.Builder = Builder
-                    
+
                     module.__dict__[node.name] = local_module
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
                 elif proto.isInterface:
-                    def new_client(bound_local_module):
-                        def helper(server, loop):
-                            return _DynamicCapabilityClient()._init_vals(bound_local_module, server, loop)
-                        return helper
-                    def new_server(bound_local_module):
-                        def helper(server):
-                            return _DynamicCapabilityServer(bound_local_module, server)
-                        return helper
-                    local_module.schema = schema.as_interface()
-                    local_module.new_client = new_client(local_module)
-                    local_module.new_server = new_server(local_module)
+                    local_module = _InterfaceModule(schema.as_interface())
 
                     module.__dict__[node.name] = local_module
 

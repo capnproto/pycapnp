@@ -17,9 +17,10 @@ def example_simple_rpc():
 
     loop = capnp.EventLoop()
     
-    read, write = socket.socketpair(socket.AF_UNIX)
-    read_stream = capnp.FdAsyncIoStream(read.fileno())
-    write_stream = capnp.FdAsyncIoStream(write.fileno())
+    import os
+    read, write = os.pipe()
+    read_stream = capnp.FdAsyncIoStream(write)
+    write_stream = capnp.FdAsyncIoStream(read)
 
     restorer = capnp.Restorer(capability.TestSturdyRefObjectId, _restore)
     server = capnp.RpcServer(loop, write_stream, restorer)
