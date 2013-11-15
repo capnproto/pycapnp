@@ -26,6 +26,7 @@
 interface TestInterface {
   foo @0 (i :UInt32, j :Bool) -> (x: Text);
   bar @1 () -> ();
+  buz @2 (i: TestSturdyRefHostId) -> (x: Text);
   # baz @2 (s: TestAllTypes);
 }
 

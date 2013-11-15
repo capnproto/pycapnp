@@ -43,6 +43,7 @@ import imp as _imp
 from functools import partial as _partial
 import warnings as _warnings
 import inspect as _inspect
+from operator import attrgetter as _attrgetter
 
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef public object wrap_dynamic_struct_reader(C_DynamicStruct.Reader & reader):
@@ -55,23 +56,55 @@ cdef public void wrap_remote_call(PyObject * func, Response & r) except *:
     # TODO: decref func?
     func_obj(response)
 
+cdef _find_field_order(struct_node):
+    return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
+
 cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except *:
     server = <object>_server
     method_name = <object>_method_name
 
     context = _CallContext()._init(_context)
-    func = getattr(server, method_name)
-    ret = func(context)
+    func = getattr(server, method_name+'_context', None)
+    if func is not None:
+        ret = func(context)
+        if ret is not None:
+            if type(ret) is _VoidPromise:
+                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
+            else:
+                try:
+                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise: return = %s' % (method_name, str(ret))
+                except:
+                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise' % (method_name)
+                _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
 
-    if ret is not None:
-        if type(ret) is _VoidPromise:
-            return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
-        else:
-            try:
-                warning_msg = 'Server function (%s) returned a value that was not a VoidPromise: return = %s' % (method_name, str(ret))
-            except:
-                warning_msg = 'Server function (%s) returned a value that was not a VoidPromise' % (method_name)
-            _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
+        if ret is not None:
+            if type(ret) is _VoidPromise:
+                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
+            else:
+                try:
+                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise: return = %s' % (method_name, str(ret))
+                except:
+                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise' % (method_name)
+                _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
+    else:
+        func = getattr(server, method_name) # will raise if no function found
+        params = context.params
+        params_dict = {name : getattr(params, name) for name in params.schema.fieldnames}
+        params_dict['_results'] = context.results
+        ret = func(**params_dict)
+
+        if ret is not None:
+            if type(ret) is _VoidPromise:
+                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
+            if not isinstance(ret, tuple):
+                ret = (ret,)
+            names = _find_field_order(context.results.schema.node.struct)
+            if len(ret) > len(names):
+                raise ValueError('Too many values returned from `%s`. Expected %d and got %d' % (method_name, len(names), len(ret)))
+
+            results = context.results
+            for arg_name, arg_val in zip(names, ret):
+                setattr(results, arg_name, arg_val)
 
     return NULL
     
@@ -1388,15 +1421,18 @@ cdef class _DynamicCapabilityClient:
 
         params = s.get_dependency(meth.paramStructType).node
         if params.scopeId != 0:
-            raise ValueError("Cannot call method `%s` with positional args, since its param struct is not implicitly defined and thus does not have a set order of arguments")
+            raise ValueError("Cannot call method `%s` with positional args, since its param struct is not implicitly defined and thus does not have a set order of arguments" % method_name)
 
-        return [f.name for f in params.struct.fields]
+        return _find_field_order(params.struct)
 
     cpdef _send_helper(self, name, firstSegmentWordSize, args, kwargs) except +reraise_kj_exception:
         cdef Request * request = new Request(self.thisptr.newRequest(name, firstSegmentWordSize))
 
         if args is not None:
-            for arg_name, arg_val in zip(self._find_method_args(name), args):
+            arg_names = self._find_method_args(name)
+            if len(args) > len(arg_names):
+                raise ValueError('Too many arguments passed to `%s`. Expected %d and got %d' % (name, len(arg_names), len(args)))
+            for arg_name, arg_val in zip(arg_names, args):
                 _setDynamicFieldPtr(request, arg_name, arg_val, self)
 
         for key, val in kwargs.items():
@@ -1700,46 +1736,130 @@ class _StructABCMeta(type):
     def __instancecheck__(cls, obj):
         return isinstance(obj, cls.__base__) and obj.schema == cls._schema
 
+cdef _new_message(self, kwargs):
+    builder = _MallocMessageBuilder()
+    msg = builder.init_root(self.schema)
+    if kwargs is not None:
+        _from_dict(msg, kwargs)
+    return msg
+
 class _StructModule(object):
     def __init__(self, schema):
         self.schema = schema
 
     def read(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns a Reader for the unpacked object read from file.
+
+        :type file: file
+        :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
+        
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: :class:`_DynamicStructReader`"""
         reader = _StreamFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
     def read_multiple(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns an iterable, that when traversed will return Readers for messages.
+
+        :type file: file
+        :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
+        
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultipleMessageReader(file.fileno(), self.schema, traversal_limit_in_words, nesting_limit)
         return reader
     def read_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns a Reader for the packed object read from file.
+
+        :type file: file
+        :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
+        
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: :class:`_DynamicStructReader`"""
         reader = _PackedFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
     def read_multiple_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns an iterable, that when traversed will return Readers for messages.
+
+        :type file: file
+        :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
+        
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultiplePackedMessageReader(file.fileno(), self.schema, traversal_limit_in_words, nesting_limit)
         return reader
     def from_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
         """Returns a Reader for the unpacked object in buf.
 
         :type buf: buffer
-        :param buf: Any Python object that supports the readable buffer interface.  If buf is mutable, then changes to the object will be reflected in the returned Reader, which may be surprising.  If buf is an ordinary bytes object, then there should be no concern.
-        :type bool: builder
-        :param buf: If true, return a builder object. This will allow you to change the contents of `buf`, so do this with care."""
+        :param buf: Any Python object that supports the buffer interface.
+        
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :type builder: bool
+        :param builder: If true, return a builder object. This will allow you to change the contents of `buf`, so do this with care.
+
+        :rtype: :class:`_DynamicStructReader` or :class:`_DynamicStructBuilder`
+        """
         if builder:
             message = _FlatMessageBuilder(buf)
         else:
             message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
         return message.get_root(self.schema)
     def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns a Reader for the packed object in buf.
+
+        :type buf: buffer
+        :param buf: Any Python object that supports the readable buffer interface.
+        
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: :class:`_DynamicStructReader`
+        """
         return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(self.schema)
-    def new_message(self):
-        builder = _MallocMessageBuilder()
-        return builder.init_root(self.schema)
-    def from_dict(self, d):
-        builder = _MallocMessageBuilder()
-        msg = builder.init_root(self.schema)
-        _from_dict(msg, d)
-        return msg
+    def new_message(self, **kwargs):
+        """Returns a newly allocated builder message.
+
+        :type kwargs: dict
+        :param kwargs: A list of fields and their values to initialize in the struct
+
+        :rtype: :class:`_DynamicStructBuilder`
+        """
+        return _new_message(self, kwargs)
+    def from_dict(self, kwargs):
+        '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs'
+        _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs', UserWarning)
+        return _new_message(self, kwargs)
     def from_object(self, obj):
-        _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the `as_builder` or `copy` functions instead', UserWarning)
+        '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead'
+        _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead', UserWarning)
         builder = _MallocMessageBuilder()
         return builder.set_root(obj)
 

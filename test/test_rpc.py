@@ -13,8 +13,8 @@ class Server:
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, context):
-        context.results.x = str(context.params.i * 5 + self.val)
+    def foo(self, i, j, **kwargs):
+        return str(i * 5 + self.val)
 
 def test_simple_rpc(capability):
     def _restore(ref_id):

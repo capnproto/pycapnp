@@ -12,22 +12,22 @@ class Server:
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, i, j, **kwargs):
+    def foo_context(self, context):
         extra = 0
-        if j:
+        if context.params.j:
             extra = 1
-        return str(i * 5 + extra + self.val)
+        context.results.x = str(context.params.i * 5 + extra + self.val)
 
-    def buz(self, i, **kwargs):
-        return i.host + '_test'
+    def buz_context(self, context):
+        context.results.x = context.params.i.host + '_test'
 
 class PipelineServer:
-    def getCap(self, n, inCap, _results, **kwargs):
+    def getCap_context(self, context):
         def _then(response):
-            _results.s = response.x + '_foo'
-            _results.outBox.cap = capability().TestInterface.new_server(Server(100))
+            context.results.s = response.x + '_foo'
+            context.results.outBox.cap = capability().TestInterface.new_server(Server(100))
 
-        return inCap.foo(i=n).then(_then)
+        return context.params.inCap.foo(i=context.params.n).then(_then)
 
 def test_client(capability):
     loop = capnp.EventLoop()
@@ -140,11 +140,9 @@ class BadServer:
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, i, j, **kwargs):
-        extra = 0
-        if j:
-            extra = 1
-        return str(i * 5 + extra + self.val), 10 # returning too many args
+    def foo_context(self, context):
+        context.results.x = str(context.params.i * 5 + self.val)
+        context.results.x2 = 5 # raises exception
 
 def test_exception_client(capability):
     loop = capnp.EventLoop()
@@ -156,14 +154,14 @@ def test_exception_client(capability):
         loop.wait(remote)
 
 class BadPipelineServer:
-    def getCap(self, n, inCap, _results, **kwargs):
+    def getCap_context(self, context):
         def _then(response):
-            _results.s = response.x + '_foo'
-            _results.outBox.cap = capability().TestInterface.new_server(Server(100))
+            context.results.s = response.x + '_foo'
+            context.results.outBox.cap = capability().TestInterface.new_server(Server(100))
         def _error(error):
             raise Exception('test was a success')
 
-        return inCap.foo(i=n).then(_then, _error)
+        return context.params.inCap.foo(i=context.params.n).then(_then, _error)
 
 def test_exception_chain(capability):
     loop = capnp.EventLoop()
