@@ -16,7 +16,7 @@ def parse_args():
 
     return parser.parse_args()
 
-def run_cpp(prefix, name, mode, iters, faster, compression):
+def run_one(prefix, name, mode, iters, faster, compression):
     res_type = prefix
     reuse = 'no-reuse'
 
@@ -54,15 +54,15 @@ def run_each(name, langs, reuse, compression, iters):
     ret = []
 
     for lang_name in langs:
-        ret.append(run_cpp(lang_name, name, 'object', iters, False, 'none'))
-        ret.append(run_cpp(lang_name, name, 'bytes', iters, False, 'none'))
+        ret.append(run_one(lang_name, name, 'object', iters, False, 'none'))
+        ret.append(run_one(lang_name, name, 'bytes', iters, False, 'none'))
         if reuse:
-            ret.append(run_cpp(lang_name, name, 'object', iters, True, 'none'))
-            ret.append(run_cpp(lang_name, name, 'bytes', iters, True, 'none'))
+            ret.append(run_one(lang_name, name, 'object', iters, True, 'none'))
+            ret.append(run_one(lang_name, name, 'bytes', iters, True, 'none'))
             if compression:
-                ret.append(run_cpp(lang_name, name, 'bytes', iters, True, 'packed'))
+                ret.append(run_one(lang_name, name, 'bytes', iters, True, 'packed'))
         if compression:
-            ret.append(run_cpp(lang_name, name, 'bytes', iters, False, 'packed'))
+            ret.append(run_one(lang_name, name, 'bytes', iters, False, 'packed'))
 
     return ret
 
