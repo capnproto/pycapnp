@@ -204,6 +204,8 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
         SERVER" ::capnp::rpc::twoparty::Side::SERVER"
     cdef cppclass TwoPartyVatNetwork:
         TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side)
+        VoidPromise onDisconnect()
+        VoidPromise onDrain()
     RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&, EventLoop&)
     RpcSystem makeRpcClient(TwoPartyVatNetwork&, EventLoop&)
 
