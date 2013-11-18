@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 from subprocess import Popen, PIPE
 import sys
@@ -8,7 +9,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', "--langs", help="Add languages to test with the form: pycapnp:pycapnp", action='append', default=['pycapnp', 'pyproto', 'pyproto_cpp'])
+    parser.add_argument('-l', "--langs", help="Add languages to test, ie: -l capnproto -l protobuf", action='append', default=['pycapnp', 'pyproto', 'pyproto_cpp'])
     parser.add_argument("-r", "--reuse", help="If this flag is passed, re-use tests will be run", action='store_true',)
     parser.add_argument("-c", "--compression", help="If this flag is passed, compression tests will be run", action='store_true')
     parser.add_argument("-i", "--scale_iters", help="Scaling factor to multiply the default iters by", type=float, default=1.0)
@@ -25,15 +26,21 @@ def run_cpp(prefix, name, mode, iters, faster, compression):
     if compression != 'none':
         res_type += '_' + compression
 
-    p = Popen(["time", "-p", prefix+"-"+name, mode, reuse, compression, str(iters)], stdout=PIPE, stderr=PIPE)
+    command = ["time", "-p", prefix+"-"+name, mode, reuse, compression, str(iters)]
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
     res = p.communicate()[1]
 
     data = {}
-    res = res.strip()
 
-    for line in res.split('\n'):
-        vals = line.split()
-        data[vals[0]] = float(vals[1])
+    if p.returncode != 0:
+        sys.stderr.write(' '.join(command) + ' failed to run with errors: ' + res + '\n')
+        sys.stderr.flush()
+    else:
+        res = res.strip()
+
+        for line in res.split('\n'):
+            vals = line.split()
+            data[vals[0]] = float(vals[1])
 
     data['type'] = res_type
     data['mode'] = mode
@@ -62,7 +69,6 @@ def run_each(name, langs, reuse, compression, iters):
 def main():
     args = parse_args()
 
-    del os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
     os.environ['PATH'] += ':.'
 
     data = []
