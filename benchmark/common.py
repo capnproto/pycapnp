@@ -1,16 +1,11 @@
 from random import random
+import pyximport
+importers = pyximport.install()
+from common_fast import rand_int, rand_double, rand_bool 
+pyximport.uninstall(*importers)
 
 WORDS = ["foo ", "bar ", "baz ", "qux ", "quux ", "corge ", "grault ", "garply ", "waldo ", "fred ",
     "plugh ", "xyzzy ", "thud "]
-
-def rand_int(val):
-    return int(random() * val)
-
-def rand_double(val):
-    return random() * val
-
-def rand_bool():
-    return random() < .5
 
 def from_bytes_helper(klass):
     def helper(text):
