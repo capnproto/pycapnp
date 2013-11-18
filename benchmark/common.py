@@ -50,7 +50,7 @@ def do_benchmark(mode, *args, **kwargs):
         pass
     elif mode == "object":
         return pass_by_object(*args, **kwargs)
-    elif mode == "passByBytes":
+    elif mode == "bytes":
         return pass_by_bytes(*args, **kwargs)
     else:
         raise ValueError("Unknown mode: " + str(mode))

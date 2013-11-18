@@ -6,6 +6,7 @@ from common import do_benchmark
 from timeit import default_timer
 import os
 import sys
+import random
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -16,6 +17,7 @@ def parse_args():
     parser.add_argument("-i", "--iters", help="Specify the number of iterations manually. By default, it will be looked up in preset table", default=10, type=int)
     parser.add_argument("-r", "--reuse", help="If this flag is passed, objects will be re-used", action='store_true')
     parser.add_argument("-I", "--includes", help="Directories to add to PYTHONPATH", default='/usr/local/include')
+    parser.add_argument("-S", "--seed", help="Seed to use for random", default=0, type=int)
 
     return parser.parse_args()
 
@@ -38,6 +40,7 @@ def run_test(args):
 def main():
     args = parse_args()
     sys.path.append(args.includes)
+    random.seed(args.seed)
     run_test(args)
 
 if __name__ == '__main__':
