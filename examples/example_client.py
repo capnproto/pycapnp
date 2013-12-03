@@ -12,8 +12,7 @@ def example_client():
     cap = client.restore(test_capnp.TestSturdyRefObjectId.new_message(tag='testInterface'))
     cap = cap.cast_as(test_capnp.TestInterface)
 
-    remote = cap.foo(i=5)
-    response = remote.wait()
+    response = cap.foo(i=5).wait()
 
     assert response.x == '125'
     c.close()

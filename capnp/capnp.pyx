@@ -1173,10 +1173,11 @@ cdef class _EventLoop:
         self.thisptr = new UnixEventLoop()
 
     def __dealloc__(self):
-        del self.thisptr
+        self.remove()
 
-    def delete(self):
+    cpdef remove(self) except +reraise_kj_exception:
         del self.thisptr
+        self.thisptr = NULL
 
     # cpdef evalLater(self, func):
     #     Py_INCREF(func)
@@ -1215,7 +1216,7 @@ DEFAULT_EVENT_LOOP = _EventLoop()
 def remove_event_loop():
     global DEFAULT_EVENT_LOOP
 
-    DEFAULT_EVENT_LOOP.delete()
+    DEFAULT_EVENT_LOOP.remove()
     DEFAULT_EVENT_LOOP = None 
 
 cdef class _CallContext:

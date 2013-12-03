@@ -35,8 +35,8 @@ def test_simple_rpc(capability):
 
     assert response.x == '125'
 
-# def test_custom_event_loop(capability):
-#     capnp.remove_event_loop()
-#     capnp.DEFAULT_EVENT_LOOP = capnp._EventLoop()
+def test_custom_event_loop(capability):
+    capnp.remove_event_loop()
+    capnp.DEFAULT_EVENT_LOOP = capnp._EventLoop()
 
-#     test_simple_rpc(capability)
+    test_simple_rpc(capability)
