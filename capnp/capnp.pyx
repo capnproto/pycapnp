@@ -1163,6 +1163,61 @@ cdef class _DynamicObjectBuilder:
 
         return _DynamicStructBuilder()._init(self.thisptr.getAs(s.thisptr), self._parent)
 
+cdef class _EventLoop:
+    cdef UnixEventLoop * thisptr
+
+    def __init__(self):
+        self._init()
+
+    cdef _init(self) except +reraise_kj_exception:
+        self.thisptr = new UnixEventLoop()
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    def delete(self):
+        del self.thisptr
+
+    # cpdef evalLater(self, func):
+    #     Py_INCREF(func)
+    #     return _Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
+
+    # cpdef wait(self, _PromiseTypes promise) except +reraise_kj_exception:
+    #     if promise.is_consumed:
+    #         raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+    #     ret = None
+    #     if _PromiseTypes is _RemotePromise:
+    #         ret = _Response()._init_child(self.thisptr.wait_remote(moveRemotePromise(deref(promise.thisptr))), promise._parent)
+    #     elif _PromiseTypes is _VoidPromise:
+    #         self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr)))
+    #     elif _PromiseTypes is PromiseFulfillerPair:
+    #         self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr).promise))
+    #     elif _PromiseTypes is _Promise:
+    #         ret = self.thisptr.wait(movePromise(deref(promise.thisptr)))
+    #     else:
+    #         raise ValueError("Not a valid promise type")
+
+    #     promise.is_consumed = True
+
+    #     return ret
+
+    # cpdef there(self, Promise promise, object func, object error_func=None):
+    #     if promise.is_consumed:
+    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+    #     Py_INCREF(func)
+    #     Py_INCREF(error_func)
+    #     return Promise()._init(capnp.there(self.thisptr, deref(promise.thisptr), <PyObject *>func, <PyObject *>error_func))
+
+DEFAULT_EVENT_LOOP = _EventLoop()
+
+def remove_event_loop():
+    global DEFAULT_EVENT_LOOP
+
+    DEFAULT_EVENT_LOOP.delete()
+    DEFAULT_EVENT_LOOP = None 
+
 cdef class _CallContext:
     cdef CallContext * thisptr
 
@@ -1318,40 +1373,6 @@ cdef class _RemotePromise:
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
 
-cdef class EventLoop:
-    cdef UnixEventLoop thisptr
-    cpdef evalLater(self, func):
-        Py_INCREF(func)
-        return _Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
-
-    cpdef wait(self, _PromiseTypes promise) except +reraise_kj_exception:
-        if promise.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-
-        ret = None
-        if _PromiseTypes is _RemotePromise:
-            ret = _Response()._init_child(self.thisptr.wait_remote(moveRemotePromise(deref(promise.thisptr))), promise._parent)
-        elif _PromiseTypes is _VoidPromise:
-            self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr)))
-        elif _PromiseTypes is PromiseFulfillerPair:
-            self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr).promise))
-        elif _PromiseTypes is _Promise:
-            ret = self.thisptr.wait(movePromise(deref(promise.thisptr)))
-        else:
-            raise ValueError("Not a valid promise type")
-
-        promise.is_consumed = True
-
-        return ret
-
-    # cpdef there(self, Promise promise, object func, object error_func=None):
-    #     if promise.is_consumed:
-    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-
-    #     Py_INCREF(func)
-    #     Py_INCREF(error_func)
-    #     return Promise()._init(capnp.there(self.thisptr, deref(promise.thisptr), <PyObject *>func, <PyObject *>error_func))
-
 cdef class _Request(_DynamicStructBuilder):
     cdef Request * thisptr_child
 
@@ -1392,23 +1413,21 @@ cdef class _DynamicCapabilityServer:
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
-    cdef public object _event_loop, _server, _parent
+    cdef public object _server, _parent
 
     cdef _init(self, C_DynamicCapability.Client other, object parent):
         self.thisptr = other
         self._parent = parent
         return self
 
-    cdef _init_vals(self, schema, server, event_loop):
+    cdef _init_vals(self, schema, server):
         cdef _InterfaceSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
         else:
             s = schema
 
-        cdef EventLoop loop = event_loop
-        self._event_loop = event_loop
-        self.thisptr = new_client(s.thisptr, <PyObject *>server, loop.thisptr)
+        self.thisptr = new_client(s.thisptr, <PyObject *>server)
         self._server = server
         return self
 
@@ -1523,24 +1542,25 @@ cdef class Restorer:
 cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
 
-    cdef _init(self, EventLoop loop, AsyncIoStream & stream, Side side):
-        self.thisptr = makeTwoPartyVatNetwork(loop.thisptr, stream, side)
+    cdef _init(self, AsyncIoStream & stream, Side side):
+        self.thisptr = makeTwoPartyVatNetwork(stream, side)
         return self
 
 cdef class RpcClient:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
-    cdef public object loop, restorer, stream
+    cdef public object restorer, _stream
+    cdef public _FdAsyncIoStream stream
 
-    def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer=None):
-        self.loop = loop
-        self.stream = stream
-        self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.CLIENT)
+    def __init__(self, stream, Restorer restorer=None):
+        self._stream = stream
+        self.stream = _FdAsyncIoStream(stream.fileno())
+        self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.CLIENT)
         if restorer is None:
-            self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr), loop.thisptr))
+            self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr)))
         else:
             self.restorer = restorer
-            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), loop.thisptr, deref(restorer.thisptr)))
+            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), deref(restorer.thisptr)))
 
     def __dealloc__(self):
         del self.thisptr
@@ -1569,24 +1589,25 @@ cdef class RpcClient:
 cdef class RpcServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
-    cdef public object loop, restorer, stream
+    cdef public object restorer, _stream
+    cdef public _FdAsyncIoStream stream
 
-    def __init__(self, EventLoop loop, FdAsyncIoStream stream, Restorer restorer):
-        self.loop = loop
-        self.stream = stream
+    def __init__(self, stream, Restorer restorer):
+        self._stream = stream
+        self.stream = _FdAsyncIoStream(stream.fileno())
         self.restorer = restorer
-        self.network = _TwoPartyVatNetwork()._init(loop, deref(stream.thisptr), capnp.SERVER)
-        self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(restorer.thisptr), loop.thisptr))
+        self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.SERVER)
+        self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(restorer.thisptr)))
 
     def __dealloc__(self):
         del self.thisptr
 
     def run_forever(self):
-        self.loop.wait(_VoidPromise()._init(deref(self.network.thisptr).onDisconnect()))
+        return _VoidPromise()._init(deref(self.network.thisptr).onDisconnect())
 
     # TODO: add restore functionality here?
 
-cdef class FdAsyncIoStream:
+cdef class _FdAsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
 
     def __init__(self, int fd):
@@ -1596,11 +1617,8 @@ cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr
     cdef public bint is_consumed
 
-    def __init__(self, EventLoop loop=None):
-        if loop is None:
-            self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller())
-        else:
-            self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller(loop.thisptr))
+    def __init__(self):
+        self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller())
         self.is_consumed = False
 
     cpdef fulfill(self):
@@ -1870,8 +1888,8 @@ class _InterfaceModule(object):
     def __init__(self, schema):
         self.schema = schema
 
-    def _new_client(self, server, loop):
-        return _DynamicCapabilityClient()._init_vals(self.schema, server, loop)
+    def _new_client(self, server):
+        return _DynamicCapabilityClient()._init_vals(self.schema, server)
 
     def new_server(self, server):
         return _DynamicCapabilityServer(self.schema, server)

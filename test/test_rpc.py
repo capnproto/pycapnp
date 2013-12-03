@@ -20,21 +20,23 @@ def test_simple_rpc(capability):
     def _restore(ref_id):
         return capability.TestInterface.new_server(Server(100))
 
-    loop = capnp.EventLoop()
-
     read, write = socket.socketpair(socket.AF_UNIX)
-    read_stream = capnp.FdAsyncIoStream(read.fileno())
-    write_stream = capnp.FdAsyncIoStream(write.fileno())
 
     restorer = capnp.Restorer(capability.TestSturdyRefObjectId, _restore)
-    server = capnp.RpcServer(loop, write_stream, restorer)
-    client = capnp.RpcClient(loop, read_stream)
+    server = capnp.RpcServer(write, restorer)
+    client = capnp.RpcClient(read)
 
     ref = capability.TestSturdyRefObjectId.new_message()
     cap = client.restore(ref)
     cap = cap.cast_as(capability.TestInterface)
 
     remote = cap.foo(i=5)
-    response = loop.wait(remote)
+    response = remote.wait()
 
     assert response.x == '125'
+
+# def test_custom_event_loop(capability):
+#     capnp.remove_event_loop()
+#     capnp.DEFAULT_EVENT_LOOP = capnp._EventLoop()
+
+#     test_simple_rpc(capability)

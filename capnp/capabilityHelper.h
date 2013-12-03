@@ -76,18 +76,6 @@ void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg
     check_py_error();
 }
 
-::kj::Promise<PyObject *> evalLater(kj::EventLoop & loop, PyObject * func) {
-  return loop.evalLater([func]() { return wrapPyFunc(func, NULL); } );
-}
-
-::kj::Promise<PyObject *> there(kj::EventLoop & loop, kj::Promise<PyObject *> & promise, PyObject * func, PyObject * error_func) {
-  if(error_func == Py_None)
-    return loop.there(kj::mv(promise), [func](PyObject * arg) { return wrapPyFunc(func, arg); } );
-  else
-    return loop.there(kj::mv(promise), [func](PyObject * arg) { return wrapPyFunc(func, arg); } 
-                                     , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
-}
-
 ::kj::Promise<PyObject *> then(kj::Promise<PyObject *> & promise, PyObject * func, PyObject * error_func) {
   if(error_func == Py_None)
     return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); } );
@@ -134,8 +122,8 @@ public:
   }
 };
 
-capnp::DynamicCapability::Client new_client(capnp::InterfaceSchema & schema, PyObject * server, kj::EventLoop & loop) {
-  return capnp::DynamicCapability::Client(kj::heap<PythonInterfaceDynamicImpl>(schema, server), loop);
+capnp::DynamicCapability::Client new_client(capnp::InterfaceSchema & schema, PyObject * server) {
+  return capnp::DynamicCapability::Client(kj::heap<PythonInterfaceDynamicImpl>(schema, server));
 }
 capnp::DynamicValue::Reader new_server(capnp::InterfaceSchema & schema, PyObject * server) {
   return capnp::DynamicValue::Reader(kj::heap<PythonInterfaceDynamicImpl>(schema, server));

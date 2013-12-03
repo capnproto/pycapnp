@@ -52,8 +52,8 @@ template <typename SturdyRefHostId, typename ProvisionId,
           typename RecipientId, typename ThirdPartyCapId, typename JoinAnswer>
 capnp::RpcSystem<SturdyRefHostId> makeRpcClientWithRestorer(
     capnp::VatNetwork<SturdyRefHostId, ProvisionId, RecipientId, ThirdPartyCapId, JoinAnswer>& network,
-    const kj::EventLoop& eventLoop, PyRestorer& restorer) {
+    PyRestorer& restorer) {
     using namespace capnp;
   return RpcSystem<SturdyRefHostId>(network,
-      kj::Maybe<SturdyRefRestorer<ObjectPointer>&>(restorer), eventLoop);
+      kj::Maybe<SturdyRefRestorer<ObjectPointer>&>(restorer));
 }

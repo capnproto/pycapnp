@@ -12,7 +12,10 @@ class Server:
         return str(i * 5 + self.val)
 
 def restore(ref_id):
-    return test_capnp.TestInterface.new_server(Server(100))
+    if ref_id.tag == 'testInterface':
+        return test_capnp.TestInterface.new_server(Server(100))
+    else:
+        raise ValueError('invalid ref')
 
 def example_server(host='localhost', port=49999):
     backlog = 1 
@@ -21,13 +24,11 @@ def example_server(host='localhost', port=49999):
     s.bind((host,port)) 
     s.listen(backlog) 
 
-    loop = capnp.EventLoop()
     while 1:
         try:
             (clientsocket, address) = s.accept()
-            stream = capnp.FdAsyncIoStream(clientsocket.fileno())
             restorer = capnp.Restorer(test_capnp.TestSturdyRefObjectId, restore)
-            server = capnp.RpcServer(loop, stream, restorer)
+            server = capnp.RpcServer(clientsocket, restorer)
 
             server.run_forever()
         except KeyboardInterrupt:

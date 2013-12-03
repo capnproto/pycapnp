@@ -35,7 +35,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
 cdef extern from "kj/memory.h" namespace " ::kj":    
     cdef cppclass Own[T]:
         T& operator*()
-    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(EventLoop &, AsyncIoStream& stream, Side)
+    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side)
     Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(PromiseFulfillerPair&)
 
 cdef extern from "kj/string-tree.h" namespace " ::kj":
@@ -206,8 +206,8 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
         TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side)
         VoidPromise onDisconnect()
         VoidPromise onDrain()
-    RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&, EventLoop&)
-    RpcSystem makeRpcClient(TwoPartyVatNetwork&, EventLoop&)
+    RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&)
+    RpcSystem makeRpcClient(TwoPartyVatNetwork&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass Request" ::capnp::Request< ::capnp::DynamicStruct, ::capnp::DynamicStruct>":
@@ -237,13 +237,13 @@ cdef extern from "fixMaybe.h":
     char * getEnumString(Request val)
 
 cdef extern from "capabilityHelper.h":
-    PyPromise evalLater(EventLoop &, PyObject * func)
-    PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
+    # PyPromise evalLater(EventLoop &, PyObject * func)
+    # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
     VoidPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
     cppclass PythonInterfaceDynamicImpl:
         PythonInterfaceDynamicImpl(PyObject *)
-    DynamicCapability.Client new_client(InterfaceSchema&, PyObject *, EventLoop&)
+    DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)
     DynamicValueForward.Reader new_server(InterfaceSchema&, PyObject *)
     Capability.Client server_to_client(InterfaceSchema&, PyObject *)
     PyPromise convert_to_pypromise(RemotePromise&)
@@ -253,7 +253,7 @@ cdef extern from "rpcHelper.h":
         PyRestorer(PyObject *, StructSchema&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
     Capability.Client restoreHelper(RpcSystem&, MessageReader&)
-    RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, EventLoop&, PyRestorer&)
+    RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
@@ -368,12 +368,12 @@ cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:
         EventLoop()
         # Promise[void] yield_end'yield'()
-        object wait(PyPromise) except +reraise_kj_exception
-        Response wait_remote'wait'(RemotePromise)
-        void wait_void'wait'(VoidPromise)
-        object there(PyPromise) except +reraise_kj_exception
-        PyPromise evalLater(PyObject * func)
-        PyPromise there(PyPromise, PyObject * func)
+        # object wait(PyPromise) except +reraise_kj_exception
+        # Response wait_remote'wait'(RemotePromise)
+        # void wait_void'wait'(VoidPromise)
+        # object there(PyPromise) except +reraise_kj_exception
+        # PyPromise evalLater(PyObject * func)
+        # PyPromise there(PyPromise, PyObject * func)
     cdef cppclass SimpleEventLoop(EventLoop):
         pass
     cdef cppclass PromiseFulfiller:
@@ -382,7 +382,6 @@ cdef extern from "kj/async.h" namespace " ::kj":
         VoidPromise promise
         Own[PromiseFulfiller] fulfiller
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"()
-    PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"(EventLoop&)
 
 cdef extern from "kj/async-unix.h" namespace " ::kj":
     cdef cppclass UnixEventLoop(EventLoop):
