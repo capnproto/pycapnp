@@ -34,9 +34,3 @@ def test_simple_rpc(capability):
     response = remote.wait()
 
     assert response.x == '125'
-
-def test_custom_event_loop(capability):
-    capnp.remove_event_loop()
-    capnp.DEFAULT_EVENT_LOOP = capnp._EventLoop()
-
-    test_simple_rpc(capability)

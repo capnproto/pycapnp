@@ -59,8 +59,11 @@ cdef extern from "kj/array.h" namespace " ::kj":
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream:
         pass
-
-    Own[AsyncIoStream] AsyncIoStream_wrapFd" ::kj::AsyncIoStream::wrapFd"(int)
+    cdef cppclass AsyncIoProvider:
+        # Own[AsyncInputStream] wrapInputFd(int)
+        # Own[AsyncOutputStream] wrapOutputFd(int)
+        Own[AsyncIoStream] wrapSocketFd(int)
+    Own[AsyncIoProvider] setupIoEventLoop()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
@@ -343,7 +346,7 @@ cdef extern from "capnp/schema-parser.h" namespace " ::capnp":
         ParsedSchema getNested(char * name) except +reraise_kj_exception
     cdef cppclass SchemaParser:
         SchemaParser()
-        ParsedSchema parseDiskFile(char * displayName, char * diskPath, ArrayPtr[StringPtr] importPath) except +reraise_kj_exception
+        ParsedSchema parseDiskFile(char * displayName, char * diskPath, ArrayPtr[StringPtr] importPath)
 
 cdef extern from "capnp/orphan.h" namespace " ::capnp":
     cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>":

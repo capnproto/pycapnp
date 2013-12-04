@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream_wrapFd, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, reraise_kj_exception
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, UnixEventLoop, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, reraise_kj_exception
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -488,7 +488,7 @@ cdef class _DynamicListBuilder:
     cpdef adopt(self, index, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list.
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unknown sized list.
 
         :type index: int
         :param index: The index of the element in the list to replace with the newly adopted object
@@ -989,7 +989,7 @@ cdef class _DynamicStructBuilder:
     cpdef adopt(self, field, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list.
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unknown sized list.
 
         :type field: str
         :param field: The field name in the struct
@@ -1164,20 +1164,22 @@ cdef class _DynamicObjectBuilder:
         return _DynamicStructBuilder()._init(self.thisptr.getAs(s.thisptr), self._parent)
 
 cdef class _EventLoop:
-    cdef UnixEventLoop * thisptr
+    cdef Own[capnp.AsyncIoProvider] thisptr
 
     def __init__(self):
         self._init()
 
     cdef _init(self) except +reraise_kj_exception:
-        self.thisptr = new UnixEventLoop()
+        self.thisptr = capnp.setupIoEventLoop()
 
-    def __dealloc__(self):
-        self.remove()
+    cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
+        return deref(self.thisptr).wrapSocketFd(fd)
 
-    cpdef remove(self) except +reraise_kj_exception:
-        del self.thisptr
-        self.thisptr = NULL
+    # def __dealloc__(self):
+    #     self.remove()
+
+    # cpdef remove(self) except +reraise_kj_exception:
+    #     self.thisptr = NULL
 
     # cpdef evalLater(self, func):
     #     Py_INCREF(func)
@@ -1211,13 +1213,7 @@ cdef class _EventLoop:
     #     Py_INCREF(error_func)
     #     return Promise()._init(capnp.there(self.thisptr, deref(promise.thisptr), <PyObject *>func, <PyObject *>error_func))
 
-DEFAULT_EVENT_LOOP = _EventLoop()
-
-def remove_event_loop():
-    global DEFAULT_EVENT_LOOP
-
-    DEFAULT_EVENT_LOOP.remove()
-    DEFAULT_EVENT_LOOP = None 
+cdef _EventLoop C_DEFAULT_EVENT_LOOP = _EventLoop()
 
 cdef class _CallContext:
     cdef CallContext * thisptr
@@ -1612,7 +1608,10 @@ cdef class _FdAsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
 
     def __init__(self, int fd):
-        self.thisptr = AsyncIoStream_wrapFd(fd)
+        self._init(fd)
+
+    cdef _init(self, int fd) except +reraise_kj_exception:
+        self.thisptr = C_DEFAULT_EVENT_LOOP.wrapSocketFd(fd)
 
 cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr
@@ -2091,7 +2090,7 @@ cdef class _MessageBuilder:
     cpdef new_orphan(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unkown sized list, ie::
+        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unknown sized list, ie::
 
             addressbook = capnp.load('addressbook.capnp')
             m = capnp._MallocMessageBuilder()

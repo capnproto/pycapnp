@@ -32,4 +32,9 @@ def example_simple_rpc():
 
     assert response.x == '125'
 
-example_simple_rpc()
+# example_simple_rpc()
+capnp.load('test.capnp')
+for i in range(100):
+    capnp.load('test.capnp')
+
+capnp.load('test.capnp')
