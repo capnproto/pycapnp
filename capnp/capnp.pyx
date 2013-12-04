@@ -1322,7 +1322,7 @@ cdef class _RemotePromise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = _DynamicStructReader()._init(self.thisptr.wait(), self._parent)
+        ret = _Response()._init_child(self.thisptr.wait(), self._parent)
         self.is_consumed = True
 
         return ret
