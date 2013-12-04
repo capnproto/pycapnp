@@ -244,6 +244,7 @@ cdef extern from "capabilityHelper.h":
     # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
     VoidPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
+    PyPromise then(VoidPromise & promise, PyObject * func, PyObject * error_func)
     cppclass PythonInterfaceDynamicImpl:
         PythonInterfaceDynamicImpl(PyObject *)
     DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)

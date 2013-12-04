@@ -1255,7 +1255,7 @@ cdef class _Promise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = <object>self.thisptr.wait()
+        ret = <object>self.thisptr.wait() # TODO: make sure refcount is fine here...
         self.is_consumed = True
 
         return ret
@@ -1292,14 +1292,14 @@ cdef class _VoidPromise:
         self.is_consumed = True
 
 
-    # cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-    #     if self.is_consumed:
-    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-    #     Py_INCREF(func)
-    #     Py_INCREF(error_func)
+        Py_INCREF(func)
+        Py_INCREF(error_func)
 
-    #     return Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return _Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
 
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
@@ -1332,7 +1332,7 @@ cdef class _RemotePromise:
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         Py_INCREF(func)
         Py_INCREF(error_func)
@@ -1360,12 +1360,6 @@ cdef class _RemotePromise:
 
     def __dir__(self):
         return list(self.schema.fieldnames)
-
-    # def __str__(self):
-    #     return printStructReader(self.thisptr).flatten().cStr()
-
-    # def __repr__(self):
-    #     return '<%s reader %s>' % (self.schema.node.displayName, strStructReader(self.thisptr).cStr())
 
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)

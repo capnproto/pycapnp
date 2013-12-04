@@ -70,6 +70,14 @@ PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
     return result;
 }
 
+PyObject * wrapPyFuncNoArg(PyObject * func) {
+    PyObject * result = PyObject_CallFunctionObjArgs(func, NULL);
+    Py_DECREF(func);
+
+    check_py_error();
+    return result;
+}
+
 void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg) {
     wrap_remote_call(func, arg);
 
@@ -90,6 +98,14 @@ void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg
   else
     return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrapRemoteCall(func, arg); } 
                                      , [error_func](kj::Exception arg) { wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
+}
+
+::kj::Promise<PyObject *> then(kj::Promise<void> & promise, PyObject * func, PyObject * error_func) {
+  if(error_func == Py_None)
+    return promise.then([func]() { return wrapPyFuncNoArg(func); } );
+  else
+    return promise.then([func]() { return wrapPyFuncNoArg(func); } 
+                                     , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
 class PythonInterfaceDynamicImpl final: public capnp::DynamicCapability::Server {
