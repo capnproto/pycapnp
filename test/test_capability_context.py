@@ -29,7 +29,7 @@ class PipelineServer:
 
         return context.params.inCap.foo(i=context.params.n).then(_then)
 
-def test_client(capability):
+def test_client_context(capability):
     client = capability.TestInterface._new_client(Server())
     
     req = client._request('foo')
@@ -61,7 +61,7 @@ def test_client(capability):
     with pytest.raises(ValueError):
         req.baz = 1
 
-def test_simple_client(capability):
+def test_simple_client_context(capability):
     client = capability.TestInterface._new_client(Server())
     
     remote = client._send('foo', i=5)
@@ -115,7 +115,7 @@ def test_simple_client(capability):
     with pytest.raises(ValueError):
         remote = client.foo(baz=5)
 
-def test_pipeline(capability):
+def test_pipeline_context(capability):
     client = capability.TestPipeline._new_client(PipelineServer())
     foo_client = capability.TestInterface._new_client(Server())
 
@@ -138,7 +138,7 @@ class BadServer:
         context.results.x = str(context.params.i * 5 + self.val)
         context.results.x2 = 5 # raises exception
 
-def test_exception_client(capability):
+def test_exception_client_context(capability):
     client = capability.TestInterface._new_client(BadServer())
     
     remote = client._send('foo', i=5)
@@ -155,7 +155,7 @@ class BadPipelineServer:
 
         return context.params.inCap.foo(i=context.params.n).then(_then, _error)
 
-def test_exception_chain(capability):
+def test_exception_chain_context(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -166,7 +166,7 @@ def test_exception_chain(capability):
     except Exception as e:
         assert 'test was a success' in str(e)
 
-def test_pipeline_exception(capability):
+def test_pipeline_exception_context(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -181,7 +181,7 @@ def test_pipeline_exception(capability):
     with pytest.raises(Exception):
         remote.wait()
 
-def test_casting(capability):
+def test_casting_context(capability):
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
     client3 = client2.cast_as(capability.TestInterface)
