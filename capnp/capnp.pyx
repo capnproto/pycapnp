@@ -1600,7 +1600,7 @@ cdef class RpcServer:
         del self.thisptr
 
     def run_forever(self):
-        return _VoidPromise()._init(deref(self.network.thisptr).onDisconnect())
+        _VoidPromise()._init(deref(self.network.thisptr).onDisconnect()).wait()
 
     # TODO: add restore functionality here?
 
