@@ -188,3 +188,61 @@ def test_casting_context(capability):
 
     with pytest.raises(Exception):
         client.upcast(capability.TestPipeline)
+
+class TailCallOrder:
+    def __init__(self):
+        self.count = -1
+
+    def getCallSequence_context(self, context):
+        self.count += 1
+        context.results.n = self.count
+
+class TailCaller:
+    def __init__(self):
+        self.count = 0
+
+    def foo_context(self, context):
+        self.count += 1
+
+        tail = context.params.callee.foo_request(i=context.params.i, t='from TailCaller')
+        return context.tail_call(tail)
+
+class TailCallee:
+    def __init__(self):
+        self.count = 0
+
+    def foo_context(self, context):
+        self.count += 1
+
+        results = context.results
+        results.i = context.params.i
+        results.t = context.params.t
+        results.c = capability().TestCallOrder.new_server(TailCallOrder())
+
+def test_tail_call(capability):
+    callee_server = TailCallee()
+    caller_server = TailCaller()
+
+    callee = capability.TestTailCallee._new_client(callee_server)
+    caller = capability.TestTailCaller._new_client(caller_server)
+
+    promise = caller.foo(i=456, callee=callee)
+    dependent_call1 = promise.c.getCallSequence()
+
+    response = promise.wait()
+
+    assert response.i == 456
+    assert response.i == 456
+
+    dependent_call2 = response.c.getCallSequence()
+    dependent_call3 = response.c.getCallSequence()
+
+    result = dependent_call1.wait()
+    assert result.n == 0
+    result = dependent_call2.wait()
+    assert result.n == 1
+    result = dependent_call3.wait()
+    assert result.n == 2
+
+    assert callee_server.count == 1
+    assert caller_server.count == 1

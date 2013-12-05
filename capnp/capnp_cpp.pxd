@@ -2,12 +2,20 @@
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
-from async_cpp cimport PyPromise, VoidPromise, Promise
 
 from cpython.ref cimport PyObject
 from libc.stdint cimport *
 ctypedef unsigned int uint
 from libcpp cimport bool as cbool
+
+cdef extern from "kj/async.h" namespace " ::kj":
+    cdef cppclass Promise[T]:
+        Promise()
+        Promise(Promise)
+        T wait(WaitScope)
+
+ctypedef Promise[PyObject *] PyPromise
+ctypedef Promise[void] VoidPromise
 
 cdef extern from "capabilityHelper.h":
     void reraise_kj_exception()
@@ -59,11 +67,21 @@ cdef extern from "kj/array.h" namespace " ::kj":
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream:
         pass
-    cdef cppclass AsyncIoProvider:
+    cdef cppclass LowLevelAsyncIoProvider:
         # Own[AsyncInputStream] wrapInputFd(int)
         # Own[AsyncOutputStream] wrapOutputFd(int)
         Own[AsyncIoStream] wrapSocketFd(int)
-    Own[AsyncIoProvider] setupIoEventLoop()
+    cdef cppclass AsyncIoProvider:
+        pass
+    cdef cppclass WaitScope:
+        pass
+    cdef cppclass AsyncIoContext:
+        AsyncIoContext(AsyncIoContext&)
+        Own[LowLevelAsyncIoProvider] lowLevelProvider
+        Own[AsyncIoProvider] provider
+        WaitScope waitScope
+
+    AsyncIoContext setupAsyncIo()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
@@ -358,15 +376,16 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
     cdef cppclass CallContext' ::capnp::CallContext< ::capnp::DynamicStruct, ::capnp::DynamicStruct>':
         CallContext(CallContext&)
         DynamicStruct.Reader getParams() except +reraise_kj_exception
-        void releaseParams()
+        void releaseParams() except +reraise_kj_exception
 
         DynamicStruct.Builder getResults(uint firstSegmentWordSize)
         DynamicStruct.Builder initResults(uint firstSegmentWordSize)
         void setResults(DynamicStruct.Reader value)
         # void adoptResults(Orphan<Results>&& value);
         # Orphanage getResultsOrphanage(uint firstSegmentWordSize = 0);
-        void allowAsyncCancellation(bint allow = true)
-        bint isCanceled()
+        VoidPromise tailCall(Request & tailRequest)
+        void allowAsyncCancellation() except +reraise_kj_exception
+        bint isCanceled() except +reraise_kj_exception
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:
@@ -386,8 +405,3 @@ cdef extern from "kj/async.h" namespace " ::kj":
         VoidPromise promise
         Own[PromiseFulfiller] fulfiller
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"()
-
-cdef extern from "kj/async-unix.h" namespace " ::kj":
-    cdef cppclass UnixEventLoop(EventLoop):
-        pass
-

@@ -55,3 +55,24 @@ struct TestSturdyRefObjectId {
     testPipeline @2;
   }
 }
+
+interface TestCallOrder {
+  getCallSequence @0 (expected: UInt32) -> (n: UInt32);
+  # First call returns 0, next returns 1, ...
+  #
+  # The input `expected` is ignored but useful for disambiguating debug logs.
+}
+
+interface TestTailCallee {
+  struct TailResult {
+    i @0 :UInt32;
+    t @1 :Text;
+    c @2 :TestCallOrder;
+  }
+
+  foo @0 (i :Int32, t :Text) -> TailResult;
+}
+
+interface TestTailCaller {
+  foo @0 (i :Int32, callee :TestTailCallee) -> TestTailCallee.TailResult;
+}

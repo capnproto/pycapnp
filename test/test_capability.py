@@ -22,8 +22,9 @@ class Server:
         return i.host + '_test'
 
 class PipelineServer:
-    def getCap(self, n, inCap, _results, **kwargs):
+    def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
+            _results = _context.results
             _results.s = response.x + '_foo'
             _results.outBox.cap = capability().TestInterface.new_server(Server(100))
 
@@ -148,8 +149,9 @@ def test_exception_client(capability):
         remote.wait()
 
 class BadPipelineServer:
-    def getCap(self, n, inCap, _results, **kwargs):
+    def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
+            _results = _context.results
             _results.s = response.x + '_foo'
             _results.outBox.cap = capability().TestInterface.new_server(Server(100))
         def _error(error):
@@ -190,3 +192,61 @@ def test_casting(capability):
 
     with pytest.raises(Exception):
         client.upcast(capability.TestPipeline)
+
+class TailCallOrder:
+    def __init__(self):
+        self.count = -1
+
+    def getCallSequence(self, expected, **kwargs):
+        self.count += 1
+        return self.count
+
+class TailCaller:
+    def __init__(self):
+        self.count = 0
+
+    def foo(self, i, callee, _context, **kwargs):
+        self.count += 1
+
+        tail = callee.foo_request(i=i, t='from TailCaller')
+        return _context.tail_call(tail)
+
+class TailCallee:
+    def __init__(self):
+        self.count = 0
+
+    def foo(self, i, t, _context, **kwargs):
+        self.count += 1
+
+        results = _context.results
+        results.i = i
+        results.t = t
+        results.c = capability().TestCallOrder.new_server(TailCallOrder())
+
+def test_tail_call(capability):
+    callee_server = TailCallee()
+    caller_server = TailCaller()
+
+    callee = capability.TestTailCallee._new_client(callee_server)
+    caller = capability.TestTailCaller._new_client(caller_server)
+
+    promise = caller.foo(i=456, callee=callee)
+    dependent_call1 = promise.c.getCallSequence()
+
+    response = promise.wait()
+
+    assert response.i == 456
+    assert response.i == 456
+
+    dependent_call2 = response.c.getCallSequence()
+    dependent_call3 = response.c.getCallSequence()
+
+    result = dependent_call1.wait()
+    assert result.n == 0
+    result = dependent_call2.wait()
+    assert result.n == 1
+    result = dependent_call3.wait()
+    assert result.n == 2
+
+    assert callee_server.count == 1
+    assert caller_server.count == 1
