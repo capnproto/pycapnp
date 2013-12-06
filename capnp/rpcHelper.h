@@ -9,7 +9,7 @@ extern "C" {
    capnp::Capability::Client * call_py_restorer(PyObject *, capnp::DynamicStruct::Reader &);
 }
 
-class PyRestorer final: public capnp::SturdyRefRestorer<capnp::ObjectPointer> {
+class PyRestorer final: public capnp::SturdyRefRestorer<capnp::AnyPointer> {
 public:
   PyRestorer(PyObject * _py_restorer, capnp::StructSchema& _schema): py_restorer(_py_restorer), schema(_schema) {
     // We don't need to incref/decref, since this C++ class will be owned by the Python wrapper class, and we'll make sure the python class doesn't refcount to 0 elsewhere.
@@ -20,7 +20,7 @@ public:
   //   Py_DECREF(py_restorer);
   // }
   
-  capnp::Capability::Client restore(capnp::ObjectPointer::Reader objectId) override {
+  capnp::Capability::Client restore(capnp::AnyPointer::Reader objectId) override {
     auto reader = objectId.getAs<capnp::DynamicStruct>(schema);
     capnp::Capability::Client * ret = call_py_restorer(py_restorer, reader);
     check_py_error();
@@ -38,14 +38,14 @@ private:
 capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageBuilder & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
     auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
-    return client.restore(hostId, objectId.getRoot<capnp::ObjectPointer>());
+    return client.restore(hostId, objectId.getRoot<capnp::AnyPointer>());
 }
 
 
 capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageReader & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
     auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
-    return client.restore(hostId, objectId.getRoot<capnp::ObjectPointer>());
+    return client.restore(hostId, objectId.getRoot<capnp::AnyPointer>());
 }
 
 template <typename SturdyRefHostId, typename ProvisionId,
@@ -55,5 +55,5 @@ capnp::RpcSystem<SturdyRefHostId> makeRpcClientWithRestorer(
     PyRestorer& restorer) {
     using namespace capnp;
   return RpcSystem<SturdyRefHostId>(network,
-      kj::Maybe<SturdyRefRestorer<ObjectPointer>&>(restorer));
+      kj::Maybe<SturdyRefRestorer<AnyPointer>&>(restorer));
 }

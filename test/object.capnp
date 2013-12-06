@@ -16,6 +16,6 @@ struct Thing {
 }
 
 struct TestObject {
-  object @0 :Object;
+  object @0 :AnyPointer;
 }
 

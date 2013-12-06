@@ -170,7 +170,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         TYPE_ENUM " ::capnp::DynamicValue::ENUM"
         TYPE_STRUCT " ::capnp::DynamicValue::STRUCT"
         TYPE_CAPABILITY " ::capnp::DynamicValue::CAPABILITY"
-        TYPE_OBJECT " ::capnp::DynamicValue::OBJECT"
+        TYPE_ANY_POINTER " ::capnp::DynamicValue::ANY_POINTER"
 
     cdef cppclass DynamicStruct:
         cppclass Reader:
@@ -205,7 +205,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Client upcast(InterfaceSchema requestedSchema)
             DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
             InterfaceSchema getSchema()
-            Request newRequest(char * methodName, uint firstSegmentWordSize)
+            Request newRequest(char * methodName)
+            # Request newRequest(char * methodName, MessageSize)
 
 cdef extern from "capnp/capability.h" namespace " ::capnp":
     cdef cppclass Response" ::capnp::Response< ::capnp::DynamicStruct>"(DynamicStruct.Reader):
@@ -243,8 +244,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         Maybe[StructSchema.Field] which()
         RemotePromise send()
 
-cdef extern from "capnp/object.h" namespace " ::capnp":
-    cdef cppclass ObjectPointer:
+cdef extern from "capnp/any.h" namespace " ::capnp":
+    cdef cppclass AnyPointer:
         cppclass Reader:
             DynamicStruct.Reader getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
         cppclass Builder:
@@ -335,7 +336,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             String asText"as< ::capnp::Text>"()
             DynamicList.Reader asList"as< ::capnp::DynamicList>"()
             DynamicStruct.Reader asStruct"as< ::capnp::DynamicStruct>"()
-            ObjectPointer.Reader asObject"as< ::capnp::ObjectPointer>"()
+            AnyPointer.Reader asObject"as< ::capnp::AnyPointer>"()
             DynamicCapability.Client asCapability"as< ::capnp::DynamicCapability>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
             Data.Reader asData"as< ::capnp::Data>"()
@@ -349,7 +350,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             String asText"as< ::capnp::Text>"()
             DynamicList.Builder asList"as< ::capnp::DynamicList>"()
             DynamicStruct.Builder asStruct"as< ::capnp::DynamicStruct>"()
-            ObjectPointer.Builder asObject"as< ::capnp::ObjectPointer>"()
+            AnyPointer.Builder asObject"as< ::capnp::AnyPointer>"()
             DynamicCapability.Client asCapability"as< ::capnp::DynamicCapability>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
             Data.Builder asData"as< ::capnp::Data>"()
@@ -378,14 +379,13 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
         DynamicStruct.Reader getParams() except +reraise_kj_exception
         void releaseParams() except +reraise_kj_exception
 
-        DynamicStruct.Builder getResults(uint firstSegmentWordSize)
-        DynamicStruct.Builder initResults(uint firstSegmentWordSize)
+        DynamicStruct.Builder getResults()
+        DynamicStruct.Builder initResults()
         void setResults(DynamicStruct.Reader value)
         # void adoptResults(Orphan<Results>&& value);
         # Orphanage getResultsOrphanage(uint firstSegmentWordSize = 0);
         VoidPromise tailCall(Request & tailRequest)
-        void allowAsyncCancellation() except +reraise_kj_exception
-        bint isCanceled() except +reraise_kj_exception
+        void allowCancellation() except +reraise_kj_exception
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:

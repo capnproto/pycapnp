@@ -9,7 +9,7 @@
 cimport cython
 cimport capnp_cpp as capnp
 cimport schema_cpp
-from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, ObjectPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, reraise_kj_exception
+from capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, makeRpcClientWithRestorer, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, reraise_kj_exception
 
 from schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from cython.operator cimport dereference as deref
@@ -569,7 +569,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
         return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
-    elif type == capnp.TYPE_OBJECT:
+    elif type == capnp.TYPE_ANY_POINTER:
         return _DynamicObjectReader()._init(self.asObject(), parent)
     elif type == capnp.TYPE_CAPABILITY:
         return _DynamicCapabilityClient()._init(self.asCapability(), parent)
@@ -601,7 +601,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
         return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
-    elif type == capnp.TYPE_OBJECT:
+    elif type == capnp.TYPE_ANY_POINTER:
         return _DynamicObjectBuilder()._init(self.asObject(), parent)
     elif type == capnp.TYPE_CAPABILITY:
         return _DynamicCapabilityClient()._init(self.asCapability(), parent)
@@ -1172,7 +1172,16 @@ cdef class _EventLoop:
     cdef _init(self) except +reraise_kj_exception:
         self.thisptr = new capnp.AsyncIoContext(moveAsyncContext(capnp.setupAsyncIo()))
 
+    def __dealloc__(self):
+        self._remove()
+
+    cdef _remove(self) except +reraise_kj_exception:
+        del self.thisptr
+        self.thisptr = NULL
+
     cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
+        if self.thisptr == NULL:
+            raise ValueError('Event loop has already been destroyed')
         return deref(self.thisptr.lowLevelProvider).wrapSocketFd(fd)
 
     # def __dealloc__(self):
@@ -1229,8 +1238,8 @@ cdef class _CallContext:
         def __get__(self):
            return _DynamicStructReader()._init(self.thisptr.getParams(), self)
 
-    cpdef _get_results(self, uint firstSegmentWordSize=0):
-        return _DynamicStructBuilder()._init(self.thisptr.getResults(firstSegmentWordSize), self)
+    cpdef _get_results(self, uint word_count=0):
+        return _DynamicStructBuilder()._init(self.thisptr.getResults(), self) # TODO: pass firstSegmentWordSize
 
     property results:
         def __get__(self):
@@ -1240,10 +1249,7 @@ cdef class _CallContext:
         self.thisptr.releaseParams()
 
     cpdef allow_async_cancellation(self):
-        self.thisptr.allowAsyncCancellation()
-
-    cpdef is_canceled(self):
-        return self.thisptr.isCanceled()
+        self.thisptr.allowCancellation()
 
     cpdef tail_call(self, _Request tailRequest):
         return _VoidPromise()._init(self.thisptr.tailCall(moveRequest(deref(tailRequest.thisptr_child))))
@@ -1459,25 +1465,29 @@ cdef class _DynamicCapabilityClient:
             for key, val in kwargs.items():
                 _setDynamicFieldPtr(request, key, val, self)
 
-    cpdef _send_helper(self, name, firstSegmentWordSize, args, kwargs) except +reraise_kj_exception:
-        cdef Request * request = new Request(self.thisptr.newRequest(name, firstSegmentWordSize))
+    cpdef _send_helper(self, name, word_count, args, kwargs) except +reraise_kj_exception:
+        # if word_count is None:
+        #     word_count = 0
+        cdef Request * request = new Request(self.thisptr.newRequest(name)) # TODO: pass word_count
 
         self._set_fields(request, name, args, kwargs)
 
         return _RemotePromise()._init(request.send(), self)
 
     cpdef _request_helper(self, name, firstSegmentWordSize, args, kwargs) except +reraise_kj_exception:
-        cdef _Request req = _Request()._init_child(self.thisptr.newRequest(name, firstSegmentWordSize), self)
+        # if word_count is None:
+        #     word_count = 0
+        cdef _Request req = _Request()._init_child(self.thisptr.newRequest(name), self)
 
         self._set_fields(req.thisptr_child, name, args, kwargs)
 
         return req
 
-    def _request(self, name, *args, firstSegmentWordSize=0, **kwargs):
-        return self._request_helper(name, firstSegmentWordSize, args, kwargs)
+    def _request(self, name, *args, word_count=None, **kwargs):
+        return self._request_helper(name, word_count, args, kwargs)
 
-    def _send(self, name, *args, firstSegmentWordSize=0, **kwargs):
-        return self._send_helper(name, firstSegmentWordSize, args, kwargs)
+    def _send(self, name, *args, word_count=None, **kwargs):
+        return self._send_helper(name, word_count, args, kwargs)
 
     def __getattr__(self, name):
         if name.endswith('_request'):
@@ -1920,7 +1930,7 @@ cdef class SchemaParser:
     def __dealloc__(self):
         del self.thisptr
 
-    def _parse_disk_file(self, displayName, diskPath, imports):
+    cpdef _parse_disk_file(self, displayName, diskPath, imports) except +reraise_kj_exception:
         cdef StringPtr * importArray = <StringPtr *>malloc(sizeof(StringPtr) * len(imports))
 
         for i in range(len(imports)):
