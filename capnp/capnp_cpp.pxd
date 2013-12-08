@@ -400,7 +400,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass SimpleEventLoop(EventLoop):
         pass
     cdef cppclass PromiseFulfiller:
-        pass
+        void fulfill()
     cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>":
         VoidPromise promise
         Own[PromiseFulfiller] fulfiller

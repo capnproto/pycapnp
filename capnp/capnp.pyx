@@ -1184,44 +1184,6 @@ cdef class _EventLoop:
             raise ValueError('Event loop has already been destroyed')
         return deref(self.thisptr.lowLevelProvider).wrapSocketFd(fd)
 
-    # def __dealloc__(self):
-    #     self.remove()
-
-    # cpdef remove(self) except +reraise_kj_exception:
-    #     self.thisptr = NULL
-
-    # cpdef evalLater(self, func):
-    #     Py_INCREF(func)
-    #     return _Promise()._init(capnp.evalLater(self.thisptr, <PyObject *>func))
-
-    # cpdef wait(self, _PromiseTypes promise) except +reraise_kj_exception:
-    #     if promise.is_consumed:
-    #         raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-
-    #     ret = None
-    #     if _PromiseTypes is _RemotePromise:
-    #         ret = _Response()._init_child(self.thisptr.wait_remote(moveRemotePromise(deref(promise.thisptr))), promise._parent)
-    #     elif _PromiseTypes is _VoidPromise:
-    #         self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr)))
-    #     elif _PromiseTypes is PromiseFulfillerPair:
-    #         self.thisptr.wait_void(moveVoidPromise(deref(promise.thisptr).promise))
-    #     elif _PromiseTypes is _Promise:
-    #         ret = self.thisptr.wait(movePromise(deref(promise.thisptr)))
-    #     else:
-    #         raise ValueError("Not a valid promise type")
-
-    #     promise.is_consumed = True
-
-    #     return ret
-
-    # cpdef there(self, Promise promise, object func, object error_func=None):
-    #     if promise.is_consumed:
-    #         raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-
-    #     Py_INCREF(func)
-    #     Py_INCREF(error_func)
-    #     return Promise()._init(capnp.there(self.thisptr, deref(promise.thisptr), <PyObject *>func, <PyObject *>error_func))
-
 cdef _EventLoop C_DEFAULT_EVENT_LOOP = _EventLoop()
 
 cdef class _CallContext:
@@ -1248,7 +1210,7 @@ cdef class _CallContext:
     cpdef release_params(self):
         self.thisptr.releaseParams()
 
-    cpdef allow_async_cancellation(self):
+    cpdef allow_cancellation(self):
         self.thisptr.allowCancellation()
 
     cpdef tail_call(self, _Request tailRequest):
@@ -1640,13 +1602,15 @@ cdef class _FdAsyncIoStream:
 cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr
     cdef public bint is_consumed
+    cdef public _VoidPromise promise
 
     def __init__(self):
         self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller())
         self.is_consumed = False
+        self.promise = _VoidPromise()._init(moveVoidPromise(deref(self.thisptr).promise))
 
     cpdef fulfill(self):
-        pass #TODO
+        deref(deref(self.thisptr).fulfiller).fulfill()
 
 cdef class _Schema:
     cdef C_Schema thisptr
