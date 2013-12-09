@@ -92,7 +92,7 @@ cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_Dynam
     ret = restorer.restore(reader)
     cdef _DynamicCapabilityServer server = ret
 
-    return new C_Capability.Client(server_to_client(server.schema.thisptr, <PyObject *>server.server))
+    return new C_Capability.Client(helpers.server_to_client(server.schema.thisptr, <PyObject *>server.server))
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
     String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
@@ -544,7 +544,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return <char*>helpers.fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_ANY_POINTER:
@@ -576,7 +576,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructBuilder()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return <char*>fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return <char*>helpers.fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_ANY_POINTER:
@@ -598,7 +598,7 @@ cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient valu
     return C_DynamicValue.Reader(value.thisptr)
 
 cdef C_DynamicValue.Reader _extract_dynamic_server(_DynamicCapabilityServer value):
-    return new_server(value.schema.thisptr, <PyObject *>value.server)
+    return helpers.new_server(value.schema.thisptr, <PyObject *>value.server)
 
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -765,7 +765,7 @@ cdef class _DynamicStructReader:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = <char*>getEnumString(self.thisptr)
+        cdef object which = <char*>helpers.getEnumString(self.thisptr)
         if len(which) == 0:
             raise ValueError("Attempted to call which on a non-union type")
 
@@ -953,7 +953,7 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = <char*>getEnumString(self.thisptr)
+        cdef object which = <char*>helpers.getEnumString(self.thisptr)
         if len(which) == 0:
             raise ValueError("Attempted to call which on a non-union type")
 
@@ -1220,7 +1220,7 @@ cdef class _Promise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return _Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
 
 cdef class _VoidPromise:
     cdef VoidPromise * thisptr
@@ -1252,7 +1252,7 @@ cdef class _VoidPromise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return _Promise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
 
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
@@ -1281,7 +1281,7 @@ cdef class _RemotePromise:
         return ret
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
-        _Promise()._init(convert_to_pypromise(deref(self.thisptr)))
+        _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)))
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1290,7 +1290,7 @@ cdef class _RemotePromise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return _VoidPromise()._init(capnp.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return _VoidPromise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
 
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
@@ -1371,7 +1371,7 @@ cdef class _DynamicCapabilityClient:
         else:
             s = schema
 
-        self.thisptr = new_client(s.thisptr, <PyObject *>server)
+        self.thisptr = helpers.new_client(s.thisptr, <PyObject *>server)
         self._server = server
         return self
 
@@ -1536,9 +1536,9 @@ cdef class RpcClient:
             reader = objectId._parent
 
         if builder is not None:
-            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
+            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
         elif reader is not None:
-            return _CapabilityClient()._init(restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
+            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
         else:
             raise ValueError("objectId unexpectedly was not convertible to the proper type")
 

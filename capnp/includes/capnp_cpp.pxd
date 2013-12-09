@@ -215,6 +215,10 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
             Client(Client&)
             DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
 
+cdef extern from "../helpers/rpcHelper.h":
+    cdef cppclass PyRestorer:
+        PyRestorer(PyObject *, StructSchema&)
+        
 cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef cppclass RpcSystem" ::capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>":
         RpcSystem(RpcSystem&&)
@@ -248,30 +252,6 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
         cppclass Builder:
             Builder(Builder)
             DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
-
-cdef extern from "../helpers/fixMaybe.h":
-    EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
-    char * getEnumString(DynamicStruct.Reader val)
-    char * getEnumString(DynamicStruct.Builder val)
-    char * getEnumString(Request val)
-
-cdef extern from "../helpers/capabilityHelper.h":
-    # PyPromise evalLater(EventLoop &, PyObject * func)
-    # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
-    VoidPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise then(VoidPromise & promise, PyObject * func, PyObject * error_func)
-    DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)
-    DynamicValueForward.Reader new_server(InterfaceSchema&, PyObject *)
-    Capability.Client server_to_client(InterfaceSchema&, PyObject *)
-    PyPromise convert_to_pypromise(RemotePromise&)
-
-cdef extern from "../helpers/rpcHelper.h":
-    cdef cppclass PyRestorer:
-        PyRestorer(PyObject *, StructSchema&)
-    Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
-    Capability.Client restoreHelper(RpcSystem&, MessageReader&)
-    RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
