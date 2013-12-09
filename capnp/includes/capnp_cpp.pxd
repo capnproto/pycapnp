@@ -6,11 +6,7 @@ cdef extern from "../helpers/checkCompiler.h":
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
 from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception
-
-from cpython.ref cimport PyObject
-from libc.stdint cimport *
-ctypedef unsigned int uint
-from libcpp cimport bool as cbool
+from .capnp.includes.types cimport *
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass Promise[T]:

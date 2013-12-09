@@ -8,37 +8,10 @@
 
 cimport cython
 
-from .capnp.includes cimport capnp_cpp as capnp
-from .capnp.includes cimport schema_cpp
-from .capnp.includes.capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, fixMaybe, getEnumString, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, new_client, new_server, server_to_client, Request, Response, RemotePromise, convert_to_pypromise, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcClient, restoreHelper, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, reraise_kj_exception
-from .capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
-
 from .capnp.helpers.helpers cimport makeRpcClientWithRestorer
 
-
-
-from cython.operator cimport dereference as deref
-
-from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
-from cpython.exc cimport PyErr_Clear
-from libc.stdint cimport *
-ctypedef unsigned int uint
-ctypedef uint8_t byte
-ctypedef uint8_t UInt8
-ctypedef uint16_t UInt16
-ctypedef uint32_t UInt32
-ctypedef uint64_t UInt64
-ctypedef int8_t Int8
-ctypedef int16_t Int16
-ctypedef int32_t Int32
-ctypedef int64_t Int64
-
-ctypedef char * Object
-ctypedef bint Bool
-ctypedef float Float32
-ctypedef double Float64
 from libc.stdlib cimport malloc, free
-from libcpp cimport bool as cbool
+from cython.operator cimport dereference as deref
 
 from types import ModuleType as _ModuleType
 import os as _os
@@ -761,11 +734,6 @@ cdef class _DynamicStructReader:
         print person.name # using . syntax
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef C_DynamicStruct.Reader thisptr
-    cdef public object _parent
-    cdef public bint is_root
-    cdef object _obj_to_pin
-
     cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=False):
         self.thisptr = other
         self._parent = parent
