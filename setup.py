@@ -48,7 +48,7 @@ setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
-    package_data={'capnp': ['*.pxd', '*.pyx', '*.h']},
+    package_data={'capnp': ['*.pxd', '*.pyx', '*.h', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd']},
     ext_modules=cythonize('capnp/*.pyx', language="c++"),
     install_requires=[
         'cython > 0.19',

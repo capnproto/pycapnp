@@ -1,7 +1,11 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
+cdef extern from "helpers/checkCompiler.h":
+    pass
+
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
+from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception
 
 from cpython.ref cimport PyObject
 from libc.stdint cimport *
@@ -16,9 +20,6 @@ cdef extern from "kj/async.h" namespace " ::kj":
 
 ctypedef Promise[PyObject *] PyPromise
 ctypedef Promise[void] VoidPromise
-
-cdef extern from "capabilityHelper.h":
-    void reraise_kj_exception()
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
@@ -252,26 +253,24 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
             Builder(Builder)
             DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
 
-cdef extern from "fixMaybe.h":
+cdef extern from "helpers/fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
     char * getEnumString(DynamicStruct.Reader val)
     char * getEnumString(DynamicStruct.Builder val)
     char * getEnumString(Request val)
 
-cdef extern from "capabilityHelper.h":
+cdef extern from "helpers/capabilityHelper.h":
     # PyPromise evalLater(EventLoop &, PyObject * func)
     # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
     VoidPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(VoidPromise & promise, PyObject * func, PyObject * error_func)
-    cppclass PythonInterfaceDynamicImpl:
-        PythonInterfaceDynamicImpl(PyObject *)
     DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)
     DynamicValueForward.Reader new_server(InterfaceSchema&, PyObject *)
     Capability.Client server_to_client(InterfaceSchema&, PyObject *)
     PyPromise convert_to_pypromise(RemotePromise&)
 
-cdef extern from "rpcHelper.h":
+cdef extern from "helpers/rpcHelper.h":
     cdef cppclass PyRestorer:
         PyRestorer(PyObject *, StructSchema&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)

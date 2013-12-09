@@ -718,7 +718,7 @@ cdef extern from "kj/array.h" namespace " ::kj":
         word* begin()
         size_t size()
 
-cdef extern from "capabilityHelper.h":
+cdef extern from "helpers/capabilityHelper.h":
     void reraise_kj_exception()
 
 cdef extern from "kj/array.h" namespace " ::kj":
