@@ -5,6 +5,7 @@
 
 from libc.stdint cimport *
 from capnp_cpp cimport DynamicOrphan
+from .capnp.helpers.non_circular cimport reraise_kj_exception
 ctypedef unsigned int uint
 ctypedef uint8_t byte
 ctypedef uint8_t UInt8
@@ -717,9 +718,6 @@ cdef extern from "kj/array.h" namespace " ::kj":
     cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
         word* begin()
         size_t size()
-
-cdef extern from "helpers/capabilityHelper.h":
-    void reraise_kj_exception()
 
 cdef extern from "kj/array.h" namespace " ::kj":
     cdef cppclass InputStream:

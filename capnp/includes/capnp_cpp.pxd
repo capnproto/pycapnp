@@ -1,7 +1,7 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-cdef extern from "helpers/checkCompiler.h":
+cdef extern from "../helpers/checkCompiler.h":
     pass
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
@@ -253,13 +253,13 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
             Builder(Builder)
             DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
 
-cdef extern from "helpers/fixMaybe.h":
+cdef extern from "../helpers/fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
     char * getEnumString(DynamicStruct.Reader val)
     char * getEnumString(DynamicStruct.Builder val)
     char * getEnumString(Request val)
 
-cdef extern from "helpers/capabilityHelper.h":
+cdef extern from "../helpers/capabilityHelper.h":
     # PyPromise evalLater(EventLoop &, PyObject * func)
     # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
@@ -270,7 +270,7 @@ cdef extern from "helpers/capabilityHelper.h":
     Capability.Client server_to_client(InterfaceSchema&, PyObject *)
     PyPromise convert_to_pypromise(RemotePromise&)
 
-cdef extern from "helpers/rpcHelper.h":
+cdef extern from "../helpers/rpcHelper.h":
     cdef cppclass PyRestorer:
         PyRestorer(PyObject *, StructSchema&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
