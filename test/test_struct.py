@@ -1,6 +1,7 @@
 import pytest
 import capnp
 import os
+import tempfile
 
 this_dir = os.path.dirname(__file__)
 
@@ -44,9 +45,9 @@ def test_which_reader(addressbook):
 
         capnp._write_packed_message_to_fd(fd, message)
 
-    f = open('example', 'w')
+    f = tempfile.TemporaryFile()
     writeAddressBook(f.fileno())
-    f = open('example', 'r')
+    f.seek(0)
 
     addresses = addressbook.AddressBook.read_packed(f)
 
