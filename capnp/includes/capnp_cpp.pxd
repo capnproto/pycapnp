@@ -218,7 +218,7 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
 cdef extern from "../helpers/rpcHelper.h":
     cdef cppclass PyRestorer:
         PyRestorer(PyObject *, StructSchema&)
-        
+
 cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef cppclass RpcSystem" ::capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>":
         RpcSystem(RpcSystem&&)
@@ -252,6 +252,7 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
         cppclass Builder:
             Builder(Builder)
             DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
+            void setAsText"setAs< ::capnp::Text>"(char*)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:

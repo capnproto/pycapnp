@@ -47,6 +47,16 @@ capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::S
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
     return client.restore(hostId, objectId.getRoot<capnp::AnyPointer>());
 }
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::AnyPointer::Reader & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
+    auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
+    hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
+    return client.restore(hostId, objectId);
+}
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::AnyPointer::Builder & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
+    auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
+    hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
+    return client.restore(hostId, objectId);
+}
 
 template <typename SturdyRefHostId, typename ProvisionId,
           typename RecipientId, typename ThirdPartyCapId, typename JoinAnswer>

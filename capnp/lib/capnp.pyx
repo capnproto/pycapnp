@@ -1138,6 +1138,9 @@ cdef class _DynamicObjectBuilder:
 
         return _DynamicStructBuilder()._init(self.thisptr.getAs(s.thisptr), self._parent)
 
+    cpdef set_as_text(self, text):
+        self.thisptr.setAsText(text)
+
 cdef class _EventLoop:
     cdef capnp.AsyncIoContext * thisptr
 
@@ -1529,23 +1532,32 @@ cdef class RpcClient:
     cpdef restore(self, objectId) except +reraise_kj_exception:
         cdef _MessageBuilder builder 
         cdef _MessageReader reader
+        cdef _DynamicObjectBuilder object_builder
+        cdef _DynamicObjectReader object_reader
 
-        if not hasattr(objectId, 'is_root'):
-            raise ValueError("objectId was not a valid Cap'n Proto struct")
-        if not objectId.is_root:
-            raise ValueError("objectId must be the root of a Cap'n Proto message, ie. addressbook_capnp.Person.new_message()")
-
-        try:
-            builder = objectId._parent
-        except:
-            reader = objectId._parent
-
-        if builder is not None:
-            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
-        elif reader is not None:
-            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
+        if type(objectId) is _DynamicObjectBuilder:
+            object_builder = objectId
+            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(object_builder.thisptr)), self)
+        elif type(objectId) is _DynamicObjectReader:
+            object_reader = objectId
+            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), object_reader.thisptr), self)
         else:
-            raise ValueError("objectId unexpectedly was not convertible to the proper type")
+            if not hasattr(objectId, 'is_root'):
+                raise ValueError("objectId was not a valid Cap'n Proto struct")
+            if not objectId.is_root:
+                raise ValueError("objectId must be the root of a Cap'n Proto message, ie. addressbook_capnp.Person.new_message()")
+
+            try:
+                builder = objectId._parent
+            except:
+                reader = objectId._parent
+
+            if builder is not None:
+                return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
+            elif reader is not None:
+                return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
+            else:
+                raise ValueError("objectId unexpectedly was not convertible to the proper type")
 
 cdef class RpcServer:
     cdef RpcSystem * thisptr
@@ -2050,11 +2062,13 @@ cdef class _MessageBuilder:
 
         :rtype: void
         """
-        
-        if type(value) is _DynamicStructBuilder:
-            value = value.as_reader();
-        self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
-        return self.get_root(value.schema)
+        value_type = type(value)
+        if value_type is _DynamicStructBuilder:
+            self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value.as_reader()).thisptr)
+            return self.get_root(value.schema)
+        elif value_type is _DynamicStructReader:
+            self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
+            return self.get_root(value.schema)
 
     cpdef new_orphan(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto orphans

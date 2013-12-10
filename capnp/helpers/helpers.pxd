@@ -1,4 +1,4 @@
-from .capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, PyPromise, VoidPromise, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer
+from .capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, PyPromise, VoidPromise, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer
 
 from non_circular cimport reraise_kj_exception
 
@@ -24,4 +24,6 @@ cdef extern from "../helpers/capabilityHelper.h":
 cdef extern from "../helpers/rpcHelper.h":
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
     Capability.Client restoreHelper(RpcSystem&, MessageReader&)
+    Capability.Client restoreHelper(RpcSystem&, AnyPointer.Reader&)
+    Capability.Client restoreHelper(RpcSystem&, AnyPointer.Builder&)
     RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
