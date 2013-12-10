@@ -1559,6 +1559,15 @@ cdef class RpcClient:
             else:
                 raise ValueError("objectId unexpectedly was not convertible to the proper type")
 
+    cpdef ez_restore(self, textId) except +reraise_kj_exception:
+        import rpc_capnp
+        # ez-rpc from the C++ API uses SturdyRef.objectId under the hood
+        ref = rpc_capnp.SturdyRef.new_message()
+        # objectId is an AnyPointer, so we have a special method for setting it to text
+        ref.objectId.set_as_text('calculator')
+
+        return self.restore(ref.objectId)
+
 cdef class RpcServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
@@ -2560,6 +2569,9 @@ def add_import_hook(additional_paths=[]):
     global _importer
     if _importer is not None:
         remove_import_hook()
+
+    this_dir = _os.path.join(_os.path.dirname(__file__), '..')
+    additional_paths.append(this_dir)
 
     _importer = _Importer(additional_paths)
     _sys.meta_path.append(_importer)
