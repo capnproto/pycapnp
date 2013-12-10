@@ -91,8 +91,9 @@ cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_Dynam
 
     ret = restorer.restore(reader)
     cdef _DynamicCapabilityServer server = ret
+    cdef _InterfaceSchema schema = ret.schema
 
-    return new C_Capability.Client(helpers.server_to_client(server.schema.thisptr, <PyObject *>server.server))
+    return new C_Capability.Client(helpers.server_to_client(schema.thisptr, <PyObject *>server))
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
     String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
@@ -597,8 +598,9 @@ cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader v
 cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient value):
     return C_DynamicValue.Reader(value.thisptr)
 
-cdef C_DynamicValue.Reader _extract_dynamic_server(_DynamicCapabilityServer value):
-    return helpers.new_server(value.schema.thisptr, <PyObject *>value.server)
+cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
+    cdef _InterfaceSchema schema = value.schema
+    return helpers.new_server(schema.thisptr, <PyObject *>value)
 
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -632,7 +634,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer:
+    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
         thisptr.set(field, _extract_dynamic_server(value))
     else:
         raise ValueError("Non primitive type")
@@ -1355,6 +1357,9 @@ cdef class _DynamicCapabilityServer:
         self.schema = s
         self.server = server
 
+    def __getattr__(self, field):
+        return getattr(self.server, field)
+
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
     cdef public object _server, _parent
@@ -1846,13 +1851,16 @@ class _StructModule(object):
         return builder.set_root(obj)
 
 class _InterfaceModule(object):
-    def __init__(self, schema):
+    def __init__(self, schema, name):
+        def server_init(server_self):
+            pass
         self.schema = schema
+        self.Server = type(name, (_DynamicCapabilityServer,), {'__init__': server_init, 'schema':schema})
 
     def _new_client(self, server):
         return _DynamicCapabilityClient()._init_vals(self.schema, server)
 
-    def new_server(self, server):
+    def _new_server(self, server):
         return _DynamicCapabilityServer(self.schema, server)
 
 cdef class SchemaParser:
@@ -1949,7 +1957,7 @@ cdef class SchemaParser:
                 elif proto.isConst:
                     module.__dict__[node.name] = schema.as_const_value()
                 elif proto.isInterface:
-                    local_module = _InterfaceModule(schema.as_interface())
+                    local_module = _InterfaceModule(schema.as_interface(), node.name)
 
                     module.__dict__[node.name] = local_module
 

@@ -2,9 +2,13 @@ import pytest
 import capnp
 import os
 
-import test_capability_capnp as capability
+this_dir = os.path.dirname(__file__)
 
-class Server(capability.TestInterface.Server):
+@pytest.fixture
+def capability():
+     return capnp.load(os.path.join(this_dir, 'test_capability.capnp'))
+
+class Server:
     def __init__(self, val=1):
         self.val = val
 
@@ -17,16 +21,16 @@ class Server(capability.TestInterface.Server):
     def buz(self, i, **kwargs):
         return i.host + '_test'
 
-class PipelineServer(capability.TestPipeline.Server):
+class PipelineServer:
     def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
             _results = _context.results
             _results.s = response.x + '_foo'
-            _results.outBox.cap = Server(100)
+            _results.outBox.cap = capability().TestInterface._new_server(Server(100))
 
         return inCap.foo(i=n).then(_then)
 
-def test_client():
+def test_client(capability):
     client = capability.TestInterface._new_client(Server())
     
     req = client._request('foo')
@@ -58,7 +62,7 @@ def test_client():
     with pytest.raises(ValueError):
         req.baz = 1
 
-def test_simple_client():
+def test_simple_client(capability):
     client = capability.TestInterface._new_client(Server())
     
     remote = client._send('foo', i=5)
@@ -112,7 +116,7 @@ def test_simple_client():
     with pytest.raises(ValueError):
         remote = client.foo(baz=5)
 
-def test_pipeline():
+def test_pipeline(capability):
     client = capability.TestPipeline._new_client(PipelineServer())
     foo_client = capability.TestInterface._new_client(Server())
 
@@ -127,7 +131,7 @@ def test_pipeline():
     response = remote.wait()
     assert response.s == '26_foo'
 
-class BadServer(capability.TestInterface.Server):
+class BadServer:
     def __init__(self, val=1):
         self.val = val
 
@@ -137,25 +141,25 @@ class BadServer(capability.TestInterface.Server):
             extra = 1
         return str(i * 5 + extra + self.val), 10 # returning too many args
 
-def test_exception_client():
+def test_exception_client(capability):
     client = capability.TestInterface._new_client(BadServer())
     
     remote = client._send('foo', i=5)
     with pytest.raises(capnp.KjException):
         remote.wait()
 
-class BadPipelineServer(capability.TestPipeline.Server):
+class BadPipelineServer:
     def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
             _results = _context.results
             _results.s = response.x + '_foo'
-            _results.outBox.cap = Server(100)
+            _results.outBox.cap = capability().TestInterface._new_server(Server(100))
         def _error(error):
             raise Exception('test was a success')
 
         return inCap.foo(i=n).then(_then, _error)
 
-def test_exception_chain():
+def test_exception_chain(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -166,7 +170,7 @@ def test_exception_chain():
     except Exception as e:
         assert 'test was a success' in str(e)
 
-def test_pipeline_exception():
+def test_pipeline_exception(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -181,7 +185,7 @@ def test_pipeline_exception():
     with pytest.raises(Exception):
         remote.wait()
 
-def test_casting():
+def test_casting(capability):
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
     client3 = client2.cast_as(capability.TestInterface)
@@ -189,7 +193,7 @@ def test_casting():
     with pytest.raises(Exception):
         client.upcast(capability.TestPipeline)
 
-class TailCallOrder(capability.TestCallOrder.Server):
+class TailCallOrder:
     def __init__(self):
         self.count = -1
 
@@ -197,7 +201,7 @@ class TailCallOrder(capability.TestCallOrder.Server):
         self.count += 1
         return self.count
 
-class TailCaller(capability.TestTailCaller.Server):
+class TailCaller:
     def __init__(self):
         self.count = 0
 
@@ -207,7 +211,7 @@ class TailCaller(capability.TestTailCaller.Server):
         tail = callee.foo_request(i=i, t='from TailCaller')
         return _context.tail_call(tail)
 
-class TailCallee(capability.TestTailCallee.Server):
+class TailCallee:
     def __init__(self):
         self.count = 0
 
@@ -217,9 +221,9 @@ class TailCallee(capability.TestTailCallee.Server):
         results = _context.results
         results.i = i
         results.t = t
-        results.c = TailCallOrder()
+        results.c = capability().TestCallOrder._new_server(TailCallOrder())
 
-def test_tail_call():
+def test_tail_call(capability):
     callee_server = TailCallee()
     caller_server = TailCaller()
 

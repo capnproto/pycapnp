@@ -77,3 +77,25 @@ def test_roundtrip_dict(all_types):
 
     msg = all_types.TestAllTypes.from_dict(d)
     test_regression.check_all_types(msg)
+
+def test_file_and_bytes(all_types):
+    f = open('example', 'w')
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+    msg.write(f)
+    f.close()
+
+    f = open('example', 'r')
+
+    assert f.read() == msg.to_bytes()
+
+def test_file_and_bytes_packed(all_types):
+    f = open('example', 'w')
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+    msg.write_packed(f)
+    f.close()
+
+    f = open('example', 'r')
+
+    assert f.read() == msg.to_bytes_packed()

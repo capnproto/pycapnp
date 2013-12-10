@@ -25,7 +25,7 @@ class PipelineServer:
     def getCap_context(self, context):
         def _then(response):
             context.results.s = response.x + '_foo'
-            context.results.outBox.cap = capability().TestInterface.new_server(Server(100))
+            context.results.outBox.cap = capability().TestInterface._new_server(Server(100))
 
         return context.params.inCap.foo(i=context.params.n).then(_then)
 
@@ -149,7 +149,7 @@ class BadPipelineServer:
     def getCap_context(self, context):
         def _then(response):
             context.results.s = response.x + '_foo'
-            context.results.outBox.cap = capability().TestInterface.new_server(Server(100))
+            context.results.outBox.cap = capability().TestInterface._new_server(Server(100))
         def _error(error):
             raise Exception('test was a success')
 
@@ -217,7 +217,7 @@ class TailCallee:
         results = context.results
         results.i = context.params.i
         results.t = context.params.t
-        results.c = capability().TestCallOrder.new_server(TailCallOrder())
+        results.c = capability().TestCallOrder._new_server(TailCallOrder())
 
 def test_tail_call(capability):
     callee_server = TailCallee()
