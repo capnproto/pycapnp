@@ -24,8 +24,8 @@ import inspect as _inspect
 from operator import attrgetter as _attrgetter
 
 # By making it public, we'll be able to call it from capabilityHelper.h
-cdef public object wrap_dynamic_struct_reader(C_DynamicStruct.Reader & reader):
-    return _DynamicStructReader()._init(reader, None)
+cdef public object wrap_dynamic_struct_reader(Response & r):
+    return _Response()._init_childptr(new Response(moveResponse(r)), None)
 
 cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except *:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
@@ -43,7 +43,7 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
     server = <object>_server
     method_name = <object>_method_name
 
-    context = _CallContext()._init(_context)
+    context = _CallContext()._init(_context) # TODO: invalidate this with promise chain
     func = getattr(server, method_name+'_context', None)
     if func is not None:
         ret = func(context)
@@ -113,6 +113,15 @@ cdef public convert_array_pyobject(PyArray & arr):
 cdef public PyPromise * extract_promise(object obj):
     if type(obj) is Promise:
         promise = <Promise>obj
+        promise.is_consumed = True
+        Py_INCREF(promise) # TODO: fix leak
+        return promise.thisptr
+
+    return NULL
+
+cdef public RemotePromise * extract_remote_promise(object obj):
+    if type(obj) is _RemotePromise:
+        promise = <_RemotePromise>obj
         promise.is_consumed = True
         Py_INCREF(promise) # TODO: fix leak
         return promise.thisptr
@@ -1307,7 +1316,7 @@ cdef class _VoidPromise:
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
             raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-        Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
+        return Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
@@ -1338,7 +1347,7 @@ cdef class _RemotePromise:
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
             raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-        Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
+        return Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1650,7 +1659,7 @@ cdef class TwoPartyClient:
         # ez-rpc from the C++ API uses SturdyRef.objectId under the hood
         ref = rpc_capnp.SturdyRef.new_message()
         # objectId is an AnyPointer, so we have a special method for setting it to text
-        ref.objectId.set_as_text('calculator')
+        ref.objectId.set_as_text(textId)
 
         return self.restore(ref.objectId)
 

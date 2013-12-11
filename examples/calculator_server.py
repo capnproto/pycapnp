@@ -41,7 +41,9 @@ def evaluateImpl(expression, params=None):
 
         joinedParams = capnp.join_promises(paramPromises)
         # When the parameters are complete, call the function.
-        ret = joinedParams.then(lambda vals: func.call(vals).then(lambda result: result.value))
+        ret = (joinedParams
+               .then(lambda vals: func.call(vals))
+               .then(lambda result: result.value))
 
         return ret
     else:

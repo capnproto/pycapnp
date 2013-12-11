@@ -7,14 +7,28 @@
 
 extern "C" {
    PyObject * wrap_remote_call(PyObject * func, capnp::Response<capnp::DynamicStruct> &);
-   PyObject * wrap_dynamic_struct_reader(capnp::DynamicStruct::Reader &);
+   PyObject * wrap_dynamic_struct_reader(capnp::Response<capnp::DynamicStruct> &);
    ::kj::Promise<void> * call_server_method(PyObject * py_server, char * name, capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> & context);
    PyObject * wrap_kj_exception(kj::Exception &);
    PyObject * wrap_kj_exception_for_reraise(kj::Exception &);
    PyObject * get_exception_info(PyObject *, PyObject *, PyObject *);
    PyObject * convert_array_pyobject(kj::Array<PyObject *>&);
    ::kj::Promise<PyObject *> * extract_promise(PyObject *);
+   ::capnp::RemotePromise< ::capnp::DynamicStruct> * extract_remote_promise(PyObject *);
  }
+
+::kj::Promise<PyObject *> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> & promise) {
+    return promise.then([](capnp::Response<capnp::DynamicStruct>&& response) { return wrap_dynamic_struct_reader(response); } );
+}
+
+::kj::Promise<PyObject *> convert_to_pypromise(kj::Promise<void> & promise) {
+    return promise.then([]() { Py_RETURN_NONE;} );
+}
+
+template<class T>
+::kj::Promise<void> convert_to_voidpromise(kj::Promise<T> & promise) {
+    return promise.then([](T) { } );
+}
 
 void reraise_kj_exception() {
   try {
@@ -67,15 +81,25 @@ void check_py_error() {
 
 // TODO: need to decref error_func as well on successful run
 kj::Promise<PyObject *> wrapPyFunc(PyObject * func, PyObject * arg) {
-    PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
-    Py_DECREF(func);
+    auto arg_promise = extract_promise(arg);
 
-    check_py_error();
+    if(arg_promise == NULL) {
+      PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
+      Py_DECREF(func);
 
-    auto promise = extract_promise(result);
-    if(promise != NULL)
-      return kj::mv(*promise);
-    return result;
+      check_py_error();
+
+      auto promise = extract_promise(result);
+      if(promise != NULL)
+        return kj::mv(*promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
+      auto remote_promise = extract_remote_promise(result);
+      if(remote_promise != NULL)
+        return convert_to_pypromise(*remote_promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
+      return result;
+    }
+    else {
+      return arg_promise->then([&](PyObject * new_arg){ return wrapPyFunc(func, new_arg); });// TODO: delete arg_promise?
+    }
 }
 
 kj::Promise<PyObject *> wrapPyFuncNoArg(PyObject * func) {
@@ -87,6 +111,9 @@ kj::Promise<PyObject *> wrapPyFuncNoArg(PyObject * func) {
     auto promise = extract_promise(result);
     if(promise != NULL)
       return kj::mv(*promise);
+    auto remote_promise = extract_remote_promise(result);
+    if(remote_promise != NULL)
+      return convert_to_pypromise(*remote_promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
     return result;
 }
 
@@ -98,6 +125,9 @@ kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::D
     auto promise = extract_promise(ret);
     if(promise != NULL)
       return kj::mv(*promise);
+    auto remote_promise = extract_remote_promise(ret);
+    if(remote_promise != NULL)
+      return convert_to_pypromise(*remote_promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
     return ret;
 }
 
@@ -168,17 +198,4 @@ capnp::DynamicValue::Reader new_server(capnp::InterfaceSchema & schema, PyObject
 
 capnp::Capability::Client server_to_client(capnp::InterfaceSchema & schema, PyObject * server) {
   return kj::heap<PythonInterfaceDynamicImpl>(schema, server);
-}
-
-::kj::Promise<PyObject *> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> & promise) {
-    return promise.then([](capnp::Response<capnp::DynamicStruct>&& response) { return wrap_dynamic_struct_reader(response); } );
-}
-
-::kj::Promise<PyObject *> convert_to_pypromise(kj::Promise<void> & promise) {
-    return promise.then([]() { Py_RETURN_NONE;} );
-}
-
-template<class T>
-::kj::Promise<void> convert_to_voidpromise(kj::Promise<T> & promise) {
-    return promise.then([](T) { } );
 }
