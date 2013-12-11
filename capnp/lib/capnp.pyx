@@ -22,6 +22,7 @@ from functools import partial as _partial
 import warnings as _warnings
 import inspect as _inspect
 from operator import attrgetter as _attrgetter
+import threading as _threading
 
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef public object wrap_dynamic_struct_reader(Response & r):
@@ -1192,7 +1193,7 @@ cdef class _EventLoop:
     def __dealloc__(self):
         self._remove()
 
-    cdef _remove(self) except +reraise_kj_exception:
+    cpdef _remove(self) except +reraise_kj_exception:
         del self.thisptr
         self.thisptr = NULL
 
@@ -1201,12 +1202,44 @@ cdef class _EventLoop:
             raise ValueError('Event loop has already been destroyed')
         return deref(self.thisptr.lowLevelProvider).wrapSocketFd(fd)
 
-cdef _EventLoop C_DEFAULT_EVENT_LOOP = _EventLoop()
+C_DEFAULT_EVENT_LOOP = _EventLoop()
 
-cpdef reset_event_loop():
-    global C_DEFAULT_EVENT_LOOP
-    C_DEFAULT_EVENT_LOOP._remove()
-    C_DEFAULT_EVENT_LOOP = _EventLoop()
+_C_DEFAULT_EVENT_LOOP_LOCAL = None
+
+cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
+    'Optimization for not having to deal with threadlocal event loops unless we need to'
+    if C_DEFAULT_EVENT_LOOP is not None:
+        print C_DEFAULT_EVENT_LOOP
+        return <_EventLoop>C_DEFAULT_EVENT_LOOP
+    elif _C_DEFAULT_EVENT_LOOP_LOCAL is not None:
+        loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
+        if loop is not None:
+            return <_EventLoop>_C_DEFAULT_EVENT_LOOP_LOCAL.loop
+
+    raise RuntimeError("You don't have any EventLoops running. Please make sure to add ")
+
+# cpdef remove_event_loop():
+#     'Remove the global event loop'
+#     global C_DEFAULT_EVENT_LOOP
+#     C_DEFAULT_EVENT_LOOP._remove()
+#     C_DEFAULT_EVENT_LOOP = None
+
+# cpdef create_event_loop(is_thread_local=True):
+#     '''Create a new global event loop. This will not remove the previous
+#     EventLoop for you, so make sure to do that first'''
+#     global C_DEFAULT_EVENT_LOOP
+#     global _C_DEFAULT_EVENT_LOOP_LOCAL
+#     if is_thread_local:
+#         if _C_DEFAULT_EVENT_LOOP_LOCAL is None:
+#             _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
+#         _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
+#     else:
+#         C_DEFAULT_EVENT_LOOP = _EventLoop()
+
+# cpdef reset_event_loop():
+#     global C_DEFAULT_EVENT_LOOP
+#     C_DEFAULT_EVENT_LOOP._remove()
+#     C_DEFAULT_EVENT_LOOP = _EventLoop()
 
 cdef class _CallContext:
     cdef CallContext * thisptr
@@ -1267,7 +1300,7 @@ cdef class Promise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = <object>self.thisptr.wait(C_DEFAULT_EVENT_LOOP.thisptr.waitScope) # TODO: make sure refcount is fine here...
+        ret = <object>self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope) # TODO: make sure refcount is fine here...
         self.is_consumed = True
 
         return ret
@@ -1300,7 +1333,7 @@ cdef class _VoidPromise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        self.thisptr.wait(C_DEFAULT_EVENT_LOOP.thisptr.waitScope)
+        self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope)
         self.is_consumed = True
 
 
@@ -1339,7 +1372,7 @@ cdef class _RemotePromise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = _Response()._init_child(self.thisptr.wait(C_DEFAULT_EVENT_LOOP.thisptr.waitScope), self._parent)
+        ret = _Response()._init_child(self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope), self._parent)
         self.is_consumed = True
 
         return ret
@@ -1695,7 +1728,7 @@ cdef class _FdAsyncIoStream:
         self._init(fd)
 
     cdef _init(self, int fd) except +reraise_kj_exception:
-        self.thisptr = C_DEFAULT_EVENT_LOOP.wrapSocketFd(fd)
+        self.thisptr = C_DEFAULT_EVENT_LOOP_GETTER().wrapSocketFd(fd)
 
 cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr

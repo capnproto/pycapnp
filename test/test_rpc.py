@@ -23,7 +23,7 @@ class SimpleRestorer(test_capability_capnp.TestSturdyRefObjectId.Restorer):
     def restore(self, ref_id):
         assert ref_id.tag == 'testInterface'
         return Server(100)
-
+        
 def test_simple_rpc():
 
     read, write = socket.socketpair(socket.AF_UNIX)
