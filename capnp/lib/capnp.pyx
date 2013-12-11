@@ -2669,7 +2669,8 @@ def add_import_hook(additional_paths=[]):
     if _importer is not None:
         remove_import_hook()
 
-    this_dir = _os.path.join(_os.path.dirname(__file__), '..')
+    this_dir = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..'))
+    print this_dir
     additional_paths.append(this_dir)
 
     _importer = _Importer(additional_paths)
