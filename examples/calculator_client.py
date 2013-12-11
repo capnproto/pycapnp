@@ -7,25 +7,38 @@ import capnp
 
 import calculator_capnp
 
+
 class PowerFunction(calculator_capnp.Calculator.Function.Server):
+
     '''An implementation of the Function interface wrapping pow().  Note that
     we're implementing this on the client side and will pass a reference to
     the server.  The server will then be able to make calls back to the client.'''
 
     def call(self, params, **kwargs):
-        '''Note the **kwargs. This is very necessary to include, since protocols can add parameters over time. Also, by default, a _context variable is passed to all server methods. Read the docs for further explanation.'''
+        '''Note the **kwargs. This is very necessary to include, since
+        protocols can add parameters over time. Also, by default, a _context
+        variable is passed to all server methods, but you can also return
+        results directly as python objects, and they'll be added to the
+        results struct in the correct order'''
+
         return pow(params[0], params[1])
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(usage='Connects to the Calculator server at the given address and does some RPCs')
+    parser = argparse.ArgumentParser(usage='Connects to the Calculator server \
+at the given address and does some RPCs')
     parser.add_argument("host", help="HOST:PORT")
 
     return parser.parse_args()
 
+
 def main(sock):
     client = capnp.TwoPartyClient(sock)
 
-    # Pass "calculator" to ez_restore (there's also a `restore` function that takes a struct or AnyPointer as an argument), and then cast the returned capability to it's proper type. This casting is due to capabilities not having a reference to their schema
+    # Pass "calculator" to ez_restore (there's also a `restore` function that
+    # takes a struct or AnyPointer as an argument), and then cast the returned
+    # capability to it's proper type. This casting is due to capabilities not
+    # having a reference to their schema
     calculator = client.ez_restore('calculator').cast_as(calculator_capnp.Calculator)
 
     '''Make a request that just evaluates the literal value 123.
@@ -40,14 +53,17 @@ def main(sock):
 
     print('Evaluating a literal... ', end="")
 
-    # Set up the request. Note the form is 'evaluate' + '_request', where 'evaluate' is the name of the method we want to call
+    # Set up the request. Note the form is 'evaluate' + '_request', where
+    # 'evaluate' is the name of the method we want to call
     request = calculator.evaluate_request()
     request.expression.literal = 123
 
     # Send it, which returns a promise for the result (without blocking).
     eval_promise = request.send()
 
-    # Using the promise, create a pipelined request to call read() on the returned object. Note that here we are using the shortened method call syntax read(), which is mostly just sugar for read_request().send()
+    # Using the promise, create a pipelined request to call read() on the
+    # returned object. Note that here we are using the shortened method call
+    # syntax read(), which is mostly just sugar for read_request().send()
     read_promise = eval_promise.value.read()
 
     # Now that we've sent all the requests, wait for the response.  Until this
@@ -94,7 +110,6 @@ def main(sock):
 
     print("PASS")
 
-
     '''Make a request to evaluate 4 * 6, then use the result in two more
     requests that add 3 and 5.
 
@@ -110,13 +125,12 @@ def main(sock):
     # Get the "multiply" function from the server.
     multiply = calculator.getOperator(op='multiply').func
 
-
     # Build the request to evaluate 4 * 6
     request = calculator.evaluate_request()
 
     multiply_call = request.expression.init("call")
     multiply_call.function = multiply
-    multiply_params = multiply_call.init("params", 2);
+    multiply_params = multiply_call.init("params", 2)
     multiply_params[0].literal = 4
     multiply_params[1].literal = 6
 
@@ -124,25 +138,25 @@ def main(sock):
 
     # Use the result in two calls that add 3 and add 5.
 
-    add3Request = calculator.evaluate_request()
-    add3Call = add3Request.expression.init("call")
-    add3Call.function = add
-    add3Params = add3Call.init("params", 2)
-    add3Params[0].previousResult = multiply_result
-    add3Params[1].literal = 3
-    add3Promise = add3Request.send().value.read()
+    add_3_request = calculator.evaluate_request()
+    add_3_call = add_3_request.expression.init("call")
+    add_3_call.function = add
+    add_3_params = add_3_call.init("params", 2)
+    add_3_params[0].previousResult = multiply_result
+    add_3_params[1].literal = 3
+    add_3_promise = add_3_request.send().value.read()
 
-    add5Request = calculator.evaluate_request()
-    add5Call = add5Request.expression.init("call")
-    add5Call.function = add
-    add5Params = add5Call.init("params", 2)
-    add5Params[0].previousResult = multiply_result
-    add5Params[1].literal = 5
-    add5Promise = add5Request.send().value.read()
+    add_5_request = calculator.evaluate_request()
+    add_5_call = add_5_request.expression.init("call")
+    add_5_call.function = add
+    add_5_params = add_5_call.init("params", 2)
+    add_5_params[0].previousResult = multiply_result
+    add_5_params[1].literal = 5
+    add_5_promise = add_5_request.send().value.read()
 
     # Now wait for the results.
-    assert add3Promise.wait().value == 27
-    assert add5Promise.wait().value == 29
+    assert add_3_promise.wait().value == 27
+    assert add_5_promise.wait().value == 29
 
     print("PASS")
 
@@ -168,16 +182,16 @@ def main(sock):
     request.paramCount = 2
 
     # Build the function body.
-    addCall = request.body.init("call")
-    addCall.function = add
-    addParams = addCall.init("params", 2)
-    addParams[1].parameter = 1  # y
+    add_call = request.body.init("call")
+    add_call.function = add
+    add_params = add_call.init("params", 2)
+    add_params[1].parameter = 1  # y
 
-    multiplyCall = addParams[0].init("call")
-    multiplyCall.function = multiply
-    multiplyParams = multiplyCall.init("params", 2)
-    multiplyParams[0].parameter = 0 # x
-    multiplyParams[1].literal = 100
+    multiply_call = add_params[0].init("call")
+    multiply_call.function = multiply
+    multiply_params = multiply_call.init("params", 2)
+    multiply_params[0].parameter = 0  # x
+    multiply_params[1].literal = 100
 
     f = request.send().func
 
@@ -186,45 +200,45 @@ def main(sock):
     request.paramCount = 1
 
     # Build the function body.
-    multiplyCall = request.body.init("call")
-    multiplyCall.function = multiply
-    multiplyParams = multiplyCall.init("params", 2)
-    multiplyParams[1].literal = 2
+    multiply_call = request.body.init("call")
+    multiply_call.function = multiply
+    multiply_params = multiply_call.init("params", 2)
+    multiply_params[1].literal = 2
 
-    fCall = multiplyParams[0].init("call")
-    fCall.function = f
-    fParams = fCall.init("params", 2)
-    fParams[0].parameter = 0
+    f_call = multiply_params[0].init("call")
+    f_call.function = f
+    f_params = f_call.init("params", 2)
+    f_params[0].parameter = 0
 
-    addCall = fParams[1].init("call")
-    addCall.function = add
-    addParams = addCall.init("params", 2)
-    addParams[0].parameter = 0
-    addParams[1].literal = 1
+    add_call = f_params[1].init("call")
+    add_call.function = add
+    add_params = add_call.init("params", 2)
+    add_params[0].parameter = 0
+    add_params[1].literal = 1
 
     g = request.send().func
 
     # OK, we've defined all our functions.  Now create our eval requests.
 
     # f(12, 34)
-    fEvalRequest = calculator.evaluate_request()
-    fCall = fEvalRequest.expression.init("call")
-    fCall.function = f
-    fParams = fCall.init("params", 2)
-    fParams[0].literal = 12
-    fParams[1].literal = 34
-    fEvalPromise = fEvalRequest.send().value.read()
+    f_eval_request = calculator.evaluate_request()
+    f_call = f_eval_request.expression.init("call")
+    f_call.function = f
+    f_params = f_call.init("params", 2)
+    f_params[0].literal = 12
+    f_params[1].literal = 34
+    f_eval_promise = f_eval_request.send().value.read()
 
     # g(21)
-    gEvalRequest = calculator.evaluate_request()
-    gCall = gEvalRequest.expression.init("call")
-    gCall.function = g
-    gCall.init('params', 1)[0].literal = 21
-    gEvalPromise = gEvalRequest.send().value.read()
+    g_eval_request = calculator.evaluate_request()
+    g_call = g_eval_request.expression.init("call")
+    g_call.function = g
+    g_call.init('params', 1)[0].literal = 21
+    g_eval_promise = g_eval_request.send().value.read()
 
     # Wait for the results.
-    assert fEvalPromise.wait().value == 1234
-    assert gEvalPromise.wait().value == 4244
+    assert f_eval_promise.wait().value == 1234
+    assert g_eval_promise.wait().value == 4244
 
     print("PASS")
 
@@ -250,16 +264,16 @@ def main(sock):
     # Build the eval request for 2^(4+5).
     request = calculator.evaluate_request()
 
-    powCall = request.expression.init("call")
-    powCall.function = PowerFunction()
-    powParams = powCall.init("params", 2)
-    powParams[0].literal = 2
+    pow_call = request.expression.init("call")
+    pow_call.function = PowerFunction()
+    pow_params = pow_call.init("params", 2)
+    pow_params[0].literal = 2
 
-    addCall = powParams[1].init("call")
-    addCall.function = add
-    addParams = addCall.init("params", 2)
-    addParams[0].literal = 4
-    addParams[1].literal = 5
+    add_call = pow_params[1].init("call")
+    add_call.function = add
+    add_params = add_call.init("params", 2)
+    add_params[0].literal = 4
+    add_params[1].literal = 5
 
     # Send the request and wait.
     response = request.send().value.read().wait()

@@ -8,12 +8,14 @@ import capnp
 
 import calculator_capnp
 
+
 def readValue(value):
     '''Helper function to asynchronously call read() on a Calculator::Value and
     return a promise for the result.  (In the future, the generated code might
     include something like this automatically.)'''
 
     return value.read().then(lambda result: result.value)
+
 
 def evaluateImpl(expression, params=None):
     '''Implementation of CalculatorImpl::evaluate(), also shared by
@@ -22,17 +24,15 @@ def evaluateImpl(expression, params=None):
     empty list.'''
 
     which = expression.which()
+
     if which == 'literal':
-      return capnp.Promise(expression.literal)
+        return capnp.Promise(expression.literal)
     elif which == 'previousResult':
-      return readValue(expression.previousResult)
+        return readValue(expression.previousResult)
     elif which == 'parameter':
-      assert expression.parameter < len(params)
-      return capnp.Promise(params[expression.parameter])
+        assert expression.parameter < len(params)
+        return capnp.Promise(params[expression.parameter])
     elif which == 'call':
-        def then(vals):
-            ret =  func.call(vals).then(lambda result: result.value)
-            return ret
         call = expression.call
         func = call.function
 
@@ -41,14 +41,15 @@ def evaluateImpl(expression, params=None):
 
         joinedParams = capnp.join_promises(paramPromises)
         # When the parameters are complete, call the function.
-        ret = joinedParams.then(then)
+        ret = joinedParams.then(lambda vals: func.call(vals).then(lambda result: result.value))
 
         return ret
-
     else:
         raise ValueError("Unknown expression type: " + which)
 
+
 class ValueImpl(calculator_capnp.Calculator.Value.Server):
+
     "Simple implementation of the Calculator.Value Cap'n Proto interface."
 
     def __init__(self, value):
@@ -57,21 +58,29 @@ class ValueImpl(calculator_capnp.Calculator.Value.Server):
     def read(self, **kwargs):
         return self.value
 
+
 class FunctionImpl(calculator_capnp.Calculator.Function.Server):
+
     '''Implementation of the Calculator.Function Cap'n Proto interface, where the
     function is defined by a Calculator.Expression.'''
 
-    def __init__(self, paramCount, body, obj):
+    def __init__(self, paramCount, body):
         self.paramCount = paramCount
         self.body = body.as_builder()
-        self.obj = obj
 
     def call(self, params, _context, **kwargs):
+        '''Note that we're returning a Promise object here, and bypassing the
+        helper functionality that normally sets the results struct from the
+        returned object. Instead, we set _context.results directly inside of
+        another promise'''
+
         assert len(params) == self.paramCount
-        return evaluateImpl(self.body, params).then(lambda value: setattr(_context.results, 'value', value)) # using setattr because '=' is not allowed inside of lambdas
-  
+        # using setattr because '=' is not allowed inside of lambdas
+        return evaluateImpl(self.body, params).then(lambda value: setattr(_context.results, 'value', value))
+
 
 class OperatorImpl(calculator_capnp.Calculator.Function.Server):
+
     '''Implementation of the Calculator.Function Cap'n Proto interface, wrapping
     basic binary arithmetic operators.'''
 
@@ -82,6 +91,7 @@ class OperatorImpl(calculator_capnp.Calculator.Function.Server):
         assert len(params) == 2
 
         op = self.op
+
         if op == 'add':
             return params[0] + params[1]
         elif op == 'subtract':
@@ -93,23 +103,25 @@ class OperatorImpl(calculator_capnp.Calculator.Function.Server):
         else:
             raise ValueError('Unknown operator')
 
+
 class CalculatorImpl(calculator_capnp.Calculator.Server):
+
     "Implementation of the Calculator Cap'n Proto interface."
 
     def evaluate(self, expression, _context, **kwargs):
         return evaluateImpl(expression).then(lambda value: setattr(_context.results, 'value', ValueImpl(value)))
 
     def defFunction(self, paramCount, body, _context, **kwargs):
-        return FunctionImpl(paramCount, body, _context)
+        return FunctionImpl(paramCount, body)
 
     def getOperator(self, op, **kwargs):
         return OperatorImpl(op)
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(usage='''Runs the server bound to the given address/port
-ADDRESS may be '*' to bind to all local addresses.
-:PORT may be omitted to choose a port automatically.
-''')
+    parser = argparse.ArgumentParser(usage='''Runs the server bound to the\
+given address/port ADDRESS may be '*' to bind to all local addresses.\
+:PORT may be omitted to choose a port automatically. ''')
 
     parser.add_argument("address", help="ADDRESS[:PORT]")
 
@@ -117,12 +129,17 @@ ADDRESS may be '*' to bind to all local addresses.
 
 
 class CalcRestorer:
+
+    '''A RPC Restorer. This requires a `restore` function to be defined, and
+    will be passed in a SturdyRef by your client'''
+
     def __init__(self):
         self.calc = CalculatorImpl()
 
     def restore(self, ref):
         assert ref.as_text() == 'calculator'
         return CalculatorImpl()
+
 
 def main():
     address = parse_args().address
@@ -131,16 +148,16 @@ def main():
         address, port = address.split(':')
         port = int(port)
     else:
-        port = random.randint(60000,61000)
+        port = random.randint(60000, 61000)
 
     if address == '*':
         address = ''
 
     print("Listening on port: {}".format(port))
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    s.bind((address,port)) 
-    s.listen(1) # service only 1 client at a time
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((address, port))
+    s.listen(1)  # service only 1 client at a time
 
     while True:
         try:
