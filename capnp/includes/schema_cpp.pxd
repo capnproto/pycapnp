@@ -26,6 +26,13 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         pass
     cdef cppclass StructSchema(Schema):
         pass
+
+cdef extern from "capnp/any.h" namespace " ::capnp":
+    cdef cppclass AnyPointer:
+        cppclass Reader:
+            pass
+        cppclass Builder:
+            pass
         
 cdef extern from "capnp/blob.h" namespace " ::capnp":
     cdef cppclass Data:
@@ -655,6 +662,8 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         DynamicStruct.Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
         void setRootDynamicStruct'setRoot< ::capnp::DynamicStruct::Reader>'(DynamicStruct.Reader)
 
+        AnyPointer.Builder getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
+
         DynamicOrphan newOrphan'getOrphanage().newOrphan'(StructSchema)
 
     cdef cppclass MessageReader:
@@ -671,6 +680,7 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         Annotation.Reader getRootAnnotation'getRoot< ::capnp::schema::Annotation>'()
 
         DynamicStruct.Reader getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
+        AnyPointer.Reader getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
     
     cdef cppclass MallocMessageBuilder(MessageBuilder):
         MallocMessageBuilder()

@@ -1655,13 +1655,12 @@ cdef class TwoPartyClient:
                 raise ValueError("objectId unexpectedly was not convertible to the proper type")
 
     cpdef ez_restore(self, textId) except +reraise_kj_exception:
-        import rpc_capnp
-        # ez-rpc from the C++ API uses SturdyRef.objectId under the hood
-        ref = rpc_capnp.SturdyRef.new_message()
+        # ez-rpc from the C++ API uses Text under the hood
+        ref = _MallocMessageBuilder().get_root_as_any()
         # objectId is an AnyPointer, so we have a special method for setting it to text
-        ref.objectId.set_as_text(textId)
+        ref.set_as_text(textId)
 
-        return self.restore(ref.objectId)
+        return self.restore(ref)
 
 cdef class TwoPartyServer:
     cdef RpcSystem * thisptr
@@ -2170,6 +2169,16 @@ cdef class _MessageBuilder:
         else:
             s = schema
         return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self, True)
+
+    cpdef get_root_as_any(self) except +reraise_kj_exception:
+        """A method for getting a Cap'n Proto AnyPointer, from an already pre-written buffer
+
+        Don't use this method unless you know what you're doing.
+
+        :rtype: :class:`_DynamicObjectBuilder`
+        :return: An AnyPointer that you can set fields in
+        """
+        return _DynamicObjectBuilder()._init(self.thisptr.getRootAnyPointer(), self)
     
     cpdef set_root(self, value) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto structs by copying from an existing struct
@@ -2677,10 +2686,6 @@ def add_import_hook(additional_paths=[]):
     global _importer
     if _importer is not None:
         remove_import_hook()
-
-    this_dir = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..'))
-    print this_dir
-    additional_paths.append(this_dir)
 
     _importer = _Importer(additional_paths)
     _sys.meta_path.append(_importer)
