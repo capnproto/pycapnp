@@ -12,6 +12,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass Promise[T]:
         Promise()
         Promise(Promise)
+        Promise(T)
         T wait(WaitScope)
 
 ctypedef Promise[PyObject *] PyPromise
@@ -60,6 +61,19 @@ cdef extern from "kj/array.h" namespace " ::kj":
     cdef cppclass Array[T]:
         T* begin()
         size_t size()
+        T& operator[](size_t index)
+    cdef cppclass ArrayBuilder[T]:
+        T* begin()
+        size_t size()
+        T& operator[](size_t index)
+        T& add(T&)
+        Array[T] finish()
+
+    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<PyObject *> >"(size_t)
+
+    ctypedef Array[PyObject *] PyArray' ::kj::Array<PyObject *>'
+
+ctypedef Promise[PyArray] PyPromiseArray
 
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream:
@@ -217,7 +231,7 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
 
 cdef extern from "../helpers/rpcHelper.h":
     cdef cppclass PyRestorer:
-        PyRestorer(PyObject *, StructSchema&)
+        PyRestorer(PyObject *)
 
 cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef cppclass RpcSystem" ::capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>":
@@ -249,10 +263,13 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
     cdef cppclass AnyPointer:
         cppclass Reader:
             DynamicStruct.Reader getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
+            String getAsText"getAs< ::capnp::Text>"()
         cppclass Builder:
             Builder(Builder)
             DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
-            void setAsText"setAs< ::capnp::Text>"(char*)
+            String getAsText"getAs< ::capnp::Text>"()
+            void setAsStruct"setAs< ::capnp::DynamicStruct>"(DynamicStruct.Reader&) except +reraise_kj_exception
+            void setAsText"setAs< ::capnp::Text>"(char*) except +reraise_kj_exception
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
@@ -381,3 +398,4 @@ cdef extern from "kj/async.h" namespace " ::kj":
         VoidPromise promise
         Own[PromiseFulfiller] fulfiller
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"()
+    PyPromiseArray joinPromises(Array[PyPromise])

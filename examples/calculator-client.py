@@ -6,7 +6,6 @@ import socket
 import capnp
 
 import calculator_capnp
-import rpc_capnp
 
 class PowerFunction(calculator_capnp.Calculator.Function.Server):
     '''An implementation of the Function interface wrapping pow().  Note that
@@ -18,7 +17,7 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
         return pow(params[0], params[1])
 
 def parse_args():
-    parser = argparse.ArgumentParser('Connects to the Calculator server at the given address and does some RPCs')
+    parser = argparse.ArgumentParser(usage='Connects to the Calculator server at the given address and does some RPCs')
     parser.add_argument("host", help="HOST:PORT")
 
     return parser.parse_args()
@@ -27,7 +26,7 @@ def main():
     host, port = parse_args().host.split(':')
 
     sock = socket.create_connection((host, port))
-    client = capnp.RpcClient(sock)
+    client = capnp.TwoPartyClient(sock)
 
     # Pass "calculator" to ez_restore (there's also a `restore` function that takes a struct or AnyPointer as an argument), and then cast the returned capability to it's proper type. This casting is due to capabilities not having a reference to their schema
     calculator = client.ez_restore('calculator').cast_as(calculator_capnp.Calculator)

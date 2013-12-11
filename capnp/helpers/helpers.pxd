@@ -1,4 +1,4 @@
-from .capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, PyPromise, VoidPromise, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer
+from .capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer
 
 from non_circular cimport reraise_kj_exception
 
@@ -14,12 +14,15 @@ cdef extern from "../helpers/capabilityHelper.h":
     # PyPromise evalLater(EventLoop &, PyObject * func)
     # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
-    VoidPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
+    PyPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(VoidPromise & promise, PyObject * func, PyObject * error_func)
+    PyPromise then(PyPromiseArray & promise)
     DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)
     DynamicValue.Reader new_server(InterfaceSchema&, PyObject *)
     Capability.Client server_to_client(InterfaceSchema&, PyObject *)
     PyPromise convert_to_pypromise(RemotePromise&)
+    PyPromise convert_to_pypromise(VoidPromise&)
+    VoidPromise convert_to_voidpromise(PyPromise&)
 
 cdef extern from "../helpers/rpcHelper.h":
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)

@@ -6,12 +6,14 @@
 #include <iostream>
 
 extern "C" {
-   void wrap_remote_call(PyObject * func, capnp::Response<capnp::DynamicStruct> &);
+   PyObject * wrap_remote_call(PyObject * func, capnp::Response<capnp::DynamicStruct> &);
    PyObject * wrap_dynamic_struct_reader(capnp::DynamicStruct::Reader &);
    ::kj::Promise<void> * call_server_method(PyObject * py_server, char * name, capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> & context);
    PyObject * wrap_kj_exception(kj::Exception &);
    PyObject * wrap_kj_exception_for_reraise(kj::Exception &);
    PyObject * get_exception_info(PyObject *, PyObject *, PyObject *);
+   PyObject * convert_array_pyobject(kj::Array<PyObject *>&);
+   ::kj::Promise<PyObject *> * extract_promise(PyObject *);
  }
 
 void reraise_kj_exception() {
@@ -39,6 +41,8 @@ void check_py_error() {
     if(err) {
         PyObject * ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+        if(ptype == NULL || pvalue == NULL || ptraceback == NULL)
+          throw kj::Exception(kj::Exception::Nature::OTHER, kj::Exception::Durability::PERMANENT, kj::heapString("capabilityHelper.h"), 44, kj::heapString("Unknown error occurred"));
 
         PyObject * info = get_exception_info(ptype, pvalue, ptraceback);
 
@@ -62,26 +66,39 @@ void check_py_error() {
 }
 
 // TODO: need to decref error_func as well on successful run
-PyObject * wrapPyFunc(PyObject * func, PyObject * arg) {
+kj::Promise<PyObject *> wrapPyFunc(PyObject * func, PyObject * arg) {
     PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
     Py_DECREF(func);
 
     check_py_error();
+
+    auto promise = extract_promise(result);
+    if(promise != NULL)
+      return kj::mv(*promise);
     return result;
 }
 
-PyObject * wrapPyFuncNoArg(PyObject * func) {
+kj::Promise<PyObject *> wrapPyFuncNoArg(PyObject * func) {
     PyObject * result = PyObject_CallFunctionObjArgs(func, NULL);
     Py_DECREF(func);
 
     check_py_error();
+
+    auto promise = extract_promise(result);
+    if(promise != NULL)
+      return kj::mv(*promise);
     return result;
 }
 
-void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg) {
-    wrap_remote_call(func, arg);
+kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg) {
+    PyObject * ret = wrap_remote_call(func, arg);
 
     check_py_error();
+
+    auto promise = extract_promise(ret);
+    if(promise != NULL)
+      return kj::mv(*promise);
+    return ret;
 }
 
 ::kj::Promise<PyObject *> then(kj::Promise<PyObject *> & promise, PyObject * func, PyObject * error_func) {
@@ -92,12 +109,12 @@ void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
-::kj::Promise<void> then(::capnp::RemotePromise< ::capnp::DynamicStruct> & promise, PyObject * func, PyObject * error_func) {
+::kj::Promise<PyObject *> then(::capnp::RemotePromise< ::capnp::DynamicStruct> & promise, PyObject * func, PyObject * error_func) {
   if(error_func == Py_None)
-    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrapRemoteCall(func, arg); } );
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return wrapRemoteCall(func, arg); } );
   else
-    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { wrapRemoteCall(func, arg); } 
-                                     , [error_func](kj::Exception arg) { wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return  wrapRemoteCall(func, arg); } 
+                                     , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
 ::kj::Promise<PyObject *> then(kj::Promise<void> & promise, PyObject * func, PyObject * error_func) {
@@ -106,6 +123,10 @@ void wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg
   else
     return promise.then([func]() { return wrapPyFuncNoArg(func); } 
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
+}
+
+::kj::Promise<PyObject *> then(kj::Promise<kj::Array<PyObject *> > && promise) {
+  return promise.then([](kj::Array<PyObject *>&& arg) { return convert_array_pyobject(arg); } );
 }
 
 class PythonInterfaceDynamicImpl final: public capnp::DynamicCapability::Server {
@@ -151,4 +172,13 @@ capnp::Capability::Client server_to_client(capnp::InterfaceSchema & schema, PyOb
 
 ::kj::Promise<PyObject *> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> & promise) {
     return promise.then([](capnp::Response<capnp::DynamicStruct>&& response) { return wrap_dynamic_struct_reader(response); } );
+}
+
+::kj::Promise<PyObject *> convert_to_pypromise(kj::Promise<void> & promise) {
+    return promise.then([]() { Py_RETURN_NONE;} );
+}
+
+template<class T>
+::kj::Promise<void> convert_to_voidpromise(kj::Promise<T> & promise) {
+    return promise.then([](T) { } );
 }

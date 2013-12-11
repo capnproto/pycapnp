@@ -17,6 +17,7 @@ from types import ModuleType as _ModuleType
 import os as _os
 import sys as _sys
 import imp as _imp
+import traceback as _traceback
 from functools import partial as _partial
 import warnings as _warnings
 import inspect as _inspect
@@ -26,12 +27,14 @@ from operator import attrgetter as _attrgetter
 cdef public object wrap_dynamic_struct_reader(C_DynamicStruct.Reader & reader):
     return _DynamicStructReader()._init(reader, None)
 
-cdef public void wrap_remote_call(PyObject * func, Response & r) except *:
+cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except *:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
 
     func_obj = <object>func
     # TODO: decref func?
-    func_obj(response)
+    ret = func_obj(response)
+    Py_INCREF(ret)
+    return <PyObject *>ret
 
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
@@ -44,24 +47,29 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
     func = getattr(server, method_name+'_context', None)
     if func is not None:
         ret = func(context)
+        Py_INCREF(ret) #TODO: stop leaking this
         if ret is not None:
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
+            elif type(ret) is Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
             else:
                 try:
-                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise: return = %s' % (method_name, str(ret))
+                    warning_msg = 'Server function (%s) returned a value that was not a Promise: return = %s' % (method_name, str(ret))
                 except:
-                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise' % (method_name)
+                    warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
 
         if ret is not None:
-            if type(ret) is _VoidPromise:
-                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
+            if type(ret) is Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
+            elif type(ret) is Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
             else:
                 try:
-                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise: return = %s' % (method_name, str(ret))
+                    warning_msg = 'Server function (%s) returned a value that was not a Promise: return = %s' % (method_name, str(ret))
                 except:
-                    warning_msg = 'Server function (%s) returned a value that was not a VoidPromise' % (method_name)
+                    warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
     else:
         func = getattr(server, method_name) # will raise if no function found
@@ -69,10 +77,13 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
         params_dict = {name : getattr(params, name) for name in params.schema.fieldnames}
         params_dict['_context'] = context
         ret = func(**params_dict)
+        Py_INCREF(ret) #TODO: stop leaking this
 
         if ret is not None:
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
+            elif type(ret) is Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
             if not isinstance(ret, tuple):
                 ret = (ret,)
             names = _find_field_order(context.results.schema.node.struct)
@@ -85,15 +96,28 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
 
     return NULL
     
-cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicStruct.Reader & _reader) except *:
+cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicObject.Reader & _reader) except *:
     restorer = <object>_restorer
-    reader = _DynamicStructReader()._init(_reader, None)
+    reader = _DynamicObjectReader()._init(_reader, None)
 
-    ret = restorer.restore(reader)
+    ret = restorer._restore(reader)
     cdef _DynamicCapabilityServer server = ret
     cdef _InterfaceSchema schema = ret.schema
 
     return new C_Capability.Client(helpers.server_to_client(schema.thisptr, <PyObject *>server))
+
+
+cdef public convert_array_pyobject(PyArray & arr):
+    return [<object>arr[i] for i in range(arr.size())]
+
+cdef public PyPromise * extract_promise(object obj):
+    if type(obj) is Promise:
+        promise = <Promise>obj
+        promise.is_consumed = True
+        Py_INCREF(promise) # TODO: fix leak
+        return promise.thisptr
+
+    return NULL
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
     String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
@@ -234,8 +258,8 @@ ctypedef fused _DynamicSetterClasses:
     C_DynamicStruct.Builder
     Request
 
-ctypedef fused _PromiseTypes:
-    _Promise
+ctypedef fused PromiseTypes:
+    Promise
     _RemotePromise
     _VoidPromise
     PromiseFulfillerPair
@@ -637,7 +661,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
         thisptr.set(field, _extract_dynamic_server(value))
     else:
-        raise ValueError("Non primitive type")
+        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
 cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -672,7 +696,7 @@ cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
     else:
-        raise ValueError("Non primitive type")
+        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
 cdef _to_dict(msg, bint verbose):
     msg_type = type(msg)
@@ -1108,7 +1132,7 @@ cdef class _DynamicObjectReader:
         self._parent = parent
         return self
 
-    cpdef as_struct(self, schema):
+    cpdef as_struct(self, schema) except +reraise_kj_exception:
         cdef _StructSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
@@ -1116,6 +1140,9 @@ cdef class _DynamicObjectReader:
             s = schema
 
         return _DynamicStructReader()._init(self.thisptr.getAs(s.thisptr), self._parent)
+
+    cpdef as_text(self) except +reraise_kj_exception:
+        return (<char*>self.thisptr.getAsText().cStr())[:]
 
 cdef class _DynamicObjectBuilder:
     cdef C_DynamicObject.Builder * thisptr
@@ -1129,7 +1156,7 @@ cdef class _DynamicObjectBuilder:
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef as_struct(self, schema):
+    cpdef as_struct(self, schema) except +reraise_kj_exception:
         cdef _StructSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
@@ -1140,6 +1167,9 @@ cdef class _DynamicObjectBuilder:
 
     cpdef set_as_text(self, text):
         self.thisptr.setAsText(text)
+
+    cpdef as_text(self) except +reraise_kj_exception:
+        return (<char*>self.thisptr.getAsText().cStr())[:]
 
 cdef class _EventLoop:
     cdef capnp.AsyncIoContext * thisptr
@@ -1163,6 +1193,11 @@ cdef class _EventLoop:
         return deref(self.thisptr.lowLevelProvider).wrapSocketFd(fd)
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP = _EventLoop()
+
+cpdef reset_event_loop():
+    global C_DEFAULT_EVENT_LOOP
+    C_DEFAULT_EVENT_LOOP._remove()
+    C_DEFAULT_EVENT_LOOP = _EventLoop()
 
 cdef class _CallContext:
     cdef CallContext * thisptr
@@ -1192,18 +1227,28 @@ cdef class _CallContext:
         self.thisptr.allowCancellation()
 
     cpdef tail_call(self, _Request tailRequest):
-        return _VoidPromise()._init(self.thisptr.tailCall(moveRequest(deref(tailRequest.thisptr_child))))
+        promise = _VoidPromise()._init(self.thisptr.tailCall(moveRequest(deref(tailRequest.thisptr_child))))
+        promise.is_consumed = True
+        return promise
 
-cdef class _Promise:
+cdef class Promise:
     cdef PyPromise * thisptr
     cdef public bint is_consumed
+    cdef public object _parent, _obj
 
-    def __init__(self):
-        self.is_consumed = True
+    def __init__(self, obj=None):
+        if obj is None:
+            self.is_consumed = True
+        else:
+            self.is_consumed = False
+            self._obj = obj
+            Py_INCREF(obj) # TODO: fix this
+            self.thisptr = new PyPromise(<PyObject *>obj)
 
-    cdef _init(self, PyPromise other):
+    cdef _init(self, PyPromise other, parent=None):
         self.is_consumed = False
         self.thisptr = new PyPromise(movePromise(other))
+        self._parent = parent
         return self
 
     def __dealloc__(self):
@@ -1225,7 +1270,7 @@ cdef class _Promise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
 
 cdef class _VoidPromise:
     cdef VoidPromise * thisptr
@@ -1257,7 +1302,12 @@ cdef class _VoidPromise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+
+    cpdef as_pypromise(self) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+        Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
@@ -1273,8 +1323,8 @@ cdef class _RemotePromise:
         self._parent = parent
         return self
 
-    def __dealloc__(self):
-        del self.thisptr
+    # def __dealloc__(self):
+    #     del self.thisptr
 
     cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1286,7 +1336,9 @@ cdef class _RemotePromise:
         return ret
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
-        _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)))
+        if self.is_consumed:
+            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+        Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1295,7 +1347,7 @@ cdef class _RemotePromise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return _VoidPromise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func))
+        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
 
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
@@ -1322,6 +1374,26 @@ cdef class _RemotePromise:
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
 
+cpdef join_promises(promises) except +reraise_kj_exception:
+    heap = capnp.heapArrayBuilderPyPromise(len(promises))
+
+    new_promises = []
+    new_promises_append = new_promises.append
+
+    for promise in promises:
+        promise_type = type(promise)
+        if promise_type is Promise:
+            pyPromise = <Promise>promise
+        elif promise_type is _RemotePromise or promise_type is _VoidPromise:
+            pyPromise = <Promise>promise.as_pypromise()
+            new_promises_append(pyPromise)
+        else:
+            raise ValueError('One of the promises passed to `join_promises` had a non promise value of: ' + str(promise))
+        heap.add(movePromise(deref(pyPromise.thisptr)))
+        pyPromise.is_consumed = True
+
+    return Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
+
 cdef class _Request(_DynamicStructBuilder):
     cdef Request * thisptr_child
 
@@ -1330,6 +1402,7 @@ cdef class _Request(_DynamicStructBuilder):
         self._init(<C_DynamicStruct.Builder>deref(self.thisptr_child), parent)
         return self
 
+    #TODO: dealloc
     cpdef send(self):
         return _RemotePromise()._init(self.thisptr_child.send(), self._parent)
 
@@ -1341,6 +1414,7 @@ cdef class _Response(_DynamicStructReader):
         self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
         return self
 
+    #TODO: dealloc
     cdef _init_childptr(self, Response * other, parent):
         self.thisptr_child = other
         self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
@@ -1483,25 +1557,19 @@ cdef class _CapabilityClient:
             s = schema
         return _DynamicCapabilityClient()._init(self.thisptr.castAs(s.thisptr), self._parent)
 
-cdef class Restorer:
+cdef class _Restorer:
     cdef PyRestorer * thisptr
-    cdef C_StructSchema schema
-
     cdef public object restore
 
-    def __init__(self, schema, restore_func):
-        cdef _StructSchema s
-        if hasattr(schema, 'schema'):
-            s = schema.schema
-        else:
-            s = schema
-
-        self.schema = s.thisptr
-        self.restore = restore_func
-        self.thisptr = new PyRestorer(<PyObject*>self, self.schema)
+    def __init__(self, restore):
+        self.thisptr = new PyRestorer(<PyObject*>self)
+        self.restore = restore
 
     def __dealloc__(self):
         del self.thisptr
+
+    def _restore(self, obj):
+        return self.restore(obj)
 
 cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
@@ -1510,21 +1578,34 @@ cdef class _TwoPartyVatNetwork:
         self.thisptr = makeTwoPartyVatNetwork(stream, side)
         return self
 
-cdef class RpcClient:
+cdef _Restorer _convert_restorer(restorer):
+    if isinstance(restorer, _RestorerImpl):
+        return _Restorer(restorer._restore)
+    elif type(restorer) is _Restorer:
+        return restorer
+    elif hasattr(restorer, 'restore'):
+        return _Restorer(restorer.restore)
+    elif callable(restorer):
+        return _Restorer(restorer)
+    else:
+        raise ValueError("Restorer object ({}) isn't able to be used as a restore".format(str(restorer)))
+
+cdef class TwoPartyClient:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
-    cdef public object restorer, _stream
+    cdef public object _stream
+    cdef public _Restorer restorer
     cdef public _FdAsyncIoStream stream
 
-    def __init__(self, stream, Restorer restorer=None):
+    def __init__(self, stream, restorer=None):
         self._stream = stream
         self.stream = _FdAsyncIoStream(stream.fileno())
         self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.CLIENT)
         if restorer is None:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr)))
         else:
-            self.restorer = restorer
-            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), deref(restorer.thisptr)))
+            self.restorer = _convert_restorer(restorer)
+            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
 
     def __dealloc__(self):
         del self.thisptr
@@ -1568,18 +1649,23 @@ cdef class RpcClient:
 
         return self.restore(ref.objectId)
 
-cdef class RpcServer:
+cdef class TwoPartyServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork network
-    cdef public object restorer, _stream
+    cdef public object _stream
+    cdef public _Restorer restorer
     cdef public _FdAsyncIoStream stream
 
-    def __init__(self, stream, Restorer restorer):
+    def __init__(self, stream, restorer):
         self._stream = stream
         self.stream = _FdAsyncIoStream(stream.fileno())
-        self.restorer = restorer
+        Py_INCREF(self._stream)
+        Py_INCREF(self.stream) # TODO: attach this to onDrained, also figure out what's leaking
+        self.restorer = _convert_restorer(restorer)
         self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.SERVER)
-        self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(restorer.thisptr)))
+        self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
+        Py_INCREF(self.restorer) # TODO: attach this to onDrained, also figure out what's leaking
+        Py_INCREF(self.network) # TODO: attach this to onDrained, also figure out what's leaking
 
     def __dealloc__(self):
         del self.thisptr
@@ -1751,9 +1837,17 @@ cdef _new_message(self, kwargs):
         _from_dict(msg, kwargs)
     return msg
 
+class _RestorerImpl(object):
+    pass
+
 class _StructModule(object):
-    def __init__(self, schema):
+    def __init__(self, schema, name):
+        def blank_init(server_self):
+            pass
+        def _restore(self, obj):
+            return self.restore(obj.as_struct(self.schema))
         self.schema = schema
+        self.Restorer = type(name + '.Restorer', (_RestorerImpl,), {'schema':schema, '_restore':_restore})
 
     def read(self, file, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the unpacked object read from file.
@@ -1876,7 +1970,7 @@ class _InterfaceModule(object):
         def server_init(server_self):
             pass
         self.schema = schema
-        self.Server = type(name, (_DynamicCapabilityServer,), {'__init__': server_init, 'schema':schema})
+        self.Server = type(name + '.Server', (_DynamicCapabilityServer,), {'__init__': server_init, 'schema':schema})
 
     def _new_client(self, server):
         return _DynamicCapabilityClient()._init_vals(self.schema, server)
@@ -1955,7 +2049,7 @@ cdef class SchemaParser:
                 schema = nodeSchema.get_nested(node.name)
                 proto = schema.get_proto()
                 if proto.isStruct:
-                    local_module = _StructModule(schema.as_struct())
+                    local_module = _StructModule(schema.as_struct(), node.name)
                     class Reader(_DynamicStructReader):
                         """An abstract base class.  Readers are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta

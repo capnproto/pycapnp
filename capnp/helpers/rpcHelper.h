@@ -6,12 +6,12 @@
 #include "capabilityHelper.h"
 
 extern "C" {
-   capnp::Capability::Client * call_py_restorer(PyObject *, capnp::DynamicStruct::Reader &);
+   capnp::Capability::Client * call_py_restorer(PyObject *, capnp::AnyPointer::Reader &);
 }
 
 class PyRestorer final: public capnp::SturdyRefRestorer<capnp::AnyPointer> {
 public:
-  PyRestorer(PyObject * _py_restorer, capnp::StructSchema& _schema): py_restorer(_py_restorer), schema(_schema) {
+  PyRestorer(PyObject * _py_restorer): py_restorer(_py_restorer) {
     // We don't need to incref/decref, since this C++ class will be owned by the Python wrapper class, and we'll make sure the python class doesn't refcount to 0 elsewhere.
     // Py_INCREF(py_restorer);
   }
@@ -21,8 +21,7 @@ public:
   // }
   
   capnp::Capability::Client restore(capnp::AnyPointer::Reader objectId) override {
-    auto reader = objectId.getAs<capnp::DynamicStruct>(schema);
-    capnp::Capability::Client * ret = call_py_restorer(py_restorer, reader);
+    capnp::Capability::Client * ret = call_py_restorer(py_restorer, objectId);
     check_py_error();
     capnp::Capability::Client stack_ret(*ret);
     delete ret;
@@ -32,7 +31,6 @@ public:
 
 private:
   PyObject * py_restorer;
-  capnp::StructSchema schema;
 };
 
 capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageBuilder & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
