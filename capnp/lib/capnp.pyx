@@ -2311,6 +2311,16 @@ cdef class _MessageReader:
             s = schema
         return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
 
+    cpdef get_root_as_any(self) except +reraise_kj_exception:
+        """A method for getting a Cap'n Proto AnyPointer, from an already pre-written buffer
+
+        Don't use this method unless you know what you're doing.
+
+        :rtype: :class:`_DynamicObjectReader`
+        :return: An AnyPointer that you can read from
+        """
+        return _DynamicObjectReader()._init(self.thisptr.getRootAnyPointer(), self)
+
 cdef class _StreamFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor
 
