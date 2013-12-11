@@ -1559,11 +1559,12 @@ cdef class _CapabilityClient:
 
 cdef class _Restorer:
     cdef PyRestorer * thisptr
-    cdef public object restore
+    cdef public object restore, _parent
 
-    def __init__(self, restore):
+    def __init__(self, restore, parent=None):
         self.thisptr = new PyRestorer(<PyObject*>self)
         self.restore = restore
+        self._parent = parent
 
     def __dealloc__(self):
         del self.thisptr
@@ -1580,11 +1581,11 @@ cdef class _TwoPartyVatNetwork:
 
 cdef _Restorer _convert_restorer(restorer):
     if isinstance(restorer, _RestorerImpl):
-        return _Restorer(restorer._restore)
+        return _Restorer(restorer._restore, restorer)
     elif type(restorer) is _Restorer:
         return restorer
     elif hasattr(restorer, 'restore'):
-        return _Restorer(restorer.restore)
+        return _Restorer(restorer.restore, restorer)
     elif callable(restorer):
         return _Restorer(restorer)
     else:
@@ -1605,7 +1606,11 @@ cdef class TwoPartyClient:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr)))
         else:
             self.restorer = _convert_restorer(restorer)
+            Py_INCREF(self.restorer)
             self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
+        Py_INCREF(self._stream)
+        Py_INCREF(self.stream)
+        Py_INCREF(self.network) # TODO: attach this to onDrained, also figure out what's leaking
 
     def __dealloc__(self):
         del self.thisptr
@@ -1659,12 +1664,12 @@ cdef class TwoPartyServer:
     def __init__(self, stream, restorer):
         self._stream = stream
         self.stream = _FdAsyncIoStream(stream.fileno())
-        Py_INCREF(self._stream)
-        Py_INCREF(self.stream) # TODO: attach this to onDrained, also figure out what's leaking
         self.restorer = _convert_restorer(restorer)
         self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.SERVER)
         self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
-        Py_INCREF(self.restorer) # TODO: attach this to onDrained, also figure out what's leaking
+        Py_INCREF(self._stream)
+        Py_INCREF(self.stream)
+        Py_INCREF(self.restorer)
         Py_INCREF(self.network) # TODO: attach this to onDrained, also figure out what's leaking
 
     def __dealloc__(self):

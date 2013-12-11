@@ -5,10 +5,8 @@ import argparse
 import socket
 import random
 import capnp
-import traceback
 
 import calculator_capnp
-import rpc_capnp
 
 def readValue(value):
     '''Helper function to asynchronously call read() on a Calculator::Value and
