@@ -17,6 +17,9 @@ class Server(capability.TestInterface.Server):
     def buz(self, i, **kwargs):
         return i.host + '_test'
 
+    def bam(self, i, **kwargs):
+        return str(i) + '_test', i
+
 class PipelineServer(capability.TestPipeline.Server):
     def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
@@ -96,6 +99,12 @@ def test_simple_client():
     response = remote.wait()
 
     assert response.x == 'localhost_test'
+
+    remote = client.bam(i=5)
+    response = remote.wait()
+
+    assert response.x == '5_test'
+    assert response.i == 5
 
     with pytest.raises(ValueError):
         remote = client.foo(5, 10)
