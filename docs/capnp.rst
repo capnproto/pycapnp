@@ -81,43 +81,34 @@ Miscellaneous
   :undoc-members:
   :inherited-members:
 
+.. autoclass:: KjException
+  :members:
+  :undoc-members:
+  :inherited-members:
+
 Functions
 -------------
 .. autofunction:: load
 .. autofunction:: add_import_hook
 .. autofunction:: remove_import_hook
+.. autofunction:: join_promises
 
 Classes
 ----------------
 
 RPC
 ~~~~~~~~~~~~~~~
-.. autoclass:: EventLoop
+.. autoclass:: TwoPartyClient
   :members:
   :undoc-members:
   :inherited-members:
 
-.. autoclass:: FdAsyncIoStream
+.. autoclass:: TwoPartyServer
   :members:
   :undoc-members:
   :inherited-members:
 
-.. autoclass:: RpcClient
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-.. autoclass:: RpcServer
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-.. autoclass:: Restorer
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-.. autoclass:: KjException
+.. autoclass:: Promise
   :members:
   :undoc-members:
   :inherited-members:
