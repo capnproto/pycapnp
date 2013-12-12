@@ -79,13 +79,12 @@ void check_py_error() {
     }
 }
 
-// TODO: need to decref error_func as well on successful run
 kj::Promise<PyObject *> wrapPyFunc(PyObject * func, PyObject * arg) {
     auto arg_promise = extract_promise(arg);
 
     if(arg_promise == NULL) {
       PyObject * result = PyObject_CallFunctionObjArgs(func, arg, NULL);
-      Py_DECREF(func);
+      Py_DECREF(arg);
 
       check_py_error();
 
@@ -104,7 +103,6 @@ kj::Promise<PyObject *> wrapPyFunc(PyObject * func, PyObject * arg) {
 
 kj::Promise<PyObject *> wrapPyFuncNoArg(PyObject * func) {
     PyObject * result = PyObject_CallFunctionObjArgs(func, NULL);
-    Py_DECREF(func);
 
     check_py_error();
 
@@ -186,6 +184,23 @@ public:
     kj::Promise<void> ret(kj::mv(*promise));
     delete promise;
     return ret;
+  }
+};
+
+class PyRefCounter {
+public:
+  PyObject * obj;
+
+  PyRefCounter(PyObject * o) : obj(o) {
+    Py_INCREF(obj);
+  }
+
+  PyRefCounter(const PyRefCounter & ref) : obj(ref.obj) {
+    Py_INCREF(obj);
+  }
+
+  ~PyRefCounter() {
+    Py_DECREF(obj);
   }
 };
 

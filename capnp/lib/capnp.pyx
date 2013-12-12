@@ -32,7 +32,6 @@ cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except *:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
 
     func_obj = <object>func
-    # TODO: decref func?
     ret = func_obj(response)
     Py_INCREF(ret)
     return <PyObject *>ret
@@ -44,11 +43,10 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
     server = <object>_server
     method_name = <object>_method_name
 
-    context = _CallContext()._init(_context) # TODO: invalidate this with promise chain
+    context = _CallContext()._init(_context) # TODO:MEMORY: invalidate this with promise chain
     func = getattr(server, method_name+'_context', None)
     if func is not None:
         ret = func(context)
-        Py_INCREF(ret) #TODO: stop leaking this
         if ret is not None:
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
@@ -78,7 +76,6 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
         params_dict = {name : getattr(params, name) for name in params.schema.fieldnames}
         params_dict['_context'] = context
         ret = func(**params_dict)
-        Py_INCREF(ret) #TODO: stop leaking this
 
         if ret is not None:
             if type(ret) is _VoidPromise:
@@ -114,9 +111,11 @@ cdef public convert_array_pyobject(PyArray & arr):
 cdef public PyPromise * extract_promise(object obj):
     if type(obj) is Promise:
         promise = <Promise>obj
-        promise.is_consumed = True
-        Py_INCREF(promise) # TODO: fix leak
-        return promise.thisptr
+
+        ret = new PyPromise(promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>promise)))
+        Py_DECREF(obj)
+
+        return ret
 
     return NULL
 
@@ -124,8 +123,8 @@ cdef public RemotePromise * extract_remote_promise(object obj):
     if type(obj) is _RemotePromise:
         promise = <_RemotePromise>obj
         promise.is_consumed = True
-        Py_INCREF(promise) # TODO: fix leak
-        return promise.thisptr
+
+        return promise.thisptr # TODO:MEMORY: fix this leak
 
     return NULL
 
@@ -187,6 +186,9 @@ cdef class _KjExceptionWrapper:
 
 # Extension classes can't inherit from Exception, so we're going to proxy wrap kj::Exception, and forward all calls to it from this Python class
 class KjException(Exception):
+
+    '''KjException is a wrapper of the internal C++ exception type. There are 2 enums, `Nature` and `Durability`, listed below, and a bunch of fields'''
+
     Nature = _make_enum('Nature', **{x : x for x in _Nature.reverse_mapping.values()})
     Durability = _make_enum('Durability', **{x : x for x in _Durability.reverse_mapping.values()})
 
@@ -1190,8 +1192,8 @@ cdef class _EventLoop:
     cdef _init(self) except +reraise_kj_exception:
         self.thisptr = new capnp.AsyncIoContext(moveAsyncContext(capnp.setupAsyncIo()))
 
-    def __dealloc__(self):
-        self._remove()
+    # def __dealloc__(self):
+    #     del self.thisptr TODO:MEMORY: fix problems with Promises still being around
 
     cpdef _remove(self) except +reraise_kj_exception:
         del self.thisptr
@@ -1209,7 +1211,6 @@ _C_DEFAULT_EVENT_LOOP_LOCAL = None
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
     'Optimization for not having to deal with threadlocal event loops unless we need to'
     if C_DEFAULT_EVENT_LOOP is not None:
-        print C_DEFAULT_EVENT_LOOP
         return <_EventLoop>C_DEFAULT_EVENT_LOOP
     elif _C_DEFAULT_EVENT_LOOP_LOCAL is not None:
         loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
@@ -1284,7 +1285,7 @@ cdef class Promise:
         else:
             self.is_consumed = False
             self._obj = obj
-            Py_INCREF(obj) # TODO: fix this
+            Py_INCREF(obj)
             self.thisptr = new PyPromise(<PyObject *>obj)
 
     cdef _init(self, PyPromise other, parent=None):
@@ -1300,7 +1301,9 @@ cdef class Promise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = <object>self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope) # TODO: make sure refcount is fine here...
+        ret = <object>self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope)
+        Py_DECREF(ret)
+        
         self.is_consumed = True
 
         return ret
@@ -1309,21 +1312,31 @@ cdef class Promise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        Py_INCREF(func)
-        Py_INCREF(error_func)
+        self.is_consumed = True
 
-        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)
+
+    def attach(self, *args):
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
+        self.is_consumed = True
+
+        return ret
 
 cdef class _VoidPromise:
     cdef VoidPromise * thisptr
     cdef public bint is_consumed
+    cdef public object _parent
 
     def __init__(self):
         self.is_consumed = True
 
-    cdef _init(self, VoidPromise other):
+    cdef _init(self, VoidPromise other, parent=None):
         self.is_consumed = False
         self.thisptr = new VoidPromise(moveVoidPromise(other))
+        self._parent = parent
         return self
 
     def __dealloc__(self):
@@ -1336,20 +1349,25 @@ cdef class _VoidPromise:
         self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope)
         self.is_consumed = True
 
-
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
             raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        Py_INCREF(func)
-        Py_INCREF(error_func)
-
-        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
             raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
         return Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
+
+    def attach(self, *args):
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        ret = _VoidPromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
+        self.is_consumed = True
+
+        return ret
 
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
@@ -1365,8 +1383,8 @@ cdef class _RemotePromise:
         self._parent = parent
         return self
 
-    # def __dealloc__(self):
-    #     del self.thisptr
+    def __dealloc__(self):
+        del self.thisptr
 
     cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1389,7 +1407,7 @@ cdef class _RemotePromise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)
 
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
@@ -1415,6 +1433,15 @@ cdef class _RemotePromise:
 
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
+
+    # def attach(self, *args):
+    #     if self.is_consumed:
+    #         raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+    #     ret = _RemotePromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
+    #     self.is_consumed = True
+
+    #     return ret
 
 cpdef join_promises(promises) except +reraise_kj_exception:
     heap = capnp.heapArrayBuilderPyPromise(len(promises))
@@ -1444,7 +1471,9 @@ cdef class _Request(_DynamicStructBuilder):
         self._init(<C_DynamicStruct.Builder>deref(self.thisptr_child), parent)
         return self
 
-    #TODO: dealloc
+    def __dealloc__(self):
+        del self.thisptr_child
+
     cpdef send(self):
         return _RemotePromise()._init(self.thisptr_child.send(), self._parent)
 
@@ -1456,7 +1485,9 @@ cdef class _Response(_DynamicStructReader):
         self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
         return self
 
-    #TODO: dealloc
+    def __dealloc__(self):
+        del self.thisptr_child
+
     cdef _init_childptr(self, Response * other, parent):
         self.thisptr_child = other
         self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
@@ -1621,6 +1652,12 @@ cdef class _TwoPartyVatNetwork:
         self.thisptr = makeTwoPartyVatNetwork(stream, side)
         return self
 
+    cpdef on_disconnect(self) except +reraise_kj_exception:
+        return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
+
+    cpdef on_drained(self) except +reraise_kj_exception:
+        return _VoidPromise()._init(deref(self.thisptr).onDrained(), self)
+
 cdef _Restorer _convert_restorer(restorer):
     if isinstance(restorer, _RestorerImpl):
         return _Restorer(restorer._restore, restorer)
@@ -1646,13 +1683,15 @@ cdef class TwoPartyClient:
         self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.CLIENT)
         if restorer is None:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr)))
+            self.restorer = None
         else:
             self.restorer = _convert_restorer(restorer)
-            Py_INCREF(self.restorer)
             self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
+
+        Py_INCREF(self.restorer)
         Py_INCREF(self._stream)
         Py_INCREF(self.stream)
-        Py_INCREF(self.network) # TODO: attach this to onDrained, also figure out what's leaking
+        Py_INCREF(self.network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
     def __dealloc__(self):
         del self.thisptr
@@ -1708,10 +1747,11 @@ cdef class TwoPartyServer:
         self.restorer = _convert_restorer(restorer)
         self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.SERVER)
         self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
+
         Py_INCREF(self._stream)
         Py_INCREF(self.stream)
         Py_INCREF(self.restorer)
-        Py_INCREF(self.network) # TODO: attach this to onDrained, also figure out what's leaking
+        Py_INCREF(self.network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
     def __dealloc__(self):
         del self.thisptr
@@ -2715,7 +2755,7 @@ _importer = None
 def add_import_hook(additional_paths=[]):
     """Add a hook to the python import system, so that Cap'n Proto modules are directly importable
 
-    After calling this function, you can use the python import syntax to directly import capnproto schemas::
+    After calling this function, you can use the python import syntax to directly import capnproto schemas. This function is automatically called upon first import of `capnp`, so you will typically never need to use this function.::
 
         import capnp
         capnp.add_import_hook()

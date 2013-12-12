@@ -6,3 +6,5 @@ cdef extern from "../helpers/capabilityHelper.h":
 
 cdef extern from "../helpers/capabilityHelper.h":
     void reraise_kj_exception()
+    cdef cppclass PyRefCounter:
+        PyRefCounter(PyObject *)

@@ -5,18 +5,8 @@ cdef extern from "../helpers/checkCompiler.h":
     pass
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
-from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception
+from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter
 from .capnp.includes.types cimport *
-
-cdef extern from "kj/async.h" namespace " ::kj":
-    cdef cppclass Promise[T]:
-        Promise()
-        Promise(Promise)
-        Promise(T)
-        T wait(WaitScope)
-
-ctypedef Promise[PyObject *] PyPromise
-ctypedef Promise[void] VoidPromise
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
@@ -43,6 +33,26 @@ cdef extern from "kj/memory.h" namespace " ::kj":
         T& operator*()
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side)
     Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(PromiseFulfillerPair&)
+    Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
+
+cdef extern from "kj/async.h" namespace " ::kj":
+    cdef cppclass Promise[T]:
+        Promise()
+        Promise(Promise)
+        Promise(T)
+        T wait(WaitScope)
+        # ForkedPromise<T> fork()
+        # Promise<T> exclusiveJoin(Promise<T>&& other)
+        # Promise[T] eagerlyEvaluate()
+        # void detach(ErrorFunc)
+        String trace()
+        Promise[T] attach(Own[PyRefCounter] &)
+        Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &)
+        Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
+        Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
+
+ctypedef Promise[PyObject *] PyPromise
+ctypedef Promise[void] VoidPromise
 
 cdef extern from "kj/string-tree.h" namespace " ::kj":
     cdef cppclass StringTree:
@@ -242,7 +252,7 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef cppclass TwoPartyVatNetwork:
         TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side)
         VoidPromise onDisconnect()
-        VoidPromise onDrain()
+        VoidPromise onDrained()
     RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&)
     RpcSystem makeRpcClient(TwoPartyVatNetwork&)
 
