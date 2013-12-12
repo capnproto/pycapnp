@@ -28,7 +28,7 @@ On some systems you will have to install Python's headers before doing any of th
 
     sudo apt-get install python-dev
 
-You can control what compiler is used with the environment variable CC, ie. `CC=gcc-4.8 pip install pycapnp`. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
+You can control what compiler is used with the environment variable CC, ie. `CC=gcc-4.8 pip install pycapnp`, and flags with CCFLAGS. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
 
 From Source
 ---------------------
@@ -42,8 +42,6 @@ or::
 
     cd pycapnp
     python setup.py install
-
-If you don't use pip, you will need to manually install Cython, and a setuptools with a version >= .8.
 
 Development
 -------------------

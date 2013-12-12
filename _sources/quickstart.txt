@@ -303,29 +303,21 @@ The examples below will be using `calculator.capnp <https://github.com/jparyani/
 Client
 ~~~~~~~~~~~~~~
 
-Making a socket
+Starting a CLient
 ################
 
-Before you do anything, you'll need to create a connection to the server. You can use anything that is socket-like and has a `fileno` member function, and below we'll just use the :py:mod:`socket` module::
-
-    import socket
-
-    host = 'localhost'
-    port = 60000
-    sock = socket.create_connection((host, port))
-
-    # Optionally set TCP_NODELAY to disable Nagle's algorithm and speed up RPC
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-Restore Methods
-################
-
-Now that you have a socket, it's very easy to connect::
+Starting a client is very easy::
 
     import capnp
     import calculator_capnp
 
-    client = capnp.TwoPartyClient(sock)
+    client = capnp.TwoPartyClient('localhost:60000')
+
+Restoring
+###################
+
+Before you do anything else, you will need to restore a capability from the server. Refer to the `Cap'n Proto docs <http://kentonv.github.io/capnproto/rpc.html>`_ if you don't know what this means::
+
     calculator = client.ez_restore('calculator').cast_as(calculator_capnp.Calculator)
 
 There's two things worth noting here. First, we used the simpler `ez_restore` function. For servers that use a struct type as their Restorer, you will have to do the following instead::
@@ -383,35 +375,18 @@ You can also chain promises with `then` and the same pipelining will occur::
 Server
 ~~~~~~~~~~~~~~
 
-Making a socket
-#################
-
-Again, any socket-like object will work, but here's how to do it with the :py:mod:`socket` module::
-
-    host = '' # this will bind to all interfaces
-    port = 60000
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Optionally set TCP_NODELAY on socket to disable Nagle's algorithm
-    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-    s.bind((host, port))
-    s.listen(1)  # service only 1 client at a time
-
-Then, you will have to accept connections one at a time::
-
-    (sock, address) = s.accept()
-
 Starting a Server
 ##################
 
 Once you have a socket, it's quite simple to start a server::
 
-    server = capnp.TwoPartyServer(sock, restore)
+    server = capnp.TwoPartyServer('*:60000', restore)
 
     server.run_forever()
 
-See the `Restore`_ section
+See the `Restore`_ section for an explanation of what the `restore` object needs to looks like.
+
+.. note:: You can also pass a socket with a `fileno()` method to TwoPartyServer. In that case, `run_forever` will not work, and you will have to use `on_disconnect.wait()`.
 
 Implementing a Server
 #######################

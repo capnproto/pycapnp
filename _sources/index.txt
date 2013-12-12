@@ -1,6 +1,6 @@
 .. capnp documentation master file
 
-Welcome to capnp's documentation!
+Welcome to pycapnp's documentation!
 =================================
 
 This is a python wrapping of the C++ implementation of the `Cap'n Proto <http://kentonv.github.io/capnproto/>`_ library. Here is a short description, quoted from its docs:

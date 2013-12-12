@@ -347,28 +347,20 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <p>The examples below will be using <a class="reference external" href="https://github.com/jparyani/pycapnp/blob/master/examples/calculator.capnp">calculator.capnp</a>. Please refer to it to understand the interfaces that will be used.</p>
 <div class="section" id="client">
 <h3>Client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="making-a-socket">
-<h4>Making a socket<a class="headerlink" href="#making-a-socket" title="Permalink to this headline">¶</a></h4>
-<p>Before you do anything, you&#8217;ll need to create a connection to the server. You can use anything that is socket-like and has a <cite>fileno</cite> member function, and below we&#8217;ll just use the <a class="reference external" href="http://docs.python.org/library/socket.html#socket" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">socket</span></tt></a> module:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">socket</span>
-
-<span class="n">host</span> <span class="o">=</span> <span class="s">&#39;localhost&#39;</span>
-<span class="n">port</span> <span class="o">=</span> <span class="mi">60000</span>
-<span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">create_connection</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
-
-<span class="c"># Optionally set TCP_NODELAY to disable Nagle&#39;s algorithm and speed up RPC</span>
-<span class="n">sock</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">IPPROTO_TCP</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">TCP_NODELAY</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="restore-methods">
-<h4>Restore Methods<a class="headerlink" href="#restore-methods" title="Permalink to this headline">¶</a></h4>
-<p>Now that you have a socket, it&#8217;s very easy to connect:</p>
+<div class="section" id="starting-a-client">
+<h4>Starting a CLient<a class="headerlink" href="#starting-a-client" title="Permalink to this headline">¶</a></h4>
+<p>Starting a client is very easy:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
 <span class="kn">import</span> <span class="nn">calculator_capnp</span>
 
-<span class="n">client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
-<span class="n">calculator</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">ez_restore</span><span class="p">(</span><span class="s">&#39;calculator&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">cast_as</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">Calculator</span><span class="p">)</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">(</span><span class="s">&#39;localhost:60000&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="restoring">
+<h4>Restoring<a class="headerlink" href="#restoring" title="Permalink to this headline">¶</a></h4>
+<p>Before you do anything else, you will need to restore a capability from the server. Refer to the <a class="reference external" href="http://kentonv.github.io/capnproto/rpc.html">Cap&#8217;n Proto docs</a> if you don&#8217;t know what this means:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">calculator</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">ez_restore</span><span class="p">(</span><span class="s">&#39;calculator&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">cast_as</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">Calculator</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>There&#8217;s two things worth noting here. First, we used the simpler <cite>ez_restore</cite> function. For servers that use a struct type as their Restorer, you will have to do the following instead:</p>
@@ -424,34 +416,19 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 <div class="section" id="server">
 <h3>Server<a class="headerlink" href="#server" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="id2">
-<h4>Making a socket<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
-<p>Again, any socket-like object will work, but here&#8217;s how to do it with the <a class="reference external" href="http://docs.python.org/library/socket.html#socket" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">socket</span></tt></a> module:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">host</span> <span class="o">=</span> <span class="s">&#39;&#39;</span> <span class="c"># this will bind to all interfaces</span>
-<span class="n">port</span> <span class="o">=</span> <span class="mi">60000</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
-
-<span class="c"># Optionally set TCP_NODELAY on socket to disable Nagle&#39;s algorithm</span>
-<span class="n">s</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">IPPROTO_TCP</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">TCP_NODELAY</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-
-<span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
-<span class="n">s</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c"># service only 1 client at a time</span>
-</pre></div>
-</div>
-<p>Then, you will have to accept connections one at a time:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">address</span><span class="p">)</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
 <div class="section" id="starting-a-server">
 <h4>Starting a Server<a class="headerlink" href="#starting-a-server" title="Permalink to this headline">¶</a></h4>
 <p>Once you have a socket, it&#8217;s quite simple to start a server:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">server</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyServer</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">restore</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">server</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyServer</span><span class="p">(</span><span class="s">&#39;*:60000&#39;</span><span class="p">,</span> <span class="n">restore</span><span class="p">)</span>
 
 <span class="n">server</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>See the <a class="reference internal" href="#restore">Restore</a> section</p>
+<p>See the <a class="reference internal" href="#restore">Restore</a> section for an explanation of what the <cite>restore</cite> object needs to looks like.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You can also pass a socket with a <cite>fileno()</cite> method to TwoPartyServer. In that case, <cite>run_forever</cite> will not work, and you will have to use <cite>on_disconnect.wait()</cite>.</p>
+</div>
 </div>
 <div class="section" id="implementing-a-server">
 <h4>Implementing a Server<a class="headerlink" href="#implementing-a-server" title="Permalink to this headline">¶</a></h4>
@@ -477,7 +454,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </li>
 <li><p class="first">Method names of your class must either match the interface exactly, or have &#8216;_context&#8217; appended to it</p>
 </li>
-<li><p class="first">If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a <cite>_context</cite> parameter which is equivalent to the C++ API&#8217;s Context. I highly recommend having <a href="#id3"><span class="problematic" id="id4">**</span></a>kwargs as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine.</p>
+<li><p class="first">If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a <cite>_context</cite> parameter which is equivalent to the C++ API&#8217;s Context. I highly recommend having <a href="#id2"><span class="problematic" id="id3">**</span></a>kwargs as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine.</p>
 </li>
 <li><p class="first">Returns work with a bit of magic as well. If you return a promise, then it will be handled the same as if you returned a promise from a server method in the C++ API. Otherwise, your return statement will be filled into the results struct following the ordering in your spec, for example:</p>
 <div class="highlight-python"><pre># capability.capnp file
@@ -570,14 +547,13 @@ class TestInterface(capability_capnp.TestInterface.Server):
 </li>
 <li><a class="reference internal" href="#rpc">RPC</a><ul>
 <li><a class="reference internal" href="#client">Client</a><ul>
-<li><a class="reference internal" href="#making-a-socket">Making a socket</a></li>
-<li><a class="reference internal" href="#restore-methods">Restore Methods</a></li>
+<li><a class="reference internal" href="#starting-a-client">Starting a CLient</a></li>
+<li><a class="reference internal" href="#restoring">Restoring</a></li>
 <li><a class="reference internal" href="#calling-methods">Calling methods</a></li>
 <li><a class="reference internal" href="#pipelining">Pipelining</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#server">Server</a><ul>
-<li><a class="reference internal" href="#id2">Making a socket</a></li>
 <li><a class="reference internal" href="#starting-a-server">Starting a Server</a></li>
 <li><a class="reference internal" href="#implementing-a-server">Implementing a Server</a></li>
 <li><a class="reference internal" href="#restore">Restore</a></li>
