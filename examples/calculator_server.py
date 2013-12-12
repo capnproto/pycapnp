@@ -9,7 +9,7 @@ import capnp
 import calculator_capnp
 
 
-def readValue(value):
+def read_value(value):
     '''Helper function to asynchronously call read() on a Calculator::Value and
     return a promise for the result.  (In the future, the generated code might
     include something like this automatically.)'''
@@ -17,7 +17,7 @@ def readValue(value):
     return value.read().then(lambda result: result.value)
 
 
-def evaluateImpl(expression, params=None):
+def evaluate_impl(expression, params=None):
     '''Implementation of CalculatorImpl::evaluate(), also shared by
     FunctionImpl::call().  In the latter case, `params` are the parameter
     values passed to the function; in the former case, `params` is just an
@@ -28,7 +28,7 @@ def evaluateImpl(expression, params=None):
     if which == 'literal':
         return capnp.Promise(expression.literal)
     elif which == 'previousResult':
-        return readValue(expression.previousResult)
+        return read_value(expression.previousResult)
     elif which == 'parameter':
         assert expression.parameter < len(params)
         return capnp.Promise(params[expression.parameter])
@@ -37,7 +37,7 @@ def evaluateImpl(expression, params=None):
         func = call.function
 
         # Evaluate each parameter.
-        paramPromises = [evaluateImpl(param, params) for param in call.params]
+        paramPromises = [evaluate_impl(param, params) for param in call.params]
 
         joinedParams = capnp.join_promises(paramPromises)
         # When the parameters are complete, call the function.
@@ -78,7 +78,7 @@ class FunctionImpl(calculator_capnp.Calculator.Function.Server):
 
         assert len(params) == self.paramCount
         # using setattr because '=' is not allowed inside of lambdas
-        return evaluateImpl(self.body, params).then(lambda value: setattr(_context.results, 'value', value))
+        return evaluate_impl(self.body, params).then(lambda value: setattr(_context.results, 'value', value))
 
 
 class OperatorImpl(calculator_capnp.Calculator.Function.Server):
@@ -111,7 +111,7 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
     "Implementation of the Calculator Cap'n Proto interface."
 
     def evaluate(self, expression, _context, **kwargs):
-        return evaluateImpl(expression).then(lambda value: setattr(_context.results, 'value', ValueImpl(value)))
+        return evaluate_impl(expression).then(lambda value: setattr(_context.results, 'value', ValueImpl(value)))
 
     def defFunction(self, paramCount, body, _context, **kwargs):
         return FunctionImpl(paramCount, body)
@@ -158,6 +158,11 @@ def main():
     print("Listening on port: {}".format(port))
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
+    # neccessary, but it speeds things up.
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
     s.bind((address, port))
     s.listen(1)  # service only 1 client at a time
 

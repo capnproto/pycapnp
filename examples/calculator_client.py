@@ -285,4 +285,8 @@ if __name__ == '__main__':
     host, port = parse_args().host.split(':')
 
     sock = socket.create_connection((host, port))
+
+    # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
+    # neccessary, but it speeds things up.
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     main(sock)
