@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.3.14 documentation</title>
+    <title>API Reference &mdash; capnp 0.4.0-dev documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.14',
+        VERSION:     '0.4.0-dev',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.14 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.4.0-dev documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.14 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.4.0-dev documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -69,13 +69,13 @@
 <span class="n">alicePhone</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;mobile&#39;</span>
 
 <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
-<span class="n">addresses</span><span class="o">.</span><span class="n">writeTo</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c"># Reading</span>
 <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">)</span>
 
-<span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">readFrom</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addresses</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
     <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
@@ -83,53 +83,197 @@
         <span class="k">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="section" id="functions">
-<h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="capnp.load">
-<tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a Cap&#8217;n Proto schema from a file</p>
-<p>You will have to load a schema before you can begin doing anything
-meaningful with this library. Loading a schema is much like loading
-a Python module (and load even returns a <cite>ModuleType</cite>). Once it&#8217;s been
-loaded, you use it much like any other Module:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
-<span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant in the addressbook.capnp schema</span>
-<span class="c"># 123</span>
-<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+<div class="section" id="internal-classes">
+<h2>Internal Classes<a class="headerlink" href="#internal-classes" title="Permalink to this headline">¶</a></h2>
+<p>These classes are internal to the library. You will never need to allocate
+one yourself, but you may end up using some of their member methods.</p>
+<div class="section" id="modules">
+<h3>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h3>
+<p>These are classes that are made for you when you import a Cap&#8217;n Proto file:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
+<span class="kn">import</span> <span class="nn">addressbook_capnp</span>
+
+<span class="k">print</span> <span class="nb">type</span><span class="p">(</span><span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="p">)</span> <span class="c"># capnp.capnp._StructModule</span>
 </pre></div>
 </div>
+<dl class="class">
+<dt id="capnp._StructModule">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_StructModule</tt><a class="headerlink" href="#capnp._StructModule" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="capnp._StructModule.from_bytes">
+<tt class="descname">from_bytes</tt><big>(</big><em>self</em>, <em>buf</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em>, <em>builder=False</em><big>)</big><a class="headerlink" href="#capnp._StructModule.from_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a Reader for the unpacked object in buf.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>file_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; A relative or absolute path to a Cap&#8217;n Proto schema</li>
-<li><strong>display_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name internally used by the Cap&#8217;n Proto library
-for the loaded schema. By default, it&#8217;s just os.path.basename(file_name)</li>
-<li><strong>imports</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of str directories to add to the import path.</li>
+<li><strong>buf</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#buffer" title="(in Python v2.7)"><em>buffer</em></a>) &#8211; Any Python object that supports the buffer interface.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+<li><strong>builder</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; If true, return a builder object. This will allow you to change the contents of <cite>buf</cite>, so do this with care.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">ModuleType</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A module corresponding to the loaded schema. You can access
-parsed schemas and constants with . syntax</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if <cite>file_name</cite> doesn&#8217;t exist</p>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a> or <a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></p>
 </td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="capnp._StructModule.from_bytes_packed">
+<tt class="descname">from_bytes_packed</tt><big>(</big><em>self</em>, <em>buf</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.from_bytes_packed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a Reader for the packed object in buf.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>buf</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#buffer" title="(in Python v2.7)"><em>buffer</em></a>) &#8211; Any Python object that supports the readable buffer interface.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.from_dict">
+<tt class="descname">from_dict</tt><big>(</big><em>self</em>, <em>kwargs</em><big>)</big><a class="headerlink" href="#capnp._StructModule.from_dict" title="Permalink to this definition">¶</a></dt>
+<dd><div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This method is deprecated and will be removed in the 0.5 release. Use the <a class="reference internal" href="#capnp._StructModule.new_message" title="capnp._StructModule.new_message"><tt class="xref py py-meth docutils literal"><span class="pre">new_message()</span></tt></a> function instead with <a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs</p>
 </div>
-<div class="section" id="internal-classes">
-<h2>Internal Classes<a class="headerlink" href="#internal-classes" title="Permalink to this headline">¶</a></h2>
-<p>These classes are internal to the library. You will never need to allocate
-one yourself, but you may end up using some of their member methods.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.from_object">
+<tt class="descname">from_object</tt><big>(</big><em>self</em>, <em>obj</em><big>)</big><a class="headerlink" href="#capnp._StructModule.from_object" title="Permalink to this definition">¶</a></dt>
+<dd><div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This method is deprecated and will be removed in the 0.5 release. Use the <a class="reference internal" href="#capnp._DynamicStructReader.as_builder" title="capnp._DynamicStructReader.as_builder"><tt class="xref py py-meth docutils literal"><span class="pre">_DynamicStructReader.as_builder()</span></tt></a> or <a class="reference internal" href="#capnp._DynamicStructBuilder.copy" title="capnp._DynamicStructBuilder.copy"><tt class="xref py py-meth docutils literal"><span class="pre">_DynamicStructBuilder.copy()</span></tt></a> functions instead</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.new_message">
+<tt class="descname">new_message</tt><big>(</big><em>self</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#capnp._StructModule.new_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a newly allocated builder message.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; A list of fields and their values to initialize in the struct</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.read">
+<tt class="descname">read</tt><big>(</big><em>self</em>, <em>file</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a Reader for the unpacked object read from file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#file" title="(in Python v2.7)"><em>file</em></a>) &#8211; A python file-like object. It must be a &#8220;real&#8221; file, with a <cite>fileno()</cite> method.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.read_multiple">
+<tt class="descname">read_multiple</tt><big>(</big><em>self</em>, <em>file</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.read_multiple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterable, that when traversed will return Readers for messages.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#file" title="(in Python v2.7)"><em>file</em></a>) &#8211; A python file-like object. It must be a &#8220;real&#8221; file, with a <cite>fileno()</cite> method.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Iterable with elements of <a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.read_multiple_packed">
+<tt class="descname">read_multiple_packed</tt><big>(</big><em>self</em>, <em>file</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.read_multiple_packed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterable, that when traversed will return Readers for messages.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#file" title="(in Python v2.7)"><em>file</em></a>) &#8211; A python file-like object. It must be a &#8220;real&#8221; file, with a <cite>fileno()</cite> method.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Iterable with elements of <a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.read_packed">
+<tt class="descname">read_packed</tt><big>(</big><em>self</em>, <em>file</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.read_packed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a Reader for the packed object read from file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#file" title="(in Python v2.7)"><em>file</em></a>) &#8211; A python file-like object. It must be a &#8220;real&#8221; file, with a <cite>fileno()</cite> method.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp._InterfaceModule">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_InterfaceModule</tt><a class="headerlink" href="#capnp._InterfaceModule" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
 <div class="section" id="readers">
 <h3>Readers<a class="headerlink" href="#readers" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
@@ -142,6 +286,27 @@ one yourself, but you may end up using some of their member methods.</p>
 <span class="k">print</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="s">&#39;field-with-hyphens&#39;</span><span class="p">)</span> <span class="c"># for names that are invalid for python, use getattr</span>
 </pre></div>
 </div>
+<dl class="method">
+<dt id="capnp._DynamicStructReader.as_builder">
+<tt class="descname">as_builder</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.as_builder" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for casting this Builder to a Reader</p>
+<p>This is a copying operation with respect to the message&#8217;s buffer. Changes in the new builder will not reflect in the original reader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp._DynamicStructReader.is_root">
+<tt class="descname">is_root</tt><a class="headerlink" href="#capnp._DynamicStructReader.is_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>is_root: &#8216;bool&#8217;</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="capnp._DynamicStructReader.schema">
 <tt class="descname">schema</tt><a class="headerlink" href="#capnp._DynamicStructReader.schema" title="Permalink to this definition">¶</a></dt>
@@ -150,7 +315,7 @@ one yourself, but you may end up using some of their member methods.</p>
 
 <dl class="method">
 <dt id="capnp._DynamicStructReader.to_dict">
-<tt class="descname">to_dict</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -224,7 +389,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt id="capnp._DynamicStructBuilder.adopt">
 <tt class="descname">adopt</tt><big>(</big><em>self</em>, <em>field</em>, <em>_DynamicOrphan orphan</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.adopt" title="Permalink to this definition">¶</a></dt>
 <dd><p>A method for adopting Cap&#8217;n Proto orphans</p>
-<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unkown sized list.</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unknown sized list.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -246,12 +411,27 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt id="capnp._DynamicStructBuilder.as_reader">
 <tt class="descname">as_reader</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.as_reader" title="Permalink to this definition">¶</a></dt>
 <dd><p>A method for casting this Builder to a Reader</p>
-<p>Don&#8217;t use this method unless you know what you&#8217;re doing.</p>
+<p>This is a non-copying operation with respect to the message&#8217;s buffer. This means changes to the fields in the original struct will carry over to the new reader.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicStructBuilder.copy">
+<tt class="descname">copy</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method for copying this Builder</p>
+<p>This is a copying operation with respect to the message&#8217;s buffer. Changes in the new builder will not reflect in the original reader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
 </tr>
 </tbody>
 </table>
@@ -323,6 +503,12 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="capnp._DynamicStructBuilder.is_root">
+<tt class="descname">is_root</tt><a class="headerlink" href="#capnp._DynamicStructBuilder.is_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>is_root: &#8216;bool&#8217;</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="capnp._DynamicStructBuilder.schema">
 <tt class="descname">schema</tt><a class="headerlink" href="#capnp._DynamicStructBuilder.schema" title="Permalink to this definition">¶</a></dt>
 <dd><p>A property that returns the _StructSchema object matching this writer</p>
@@ -346,8 +532,13 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="capnp._DynamicStructBuilder.to_bytes_packed">
+<tt class="descname">to_bytes_packed</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_bytes_packed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="capnp._DynamicStructBuilder.to_dict">
-<tt class="descname">to_dict</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -444,7 +635,7 @@ the message&#8217;s root struct.</p>
 <dt id="capnp._DynamicListBuilder.adopt">
 <tt class="descname">adopt</tt><big>(</big><em>self</em>, <em>index</em>, <em>_DynamicOrphan orphan</em><big>)</big><a class="headerlink" href="#capnp._DynamicListBuilder.adopt" title="Permalink to this definition">¶</a></dt>
 <dd><p>A method for adopting Cap&#8217;n Proto orphans</p>
-<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unkown sized list.</p>
+<p>Don&#8217;t use this method unless you know what you&#8217;re doing. Orphans are useful for dynamically allocating objects for an unknown sized list.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -534,6 +725,40 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 </dd></dl>
 
 </div>
+<div class="section" id="rpc">
+<h3>RPC<a class="headerlink" href="#rpc" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="capnp._DynamicCapabilityClient">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_DynamicCapabilityClient</tt><a class="headerlink" href="#capnp._DynamicCapabilityClient" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="capnp._DynamicCapabilityClient.cast_as">
+<tt class="descname">cast_as</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp._DynamicCapabilityClient.cast_as" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp._DynamicCapabilityClient.schema">
+<tt class="descname">schema</tt><a class="headerlink" href="#capnp._DynamicCapabilityClient.schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>A property that returns the _InterfaceSchema object matching this client</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._DynamicCapabilityClient.upcast">
+<tt class="descname">upcast</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp._DynamicCapabilityClient.upcast" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp._CapabilityClient">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_CapabilityClient</tt><a class="headerlink" href="#capnp._CapabilityClient" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="capnp._CapabilityClient.cast_as">
+<tt class="descname">cast_as</tt><big>(</big><em>self</em>, <em>schema</em><big>)</big><a class="headerlink" href="#capnp._CapabilityClient.cast_as" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="miscellaneous">
 <h3>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
@@ -544,6 +769,336 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 <tt class="descname">get</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicOrphan.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a python object corresponding to the DynamicValue owned by this orphan</p>
 <p>Use this DynamicValue to set fields inside the orphan</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp.KjException">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">KjException</tt><a class="headerlink" href="#capnp.KjException" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException is a wrapper of the internal C++ exception type. There are 2 enums, <cite>Nature</cite> and <cite>Durability</cite>, listed below, and a bunch of fields</p>
+<dl class="class">
+<dt id="capnp.KjException.Durability">
+<em class="property">class </em><tt class="descname">Durability</tt><a class="headerlink" href="#capnp.KjException.Durability" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="capnp.KjException.Durability.OVERLOADED">
+<tt class="descname">OVERLOADED</tt><em class="property"> = 'OVERLOADED'</em><a class="headerlink" href="#capnp.KjException.Durability.OVERLOADED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Durability.PERMANENT">
+<tt class="descname">PERMANENT</tt><em class="property"> = 'PERMANENT'</em><a class="headerlink" href="#capnp.KjException.Durability.PERMANENT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Durability.TEMPORARY">
+<tt class="descname">TEMPORARY</tt><em class="property"> = 'TEMPORARY'</em><a class="headerlink" href="#capnp.KjException.Durability.TEMPORARY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Durability.reverse_mapping">
+<tt class="descname">reverse_mapping</tt><em class="property"> = {'PERMANENT': 'PERMANENT', 'TEMPORARY': 'TEMPORARY', 'OVERLOADED': 'OVERLOADED'}</em><a class="headerlink" href="#capnp.KjException.Durability.reverse_mapping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp.KjException.Nature">
+<em class="property">class </em><tt class="descclassname">KjException.</tt><tt class="descname">Nature</tt><a class="headerlink" href="#capnp.KjException.Nature" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="capnp.KjException.Nature.LOCAL_BUG">
+<tt class="descname">LOCAL_BUG</tt><em class="property"> = 'LOCAL_BUG'</em><a class="headerlink" href="#capnp.KjException.Nature.LOCAL_BUG" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Nature.NETWORK_FAILURE">
+<tt class="descname">NETWORK_FAILURE</tt><em class="property"> = 'NETWORK_FAILURE'</em><a class="headerlink" href="#capnp.KjException.Nature.NETWORK_FAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Nature.OS_ERROR">
+<tt class="descname">OS_ERROR</tt><em class="property"> = 'OS_ERROR'</em><a class="headerlink" href="#capnp.KjException.Nature.OS_ERROR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Nature.OTHER">
+<tt class="descname">OTHER</tt><em class="property"> = 'OTHER'</em><a class="headerlink" href="#capnp.KjException.Nature.OTHER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Nature.PRECONDITION">
+<tt class="descname">PRECONDITION</tt><em class="property"> = 'PRECONDITION'</em><a class="headerlink" href="#capnp.KjException.Nature.PRECONDITION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.Nature.reverse_mapping">
+<tt class="descname">reverse_mapping</tt><em class="property"> = {'PRECONDITION': 'PRECONDITION', 'LOCAL_BUG': 'LOCAL_BUG', 'NETWORK_FAILURE': 'NETWORK_FAILURE', 'OS_ERROR': 'OS_ERROR', 'OTHER': 'OTHER'}</em><a class="headerlink" href="#capnp.KjException.Nature.reverse_mapping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.args">
+<tt class="descclassname">KjException.</tt><tt class="descname">args</tt><a class="headerlink" href="#capnp.KjException.args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.description">
+<tt class="descclassname">KjException.</tt><tt class="descname">description</tt><a class="headerlink" href="#capnp.KjException.description" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException.description(self)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.durability">
+<tt class="descclassname">KjException.</tt><tt class="descname">durability</tt><a class="headerlink" href="#capnp.KjException.durability" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException.durability(self)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.file">
+<tt class="descclassname">KjException.</tt><tt class="descname">file</tt><a class="headerlink" href="#capnp.KjException.file" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException.file(self)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.line">
+<tt class="descclassname">KjException.</tt><tt class="descname">line</tt><a class="headerlink" href="#capnp.KjException.line" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException.line(self)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.message">
+<tt class="descclassname">KjException.</tt><tt class="descname">message</tt><a class="headerlink" href="#capnp.KjException.message" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.KjException.nature">
+<tt class="descclassname">KjException.</tt><tt class="descname">nature</tt><a class="headerlink" href="#capnp.KjException.nature" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException.nature(self)</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="capnp.load">
+<tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a Cap&#8217;n Proto schema from a file</p>
+<p>You will have to load a schema before you can begin doing anything
+meaningful with this library. Loading a schema is much like loading
+a Python module (and load even returns a <cite>ModuleType</cite>). Once it&#8217;s been
+loaded, you use it much like any other Module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">addressbook</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant in the addressbook.capnp schema</span>
+<span class="c"># 123</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; A relative or absolute path to a Cap&#8217;n Proto schema</li>
+<li><strong>display_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name internally used by the Cap&#8217;n Proto library
+for the loaded schema. By default, it&#8217;s just os.path.basename(file_name)</li>
+<li><strong>imports</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of str directories to add to the import path.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">ModuleType</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A module corresponding to the loaded schema. You can access
+parsed schemas and constants with . syntax</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if <cite>file_name</cite> doesn&#8217;t exist</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="capnp.add_import_hook">
+<tt class="descclassname">capnp.</tt><tt class="descname">add_import_hook</tt><big>(</big><em>additional_paths=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.add_import_hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a hook to the python import system, so that Cap&#8217;n Proto modules are directly importable</p>
+<p>After calling this function, you can use the python import syntax to directly import capnproto schemas. This function is automatically called upon first import of <cite>capnp</cite>, so you will typically never need to use this function.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
+<span class="n">capnp</span><span class="o">.</span><span class="n">add_import_hook</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">addressbook_capnp</span>
+<span class="c"># equivalent to capnp.load(&#39;addressbook.capnp&#39;, &#39;addressbook&#39;, sys.path), except it will search for &#39;addressbook.capnp&#39; in all directories of sys.path</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>additional_paths</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Additional paths, listed as strings, to be used to search for the .capnp files. It is prepended to the beginning of sys.path. It also affects imports inside of Cap&#8217;n Proto schemas.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="capnp.remove_import_hook">
+<tt class="descclassname">capnp.</tt><tt class="descname">remove_import_hook</tt><big>(</big><big>)</big><a class="headerlink" href="#capnp.remove_import_hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the import hook, and return python&#8217;s import to normal</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="capnp.join_promises">
+<tt class="descclassname">capnp.</tt><tt class="descname">join_promises</tt><big>(</big><em>promises</em><big>)</big><a class="headerlink" href="#capnp.join_promises" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h3>RPC<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="capnp.TwoPartyClient">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">TwoPartyClient</tt><a class="headerlink" href="#capnp.TwoPartyClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>TwoPartyClient(socket, restorer=None)</p>
+<dl class="method">
+<dt id="capnp.TwoPartyClient.ez_restore">
+<tt class="descname">ez_restore</tt><big>(</big><em>self</em>, <em>textId</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyClient.ez_restore" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="capnp.TwoPartyClient.restore">
+<tt class="descname">restore</tt><big>(</big><em>self</em>, <em>objectId</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyClient.restore" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp.TwoPartyServer">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">TwoPartyServer</tt><a class="headerlink" href="#capnp.TwoPartyServer" title="Permalink to this definition">¶</a></dt>
+<dd><p>TwoPartyServer(socket, restorer, server_socket=None)</p>
+<dl class="method">
+<dt id="capnp.TwoPartyServer.on_disconnect">
+<tt class="descname">on_disconnect</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyServer.on_disconnect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.TwoPartyServer.port">
+<tt class="descname">port</tt><a class="headerlink" href="#capnp.TwoPartyServer.port" title="Permalink to this definition">¶</a></dt>
+<dd><p>port: &#8216;int&#8217;</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp.TwoPartyServer.run_forever">
+<tt class="descname">run_forever</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyServer.run_forever" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp.Promise">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">Promise</tt><a class="headerlink" href="#capnp.Promise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Promise(obj=None)</p>
+<dl class="method">
+<dt id="capnp.Promise.attach">
+<tt class="descname">attach</tt><big>(</big><em>self</em>, <em>*args</em><big>)</big><a class="headerlink" href="#capnp.Promise.attach" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.Promise.is_consumed">
+<tt class="descname">is_consumed</tt><a class="headerlink" href="#capnp.Promise.is_consumed" title="Permalink to this definition">¶</a></dt>
+<dd><p>is_consumed: &#8216;bool&#8217;</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp.Promise.then">
+<tt class="descname">then</tt><big>(</big><em>self</em>, <em>func</em>, <em>error_func=None</em><big>)</big><a class="headerlink" href="#capnp.Promise.then" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="capnp.Promise.wait">
+<tt class="descname">wait</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp.Promise.wait" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="capnp.PromiseFulfillerPair">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">PromiseFulfillerPair</tt><a class="headerlink" href="#capnp.PromiseFulfillerPair" title="Permalink to this definition">¶</a></dt>
+<dd><p>PromiseFulfillerPair()</p>
+<dl class="method">
+<dt id="capnp.PromiseFulfillerPair.fulfill">
+<tt class="descname">fulfill</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp.PromiseFulfillerPair.fulfill" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.PromiseFulfillerPair.is_consumed">
+<tt class="descname">is_consumed</tt><a class="headerlink" href="#capnp.PromiseFulfillerPair.is_consumed" title="Permalink to this definition">¶</a></dt>
+<dd><p>is_consumed: &#8216;bool&#8217;</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.PromiseFulfillerPair.promise">
+<tt class="descname">promise</tt><a class="headerlink" href="#capnp.PromiseFulfillerPair.promise" title="Permalink to this definition">¶</a></dt>
+<dd><p>promise: capnp.lib.capnp._VoidPromise</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="id4">
+<h3>Miscellaneous<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="capnp.SchemaParser">
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">SchemaParser</tt><a class="headerlink" href="#capnp.SchemaParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class for loading Cap&#8217;n Proto schema files.</p>
+<p>Do not use this class unless you&#8217;re sure you know what you&#8217;re doing. Use the convenience method <a class="reference internal" href="#capnp.load" title="capnp.load"><tt class="xref py py-func docutils literal"><span class="pre">load()</span></tt></a> instead.</p>
+<dl class="method">
+<dt id="capnp.SchemaParser.load">
+<tt class="descname">load</tt><big>(</big><em>self</em>, <em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.SchemaParser.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a Cap&#8217;n Proto schema from a file</p>
+<p>You will have to load a schema before you can begin doing anything
+meaningful with this library. Loading a schema is much like loading
+a Python module (and load even returns a <cite>ModuleType</cite>). Once it&#8217;s been
+loaded, you use it much like any other Module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">parser</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">SchemaParser</span><span class="p">()</span>
+<span class="n">addressbook</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">qux</span> <span class="c"># qux is a top level constant</span>
+<span class="c"># 123</span>
+<span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; A relative or absolute path to a Cap&#8217;n Proto schema</li>
+<li><strong>display_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name internally used by the Cap&#8217;n Proto library
+for the loaded schema. By default, it&#8217;s just os.path.basename(file_name)</li>
+<li><strong>imports</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of str directories to add to the import path.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">ModuleType</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A module corresponding to the loaded schema. You can access
+parsed schemas and constants with . syntax</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.IOError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.IOError</span></tt></a> if <cite>file_name</cite> doesn&#8217;t exist</li>
+<li><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.RuntimeError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.RuntimeError</span></tt></a> if the Cap&#8217;n Proto C++ library has any problems loading the schema</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -561,11 +1116,18 @@ Class for building growable Cap&#8217;n Proto Lists</p>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">API Reference</a><ul>
-<li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#internal-classes">Internal Classes</a><ul>
+<li><a class="reference internal" href="#modules">Modules</a></li>
 <li><a class="reference internal" href="#readers">Readers</a></li>
 <li><a class="reference internal" href="#builders">Builders</a></li>
+<li><a class="reference internal" href="#rpc">RPC</a></li>
 <li><a class="reference internal" href="#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#classes">Classes</a><ul>
+<li><a class="reference internal" href="#id3">RPC</a></li>
+<li><a class="reference internal" href="#id4">Miscellaneous</a></li>
 </ul>
 </li>
 </ul>
@@ -609,7 +1171,7 @@ Class for building growable Cap&#8217;n Proto Lists</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.3.14 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.4.0-dev documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

@@ -80,6 +80,13 @@ Now that you have a message buffer, you need to allocate an actual object that i
 
 Notice that we used `addressbook_capnp` from the previous section: `Load a Cap'n Proto Schema`_.
 
+Also as a shortcut, you can pass keyword arguments to the `new_message` function, and those fields will be set in the new message::
+
+    person = addressbook_capnp.Person.new_message(name='alice')
+    # is equivalent to:
+    person = addressbook_capnp.Person.new_message()
+    person.name = 'alice'
+
 List
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -90,6 +97,8 @@ Allocating a list inside of an object requires use of the `init` function::
 For now, let's grab the first element out of this list and assign it to a variable named `alice`::
 
     alice = people[0]
+
+.. note:: It is a very bad idea to call `init` more than once. Every call to `init` allocates new memory inside your Cap'n Proto message, and if you call it more than once, the previous memory is leaked.
 
 Primitive Types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -117,7 +126,7 @@ First we'll allocate a length one list of phonenumbers for `alice`::
 
 Note that even though it was a length 1 list, it was still a list that was returned, and we extracted the first (and only) element with `[0]`.
 
-Now, enums are treated like strings, and you just assign to them like there were a Text field::
+Enums are treated like strings, and you assign to them like they were a Text field::
     
     alicePhone.type = 'mobile'
 
@@ -141,12 +150,24 @@ Also, one weird case is for Void types in Unions (and in general, but Void is re
 
     bob.employment.unemployed = None 
 
+.. note:: One caveat for unions is having structs as union members. Let us assume `employment.school` was actually a struct with a field of type `Text` called `name`::
+    
+        alice.employment.school.name = "MIT"
+        # Raises a ValueError
+
+    The problem is that a struct within a union isn't initialized automatically. You have to do the following::
+
+        school = alice.employment.init('school')
+        school.name = "MIT"
+
+    Note that this is similar to `init` for lists, but you don't pass a size. Requiring the `init` makes it more clear that a memory allocation is occurring, and will hopefully make you mindful that you shouldn't set more than 1 field inside of a union, else you risk a memory leak
+
 Writing to a File
 ~~~~~~~~~~~~~~~~~~~
 
 Once you're done assigning to all the fields in a message, you can write it to a file like so::
 
-    f = open('example.bin', 'w')
+    f = open('example.bin', 'w+b')
     addresses.write(f)
 
 There is also a `write_packed` function, that writes out the message more space-efficientally. If you use write_packed, make sure to use read_packed when reading the message.
@@ -159,7 +180,7 @@ Reading from a file
 
 Much like before, you will have to de-serialize the message from a file descriptor::
 
-    f = open('example.bin')
+    f = open('example.bin', 'rb')
     addresses = addressbook_capnp.AddressBook.read(f)
 
 Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so::
@@ -209,13 +230,40 @@ As shown in the examples above, there is file serialization with `write()`::
     
     addresses = addressbook_capnp.AddressBook.new_message()
     ...
-    f = open('example.bin', 'w')
+    f = open('example.bin', 'w+b')
     addresses.write(f)
 
 And similarly for reading::
 
-    f = open('example.bin')
+    f = open('example.bin', 'rb')
     addresses = addressbook_capnp.AddressBook.read(f)
+
+There are packed versions as well::
+
+    addresses.write_packed(f)
+    f.seek(0)
+    addresses = addressbook_capnp.AddressBook.read_packed(f)
+
+Multi-message files
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The above methods only guaranteed to work if your file contains a single message. If you have more than 1 message serialized sequentially in your file, then you need to use these convenience functions::
+
+    addresses = addressbook_capnp.AddressBook.new_message()
+    ...
+    f = open('example.bin', 'w+b')
+    addresses.write(f)
+    addresses.write(f)
+    addresses.write(f) # write 3 messages
+    f.seek(0)
+
+    for addresses in addressbook_capnp.AddressBook.read_multiple(f):
+        print addresses
+
+There is also a packed version::
+
+    for addresses in addressbook_capnp.AddressBook.read_multiple_packed(f):
+        print addresses
 
 Dictionaries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,10 +272,11 @@ There is a convenience method for converting Cap'n Proto messages to a dictionar
 
     alice.to_dict()
 
-There is also a convenience method for reading for reading a dict in and building a Builder message out of it. This the inverse of the above::
+For the reverse, all you have to do is pass keyword arguments to the new_message constructor::
 
     my_dict = {'name' : 'alice'}
-    alice = addressbook.Person.from_dict(my_dict)
+    alice = addressbook.Person.new_message(**my_dict)
+    # equivalent to: alice = addressbook.Person.new_message(name='alice')
 
 Byte Strings/Buffers
 ~~~~~~~~~~~~~~~~~~~~~
@@ -240,70 +289,201 @@ And a corresponding from_bytes function::
 
     alice = addressbook.Person.from_bytes(encoded_message)
 
-Full Example
+There are also packed versions::
+
+    alice2 = addressbook.Person.from_bytes_packed(alice.to_bytes_packed())
+
+RPC
+----------
+
+Cap'n Proto has a rich RPC protocol. You should read the `RPC specification <http://kentonv.github.io/capnproto/rpc.html>`_ as well as the `C++ RPC documentation <http://kentonv.github.io/capnproto/cxxrpc.html>`_ before using pycapnp's RPC features. As with the serialization part of this library, the RPC component tries to be a very thin wrapper on top of the C++ API.
+
+The examples below will be using `calculator.capnp <https://github.com/jparyani/pycapnp/blob/master/examples/calculator.capnp>`_. Please refer to it to understand the interfaces that will be used.
+
+Client
+~~~~~~~~~~~~~~
+
+Making a socket
+################
+
+Before you do anything, you'll need to create a connection to the server. You can use anything that is socket-like and has a `fileno` member function, and below we'll just use the :py:mod:`socket` module::
+
+    import socket
+
+    host = 'localhost'
+    port = 60000
+    sock = socket.create_connection((host, port))
+
+    # Optionally set TCP_NODELAY to disable Nagle's algorithm and speed up RPC
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+Restore Methods
+################
+
+Now that you have a socket, it's very easy to connect::
+
+    import capnp
+    import calculator_capnp
+
+    client = capnp.TwoPartyClient(sock)
+    calculator = client.ez_restore('calculator').cast_as(calculator_capnp.Calculator)
+
+There's two things worth noting here. First, we used the simpler `ez_restore` function. For servers that use a struct type as their Restorer, you will have to do the following instead::
+
+    calculator = client.restore(calculator_capnp.MyStructType.new_message(foo='bar')).cast_as(calculator_capnp.Calculator)
+
+Secondly, you see that we are casting the capability that we receive. This is because capabilities are intrinsically dynamic, and they hold no run time type information, so we need to pick what interface to interpret them as.
+
+Calling methods
+################
+
+There are 2 ways to call RPC methods. First the more verbose `request` syntax::
+
+    request = calculator.evaluate_request()
+    request.expression.literal = 123
+    eval_promise = request.send()
+
+This creates a request for the method named 'evaluate', sets `expression.literal` in that calls parameters to 123, and then sends the request and returns a promise (all non-blocking).
+
+The shorter syntax for calling methods is::
+
+    promise = calculator.getOperator(op='add')
+    # equivalent to:
+    request = calculator.getOperator_request()
+    request.op = 'add'
+    promise = request.send()
+
+The major shortcoming with this method is that it doesn't work for complex fields, such as `expression.literal` from the first example.
+
+Once you have a promise, there are 2 ways of getting to the result. The first is to wait for it::
+
+    result = eval_promise.wait()
+
+The second is to build a promise chain by calling `then`::
+
+    def do_stuff(val):
+        ...
+
+    eval_promise.then(do_stuff).wait()
+
+Pipelining
+#################
+
+If a method returns values that are themselves capabilites, then you can access these fields before having to call `wait`. Doing this is called pipelining, and it allows Cap'n Proto to chain the calls without a round-trip occurring to the server::
+
+    # evaluate returns `value` which is itself an interface.
+    # You can call a new method on `value` without having to call wait first
+    read_promise = eval_promise.value.read()
+    read_result = read_promise.wait() # only 1 wait call 
+
+You can also chain promises with `then` and the same pipelining will occur::
+
+    read_result = eval_promise.then(lambda ret: ret.value.read()).wait()
+
+Server
+~~~~~~~~~~~~~~
+
+Making a socket
+#################
+
+Again, any socket-like object will work, but here's how to do it with the :py:mod:`socket` module::
+
+    host = '' # this will bind to all interfaces
+    port = 60000
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Optionally set TCP_NODELAY on socket to disable Nagle's algorithm
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    s.bind((host, port))
+    s.listen(1)  # service only 1 client at a time
+
+Then, you will have to accept connections one at a time::
+
+    (sock, address) = s.accept()
+
+Starting a Server
+##################
+
+Once you have a socket, it's quite simple to start a server::
+
+    server = capnp.TwoPartyServer(sock, restore)
+
+    server.run_forever()
+
+See the `Restore`_ section
+
+Implementing a Server
+#######################
+
+Here's a part of how you would implement a Calculator server::
+
+    class CalculatorImpl(calculator_capnp.Calculator.Server):
+
+        "Implementation of the Calculator Cap'n Proto interface."
+
+        def evaluate(self, expression, _context, **kwargs):
+            return evaluate_impl(expression).then(lambda value: setattr(_context.results, 'value', ValueImpl(value)))
+
+        def defFunction_context(self, context):
+            params = context.params
+            context.results.func = FunctionImpl(params.paramCount, params.body)
+
+        def getOperator(self, op, **kwargs):
+            return OperatorImpl(op)
+
+Some major things worth noting.
+
+- You must inherit from `your_module_capnp.YourInterface.Server`, but don't worry about calling __super__ in your __init__
+- Method names of your class must either match the interface exactly, or have '_context' appended to it
+- If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a `_context` parameter which is equivalent to the C++ API's Context. I highly recommend having **kwargs as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine. 
+- Returns work with a bit of magic as well. If you return a promise, then it will be handled the same as if you returned a promise from a server method in the C++ API. Otherwise, your return statement will be filled into the results struct following the ordering in your spec, for example::
+
+    # capability.capnp file
+    interface TestInterface {
+      foo @0 (i :UInt32, j :Bool) -> (x: Text, i:UInt32);
+    }
+
+    # python code
+    class TestInterface(capability_capnp.TestInterface.Server):
+        def foo(self, i, j, **kwargs):
+            return str(j), i
+
+- If your method ends in _context, then you will only be passed a context parameter. You will have to access params and set results yourself manually. Returning promises still works as above, but you can't return anything else from a method.
+
+Restore
+###########
+
+Restoring can occur in either a class::
+
+    class SimpleRestorer(test_capability_capnp.TestSturdyRefObjectId.Restorer):
+
+        def restore(self, ref_id):
+            if ref_id.tag == 'testInterface':
+                return Server(100)
+            else:
+                raise Exception('Unrecognized ref passed to restore')
+
+    ...
+
+    server = capnp.TwoPartyServer(sock, SimpleRestorer())
+
+Where you inherit from StructType.Restorer, and the argument passed to restore will be cast to the proper type.
+
+Otherwise, restore can be a function::
+
+    def restore(ref_id):
+        if ref_id.as_struct(test_capability_capnp.TestSturdyRefObjectId).tag == 'testInterface':
+            return Server(100)
+        else:
+            raise Exception('Unrecognized ref passed to restore')
+
+    ...
+
+    server = capnp.TwoPartyServer(sock, restore)
+
+
+Full Examples
 ------------------
 
-Here is a full example reproduced from `examples/example.py <https://github.com/jparyani/pycapnp/blob/master/examples/example.py>`_::
-    
-    from __future__ import print_function
-    import os
-    import capnp
-
-    import addressbook_capnp
-
-    def writeAddressBook(file):
-        addresses = addressbook_capnp.AddressBook.new_message()
-        people = addresses.init('people', 2)
-
-        alice = people[0]
-        alice.id = 123
-        alice.name = 'Alice'
-        alice.email = 'alice@example.com'
-        alicePhones = alice.init('phones', 1)
-        alicePhones[0].number = "555-1212"
-        alicePhones[0].type = 'mobile'
-        alice.employment.school = "MIT"
-
-        bob = people[1]
-        bob.id = 456
-        bob.name = 'Bob'
-        bob.email = 'bob@example.com'
-        bobPhones = bob.init('phones', 2)
-        bobPhones[0].number = "555-4567"
-        bobPhones[0].type = 'home'
-        bobPhones[1].number = "555-7654"
-        bobPhones[1].type = 'work'
-        bob.employment.unemployed = None
-
-        addresses.write(file)
-
-
-    def printAddressBook(file):
-        addresses = addressbook_capnp.AddressBook.read(file)
-
-        for person in addresses.people:
-            print(person.name, ':', person.email)
-            for phone in person.phones:
-                print(phone.type, ':', phone.number)
-
-            which = person.employment.which()
-            print(which)
-
-            if which == 'unemployed':
-                print('unemployed')
-            elif which == 'employer':
-                print('employer:', person.employment.employer)
-            elif which == 'school':
-                print('student at:', person.employment.school)
-            elif which == 'selfEmployed':
-                print('self employed')
-            print()
-
-
-    if __name__ == '__main__':
-        f = open('example', 'w')
-        writeAddressBook(f)
-
-        f = open('example', 'r')
-        printAddressBook(f)
-
+`Full examples <https://github.com/jparyani/pycapnp/blob/master/examples>`_ are available on github. There is also an example of a very simplistic RPC available in `test_rpc.py <https://github.com/jparyani/pycapnp/blob/master/test/test_rpc.py>`_.

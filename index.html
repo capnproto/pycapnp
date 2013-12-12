@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to capnp’s documentation! &mdash; capnp 0.3.14 documentation</title>
+    <title>Welcome to capnp’s documentation! &mdash; capnp 0.4.0-dev documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.14',
+        VERSION:     '0.4.0-dev',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.3.14 documentation" href="#" />
+    <link rel="top" title="capnp 0.4.0-dev documentation" href="#" />
     <link rel="next" title="Installation" href="install.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="N">next</a> |</li>
-        <li><a href="#">capnp 0.3.14 documentation</a> &raquo;</li> 
+        <li><a href="#">capnp 0.4.0-dev documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -54,7 +54,7 @@
 <p>This is a python wrapping of the C++ implementation of the <a class="reference external" href="http://kentonv.github.io/capnproto/">Cap&#8217;n Proto</a> library. Here is a short description, quoted from its docs:</p>
 <blockquote>
 <div>Cap’n Proto is an insanely fast data interchange format and capability-based RPC system. Think JSON, except binary. Or think Protocol Buffers, except faster. In fact, in benchmarks, Cap’n Proto is INFINITY TIMES faster than Protocol Buffers.</div></blockquote>
-<p>Since the python library is just a thin wrapping of the C++ library, we inherit a lot of what makes Cap&#8217;n Proto fast. In some simplistic benchmarks (available in the <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/benchmark">benchmark directory of the repo</a>), pycapnp has proven to be decently faster than Protocol Buffers (both pure python and C++ implementations). Also, the python capnp library can load Cap&#8217;n Proto schema files directly, without the need for a seperate compile step like with Protocol Buffers or Thrift.</p>
+<p>Since the python library is just a thin wrapping of the C++ library, we inherit a lot of what makes Cap&#8217;n Proto fast. In some simplistic benchmarks (available in the <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/benchmark">benchmark directory of the repo</a>), pycapnp has proven to be decently faster than Protocol Buffers (both pure python and C++ implementations). Also, the python capnp library can load Cap&#8217;n Proto schema files directly, without the need for a seperate compile step like with Protocol Buffers or Thrift. pycapnp is available on <a class="reference external" href="https://github.com/jparyani/pycapnp.git">github</a> and <a class="reference external" href="https://pypi.python.org/pypi/pycapnp">pypi</a>.</p>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul>
@@ -87,19 +87,44 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quickstart.html#serializing-deserializing">Serializing/Deserializing</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#files">Files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#multi-message-files">Multi-message files</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#dictionaries">Dictionaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#byte-strings-buffers">Byte Strings/Buffers</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#full-example">Full Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#rpc">RPC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#client">Client</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#making-a-socket">Making a socket</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#restore-methods">Restore Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#calling-methods">Calling methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#pipelining">Pipelining</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#server">Server</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#id2">Making a socket</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#starting-a-server">Starting a Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#implementing-a-server">Implementing a Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quickstart.html#restore">Restore</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#full-examples">Full Examples</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="capnp.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="capnp.html#functions">Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="capnp.html#internal-classes">Internal Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#modules">Modules</a></li>
 <li class="toctree-l3"><a class="reference internal" href="capnp.html#readers">Readers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="capnp.html#builders">Builders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#rpc">RPC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="capnp.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="capnp.html#functions">Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="capnp.html#classes">Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#id3">RPC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#id4">Miscellaneous</a></li>
 </ul>
 </li>
 </ul>
@@ -167,7 +192,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              >next</a> |</li>
-        <li><a href="#">capnp 0.3.14 documentation</a> &raquo;</li> 
+        <li><a href="#">capnp 0.4.0-dev documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
