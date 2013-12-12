@@ -1814,12 +1814,15 @@ cdef class TwoPartyServer:
             try:
                 self.on_disconnect().wait()
                 (clientsocket, address) = self._server_socket.accept()
+                self._orig_stream = clientsocket
                 self._stream = _FdAsyncIoStream(clientsocket.fileno())
                 self._network = _TwoPartyVatNetwork()._init(deref(self._stream.thisptr), capnp.SERVER)
                 self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
+                Py_INCREF(self._orig_stream)
+                Py_INCREF(self._stream)
+                Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
             except KeyboardInterrupt:
                 break
-
 
     # TODO: add restore functionality here?
 

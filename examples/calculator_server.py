@@ -138,35 +138,8 @@ def restore(ref):
 def main():
     address = parse_args().address
 
-    if ':' in address:
-        address, port = address.split(':')
-        port = int(port)
-    else:
-        port = random.randint(60000, 61000)
-
-    if address == '*':
-        address = ''
-
-    print("Listening on port: {}".format(port))
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
-    # neccessary, but it speeds things up.
-    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-    s.bind((address, port))
-    s.listen(1)  # service only 1 client at a time
-
-    while True:
-        try:
-            (clientsocket, address) = s.accept()
-            server = capnp.TwoPartyServer(clientsocket, restore)
-
-            server.run_forever()
-            print("client disconnected")
-        except KeyboardInterrupt:
-            break
+    server = capnp.TwoPartyServer(address, restore)
+    server.run_forever()
 
 if __name__ == '__main__':
     main()
