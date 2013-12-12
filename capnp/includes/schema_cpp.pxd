@@ -5,21 +5,9 @@
 
 from libc.stdint cimport *
 from capnp_cpp cimport DynamicOrphan
-cimport capnp_cpp
-ctypedef unsigned int uint
-ctypedef uint8_t UInt8
-ctypedef uint16_t UInt16
-ctypedef uint32_t UInt32
-ctypedef uint64_t UInt64
-ctypedef int8_t Int8
-ctypedef int16_t Int16
-ctypedef int32_t Int32
-ctypedef int64_t Int64
+from .capnp.helpers.non_circular cimport reraise_kj_exception
 
-ctypedef char * Object
-ctypedef bint Bool
-ctypedef float Float32
-ctypedef double Float64
+from .capnp.includes.types cimport *
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicValue:
@@ -38,6 +26,13 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         pass
     cdef cppclass StructSchema(Schema):
         pass
+
+cdef extern from "capnp/any.h" namespace " ::capnp":
+    cdef cppclass AnyPointer:
+        cppclass Reader:
+            pass
+        cppclass Builder:
+            pass
         
 cdef extern from "capnp/blob.h" namespace " ::capnp":
     cdef cppclass Data:
@@ -667,6 +662,8 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         DynamicStruct.Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
         void setRootDynamicStruct'setRoot< ::capnp::DynamicStruct::Reader>'(DynamicStruct.Reader)
 
+        AnyPointer.Builder getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
+
         DynamicOrphan newOrphan'getOrphanage().newOrphan'(StructSchema)
 
     cdef cppclass MessageReader:
@@ -683,34 +680,107 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         Annotation.Reader getRootAnnotation'getRoot< ::capnp::schema::Annotation>'()
 
         DynamicStruct.Reader getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
+        AnyPointer.Reader getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
     
     cdef cppclass MallocMessageBuilder(MessageBuilder):
         MallocMessageBuilder()
         MallocMessageBuilder(int)
 
     cdef cppclass FlatMessageBuilder(MessageBuilder):
-        FlatMessageBuilder(capnp_cpp.WordArrayPtr array)
-        FlatMessageBuilder(capnp_cpp.WordArrayPtr array, ReaderOptions)
+        FlatMessageBuilder(WordArrayPtr array)
+        FlatMessageBuilder(WordArrayPtr array, ReaderOptions)
 
     enum Void:
         VOID
 
+cdef extern from "capnp/common.h" namespace " ::capnp":
+    cdef cppclass word:
+        pass
+
+cdef extern from "kj/common.h" namespace " ::kj":
+    # Cython can't handle ArrayPtr[word] as a function argument
+    cdef cppclass WordArrayPtr " ::kj::ArrayPtr< ::capnp::word>":
+        WordArrayPtr()
+        WordArrayPtr(word *, size_t size)
+        size_t size()
+        word& operator[](size_t index)
+    cdef cppclass ByteArrayPtr " ::kj::ArrayPtr< ::capnp::byte>":
+        ByteArrayPtr()
+        ByteArrayPtr(byte *, size_t size)
+        size_t size()
+        byte& operator[](size_t index)
+
+cdef extern from "kj/array.h" namespace " ::kj":
+    # Cython can't handle Array[word] as a function argument
+    cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
+        word* begin()
+        size_t size()
+
+cdef extern from "kj/array.h" namespace " ::kj":
+    cdef cppclass InputStream:
+        void read(void* buffer, size_t bytes) except +reraise_kj_exception
+        size_t read(void* buffer, size_t minBytes, size_t maxBytes) except +reraise_kj_exception
+        size_t tryRead(void* buffer, size_t minBytes, size_t maxBytes) except +reraise_kj_exception
+        void skip(size_t bytes) except +reraise_kj_exception
+
+    cdef cppclass OutputStream:
+        void write(const void* buffer, size_t size) except +reraise_kj_exception
+        # void write(ArrayPtr<const ArrayPtr<const byte>> pieces);
+
+    cdef cppclass BufferedInputStream(InputStream):
+        pass
+    cdef cppclass BufferedOutputStream(OutputStream):
+        pass
+
+    cdef cppclass BufferedInputStreamWrapper(BufferedInputStream):
+        BufferedInputStreamWrapper(InputStream&)
+    cdef cppclass BufferedOutputStreamWrapper(BufferedOutputStream):
+        BufferedOutputStreamWrapper(OutputStream&)
+
+    cdef cppclass ArrayInputStream(BufferedInputStream):
+        ArrayInputStream(ByteArrayPtr)
+        ByteArrayPtr getArray()
+        # ByteArrayPtr tryGetReadBuffer() except +reraise_kj_exception
+    cdef cppclass ArrayOutputStream(BufferedOutputStream):
+        ArrayOutputStream(ByteArrayPtr)
+        ByteArrayPtr getArray()
+        ByteArrayPtr getWriteBuffer()
+
+    cdef cppclass FdInputStream(InputStream):
+        FdInputStream(int)
+    cdef cppclass FdOutputStream(OutputStream):
+        FdOutputStream(int)
+
 cdef extern from "capnp/serialize.h" namespace " ::capnp":
+    cdef cppclass InputStreamMessageReader(MessageReader):
+        InputStreamMessageReader(InputStream&) except +reraise_kj_exception
+        InputStreamMessageReader(InputStream&, ReaderOptions) except +reraise_kj_exception
     cdef cppclass StreamFdMessageReader(MessageReader):
-        StreamFdMessageReader(int) except +
-        StreamFdMessageReader(int, ReaderOptions) except +
+        StreamFdMessageReader(int) except +reraise_kj_exception
+        StreamFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
     cdef cppclass FlatArrayMessageReader(MessageReader):
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array) except +
-        FlatArrayMessageReader(capnp_cpp.WordArrayPtr array, ReaderOptions) except +
+        FlatArrayMessageReader(WordArrayPtr array) except +reraise_kj_exception
+        FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +reraise_kj_exception
 
-    void writeMessageToFd(int, MessageBuilder&) except +
+    void writeMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
 
-    capnp_cpp.WordArray messageToFlatArray(MessageBuilder &)
+    WordArray messageToFlatArray(MessageBuilder &)
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
-    cdef cppclass PackedFdMessageReader(MessageReader):
-        PackedFdMessageReader(int) except +
-        PackedFdMessageReader(int, ReaderOptions) except +
+    cdef cppclass PackedInputStream(InputStream):
+        PackedInputStream(BufferedInputStream&) except +reraise_kj_exception
+    cdef cppclass PackedOutputStream(OutputStream):
+        PackedOutputStream(BufferedOutputStream&) except +reraise_kj_exception
 
-    void writePackedMessageToFd(int, MessageBuilder&) except +
+    cdef cppclass PackedMessageReader(MessageReader):
+        PackedMessageReader(BufferedInputStream&) except +reraise_kj_exception
+        PackedMessageReader(BufferedInputStream&, ReaderOptions) except +reraise_kj_exception
+
+    cdef cppclass PackedFdMessageReader(MessageReader):
+        PackedFdMessageReader(int) except +reraise_kj_exception
+        PackedFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
+
+    void writePackedMessage(BufferedOutputStream&, MessageBuilder&) except +reraise_kj_exception
+    void writePackedMessage(OutputStream&, MessageBuilder&) except +reraise_kj_exception
+    void writePackedMessageToFd(int, MessageBuilder&) except +reraise_kj_exception

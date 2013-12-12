@@ -8,9 +8,9 @@ C++ Cap'n Proto Library
 
 You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at `http://kentonv.github.io/capnproto/install.html <http://kentonv.github.io/capnproto/install.html>`_, or if you're feeling lazy, you can run the commands below::
 
-    curl -O http://capnproto.org/capnproto-c++-0.3.0.tar.gz
-    tar zxf capnproto-c++-0.3.0.tar.gz
-    cd capnproto-c++-0.3.0
+    curl -O http://capnproto.org/capnproto-c++-0.4.0.tar.gz
+    tar zxf capnproto-c++-0.4.0.tar.gz
+    cd capnproto-c++-0.4.0
     ./configure
     make -j6 check
     sudo make install
@@ -28,7 +28,7 @@ On some systems you will have to install Python's headers before doing any of th
 
     sudo apt-get install python-dev
 
-You can control what compiler is used with the environment variable CC, ie. `CC=gcc-4.8 pip install pycapnp`. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
+You can control what compiler is used with the environment variable CC, ie. `CC=gcc-4.8 pip install pycapnp`, and flags with CCFLAGS. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
 
 From Source
 ---------------------
@@ -42,8 +42,6 @@ or::
 
     cd pycapnp
     python setup.py install
-
-If you don't use pip, you will need to manually install Cython, and a setuptools with a version >= .8.
 
 Development
 -------------------
