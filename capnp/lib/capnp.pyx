@@ -1303,7 +1303,7 @@ cdef class Promise:
 
         ret = <object>self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope)
         Py_DECREF(ret)
-        
+
         self.is_consumed = True
 
         return ret
@@ -1672,26 +1672,26 @@ cdef _Restorer _convert_restorer(restorer):
 
 cdef class TwoPartyClient:
     cdef RpcSystem * thisptr
-    cdef public _TwoPartyVatNetwork network
-    cdef public object _stream
-    cdef public _Restorer restorer
-    cdef public _FdAsyncIoStream stream
+    cdef public _TwoPartyVatNetwork _network
+    cdef public object _orig_stream
+    cdef public _Restorer _restorer
+    cdef public _FdAsyncIoStream _stream
 
     def __init__(self, stream, restorer=None):
-        self._stream = stream
-        self.stream = _FdAsyncIoStream(stream.fileno())
-        self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.CLIENT)
+        self._orig_stream = stream
+        self._stream = _FdAsyncIoStream(stream.fileno())
+        self._network = _TwoPartyVatNetwork()._init(deref(self._stream.thisptr), capnp.CLIENT)
         if restorer is None:
-            self.thisptr = new RpcSystem(makeRpcClient(deref(self.network.thisptr)))
-            self.restorer = None
+            self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
+            self._restorer = None
         else:
-            self.restorer = _convert_restorer(restorer)
-            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
+            self._restorer = _convert_restorer(restorer)
+            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
-        Py_INCREF(self.restorer)
+        Py_INCREF(self._restorer)
+        Py_INCREF(self._orig_stream)
         Py_INCREF(self._stream)
-        Py_INCREF(self.stream)
-        Py_INCREF(self.network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
+        Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
     def __dealloc__(self):
         del self.thisptr
@@ -1736,28 +1736,28 @@ cdef class TwoPartyClient:
 
 cdef class TwoPartyServer:
     cdef RpcSystem * thisptr
-    cdef public _TwoPartyVatNetwork network
-    cdef public object _stream
-    cdef public _Restorer restorer
-    cdef public _FdAsyncIoStream stream
+    cdef public _TwoPartyVatNetwork _network
+    cdef public object _orig_stream
+    cdef public _Restorer _restorer
+    cdef public _FdAsyncIoStream _stream
 
     def __init__(self, stream, restorer):
-        self._stream = stream
-        self.stream = _FdAsyncIoStream(stream.fileno())
-        self.restorer = _convert_restorer(restorer)
-        self.network = _TwoPartyVatNetwork()._init(deref(self.stream.thisptr), capnp.SERVER)
-        self.thisptr = new RpcSystem(makeRpcServer(deref(self.network.thisptr), deref(self.restorer.thisptr)))
+        self._orig_stream = stream
+        self._stream = _FdAsyncIoStream(stream.fileno())
+        self._restorer = _convert_restorer(restorer)
+        self._network = _TwoPartyVatNetwork()._init(deref(self._stream.thisptr), capnp.SERVER)
+        self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
+        Py_INCREF(self._orig_stream)
         Py_INCREF(self._stream)
-        Py_INCREF(self.stream)
-        Py_INCREF(self.restorer)
-        Py_INCREF(self.network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
+        Py_INCREF(self._restorer)
+        Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
     def __dealloc__(self):
         del self.thisptr
 
     def run_forever(self):
-        _VoidPromise()._init(deref(self.network.thisptr).onDisconnect()).wait()
+        _VoidPromise()._init(deref(self._network.thisptr).onDisconnect()).wait()
 
     # TODO: add restore functionality here?
 
