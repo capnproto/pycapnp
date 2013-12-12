@@ -130,17 +130,9 @@ given address/port ADDRESS may be '*' to bind to all local addresses.\
     return parser.parse_args()
 
 
-class CalcRestorer:
-
-    '''A RPC Restorer. This requires a `restore` function to be defined, and
-    will be passed in a SturdyRef by your client'''
-
-    def __init__(self):
-        self.calc = CalculatorImpl()
-
-    def restore(self, ref):
-        assert ref.as_text() == 'calculator'
-        return CalculatorImpl()
+def restore(ref):
+    assert ref.as_text() == 'calculator'
+    return CalculatorImpl()
 
 
 def main():
@@ -169,8 +161,7 @@ def main():
     while True:
         try:
             (clientsocket, address) = s.accept()
-            restorer = CalcRestorer()
-            server = capnp.TwoPartyServer(clientsocket, restorer)
+            server = capnp.TwoPartyServer(clientsocket, restore)
 
             server.run_forever()
             print("client disconnected")
