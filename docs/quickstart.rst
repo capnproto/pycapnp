@@ -317,7 +317,7 @@ Before you do anything, you'll need to create a connection to the server. You ca
     # Optionally set TCP_NODELAY to disable Nagle's algorithm and speed up RPC
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-Restoring
+Restore Methods
 ################
 
 Now that you have a socket, it's very easy to connect::
@@ -411,7 +411,7 @@ Once you have a socket, it's quite simple to start a server::
 
     server.run_forever()
 
-Here `restore` is a function that returns an instance of your Server implementations
+See the `Restore`_ section
 
 Implementing a Server
 #######################
@@ -450,6 +450,37 @@ Some major things worth noting.
             return str(j), i
 
 - If your method ends in _context, then you will only be passed a context parameter. You will have to access params and set results yourself manually. Returning promises still works as above, but you can't return anything else from a method.
+
+Restore
+###########
+
+Restoring can occur in either a class::
+
+    class SimpleRestorer(test_capability_capnp.TestSturdyRefObjectId.Restorer):
+
+        def restore(self, ref_id):
+            if ref_id.tag == 'testInterface':
+                return Server(100)
+            else:
+                raise Exception('Unrecognized ref passed to restore')
+
+    ...
+
+    server = capnp.TwoPartyServer(sock, SimpleRestorer())
+
+Where you inherit from StructType.Restorer, and the argument passed to restore will be cast to the proper type.
+
+Otherwise, restore can be a function::
+
+    def restore(ref_id):
+        if ref_id.as_struct(test_capability_capnp.TestSturdyRefObjectId).tag == 'testInterface':
+            return Server(100)
+        else:
+            raise Exception('Unrecognized ref passed to restore')
+
+    ...
+
+    server = capnp.TwoPartyServer(sock, restore)
 
 
 Full Examples
