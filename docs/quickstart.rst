@@ -437,19 +437,19 @@ Some major things worth noting.
 - You must inherit from `your_module_capnp.YourInterface.Server`, but don't worry about calling __super__ in your __init__
 - Method names of your class must either match the interface exactly, or have '_context' appended to it
 - If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a `_context` parameter which is equivalent to the C++ API's Context. I highly recommend having **kwargs as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine. 
-- Also, returns work with a bit of magic as well. If you return a promise, then it will be handled the same as if you returned a promise from a server method in the C++ API. Otherwise, your return statement will be filled into the results struct following the ordering in your spec, for example::
+- Returns work with a bit of magic as well. If you return a promise, then it will be handled the same as if you returned a promise from a server method in the C++ API. Otherwise, your return statement will be filled into the results struct following the ordering in your spec, for example::
 
-    # .capnp file
+    # capability.capnp file
     interface TestInterface {
       foo @0 (i :UInt32, j :Bool) -> (x: Text, i:UInt32);
     }
 
     # python code
-    class TestInterface(capability.TestInterface.Server):
+    class TestInterface(capability_capnp.TestInterface.Server):
         def foo(self, i, j, **kwargs):
             return str(j), i
 
-- If your method ends in _context, then you will only be passed a context parameter. You will have to access params and set results yourself manually. Returning promises still work as above, but you can't return anything else from a method.
+- If your method ends in _context, then you will only be passed a context parameter. You will have to access params and set results yourself manually. Returning promises still works as above, but you can't return anything else from a method.
 
 
 Full Examples
