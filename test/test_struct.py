@@ -105,4 +105,4 @@ def test_unicode_str(all_types):
     else:
         msg.textField = "f\u00e6oo"
 
-        assert msg.textField == u"f\u00e6oo"
+        assert msg.textField == "f\u00e6oo"
