@@ -14,10 +14,16 @@ cdef extern from "capnp/common.h" namespace " ::capnp":
 
 cdef extern from "kj/string.h" namespace " ::kj":
     cdef cppclass StringPtr:
+        StringPtr()
         StringPtr(char *)
+        StringPtr(char *, size_t)
         char* cStr()
+        size_t size()
+        char* begin()
     cdef cppclass String:
         char* cStr()
+        size_t size()
+        char* begin()
 
 cdef extern from "kj/exception.h" namespace " ::kj":
     cdef cppclass Exception:
@@ -273,11 +279,11 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
     cdef cppclass AnyPointer:
         cppclass Reader:
             DynamicStruct.Reader getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
-            String getAsText"getAs< ::capnp::Text>"()
+            StringPtr getAsText"getAs< ::capnp::Text>"()
         cppclass Builder:
             Builder(Builder)
             DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
-            String getAsText"getAs< ::capnp::Text>"()
+            StringPtr getAsText"getAs< ::capnp::Text>"()
             void setAsStruct"setAs< ::capnp::DynamicStruct>"(DynamicStruct.Reader&) except +reraise_kj_exception
             void setAsText"setAs< ::capnp::Text>"(char*) except +reraise_kj_exception
 
@@ -326,6 +332,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Reader(float value)
             Reader(double value)
             Reader(char* value)
+            Reader(StringPtr value)
             Reader(DynamicList.Reader& value)
             Reader(DynamicEnum value)
             Reader(DynamicStruct.Reader& value)
@@ -336,7 +343,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             uint64_t asUint"as<uint64_t>"()
             bint asBool"as<bool>"()
             double asDouble"as<double>"()
-            String asText"as< ::capnp::Text>"()
+            StringPtr asText"as< ::capnp::Text>"()
             DynamicList.Reader asList"as< ::capnp::DynamicList>"()
             DynamicStruct.Reader asStruct"as< ::capnp::DynamicStruct>"()
             AnyPointer.Reader asObject"as< ::capnp::AnyPointer>"()
@@ -350,7 +357,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             uint64_t asUint"as<uint64_t>"()
             bint asBool"as<bool>"()
             double asDouble"as<double>"()
-            String asText"as< ::capnp::Text>"()
+            StringPtr asText"as< ::capnp::Text>"()
             DynamicList.Builder asList"as< ::capnp::DynamicList>"()
             DynamicStruct.Builder asStruct"as< ::capnp::DynamicStruct>"()
             AnyPointer.Builder asObject"as< ::capnp::AnyPointer>"()

@@ -2,12 +2,20 @@ import pytest
 import capnp
 import os
 import tempfile
+import sys
 
 this_dir = os.path.dirname(__file__)
 
+
 @pytest.fixture
 def addressbook():
-     return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+
+
+@pytest.fixture
+def all_types():
+    return capnp.load(os.path.join(this_dir, 'all_types.capnp'))
+
 
 def test_which_builder(addressbook):
     addresses = addressbook.AddressBook.new_message()
@@ -21,7 +29,7 @@ def test_which_builder(addressbook):
     bob = people[1]
 
     assert bob.employment.which() == "unemployed"
-    
+
     bob.employment.unemployed = None
 
     assert bob.employment.which() == "unemployed"
@@ -30,6 +38,7 @@ def test_which_builder(addressbook):
         addresses.which()
     with pytest.raises(ValueError):
         addresses.which()
+
 
 def test_which_reader(addressbook):
     def writeAddressBook(fd):
@@ -64,6 +73,7 @@ def test_which_reader(addressbook):
     with pytest.raises(ValueError):
         addresses.which()
 
+
 def test_builder_set(addressbook):
     person = addressbook.Person.new_message()
 
@@ -73,3 +83,24 @@ def test_builder_set(addressbook):
 
     with pytest.raises(ValueError):
         person.foo = 'test'
+
+
+def test_null_str(all_types):
+    msg = all_types.TestAllTypes.new_message()
+
+    msg.textField = "f\x00oo"
+    msg.dataField = b"b\x00ar"
+
+    assert msg.textField == "f\x00oo"
+    assert msg.dataField == b"b\x00ar"
+
+
+def test_unicode_str(all_types):
+    msg = all_types.TestAllTypes.new_message()
+
+    msg.textField = u"f\u00e6oo"
+
+    if sys.version_info.major == 2:
+        assert msg.textField.decode('utf-8') == u"f\u00e6oo"
+    else:
+        assert msg.textField == u"f\u00e6oo"

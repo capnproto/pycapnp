@@ -216,7 +216,7 @@ def init_all_types(builder):
     builder.float32Field = 1234.5
     builder.float64Field = -123e45
     builder.textField = "foo"
-    builder.dataField = "bar"
+    builder.dataField = b"bar"
 
     subBuilder = builder.structField
     subBuilder.voidField = None
@@ -232,7 +232,7 @@ def init_all_types(builder):
     subBuilder.float32Field = -1.25e-10
     subBuilder.float64Field = 345
     subBuilder.textField = "baz"
-    subBuilder.dataField = "qux"
+    subBuilder.dataField = b"qux"
     subSubBuilder = subBuilder.structField
     subSubBuilder.textField = "nested"
     subSubBuilder.structField.textField = "really nested"
@@ -251,7 +251,7 @@ def init_all_types(builder):
     subBuilder.float32List = [0, 1234567, 1e37, -1e37, 1e-37, -1e-37]
     subBuilder.float64List = [0, 123456789012345, 1e306, -1e306, 1e-306, -1e-306]
     subBuilder.textList = ["quux", "corge", "grault"]
-    subBuilder.dataList = ["garply", "waldo", "fred"]
+    subBuilder.dataList = [b"garply", b"waldo", b"fred"]
     listBuilder = subBuilder.init('structList', 3)
     listBuilder[0].textField = "x structlist 1"
     listBuilder[1].textField = "x structlist 2"
@@ -273,7 +273,7 @@ def init_all_types(builder):
     builder.float32List = [5555.5, float("inf"), float("-inf"), float("nan")]
     builder.float64List = [7777.75, float("inf"), float("-inf"), float("nan")]
     builder.textList = ["plugh", "xyzzy", "thud"]
-    builder.dataList = ["oops", "exhausted", "rfc3092"]
+    builder.dataList = [b"oops", b"exhausted", b"rfc3092"]
     listBuilder = builder.init('structList', 3)
     listBuilder[0].textField = "structlist 1"
     listBuilder[1].textField = "structlist 2"
@@ -306,7 +306,7 @@ def check_all_types(reader):
     assert reader.float32Field == 1234.5
     assert_almost(reader.float64Field, -123e45)
     assert reader.textField == "foo"
-    assert reader.dataField == "bar"
+    assert reader.dataField == b"bar"
 
     subReader = reader.structField
     assert subReader.voidField == None
@@ -322,7 +322,7 @@ def check_all_types(reader):
     assert_almost(subReader.float32Field, -1.25e-10)
     assert subReader.float64Field == 345
     assert subReader.textField == "baz"
-    assert subReader.dataField == "qux"
+    assert subReader.dataField == b"qux"
 
     subSubReader = subReader.structField
     assert subSubReader.textField == "nested"
@@ -343,7 +343,7 @@ def check_all_types(reader):
     check_list(subReader.float32List, [0.0, 1234567.0, 1e37, -1e37, 1e-37, -1e-37])
     check_list(subReader.float64List, [0.0, 123456789012345.0, 1e306, -1e306, 1e-306, -1e-306])
     check_list(subReader.textList, ["quux", "corge", "grault"])
-    check_list(subReader.dataList, ["garply", "waldo", "fred"])
+    check_list(subReader.dataList, [b"garply", b"waldo", b"fred"])
 
     listReader = subReader.structList
     assert len(listReader) == 3
@@ -381,7 +381,7 @@ def check_all_types(reader):
     assert math.isnan(listReader[3])
 
     check_list(reader.textList, ["plugh", "xyzzy", "thud"])
-    check_list(reader.dataList, ["oops", "exhausted", "rfc3092"])
+    check_list(reader.dataList, [b"oops", b"exhausted", b"rfc3092"])
 
     listReader = reader.structList
     len(listReader) == 3
