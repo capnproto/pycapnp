@@ -98,9 +98,11 @@ def test_null_str(all_types):
 def test_unicode_str(all_types):
     msg = all_types.TestAllTypes.new_message()
 
-    msg.textField = u"f\u00e6oo"
+    if sys.version_info[0] == 2:
+        msg.textField = u"f\u00e6oo"
 
-    if sys.version_info.major == 2:
         assert msg.textField.decode('utf-8') == u"f\u00e6oo"
     else:
+        msg.textField = "f\u00e6oo"
+
         assert msg.textField == u"f\u00e6oo"
