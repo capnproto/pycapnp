@@ -303,7 +303,7 @@ The examples below will be using `calculator.capnp <https://github.com/jparyani/
 Client
 ~~~~~~~~~~~~~~
 
-Starting a CLient
+Starting a Client
 ################
 
 Starting a client is very easy::
