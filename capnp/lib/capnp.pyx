@@ -258,7 +258,7 @@ cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
 
 cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb):
     try:
-        return (exc_tb.tb_frame.f_code.co_filename.encode('utf-8'), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode('utf-8'))
+        return (exc_tb.tb_frame.f_code.co_filename.encode(), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode())
     except:
         return (b'', 0, b"Couldn't determine python exception")
 
@@ -664,7 +664,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, temp)
         del temp2
     elif isinstance(value, basestring):
-        encoded_value = value.encode('utf-8')
+        encoded_value = value.encode()
         temp2 = new capnp.StringPtr(<char*>encoded_value, len(encoded_value))
         temp = C_DynamicValue.Reader(deref(temp2))
         thisptr.set(field, temp)
@@ -709,7 +709,7 @@ cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
         thisptr.set(field, temp)
         del temp2
     elif isinstance(value, basestring):
-        encoded_value = value.encode('utf-8')
+        encoded_value = value.encode()
         temp2 = new capnp.StringPtr(<char*>encoded_value, len(encoded_value))
         temp = C_DynamicValue.Reader(deref(temp2))
         thisptr.set(field, temp)
