@@ -258,7 +258,7 @@ cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
 
 cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb):
     try:
-        return (exc_tb.tb_frame.f_code.co_filename.encode(), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode())
+        return (exc_tb.tb_frame.f_code.co_filename.encode('utf-8'), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode('utf-8'))
     except:
         return (b'', 0, b"Couldn't determine python exception")
 
@@ -574,10 +574,11 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_FLOAT:
         return self.asDouble()
     elif type == capnp.TYPE_TEXT:
-        return (<char*>self.asText().cStr())[:]
+        temp_text = self.asText()
+        return (<char*>temp_text.begin())[:temp_text.size()]
     elif type == capnp.TYPE_DATA:
-        temp = self.asData()
-        return (<char*>temp.begin())[:temp.size()]
+        temp_data = self.asData()
+        return <bytes>((<char*>temp_data.begin())[:temp_data.size()])
     elif type == capnp.TYPE_LIST:
         return _DynamicListReader()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
@@ -606,10 +607,11 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_FLOAT:
         return self.asDouble()
     elif type == capnp.TYPE_TEXT:
-        return (<char*>self.asText().cStr())[:]
+        temp_text = self.asText()
+        return (<char*>temp_text.begin())[:temp_text.size()]
     elif type == capnp.TYPE_DATA:
-        temp = self.asData()
-        return (<char*>temp.begin())[:temp.size()]
+        temp_data = self.asData()
+        return <bytes>((<char*>temp_data.begin())[:temp_data.size()])
     elif type == capnp.TYPE_LIST:
         return _DynamicListBuilder()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
@@ -656,9 +658,17 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif value_type is bool:
         temp = C_DynamicValue.Reader(<cbool>value)
         thisptr.set(field, temp)
-    elif isinstance(value, basestring):
-        temp = C_DynamicValue.Reader(<char*>value)
+    elif value_type is bytes:
+        temp2 = new capnp.StringPtr(<char*>value, len(value))
+        temp = C_DynamicValue.Reader(deref(temp2))
         thisptr.set(field, temp)
+        del temp2
+    elif isinstance(value, basestring):
+        encoded_value = value.encode('utf-8')
+        temp2 = new capnp.StringPtr(<char*>encoded_value, len(encoded_value))
+        temp = C_DynamicValue.Reader(deref(temp2))
+        thisptr.set(field, temp)
+        del temp2
     elif value_type is list:
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
         for (i, v) in enumerate(value):
@@ -693,9 +703,17 @@ cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
     elif value_type is bool:
         temp = C_DynamicValue.Reader(<cbool>value)
         thisptr.set(field, temp)
-    elif isinstance(value, basestring):
-        temp = C_DynamicValue.Reader(<char*>value)
+    elif value_type is bytes:
+        temp2 = new capnp.StringPtr(<char*>value, len(value))
+        temp = C_DynamicValue.Reader(deref(temp2))
         thisptr.set(field, temp)
+        del temp2
+    elif isinstance(value, basestring):
+        encoded_value = value.encode('utf-8')
+        temp2 = new capnp.StringPtr(<char*>encoded_value, len(encoded_value))
+        temp = C_DynamicValue.Reader(deref(temp2))
+        thisptr.set(field, temp)
+        del temp2
     elif value_type is list:
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
         for (i, v) in enumerate(value):
