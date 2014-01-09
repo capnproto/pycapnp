@@ -1212,32 +1212,33 @@ cdef class _EventLoop:
     cdef _init(self) except +reraise_kj_exception:
         self.thisptr = new capnp.AsyncIoContext(moveAsyncContext(capnp.setupAsyncIo()))
 
-    # def __dealloc__(self):
-    #     del self.thisptr TODO:MEMORY: fix problems with Promises still being around
+    def __dealloc__(self):
+        del self.thisptr #TODO:MEMORY: fix problems with Promises still being around
 
     cpdef _remove(self) except +reraise_kj_exception:
         del self.thisptr
         self.thisptr = NULL
 
     cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
-        if self.thisptr == NULL:
-            raise ValueError('Event loop has already been destroyed')
-        return deref(self.thisptr.lowLevelProvider).wrapSocketFd(fd)
+        return deref(deref(self.thisptr).lowLevelProvider).wrapSocketFd(fd)
 
-C_DEFAULT_EVENT_LOOP = _EventLoop()
+cdef _EventLoop C_DEFAULT_EVENT_LOOP = _EventLoop()
 
 _C_DEFAULT_EVENT_LOOP_LOCAL = None
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
     'Optimization for not having to deal with threadlocal event loops unless we need to'
     if C_DEFAULT_EVENT_LOOP is not None:
-        return <_EventLoop>C_DEFAULT_EVENT_LOOP
+        return C_DEFAULT_EVENT_LOOP
     elif _C_DEFAULT_EVENT_LOOP_LOCAL is not None:
         loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
         if loop is not None:
             return <_EventLoop>_C_DEFAULT_EVENT_LOOP_LOCAL.loop
+        else:
+            _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
+            return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
-    raise RuntimeError("You don't have any EventLoops running. Please make sure to add ")
+    raise RuntimeError("You don't have any EventLoops running. Please make sure to add one")
 
 # cpdef remove_event_loop():
 #     'Remove the global event loop'
@@ -1298,6 +1299,7 @@ cdef class Promise:
     cdef PyPromise * thisptr
     cdef public bint is_consumed
     cdef public object _parent, _obj
+    cdef _EventLoop _event_loop
 
     def __init__(self, obj=None):
         if obj is None:
@@ -1307,6 +1309,8 @@ cdef class Promise:
             self._obj = obj
             Py_INCREF(obj)
             self.thisptr = new PyPromise(<PyObject *>obj)
+
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
     cdef _init(self, PyPromise other, parent=None):
         self.is_consumed = False
@@ -1321,7 +1325,7 @@ cdef class Promise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = <object>self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope)
+        ret = <object>self.thisptr.wait(deref(self._event_loop.thisptr).waitScope)
         Py_DECREF(ret)
 
         self.is_consumed = True
@@ -1349,9 +1353,11 @@ cdef class _VoidPromise:
     cdef VoidPromise * thisptr
     cdef public bint is_consumed
     cdef public object _parent
+    cdef _EventLoop _event_loop
 
     def __init__(self):
         self.is_consumed = True
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
     cdef _init(self, VoidPromise other, parent=None):
         self.is_consumed = False
@@ -1366,7 +1372,7 @@ cdef class _VoidPromise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope)
+        self.thisptr.wait(deref(self._event_loop.thisptr).waitScope)
         self.is_consumed = True
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
@@ -1393,9 +1399,11 @@ cdef class _RemotePromise:
     cdef RemotePromise * thisptr
     cdef public bint is_consumed
     cdef public object _parent
+    cdef _EventLoop _event_loop
 
     def __init__(self):
         self.is_consumed = True
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
     cdef _init(self, RemotePromise other, parent):
         self.is_consumed = False
@@ -1410,7 +1418,7 @@ cdef class _RemotePromise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = _Response()._init_child(self.thisptr.wait(C_DEFAULT_EVENT_LOOP_GETTER().thisptr.waitScope), self._parent)
+        ret = _Response()._init_child(self.thisptr.wait(deref(self._event_loop.thisptr).waitScope), self._parent)
         self.is_consumed = True
 
         return ret
@@ -1667,9 +1675,11 @@ cdef class _Restorer:
 
 cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
+    cdef _FdAsyncIoStream stream
 
-    cdef _init(self, AsyncIoStream & stream, Side side):
-        self.thisptr = makeTwoPartyVatNetwork(stream, side)
+    cdef _init(self, _FdAsyncIoStream stream, Side side):
+        self.stream = stream
+        self.thisptr = makeTwoPartyVatNetwork(deref(stream.thisptr), side)
         return self
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
@@ -1703,7 +1713,7 @@ cdef class TwoPartyClient:
 
         self._orig_stream = socket
         self._stream = _FdAsyncIoStream(socket.fileno())
-        self._network = _TwoPartyVatNetwork()._init(deref(self._stream.thisptr), capnp.CLIENT)
+        self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.CLIENT)
         if restorer is None:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
             self._restorer = None
@@ -1718,6 +1728,10 @@ cdef class TwoPartyClient:
 
     def __dealloc__(self):
         del self.thisptr
+        # Py_DECREF(self._restorer)
+        # Py_DECREF(self._orig_stream)
+        # Py_DECREF(self._stream)
+        # Py_DECREF(self._network)
 
     cpdef _connect(self, host_string):
         host, port = host_string.split(':')
@@ -1784,7 +1798,7 @@ cdef class TwoPartyServer:
             self._server_socket = server_socket
             self.port = 0
         self._restorer = _convert_restorer(restorer)
-        self._network = _TwoPartyVatNetwork()._init(deref(self._stream.thisptr), capnp.SERVER)
+        self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
         self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
         Py_INCREF(self._orig_stream)
@@ -1820,6 +1834,10 @@ cdef class TwoPartyServer:
 
     def __dealloc__(self):
         del self.thisptr
+        # Py_DECREF(self._restorer)
+        # Py_DECREF(self._orig_stream)
+        # Py_DECREF(self._stream)
+        # Py_DECREF(self._network)
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
@@ -1831,11 +1849,15 @@ cdef class TwoPartyServer:
         while True:
             try:
                 self.on_disconnect().wait()
+
                 (clientsocket, address) = self._server_socket.accept()
                 self._orig_stream = clientsocket
                 self._stream = _FdAsyncIoStream(clientsocket.fileno())
-                self._network = _TwoPartyVatNetwork()._init(deref(self._stream.thisptr), capnp.SERVER)
+                self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
+                
+                del self.thisptr
                 self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
+                
                 Py_INCREF(self._orig_stream)
                 Py_INCREF(self._stream)
                 Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
@@ -1846,12 +1868,14 @@ cdef class TwoPartyServer:
 
 cdef class _FdAsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
+    cdef _EventLoop _event_loop
 
     def __init__(self, int fd):
         self._init(fd)
 
     cdef _init(self, int fd) except +reraise_kj_exception:
-        self.thisptr = C_DEFAULT_EVENT_LOOP_GETTER().wrapSocketFd(fd)
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        self.thisptr = self._event_loop.wrapSocketFd(fd)
 
 cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr
