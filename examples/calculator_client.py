@@ -80,7 +80,7 @@ def main(host):
     print("PASS")
 
     '''Make a request to evaluate 123 + 45 - 67.
-    #     //
+
     The Calculator interface requires that we first call getOperator() to
     get the addition and subtraction functions, then call evaluate() to use
     them.  But, once again, we can get both functions, call evaluate(), and
@@ -119,18 +119,16 @@ def main(host):
 
     '''
     Note: a one liner version of building the previous request (I highly
-    recommend not doing it this way, but I just wanted to demonstrate it is
-    possible to set all of the fields with a dictionary):
+    recommend not doing it this way for such a complicated structure, but I
+    just wanted to demonstrate it is possible to set all of the fields with a
+    dictionary):
 
-    eval_promise = calculator.evaluate({"call": 
-                                           {"function": subtract,
-                                            "params": [{"call":
-                                                {"function": add,
-                                                 "params": 
-                                                    [{"literal": 123},
-                                                     {"literal": 45}]
-                                                 }}, 
-                                                {"literal": 67.0}]}})
+    eval_promise = calculator.evaluate(
+{'call': {'function': subtract,
+          'params': [{'call': {'function': add,
+                               'params': [{'literal': 123},
+                                          {'literal': 45}]}},
+                     {'literal': 67.0}]}})
     '''
 
     '''Make a request to evaluate 4 * 6, then use the result in two more
