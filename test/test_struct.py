@@ -81,7 +81,7 @@ def test_builder_set(addressbook):
 
     assert person.name == 'test'
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         person.foo = 'test'
 
 
