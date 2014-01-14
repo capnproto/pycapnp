@@ -132,7 +132,7 @@ cdef public RemotePromise * extract_remote_promise(object obj):
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
     String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
-    String strStructBuilder" ::kj::str"(C_DynamicStruct.Builder)
+    String strStructBuilder" ::kj::str"(DynamicStruct_Builder)
     String strRequest" ::kj::str"(Request &)
     String strListReader" ::kj::str"(C_DynamicList.Reader)
     String strListBuilder" ::kj::str"(C_DynamicList.Builder)
@@ -269,7 +269,7 @@ ctypedef fused _DynamicStructReaderOrBuilder:
 
 ctypedef fused _DynamicSetterClasses:
     C_DynamicList.Builder
-    C_DynamicStruct.Builder
+    DynamicStruct_Builder
     Request
 
 ctypedef fused PromiseTypes:
@@ -307,7 +307,7 @@ cdef extern from "<utility>" namespace "std":
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
-    StringTree printStructBuilder" ::capnp::prettyPrint"(C_DynamicStruct.Builder)
+    StringTree printStructBuilder" ::capnp::prettyPrint"(DynamicStruct_Builder)
     StringTree printRequest" ::capnp::prettyPrint"(Request &)
     StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader)
     StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder)
@@ -673,6 +673,13 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
         for (i, v) in enumerate(value):
             builder[i] = v
+    elif value_type is dict:
+        if (_DynamicSetterClasses is DynamicStruct_Builder or _DynamicSetterClasses is Request):
+            builder = to_python_builder(thisptr.get(field), parent)
+            _from_dict(builder, value)
+        else:
+            builder = to_python_builder(thisptr[field], parent)
+            _from_dict(builder, value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
         thisptr.set(field, temp)
@@ -718,6 +725,13 @@ cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
         for (i, v) in enumerate(value):
             builder[i] = v
+    elif value_type is dict:
+        if (_DynamicSetterClasses is DynamicStruct_Builder or _DynamicSetterClasses is Request):
+            builder = to_python_builder(thisptr.get(field), parent)
+            _from_dict(builder, value)
+        else:
+            builder = to_python_builder(thisptr[field], parent)
+            _from_dict(builder, value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
         thisptr.set(field, temp)
@@ -869,11 +883,11 @@ cdef class _DynamicStructBuilder:
         setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef C_DynamicStruct.Builder thisptr
+    cdef DynamicStruct_Builder thisptr
     cdef public object _parent
     cdef public bint is_root
     cdef bint _is_written
-    cdef _init(self, C_DynamicStruct.Builder other, object parent, bint isRoot = False):
+    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot = False):
         self.thisptr = other
         self._parent = parent
         self.is_root = isRoot
@@ -1496,7 +1510,7 @@ cdef class _Request(_DynamicStructBuilder):
 
     cdef _init_child(self, Request other, parent):
         self.thisptr_child = new Request(moveRequest(other))
-        self._init(<C_DynamicStruct.Builder>deref(self.thisptr_child), parent)
+        self._init(<DynamicStruct_Builder>deref(self.thisptr_child), parent)
         return self
 
     def __dealloc__(self):

@@ -1,4 +1,4 @@
-from .capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer
+from .capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer, DynamicStruct_Builder
 
 from non_circular cimport reraise_kj_exception
 
@@ -7,7 +7,7 @@ from cpython.ref cimport PyObject
 cdef extern from "../helpers/fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
     char * getEnumString(DynamicStruct.Reader val)
-    char * getEnumString(DynamicStruct.Builder val)
+    char * getEnumString(DynamicStruct_Builder val)
     char * getEnumString(Request val)
 
 cdef extern from "../helpers/capabilityHelper.h":

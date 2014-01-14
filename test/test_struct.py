@@ -106,3 +106,31 @@ def test_unicode_str(all_types):
         msg.textField = "f\u00e6oo"
 
         assert msg.textField == "f\u00e6oo"
+
+
+def test_new_message(all_types):
+    msg = all_types.TestAllTypes.new_message(int32Field=100)
+
+    assert msg.int32Field == 100
+
+    msg = all_types.TestAllTypes.new_message(structField={'int32Field': 100})
+
+    assert msg.structField.int32Field == 100
+
+    msg = all_types.TestAllTypes.new_message(structList=[{'int32Field': 100}, {'int32Field': 101}])
+
+    assert msg.structList[0].int32Field == 100
+    assert msg.structList[1].int32Field == 101
+
+
+def test_set_dict(all_types):
+    msg = all_types.TestAllTypes.new_message()
+
+    msg.structField = {'int32Field': 100}
+
+    assert msg.structField.int32Field == 100
+
+    msg.init('structList', 2)
+    msg.structList[0] = {'int32Field': 102}
+
+    assert msg.structList[0].int32Field == 102
