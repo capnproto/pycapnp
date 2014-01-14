@@ -240,17 +240,21 @@ cdef public object wrap_kj_exception(capnp.Exception & exception):
 
 cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
     wrapper = _KjExceptionWrapper()._init(exception)
+    wrapper_msg = str(wrapper)
     
     nature = wrapper.nature
 
     if wrapper.nature == 'PRECONDITION':
-        return ValueError(str(wrapper))
+        if 'has no such member' in wrapper_msg:
+            return AttributeError(wrapper_msg)
+        else:
+            return ValueError(wrapper_msg)
     # elif wrapper.nature == 'LOCAL_BUG':
     #     return ValueError(str(wrapper))
     if wrapper.nature == 'OS_ERROR':
-        return OSError(str(wrapper))
+        return OSError(wrapper_msg)
     if wrapper.nature == 'NETWORK_FAILURE':
-        return IOError(str(wrapper))
+        return IOError(wrapper_msg)
 
 
     ret = KjException(wrapper=wrapper)
