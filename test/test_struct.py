@@ -122,6 +122,15 @@ def test_new_message(all_types):
     assert msg.structList[0].int32Field == 100
     assert msg.structList[1].int32Field == 101
 
+    msg = all_types.TestAllTypes.new_message(int32Field=100)
+
+    assert msg.int32Field == 100
+
+    msg = all_types.TestAllTypes.new_message(**{'int32Field': 100, 'int64Field': 101})
+
+    assert msg.int32Field == 100
+    assert msg.int64Field == 101
+
 
 def test_set_dict(all_types):
     msg = all_types.TestAllTypes.new_message()
