@@ -496,6 +496,9 @@ cdef class _DynamicListBuilder:
         index = index % size
         return self._get(index)
 
+    cdef _set(self, index, value):
+        _setDynamicField(self.thisptr, index, value, self._parent)
+
     def __setitem__(self, index, value):
         size = self.thisptr.size()
         if index >= size:
@@ -675,8 +678,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         del temp2
     elif value_type is list:
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
-        for (i, v) in enumerate(value):
-            builder[i] = v
+        _from_list(builder, value)
     elif value_type is dict:
         if (_DynamicSetterClasses is DynamicStruct_Builder or _DynamicSetterClasses is Request):
             builder = to_python_builder(thisptr.get(field), parent)
@@ -727,8 +729,7 @@ cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
         del temp2
     elif value_type is list:
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
-        for (i, v) in enumerate(value):
-            builder[i] = v
+        _from_list(builder, value)
     elif value_type is dict:
         if (_DynamicSetterClasses is DynamicStruct_Builder or _DynamicSetterClasses is Request):
             builder = to_python_builder(thisptr.get(field), parent)
@@ -769,36 +770,17 @@ cdef _to_dict(msg, bint verbose):
 
     return msg
 
-cdef _from_dict_helper(msg, field, d):
-    d_type = type(d)
-    if d_type is dict:
-        try:
-            sub_msg = getattr(msg, field)
-        except Exception as e:
-            str_error = str(e)
-            if 'expected isSetInUnion(field)' in str_error:
-                msg.init(field)
-                sub_msg = getattr(msg, field)
-            else:
-                raise
-        for key, val in d.iteritems():
-            _from_dict_helper(sub_msg, key, val)
-    elif d_type is list and len(d) > 0:
-        l = msg.init(field, len(d))
-        for i in range(len(d)):
-            if isinstance(d[i], (dict, list)):
-                for key, val in d[i].iteritems():
-                    _from_dict_helper(l[i], key, val)
-            else:
-                l[i] = d[i]
-    else:
-        setattr(msg, field, d)
 
-
-cdef _from_dict(msg, d):
+cdef _from_dict(_DynamicStructBuilder msg, dict d):
     for key, val in d.iteritems():
         if key != 'which':
-            _from_dict_helper(msg, key, val)
+            msg._set(key, val)
+
+cdef _from_list(_DynamicListBuilder msg, list d):
+    cdef size_t count = 0
+    for val in d:
+        msg._set(count, val)
+        count += 1
 
 
 cdef class _DynamicStructReader:
@@ -968,8 +950,11 @@ cdef class _DynamicStructBuilder:
     def __getattr__(self, field):
         return self._get(field)
 
-    def __setattr__(self, field, value):
+    cdef _set(self, field, value):
         _setDynamicField(self.thisptr, field, value, self._parent)
+
+    def __setattr__(self, field, value):
+        self._set(field, value)
 
     def _has(self, field):
         return self.thisptr.has(field)
