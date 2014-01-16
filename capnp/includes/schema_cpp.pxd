@@ -716,6 +716,9 @@ cdef extern from "kj/array.h" namespace " ::kj":
     cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
         word* begin()
         size_t size()
+    cdef cppclass ByteArray " ::kj::Array< ::capnp::byte>":
+        char* begin()
+        size_t size()
 
 cdef extern from "kj/array.h" namespace " ::kj":
     cdef cppclass InputStream:

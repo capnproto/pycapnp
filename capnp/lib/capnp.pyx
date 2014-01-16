@@ -940,7 +940,11 @@ cdef class _DynamicStructBuilder:
     cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception:
         self._check_write()
         cdef _MessageBuilder builder = self._parent
-        return _message_to_packed_bytes(builder)
+        array = helpers.messageToPackedBytes(deref(builder.thisptr))
+        cdef const char* ptr = <const char *>array.begin()
+        cdef bytes ret = ptr[:array.size()]
+        self._is_written = True
+        return ret
 
     cdef _get(self, field):
         cdef C_DynamicValue.Builder value = self.thisptr.get(field)

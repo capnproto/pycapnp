@@ -1,5 +1,7 @@
 from .capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer, DynamicStruct_Builder
 
+from .capnp.includes.schema_cpp cimport ByteArray
+
 from non_circular cimport reraise_kj_exception
 
 from cpython.ref cimport PyObject
@@ -30,3 +32,6 @@ cdef extern from "../helpers/rpcHelper.h":
     Capability.Client restoreHelper(RpcSystem&, AnyPointer.Reader&)
     Capability.Client restoreHelper(RpcSystem&, AnyPointer.Builder&)
     RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
+
+cdef extern from "../helpers/serialize.h":
+    ByteArray messageToPackedBytes(MessageBuilder &)
