@@ -1818,6 +1818,7 @@ cdef class TwoPartyServer:
             address, port = host_string.split(':')
             port = int(port)
         else:
+            address = host_string
             port = _random.randint(60000, 61000)
 
         if address == '*':
