@@ -1,4 +1,4 @@
-#pycapnp
+# pycapnp
 
 More thorough docs are available at [http://jparyani.github.io/pycapnp/](http://jparyani.github.io/pycapnp/).
 
@@ -34,6 +34,12 @@ Or you can clone the repo like so:
 Note: for OSX, if using clang from Xcode 5, you will need to set `CFLAGS` like so:
 
     CFLAGS='-stdlib=libc++' pip install pycapnp
+
+## Python Versions
+
+Python 2.6/2.7 are supported as well as Python 3.2+. PyPy 2.1+ is also supported.
+
+One oddity to note is that `Text` type fields will be treated as byte strings under Python 2, and unicode strings under Python 3. `Data` fields will always be treated as byte strings.
 
 ## Development
 
@@ -130,4 +136,3 @@ Means you haven't installed the Cap'n Proto C++ library. Please follow the direc
 
 
 [![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/jparyani/pycapnp/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
