@@ -8,3 +8,11 @@ cdef extern from "../helpers/capabilityHelper.h":
     void reraise_kj_exception()
     cdef cppclass PyRefCounter:
         PyRefCounter(PyObject *)
+
+cdef extern from "../helpers/rpcHelper.h":
+    cdef cppclass PyRestorer:
+        PyRestorer(PyObject *)
+
+cdef extern from "../helpers/asyncHelper.h":
+    cdef cppclass PyEventPort:
+        PyEventPort(PyObject *)

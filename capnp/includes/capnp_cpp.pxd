@@ -5,7 +5,7 @@ cdef extern from "../helpers/checkCompiler.h":
     pass
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
-from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter
+from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort
 from .capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
@@ -245,10 +245,6 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
             Client(Client&)
             DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
 
-cdef extern from "../helpers/rpcHelper.h":
-    cdef cppclass PyRestorer:
-        PyRestorer(PyObject *)
-
 cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef cppclass RpcSystem" ::capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>":
         RpcSystem(RpcSystem&&)
@@ -400,15 +396,7 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:
         EventLoop()
-        # Promise[void] yield_end'yield'()
-        # object wait(PyPromise) except +reraise_kj_exception
-        # Response wait_remote'wait'(RemotePromise)
-        # void wait_void'wait'(VoidPromise)
-        # object there(PyPromise) except +reraise_kj_exception
-        # PyPromise evalLater(PyObject * func)
-        # PyPromise there(PyPromise, PyObject * func)
-    cdef cppclass SimpleEventLoop(EventLoop):
-        pass
+        EventLoop(PyEventPort &)
     cdef cppclass PromiseFulfiller:
         void fulfill()
     cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>":
