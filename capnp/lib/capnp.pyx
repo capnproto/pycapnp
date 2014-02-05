@@ -591,7 +591,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructReader()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return <char*>helpers.fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return _DynamicEnum()._init(self.asEnum(), parent)
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_ANY_POINTER:
@@ -624,7 +624,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_STRUCT:
         return _DynamicStructBuilder()._init(self.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return <char*>helpers.fixMaybe(self.asEnum().getEnumerant()).getProto().getName().cStr()
+        return _DynamicEnum()._init(self.asEnum(), parent)
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_ANY_POINTER:
@@ -648,6 +648,9 @@ cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient valu
 cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
     cdef _InterfaceSchema schema = value.schema
     return helpers.new_server(schema.thisptr, <PyObject *>value)
+
+cdef C_DynamicValue.Reader _extract_dynamic_enum(_DynamicEnum value):
+    return C_DynamicValue.Reader(value.thisptr)
 
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -697,6 +700,8 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_client(value))
     elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
         thisptr.set(field, _extract_dynamic_server(value))
+    elif value_type is _DynamicEnum:
+        thisptr.set(field, _extract_dynamic_enum(value))
     else:
         raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
@@ -746,6 +751,8 @@ cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
+    elif value_type is _DynamicEnum:
+        thisptr.set(field, _extract_dynamic_enum(value))
     else:
         raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
@@ -781,6 +788,49 @@ cdef _from_list(_DynamicListBuilder msg, list d):
     for val in d:
         msg._set(count, val)
         count += 1
+
+
+cdef class _DynamicEnum:
+    cdef capnp.DynamicEnum thisptr
+    cdef public object _parent
+
+    cdef _init(self, capnp.DynamicEnum other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+    cpdef _as_str(self) except +reraise_kj_exception:
+        return <char*>helpers.fixMaybe(self.thisptr.getEnumerant()).getProto().getName().cStr()
+
+    property raw:
+        """A property that returns the raw int of the enum"""
+        def __get__(self):
+            return self.thisptr.getRaw()
+
+    def __str__(self):
+        return self._as_str()
+
+    def __repr__(self):
+        return '<%s enum>' % str(self)
+
+    def __richcmp__(self, right, int op):
+        if isinstance(right, basestring):
+            left = str(self)
+        else:
+            left = self.raw
+
+        if op == 2: # ==
+            return left == right
+        elif op == 3: # !=
+            return left != right
+        elif op == 0: # <
+            return left < right
+        elif op == 1: # <=
+            return left <= right
+        elif op == 4: # >
+            return left > right
+        elif op == 5: # >=
+            return left >= right
 
 
 cdef class _DynamicStructReader:
