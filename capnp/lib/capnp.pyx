@@ -343,6 +343,9 @@ cdef class _NodeReader:
     property isInterface:
         def __get__(self):
             return self.thisptr.isInterface()
+    property isEnum:
+        def __get__(self):
+            return self.thisptr.isEnum()
 
 cdef class _NestedNodeReader:
     cdef C_Node.NestedNode.Reader thisptr
@@ -1963,6 +1966,9 @@ cdef class _Schema:
     cpdef as_interface(self):
         return _InterfaceSchema()._init(self.thisptr.asInterface())
 
+    cpdef as_enum(self):
+        return _EnumSchema()._init(self.thisptr.asEnum())
+
     cpdef get_dependency(self, id):
         return _Schema()._init(self.thisptr.getDependency(id))
 
@@ -2065,6 +2071,29 @@ cdef class _InterfaceSchema:
 
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
+
+cdef class _EnumSchema:
+    cdef C_EnumSchema thisptr
+
+    cdef _init(self, C_EnumSchema other):
+        self.thisptr = other
+        return self
+
+    property enumerants:
+        """The list of enumerants as a dictionary"""
+        def __get__(self):
+            ret = {}
+            enumerants = self.thisptr.getEnumerants()
+            for i in range(enumerants.size()):
+                enumerant = enumerants[i]
+                ret[<char *>enumerant.getProto().getName().cStr()] = enumerant.getOrdinal()
+
+            return ret
+
+    property node:
+        """The raw schema node"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
 cdef class _ParsedSchema(_Schema):
     cdef C_ParsedSchema thisptr_child
@@ -2229,6 +2258,14 @@ class _InterfaceModule(object):
     def _new_server(self, server):
         return _DynamicCapabilityServer(self.schema, server)
 
+class _EnumModule(object):
+    def __init__(self, schema, name):
+        def server_init(server_self):
+            pass
+        self.schema = schema
+        for name, val in schema.enumerants.items():
+            setattr(self, name, val)
+
 cdef class SchemaParser:
     """A class for loading Cap'n Proto schema files.
 
@@ -2324,6 +2361,10 @@ cdef class SchemaParser:
                     module.__dict__[node.name] = schema.as_const_value()
                 elif proto.isInterface:
                     local_module = _InterfaceModule(schema.as_interface(), node.name)
+
+                    module.__dict__[node.name] = local_module
+                elif proto.isEnum:
+                    local_module = _EnumModule(schema.as_enum(), node.name)
 
                     module.__dict__[node.name] = local_module
 
