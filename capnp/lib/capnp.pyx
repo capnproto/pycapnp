@@ -1745,9 +1745,6 @@ cdef class _TwoPartyVatNetwork:
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
 
-    cpdef on_drained(self) except +reraise_kj_exception:
-        return _VoidPromise()._init(deref(self.thisptr).onDrained(), self)
-
 cdef _Restorer _convert_restorer(restorer):
     if isinstance(restorer, _RestorerImpl):
         return _Restorer(restorer._restore, restorer)
