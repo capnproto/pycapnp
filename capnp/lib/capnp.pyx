@@ -708,57 +708,6 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     else:
         raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
-cdef _setDynamicFieldPtr(_DynamicSetterClasses * thisptr, field, value, parent):
-    cdef C_DynamicValue.Reader temp
-    value_type = type(value)
-
-    if value_type is int or value_type is long:
-        if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
-        else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
-        thisptr.set(field, temp)
-    elif value_type is float:
-        temp = C_DynamicValue.Reader(<double>value)
-        thisptr.set(field, temp)
-    elif value_type is bool:
-        temp = C_DynamicValue.Reader(<cbool>value)
-        thisptr.set(field, temp)
-    elif value_type is bytes:
-        temp2 = new capnp.StringPtr(<char*>value, len(value))
-        temp = C_DynamicValue.Reader(deref(temp2))
-        thisptr.set(field, temp)
-        del temp2
-    elif isinstance(value, basestring):
-        encoded_value = value.encode()
-        temp2 = new capnp.StringPtr(<char*>encoded_value, len(encoded_value))
-        temp = C_DynamicValue.Reader(deref(temp2))
-        thisptr.set(field, temp)
-        del temp2
-    elif value_type is list:
-        builder = to_python_builder(thisptr.init(field, len(value)), parent)
-        _from_list(builder, value)
-    elif value_type is dict:
-        if (_DynamicSetterClasses is DynamicStruct_Builder or _DynamicSetterClasses is Request):
-            builder = to_python_builder(thisptr.get(field), parent)
-            _from_dict(builder, value)
-        else:
-            builder = to_python_builder(thisptr[field], parent)
-            _from_dict(builder, value)
-    elif value is None:
-        temp = C_DynamicValue.Reader(VOID)
-        thisptr.set(field, temp)
-    elif value_type is _DynamicStructBuilder:
-        thisptr.set(field, _extract_dynamic_struct_builder(value))
-    elif value_type is _DynamicStructReader:
-        thisptr.set(field, _extract_dynamic_struct_reader(value))
-    elif value_type is _DynamicCapabilityClient:
-        thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicEnum:
-        thisptr.set(field, _extract_dynamic_enum(value))
-    else:
-        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
-
 cdef _to_dict(msg, bint verbose):
     msg_type = type(msg)
     if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
@@ -1637,11 +1586,11 @@ cdef class _DynamicCapabilityClient:
             if len(args) > len(arg_names):
                 raise ValueError('Too many arguments passed to `%s`. Expected %d and got %d' % (name, len(arg_names), len(args)))
             for arg_name, arg_val in zip(arg_names, args):
-                _setDynamicFieldPtr(request, arg_name, arg_val, self)
+                _setDynamicField(<DynamicStruct_Builder>deref(request), arg_name, arg_val, self)
 
         if kwargs is not None:
             for key, val in kwargs.items():
-                _setDynamicFieldPtr(request, key, val, self)
+                _setDynamicField(<DynamicStruct_Builder>deref(request), key, val, self)
 
     cpdef _send_helper(self, name, word_count, args, kwargs) except +reraise_kj_exception:
         # if word_count is None:
