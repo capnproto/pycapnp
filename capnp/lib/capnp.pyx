@@ -274,7 +274,6 @@ ctypedef fused _DynamicStructReaderOrBuilder:
 ctypedef fused _DynamicSetterClasses:
     C_DynamicList.Builder
     DynamicStruct_Builder
-    Request
 
 ctypedef fused PromiseTypes:
     Promise
@@ -655,6 +654,17 @@ cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
 cdef C_DynamicValue.Reader _extract_dynamic_enum(_DynamicEnum value):
     return C_DynamicValue.Reader(value.thisptr)
 
+cdef _setBytes(_DynamicSetterClasses thisptr, field, value):
+    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>value, len(value))
+    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
+    thisptr.set(field, temp)
+
+cdef _setBaseString(_DynamicSetterClasses thisptr, field, value):
+    encoded_value = value.encode()
+    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
+    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
+    thisptr.set(field, temp)
+
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
@@ -672,21 +682,14 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         temp = C_DynamicValue.Reader(<cbool>value)
         thisptr.set(field, temp)
     elif value_type is bytes:
-        temp2 = new capnp.StringPtr(<char*>value, len(value))
-        temp = C_DynamicValue.Reader(deref(temp2))
-        thisptr.set(field, temp)
-        del temp2
+        _setBytes(thisptr, field, value)
     elif isinstance(value, basestring):
-        encoded_value = value.encode()
-        temp2 = new capnp.StringPtr(<char*>encoded_value, len(encoded_value))
-        temp = C_DynamicValue.Reader(deref(temp2))
-        thisptr.set(field, temp)
-        del temp2
+        _setBaseString(thisptr, field, value)
     elif value_type is list:
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
         _from_list(builder, value)
     elif value_type is dict:
-        if (_DynamicSetterClasses is DynamicStruct_Builder or _DynamicSetterClasses is Request):
+        if _DynamicSetterClasses is DynamicStruct_Builder:
             builder = to_python_builder(thisptr.get(field), parent)
             _from_dict(builder, value)
         else:
