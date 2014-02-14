@@ -53,13 +53,19 @@ def main(host):
 
     print('Evaluating a literal... ', end="")
 
-    # Set up the request. Note the form is 'evaluate' + '_request', where
-    # 'evaluate' is the name of the method we want to call
+    # Make the request. Note we are using the shorter function form (instead
+    # of evaluate_request), and we are passing a dictionary that represents a
+    # struct and its member to evaluate
+    eval_promise = calculator.evaluate({"literal": 123})
+
+    # This is equivalent to:
+    '''
     request = calculator.evaluate_request()
     request.expression.literal = 123
 
     # Send it, which returns a promise for the result (without blocking).
     eval_promise = request.send()
+    '''
 
     # Using the promise, create a pipelined request to call read() on the
     # returned object. Note that here we are using the shortened method call
@@ -74,7 +80,7 @@ def main(host):
     print("PASS")
 
     '''Make a request to evaluate 123 + 45 - 67.
-    #     //
+
     The Calculator interface requires that we first call getOperator() to
     get the addition and subtraction functions, then call evaluate() to use
     them.  But, once again, we can get both functions, call evaluate(), and
@@ -88,7 +94,8 @@ def main(host):
     # Get the "subtract" function from the server.
     subtract = calculator.getOperator(op='subtract').func
 
-    # Build the request to evaluate 123 + 45 - 67.
+    # Build the request to evaluate 123 + 45 - 67. Note the form is 'evaluate'
+    # + '_request', where 'evaluate' is the name of the method we want to call
     request = calculator.evaluate_request()
     subtract_call = request.expression.init('call')
     subtract_call.function = subtract
@@ -109,6 +116,20 @@ def main(host):
     assert response.value == 101
 
     print("PASS")
+
+    '''
+    Note: a one liner version of building the previous request (I highly
+    recommend not doing it this way for such a complicated structure, but I
+    just wanted to demonstrate it is possible to set all of the fields with a
+    dictionary):
+
+    eval_promise = calculator.evaluate(
+{'call': {'function': subtract,
+          'params': [{'call': {'function': add,
+                               'params': [{'literal': 123},
+                                          {'literal': 45}]}},
+                     {'literal': 67.0}]}})
+    '''
 
     '''Make a request to evaluate 4 * 6, then use the result in two more
     requests that add 3 and 5.

@@ -275,8 +275,17 @@ There is a convenience method for converting Cap'n Proto messages to a dictionar
 For the reverse, all you have to do is pass keyword arguments to the new_message constructor::
 
     my_dict = {'name' : 'alice'}
-    alice = addressbook.Person.new_message(**my_dict)
-    # equivalent to: alice = addressbook.Person.new_message(name='alice')
+    alice = addressbook_capnp.Person.new_message(**my_dict)
+    # equivalent to: alice = addressbook_capnp.Person.new_message(name='alice')
+
+It's also worth noting, you can use python lists/dictionaries interchangably with their Cap'n Proto equivalent types::
+
+    book = addressbook_capnp.AddressBook.new_message(people=[{'name': 'Alice'}])
+    ...
+    book = addressbook_capnp.AddressBook.new_message()
+    book.init('people', 1)
+    book.people[0] = {'name': 'Bob'}
+
 
 Byte Strings/Buffers
 ~~~~~~~~~~~~~~~~~~~~~
@@ -287,11 +296,11 @@ There is serialization to a byte string available::
 
 And a corresponding from_bytes function::
 
-    alice = addressbook.Person.from_bytes(encoded_message)
+    alice = addressbook_capnp.Person.from_bytes(encoded_message)
 
 There are also packed versions::
 
-    alice2 = addressbook.Person.from_bytes_packed(alice.to_bytes_packed())
+    alice2 = addressbook_capnp.Person.from_bytes_packed(alice.to_bytes_packed())
 
 RPC
 ----------
@@ -312,6 +321,8 @@ Starting a client is very easy::
     import calculator_capnp
 
     client = capnp.TwoPartyClient('localhost:60000')
+
+.. note:: You can also pass a raw socket with a `fileno()` method to TwoPartyClient
 
 Restoring
 ###################
@@ -339,13 +350,9 @@ This creates a request for the method named 'evaluate', sets `expression.literal
 
 The shorter syntax for calling methods is::
 
-    promise = calculator.getOperator(op='add')
-    # equivalent to:
-    request = calculator.getOperator_request()
-    request.op = 'add'
-    promise = request.send()
+    eval_promise = calculator.evaluate({"literal": 123})
 
-The major shortcoming with this method is that it doesn't work for complex fields, such as `expression.literal` from the first example.
+The major shortcoming with this method is that expressing complex fields with many nested sub-structs can become very tedious.
 
 Once you have a promise, there are 2 ways of getting to the result. The first is to wait for it::
 
@@ -378,15 +385,13 @@ Server
 Starting a Server
 ##################
 
-Once you have a socket, it's quite simple to start a server::
-
     server = capnp.TwoPartyServer('*:60000', restore)
 
     server.run_forever()
 
 See the `Restore`_ section for an explanation of what the `restore` object needs to looks like.
 
-.. note:: You can also pass a socket with a `fileno()` method to TwoPartyServer. In that case, `run_forever` will not work, and you will have to use `on_disconnect.wait()`.
+.. note:: You can also pass a raw socket with a `fileno()` method to TwoPartyServer. In that case, `run_forever` will not work, and you will have to use `on_disconnect.wait()`.
 
 Implementing a Server
 #######################

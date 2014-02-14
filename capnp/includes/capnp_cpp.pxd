@@ -5,7 +5,7 @@ cdef extern from "../helpers/checkCompiler.h":
     pass
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
-from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter
+from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
 from .capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
@@ -108,6 +108,9 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
         Own[AsyncIoProvider] provider
         WaitScope waitScope
 
+    cdef cppclass TaskSet:
+        TaskSet(ErrorHandler &)
+
     AsyncIoContext setupAsyncIo()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
@@ -205,24 +208,24 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             bint has(char *) except +reraise_kj_exception
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
-        cppclass Builder:
-            Builder()
-            Builder(Builder &)
-            DynamicValueForward.Builder get(char *) except +reraise_kj_exception
-            bint has(char *) except +reraise_kj_exception
-            void set(char *, DynamicValueForward.Reader) except +reraise_kj_exception
-            DynamicValueForward.Builder init(char *, uint size) except +reraise_kj_exception
-            DynamicValueForward.Builder init(char *) except +reraise_kj_exception
-            StructSchema getSchema()
-            Maybe[StructSchema.Field] which()
-            void adopt(char *, DynamicOrphan) except +reraise_kj_exception
-            DynamicOrphan disown(char *)
-            DynamicStruct.Reader asReader()
         cppclass Pipeline:
             Pipeline()
             Pipeline(Pipeline &)
             DynamicValueForward.Pipeline get(char *)
             StructSchema getSchema()
+    cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder": # Need to flatten this class out, since nested C++ classes cause havoc with cython fused types
+        DynamicStruct_Builder()
+        DynamicStruct_Builder(DynamicStruct_Builder &)
+        DynamicValueForward.Builder get(char *) except +reraise_kj_exception
+        bint has(char *) except +reraise_kj_exception
+        void set(char *, DynamicValueForward.Reader) except +reraise_kj_exception
+        DynamicValueForward.Builder init(char *, uint size) except +reraise_kj_exception
+        DynamicValueForward.Builder init(char *) except +reraise_kj_exception
+        StructSchema getSchema()
+        Maybe[StructSchema.Field] which()
+        void adopt(char *, DynamicOrphan) except +reraise_kj_exception
+        DynamicOrphan disown(char *)
+        DynamicStruct.Reader asReader()
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicCapability:
@@ -244,10 +247,6 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
         cppclass Client:
             Client(Client&)
             DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
-
-cdef extern from "../helpers/rpcHelper.h":
-    cdef cppclass PyRestorer:
-        PyRestorer(PyObject *)
 
 cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef cppclass RpcSystem" ::capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>":
@@ -282,7 +281,7 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
             StringPtr getAsText"getAs< ::capnp::Text>"()
         cppclass Builder:
             Builder(Builder)
-            DynamicStruct.Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
+            DynamicStruct_Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
             StringPtr getAsText"getAs< ::capnp::Text>"()
             void setAsStruct"setAs< ::capnp::DynamicStruct>"(DynamicStruct.Reader&) except +reraise_kj_exception
             void setAsText"setAs< ::capnp::Text>"(char*) except +reraise_kj_exception
@@ -359,7 +358,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             double asDouble"as<double>"()
             StringPtr asText"as< ::capnp::Text>"()
             DynamicList.Builder asList"as< ::capnp::DynamicList>"()
-            DynamicStruct.Builder asStruct"as< ::capnp::DynamicStruct>"()
+            DynamicStruct_Builder asStruct"as< ::capnp::DynamicStruct>"()
             AnyPointer.Builder asObject"as< ::capnp::AnyPointer>"()
             DynamicCapability.Client asCapability"as< ::capnp::DynamicCapability>"()
             DynamicEnum asEnum"as< ::capnp::DynamicEnum>"()
@@ -389,8 +388,8 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
         DynamicStruct.Reader getParams() except +reraise_kj_exception
         void releaseParams() except +reraise_kj_exception
 
-        DynamicStruct.Builder getResults()
-        DynamicStruct.Builder initResults()
+        DynamicStruct_Builder getResults()
+        DynamicStruct_Builder initResults()
         void setResults(DynamicStruct.Reader value)
         # void adoptResults(Orphan<Results>&& value);
         # Orphanage getResultsOrphanage(uint firstSegmentWordSize = 0);
@@ -400,15 +399,7 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventLoop:
         EventLoop()
-        # Promise[void] yield_end'yield'()
-        # object wait(PyPromise) except +reraise_kj_exception
-        # Response wait_remote'wait'(RemotePromise)
-        # void wait_void'wait'(VoidPromise)
-        # object there(PyPromise) except +reraise_kj_exception
-        # PyPromise evalLater(PyObject * func)
-        # PyPromise there(PyPromise, PyObject * func)
-    cdef cppclass SimpleEventLoop(EventLoop):
-        pass
+        EventLoop(PyEventPort &)
     cdef cppclass PromiseFulfiller:
         void fulfill()
     cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>":

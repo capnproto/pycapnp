@@ -59,7 +59,7 @@ def test_client(capability):
 
     req = client.foo_request()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         req.baz = 1
 
 def test_simple_client(capability):
@@ -113,7 +113,7 @@ def test_simple_client(capability):
     with pytest.raises(ValueError):
         remote = client.foo2(i=5)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         remote = client.foo(baz=5)
 
 def test_pipeline(capability):

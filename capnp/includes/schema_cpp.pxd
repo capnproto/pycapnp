@@ -18,8 +18,9 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicStruct:
         cppclass Reader:
             pass
-        cppclass Builder:
-            pass
+
+    cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder":
+        pass
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
@@ -658,8 +659,8 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         Annotation.Builder getRootAnnotation'getRoot< ::capnp::schema::Annotation>'()
         Annotation.Builder initRootAnnotation'initRoot< ::capnp::schema::Annotation>'()
         
-        DynamicStruct.Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
-        DynamicStruct.Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct_Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct_Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
         void setRootDynamicStruct'setRoot< ::capnp::DynamicStruct::Reader>'(DynamicStruct.Reader)
 
         AnyPointer.Builder getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
@@ -714,6 +715,9 @@ cdef extern from "kj/array.h" namespace " ::kj":
     # Cython can't handle Array[word] as a function argument
     cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
         word* begin()
+        size_t size()
+    cdef cppclass ByteArray " ::kj::Array< ::capnp::byte>":
+        char* begin()
         size_t size()
 
 cdef extern from "kj/array.h" namespace " ::kj":

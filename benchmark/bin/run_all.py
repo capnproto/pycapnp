@@ -10,7 +10,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', "--langs", help="Add languages to test, ie: -l capnproto -l protobuf", action='append', default=['pycapnp', 'pyproto', 'pyproto_cpp'])
-    parser.add_argument("-r", "--reuse", help="If this flag is passed, re-use tests will be run", action='store_true',)
+    parser.add_argument("-r", "--reuse", help="If this flag is passed, re-use tests will be run", action='store_true')
     parser.add_argument("-c", "--compression", help="If this flag is passed, compression tests will be run", action='store_true')
     parser.add_argument("-i", "--scale_iters", help="Scaling factor to multiply the default iters by", type=float, default=1.0)
 
@@ -33,7 +33,7 @@ def run_one(prefix, name, mode, iters, faster, compression):
     data = {}
 
     if p.returncode != 0:
-        sys.stderr.write(' '.join(command) + ' failed to run with errors: ' + res + '\n')
+        sys.stderr.write(' '.join(command) + ' failed to run with errors: \n' + res + '\n')
         sys.stderr.flush()
     else:
         res = res.strip()

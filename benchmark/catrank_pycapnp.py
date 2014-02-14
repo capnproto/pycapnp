@@ -11,9 +11,14 @@ class Benchmark:
     def __init__(self, compression):
         self.Request = catrank_capnp.SearchResultList.new_message
         self.Response = catrank_capnp.SearchResultList.new_message
-        self.from_bytes_request = catrank_capnp.SearchResultList.from_bytes
-        self.from_bytes_response = catrank_capnp.SearchResultList.from_bytes
-        self.to_bytes = lambda x: x.to_bytes()
+        if compression == 'packed':
+            self.from_bytes_request = catrank_capnp.SearchResultList.from_bytes_packed
+            self.from_bytes_response = catrank_capnp.SearchResultList.from_bytes_packed
+            self.to_bytes = lambda x: x.to_bytes_packed()
+        else:
+            self.from_bytes_request = catrank_capnp.SearchResultList.from_bytes
+            self.from_bytes_response = catrank_capnp.SearchResultList.from_bytes
+            self.to_bytes = lambda x: x.to_bytes()
 
     def setup(self, request):
         goodCount = 0

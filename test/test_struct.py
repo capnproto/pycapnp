@@ -24,20 +24,23 @@ def test_which_builder(addressbook):
     alice = people[0]
     alice.employment.school = "MIT"
 
-    assert alice.employment.which() == "school"
+    assert alice.employment.which == addressbook.Person.Employment.school
+    assert alice.employment.which == "school"
 
     bob = people[1]
 
-    assert bob.employment.which() == "unemployed"
+    assert bob.employment.which == addressbook.Person.Employment.unemployed
+    assert bob.employment.which == "unemployed"
 
     bob.employment.unemployed = None
 
-    assert bob.employment.which() == "unemployed"
+    assert bob.employment.which == addressbook.Person.Employment.unemployed
+    assert bob.employment.which == "unemployed"
 
     with pytest.raises(ValueError):
-        addresses.which()
+        addresses.which
     with pytest.raises(ValueError):
-        addresses.which()
+        addresses.which
 
 
 def test_which_reader(addressbook):
@@ -63,15 +66,33 @@ def test_which_reader(addressbook):
     people = addresses.people
 
     alice = people[0]
-    assert alice.employment.which() == "school"
+    assert alice.employment.which == "school"
 
     bob = people[1]
-    assert bob.employment.which() == "unemployed"
+    assert bob.employment.which == "unemployed"
 
     with pytest.raises(ValueError):
-        addresses.which()
+        addresses.which
     with pytest.raises(ValueError):
-        addresses.which()
+        addresses.which
+
+
+def test_enum(addressbook):
+    addresses = addressbook.AddressBook.new_message()
+    people = addresses.init('people', 2)
+
+    alice = people[0]
+    phones = alice.init('phones', 2)
+
+    assert phones[0].type == phones[1].type
+
+    phones[0].type = addressbook.Person.PhoneNumber.Type.home
+
+    assert phones[0].type != phones[1].type
+
+    phones[1].type = 'home'
+
+    assert phones[0].type == phones[1].type
 
 
 def test_builder_set(addressbook):
@@ -81,7 +102,7 @@ def test_builder_set(addressbook):
 
     assert person.name == 'test'
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         person.foo = 'test'
 
 
@@ -99,10 +120,47 @@ def test_unicode_str(all_types):
     msg = all_types.TestAllTypes.new_message()
 
     if sys.version_info[0] == 2:
-        msg.textField = u"f\u00e6oo"
+        msg.textField = u"f\u00e6oo".encode('utf-8')
 
         assert msg.textField.decode('utf-8') == u"f\u00e6oo"
     else:
         msg.textField = "f\u00e6oo"
 
         assert msg.textField == "f\u00e6oo"
+
+
+def test_new_message(all_types):
+    msg = all_types.TestAllTypes.new_message(int32Field=100)
+
+    assert msg.int32Field == 100
+
+    msg = all_types.TestAllTypes.new_message(structField={'int32Field': 100})
+
+    assert msg.structField.int32Field == 100
+
+    msg = all_types.TestAllTypes.new_message(structList=[{'int32Field': 100}, {'int32Field': 101}])
+
+    assert msg.structList[0].int32Field == 100
+    assert msg.structList[1].int32Field == 101
+
+    msg = all_types.TestAllTypes.new_message(int32Field=100)
+
+    assert msg.int32Field == 100
+
+    msg = all_types.TestAllTypes.new_message(**{'int32Field': 100, 'int64Field': 101})
+
+    assert msg.int32Field == 100
+    assert msg.int64Field == 101
+
+
+def test_set_dict(all_types):
+    msg = all_types.TestAllTypes.new_message()
+
+    msg.structField = {'int32Field': 100}
+
+    assert msg.structField.int32Field == 100
+
+    msg.init('structList', 2)
+    msg.structList[0] = {'int32Field': 102}
+
+    assert msg.structList[0].int32Field == 102

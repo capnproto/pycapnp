@@ -57,3 +57,32 @@ def test_simple_rpc_restore_func():
     response = remote.wait()
 
     assert response.x == '125'
+
+
+def text_restore_func(objectId):
+    text = objectId.as_text()
+    assert text == 'testInterface'
+    return Server(100)
+
+
+def test_ez_rpc():
+    read, write = socket.socketpair(socket.AF_UNIX)
+
+    server = capnp.TwoPartyServer(write, text_restore_func)
+    client = capnp.TwoPartyClient(read)
+
+    cap = client.ez_restore('testInterface')
+    cap = cap.cast_as(test_capability_capnp.TestInterface)
+
+    remote = cap.foo(i=5)
+    response = remote.wait()
+
+    assert response.x == '125'
+
+    cap = client.restore(test_capability_capnp.TestSturdyRefObjectId.new_message())
+    cap = cap.cast_as(test_capability_capnp.TestInterface)
+
+    remote = cap.foo(i=5)
+
+    with pytest.raises(capnp.KjException):
+        response = remote.wait()
