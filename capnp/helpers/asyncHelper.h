@@ -27,3 +27,7 @@ public:
 private:
   PyObject * py_event_port;
 };
+
+void waitNeverDone(kj::WaitScope & scope) {
+  kj::NEVER_DONE.wait(scope);
+}

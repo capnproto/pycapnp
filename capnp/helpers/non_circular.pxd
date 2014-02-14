@@ -12,6 +12,8 @@ cdef extern from "../helpers/capabilityHelper.h":
 cdef extern from "../helpers/rpcHelper.h":
     cdef cppclass PyRestorer:
         PyRestorer(PyObject *)
+    cdef cppclass ErrorHandler:
+        pass
 
 cdef extern from "../helpers/asyncHelper.h":
     cdef cppclass PyEventPort:

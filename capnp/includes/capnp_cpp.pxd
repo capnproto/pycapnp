@@ -5,7 +5,7 @@ cdef extern from "../helpers/checkCompiler.h":
     pass
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
-from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort
+from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
 from .capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
@@ -107,6 +107,9 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
         Own[LowLevelAsyncIoProvider] lowLevelProvider
         Own[AsyncIoProvider] provider
         WaitScope waitScope
+
+    cdef cppclass TaskSet:
+        TaskSet(ErrorHandler &)
 
     AsyncIoContext setupAsyncIo()
 

@@ -1316,6 +1316,10 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
 #     C_DEFAULT_EVENT_LOOP._remove()
 #     C_DEFAULT_EVENT_LOOP = _EventLoop()
 
+def wait_forever():
+    cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+    helpers.waitNeverDone(deref(loop.thisptr).waitScope)
+
 cdef class _CallContext:
     cdef CallContext * thisptr
 
@@ -1771,17 +1775,8 @@ cdef class TwoPartyClient:
             self._restorer = _convert_restorer(restorer)
             self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
-        Py_INCREF(self._restorer)
-        Py_INCREF(self._orig_stream)
-        Py_INCREF(self._stream)
-        Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
-
     def __dealloc__(self):
         del self.thisptr
-        # Py_DECREF(self._restorer)
-        # Py_DECREF(self._orig_stream)
-        # Py_DECREF(self._stream)
-        # Py_DECREF(self._network)
 
     cpdef _connect(self, host_string):
         host, port = host_string.split(':')
@@ -1831,89 +1826,70 @@ cdef class TwoPartyClient:
 
         return self.restore(ref)
 
+    cpdef on_disconnect(self) except +reraise_kj_exception:
+        return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
+
 cdef class TwoPartyServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
-    cdef public object _orig_stream, _server_socket
+    cdef public object _orig_stream, _server_socket, _disconnect_promise
     cdef public _Restorer _restorer
     cdef public _FdAsyncIoStream _stream
-    cdef public int port
+    cdef object _port
+    cdef public object port_promise
+    cdef capnp.TaskSet * _task_set
+    cdef capnp.ErrorHandler _error_handler
 
     def __init__(self, socket, restorer, server_socket=None):
+        self._restorer = _convert_restorer(restorer)
         if isinstance(socket, basestring):
             self._connect(socket)
         else:
             self._orig_stream = socket
             self._stream = _FdAsyncIoStream(socket.fileno())
             self._server_socket = server_socket
-            self.port = 0
-        self._restorer = _convert_restorer(restorer)
-        self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
-        self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
+            self._port = 0
+            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
+            self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
-        Py_INCREF(self._orig_stream)
-        Py_INCREF(self._stream)
-        Py_INCREF(self._restorer)
-        Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
+            Py_INCREF(self._orig_stream)
+            Py_INCREF(self._stream)
+            Py_INCREF(self._restorer)
+            Py_INCREF(self._network)
+            self._disconnect_promise = self.on_disconnect().then(self._decref)
 
     cpdef _connect(self, host_string):
-        if ':' in host_string:
-            address, port = host_string.split(':')
-            port = int(port)
-        else:
-            address = host_string
-            port = _random.randint(60000, 61000)
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>host_string, len(host_string))
+        self._task_set = new capnp.TaskSet(self._error_handler)
+        self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
 
-        if address == '*':
-            address = ''
-
-        s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-
-        # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
-        # neccessary, but it speeds things up.
-        s.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
-
-        s.bind((address, port))
-        s.listen(1)  # service only 1 client at a time
-
-        (clientsocket, address) = s.accept()
-
-        self._server_socket = s
-        self._orig_stream = clientsocket
-        self._stream = _FdAsyncIoStream(self._orig_stream.fileno())
-        self.port = port
+    def _decref(self):
+        Py_DECREF(self._restorer)
+        Py_DECREF(self._orig_stream)
+        Py_DECREF(self._stream)
+        Py_DECREF(self._network)
 
     def __dealloc__(self):
         del self.thisptr
-        # Py_DECREF(self._restorer)
-        # Py_DECREF(self._orig_stream)
-        # Py_DECREF(self._stream)
-        # Py_DECREF(self._network)
+        del self._task_set
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
     cpdef run_forever(self):
-        if self._server_socket is None:
-            raise ValueError("You must pass a `server_socket` parameter to __init__ or a string as the socket parameter to use this function")
+        if self.port_promise is None:
+            raise ValueError("You must pass a string as the socket parameter in __init__ to use this function")
 
-        while True:
-            try:
-                self.on_disconnect().wait()
+        wait_forever()
 
-                (clientsocket, address) = self._server_socket.accept()
-                self._orig_stream = clientsocket
-                self._stream = _FdAsyncIoStream(clientsocket.fileno())
-                self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
-                
-                del self.thisptr
-                self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
-                
-                Py_INCREF(self._orig_stream)
-                Py_INCREF(self._stream)
-                Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
-            except KeyboardInterrupt:
-                break
+    property port:
+        def __get__(self):
+            if self._port is None:
+                self._port = self.port_promise.wait()
+                return self._port
+            else:
+                return self._port
 
     # TODO: add restore functionality here?
 
