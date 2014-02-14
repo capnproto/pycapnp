@@ -8,9 +8,7 @@ from cpython.ref cimport PyObject
 
 cdef extern from "../helpers/fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
-    char * getEnumString(DynamicStruct.Reader val)
-    char * getEnumString(DynamicStruct_Builder val)
-    char * getEnumString(Request val)
+    StructSchema.Field fixMaybe(Maybe[StructSchema.Field]) except +reraise_kj_exception
 
 cdef extern from "../helpers/capabilityHelper.h":
     # PyPromise evalLater(EventLoop &, PyObject * func)

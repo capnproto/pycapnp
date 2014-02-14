@@ -14,6 +14,6 @@ cdef class _DynamicStructReader:
 
     cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=?)
 
-    cpdef which(self)
+    cpdef _which(self)
 
     cpdef as_builder(self)

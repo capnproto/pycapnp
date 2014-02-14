@@ -768,11 +768,11 @@ cdef class _DynamicEnum:
     def __repr__(self):
         return '<%s enum>' % str(self)
 
-    def __richcmp__(self, right, int op):
+    def __richcmp__(_DynamicEnum self, right, int op):
         if isinstance(right, basestring):
-            left = str(self)
+            left = self._as_str()
         else:
-            left = self.raw
+            left = self.thisptr.getRaw()
 
         if op == 2: # ==
             return left == right
@@ -787,6 +787,45 @@ cdef class _DynamicEnum:
         elif op == 5: # >=
             return left >= right
 
+cdef class _DynamicEnumField:
+    cdef object thisptr
+
+    cdef _init(self, proto):
+        self.thisptr = proto
+        return self
+
+    property raw:
+        """A property that returns the raw int of the enum"""
+        def __get__(self):
+            return self.thisptr.discriminantValue
+
+    def __str__(self):
+        return self.thisptr.name
+
+    def __repr__(self):
+        return '<%s which-enum>' % str(self)
+
+    def __richcmp__(_DynamicEnumField self, right, int op):
+        if isinstance(right, basestring):
+            left = self.thisptr.name
+        else:
+            left = self.thisptr.discriminantValue
+
+        if op == 2: # ==
+            return left == right
+        elif op == 3: # !=
+            return left != right
+        elif op == 0: # <
+            return left < right
+        elif op == 1: # <=
+            return left <= right
+        elif op == 4: # >
+            return left > right
+        elif op == 5: # >=
+            return left >= right
+
+    def __call__(self):
+        return str(self)
 
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
@@ -809,30 +848,31 @@ cdef class _DynamicStructReader:
     def _has(self, field):
         return self.thisptr.has(field)
 
-    cpdef which(self):
+    cpdef _which(self):
         """Returns the enum corresponding to the union in this struct
 
-        Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
-
-            person = addressbook.Person.new_message()
-            
-            person.which()
-            # ValueError: member was null
-
-            a.employment.employer = 'foo'
-            print employment.which()
-            # 'employer'
-
-        :rtype: str
+        :rtype: :class:`_DynamicEnumField`
         :return: A string/enum corresponding to what field is set in the union
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = <char*>helpers.getEnumString(self.thisptr)
-        if len(which) == 0:
+        try:
+            which = _DynamicEnumField()._init(_StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
+        except:
             raise ValueError("Attempted to call which on a non-union type")
 
         return which
+
+    property which:
+        """Returns the enum corresponding to the union in this struct
+
+        :rtype: :class:`_DynamicEnumField`
+        :return: A string/enum corresponding to what field is set in the union
+
+        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        """
+        def __get__(_DynamicStructReader self):
+            return self._which()
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -1004,30 +1044,31 @@ cdef class _DynamicStructBuilder:
         """
         return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
-    cpdef which(self):
+    cpdef _which(self):
         """Returns the enum corresponding to the union in this struct
 
-        Enums are just strings in the python Cap'n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn't a union, or a struct with an unnamed union::
-
-            person = addressbook.Person.new_message()
-            
-            person.which()
-            # ValueError: member was null
-
-            a.employment.employer = 'foo'
-            print employment.which()
-            # 'employer'
-            
-        :rtype: str
+        :rtype: :class:`_DynamicEnumField`
         :return: A string/enum corresponding to what field is set in the union
 
         :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
         """
-        cdef object which = <char*>helpers.getEnumString(self.thisptr)
-        if len(which) == 0:
+        try:
+            which = _DynamicEnumField()._init(_StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
+        except:
             raise ValueError("Attempted to call which on a non-union type")
 
         return which
+
+    property which:
+        """Returns the enum corresponding to the union in this struct
+
+        :rtype: :class:`_DynamicEnumField`
+        :return: A string/enum corresponding to what field is set in the union
+
+        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        """
+        def __get__(_DynamicStructBuilder self):
+            return self._which()
 
     cpdef adopt(self, field, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
@@ -1991,6 +2032,22 @@ cdef class _StructSchema:
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
 
+cdef class _StructSchemaField:
+    cdef C_StructSchema.Field thisptr
+    cdef object _parent
+    cdef _init(self, C_StructSchema.Field other, parent=None):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+    property proto:
+        """The raw schema proto"""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr.getProto(), self)
+
+    def __repr__(self):
+        return '<field schema for %s>' % self.proto.name
+
 cdef class _InterfaceSchema:
     cdef C_InterfaceSchema thisptr
     cdef object __method_names
@@ -2069,14 +2126,31 @@ cdef _new_message(self, kwargs):
 class _RestorerImpl(object):
     pass
 
+class _StructModuleWhich(object):
+    pass
+
 class _StructModule(object):
     def __init__(self, schema, name):
-        def blank_init(server_self):
-            pass
         def _restore(self, obj):
             return self.restore(obj.as_struct(self.schema))
         self.schema = schema
+
         self.Restorer = type(name + '.Restorer', (_RestorerImpl,), {'schema':schema, '_restore':_restore})
+
+        # Add enums for union fields
+        for field in schema.node.struct.fields:
+            if field.which() == 'group':
+                name = field.name.capitalize()
+                union_schema = schema.get_dependency(field.group.typeId).node.struct
+                
+                if union_schema.discriminantCount == 0:
+                    continue
+
+                union_module = _StructModuleWhich()
+                setattr(union_module, 'schema', union_schema)
+                for union_field in union_schema.fields:
+                    setattr(union_module, union_field.name, union_field.discriminantValue)
+                setattr(self, name, union_module)
 
     def read(self, file, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the unpacked object read from file.
@@ -2209,8 +2283,6 @@ class _InterfaceModule(object):
 
 class _EnumModule(object):
     def __init__(self, schema, name):
-        def server_init(server_self):
-            pass
         self.schema = schema
         for name, val in schema.enumerants.items():
             setattr(self, name, val)
