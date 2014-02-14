@@ -1775,6 +1775,11 @@ cdef class TwoPartyClient:
             self._restorer = _convert_restorer(restorer)
             self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
+        Py_INCREF(self._restorer)
+        Py_INCREF(self._orig_stream)
+        Py_INCREF(self._stream)
+        Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
+
     def __dealloc__(self):
         del self.thisptr
 
