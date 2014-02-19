@@ -25,6 +25,11 @@ def write_version_py(filename=None):
     cnt = """\
 version = '%s'
 short_version = '%s'
+
+from .lib.capnp import _CAPNP_VERSION_MAJOR as LIBCAPNP_VERSION_MAJOR
+from .lib.capnp import _CAPNP_VERSION_MINOR as LIBCAPNP_VERSION_MINOR
+from .lib.capnp import _CAPNP_VERSION_MICRO as LIBCAPNP_VERSION_MICRO
+from .lib.capnp import _CAPNP_VERSION as LIBCAPNP_VERSION
 """
     if not filename:
         filename = os.path.join(

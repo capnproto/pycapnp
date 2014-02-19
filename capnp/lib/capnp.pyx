@@ -26,6 +26,11 @@ import threading as _threading
 import socket as _socket
 import random as _random
 
+_CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
+_CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
+_CAPNP_VERSION_MICRO = capnp.CAPNP_VERSION_MICRO
+_CAPNP_VERSION = capnp.CAPNP_VERSION
+
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef public object wrap_dynamic_struct_reader(Response & r):
     return _Response()._init_childptr(new Response(moveResponse(r)), None)

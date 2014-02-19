@@ -12,6 +12,12 @@ cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
         VOID " ::capnp::VOID"
 
+cdef extern from "capnp/common.h":
+    int CAPNP_VERSION_MAJOR
+    int CAPNP_VERSION_MINOR
+    int CAPNP_VERSION_MICRO
+    int CAPNP_VERSION
+
 cdef extern from "kj/string.h" namespace " ::kj":
     cdef cppclass StringPtr:
         StringPtr()
