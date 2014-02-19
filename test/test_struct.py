@@ -77,6 +77,7 @@ def test_which_reader(addressbook):
         addresses.which
 
 
+@pytest.mark.skipif(capnp.version.LIBCAPNP_VERSION < 5000, reason="Using ints as enums requires v0.5.0+ of the C++ capnp library")
 def test_enum(addressbook):
     addresses = addressbook.AddressBook.new_message()
     people = addresses.init('people', 2)
