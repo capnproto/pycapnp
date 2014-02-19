@@ -77,6 +77,7 @@ def test_which_reader(addressbook):
         addresses.which
 
 
+@pytest.mark.skipif(capnp.version.LIBCAPNP_VERSION < 5000, reason="Using ints as enums requires v0.5.0+ of the C++ capnp library")
 def test_enum(addressbook):
     addresses = addressbook.AddressBook.new_message()
     people = addresses.init('people', 2)
@@ -164,3 +165,9 @@ def test_set_dict(all_types):
     msg.structList[0] = {'int32Field': 102}
 
     assert msg.structList[0].int32Field == 102
+
+
+def test_set_dict_union(addressbook):
+    person = addressbook.Person.new_message(**{'employment': {'employer': {'name': 'foo'}}})
+
+    assert person.employment.employer.name == 'foo'

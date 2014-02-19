@@ -21,11 +21,16 @@ struct Person {
 
   employment :union {
     unemployed @4 :Void;
-    employer @5 :Text;
+    employer @5 :Employer;
     school @6 :Text;
     selfEmployed @7 :Void;
     # We assume that a person is only one of these.
   }
+}
+
+struct Employer {
+  name @0 :Text;
+  boss @1 :Person;
 }
 
 struct AddressBook {

@@ -26,6 +26,11 @@ import threading as _threading
 import socket as _socket
 import random as _random
 
+_CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
+_CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
+_CAPNP_VERSION_MICRO = capnp.CAPNP_VERSION_MICRO
+_CAPNP_VERSION = capnp.CAPNP_VERSION
+
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef public object wrap_dynamic_struct_reader(Response & r):
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
@@ -736,7 +741,12 @@ cdef _to_dict(msg, bint verbose):
 cdef _from_dict(_DynamicStructBuilder msg, dict d):
     for key, val in d.iteritems():
         if key != 'which':
-            msg._set(key, val)
+            try:
+                msg._set(key, val)
+            except Exception as e:
+                if 'expected isSetInUnion(field)' in str(e):
+                    msg.init(key)
+                    msg._set(key, val)
 
 cdef _from_list(_DynamicListBuilder msg, list d):
     cdef size_t count = 0
