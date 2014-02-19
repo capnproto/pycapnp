@@ -164,3 +164,9 @@ def test_set_dict(all_types):
     msg.structList[0] = {'int32Field': 102}
 
     assert msg.structList[0].int32Field == 102
+
+
+def test_set_dict_union(addressbook):
+    person = addressbook.Person.new_message(**{'employment': {'employer': {'name': 'foo'}}})
+
+    assert person.employment.employer.name == 'foo'
