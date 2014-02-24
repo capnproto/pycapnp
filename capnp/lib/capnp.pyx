@@ -837,6 +837,14 @@ cdef class _DynamicEnumField:
     def __call__(self):
         return str(self)
 
+cdef class _MessageSize:
+    cdef public uint64_t word_count
+    cdef public uint cap_count
+
+    def __init__(self, uint64_t word_count, uint cap_count):
+        self.word_count = word_count
+        self.cap_count = cap_count
+
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
 
@@ -910,6 +918,11 @@ cdef class _DynamicStructReader:
         """
         builder = _MallocMessageBuilder()
         return builder.set_root(self)
+
+    property total_size:
+        def __get__(self):
+            size = self.thisptr.totalSize()
+            return _MessageSize(size.wordCount, size.capCount)
 
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
@@ -992,12 +1005,26 @@ cdef class _DynamicStructBuilder:
         self._is_written = True
         return ret
 
-    cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception:
-        self._check_write()
+    cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count) except +reraise_kj_exception:
         cdef _MessageBuilder builder = self._parent
-        array = helpers.messageToPackedBytes(deref(builder.thisptr))
+        array = helpers.messageToPackedBytes(deref(builder.thisptr), word_count)
         cdef const char* ptr = <const char *>array.begin()
         cdef bytes ret = ptr[:array.size()]
+        return ret
+
+    cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception:
+        self._check_write()
+        word_count = self.total_size.word_count + 2
+
+        try:
+            ret = self._to_bytes_packed_helper(word_count)
+        except Exception as e:
+            if 'backing array was not large enough' in str(e):
+                word_count *= 2
+                ret = self._to_bytes_packed_helper(word_count)
+            else:
+                raise
+
         self._is_written = True
         return ret
 
@@ -1146,6 +1173,11 @@ cdef class _DynamicStructBuilder:
 
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
+
+    property total_size:
+        def __get__(self):
+            size = self.thisptr.totalSize()
+            return _MessageSize(size.wordCount, size.capCount)
 
 cdef class _DynamicStructPipeline:
     """Reads Cap'n Proto structs
@@ -1742,9 +1774,9 @@ cdef class _Restorer:
 
 cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
-    cdef _FdAsyncIoStream stream
+    cdef _AsyncIoStream stream
 
-    cdef _init(self, _FdAsyncIoStream stream, Side side):
+    cdef _init(self, _AsyncIoStream stream, Side side):
         self.stream = stream
         self.thisptr = makeTwoPartyVatNetwork(deref(stream.thisptr), side)
         return self
@@ -1769,7 +1801,7 @@ cdef class TwoPartyClient:
     cdef public _TwoPartyVatNetwork _network
     cdef public object _orig_stream
     cdef public _Restorer _restorer
-    cdef public _FdAsyncIoStream _stream
+    cdef public _AsyncIoStream _stream
 
     def __init__(self, socket, restorer=None):
         if isinstance(socket, basestring):
@@ -1849,7 +1881,7 @@ cdef class TwoPartyServer:
     cdef public _TwoPartyVatNetwork _network
     cdef public object _orig_stream, _server_socket, _disconnect_promise
     cdef public _Restorer _restorer
-    cdef public _FdAsyncIoStream _stream
+    cdef public _AsyncIoStream _stream
     cdef object _port
     cdef public object port_promise
     cdef capnp.TaskSet * _task_set
@@ -1908,8 +1940,10 @@ cdef class TwoPartyServer:
 
     # TODO: add restore functionality here?
 
-cdef class _FdAsyncIoStream:
+cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
+
+cdef class _FdAsyncIoStream(_AsyncIoStream):
     cdef _EventLoop _event_loop
 
     def __init__(self, int fd):
@@ -1918,6 +1952,10 @@ cdef class _FdAsyncIoStream:
     cdef _init(self, int fd) except +reraise_kj_exception:
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = self._event_loop.wrapSocketFd(fd)
+
+cdef class PyAsyncIoStream(_AsyncIoStream):
+    def __init__(self, int fd):
+        pass
 
 cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr
