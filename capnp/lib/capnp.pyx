@@ -2268,10 +2268,12 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader` or :class:`_DynamicStructBuilder`
         """
         if builder:
-            message = _FlatMessageBuilder(buf)
+            # message = _FlatMessageBuilder(buf)
+            message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
+            return message.get_root(self.schema).as_builder()
         else:
             message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
-        return message.get_root(self.schema)
+            return message.get_root(self.schema)
     def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the packed object in buf.
 
