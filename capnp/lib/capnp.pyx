@@ -912,14 +912,17 @@ cdef class _DynamicStructReader:
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
 
-    cpdef as_builder(self):
+    cpdef as_builder(self, num_first_segment_words=None):
         """A method for casting this Builder to a Reader
 
         This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
 
+        :type num_first_segment_words: int
+        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+
         :rtype: :class:`_DynamicStructBuilder`
         """
-        builder = _MallocMessageBuilder()
+        builder = _MallocMessageBuilder(num_first_segment_words)
         return builder.set_root(self)
 
     property total_size:
@@ -1153,14 +1156,17 @@ cdef class _DynamicStructBuilder:
         reader._obj_to_pin = self
         return reader
 
-    cpdef copy(self):
+    cpdef copy(self, num_first_segment_words=None):
         """A method for copying this Builder
 
         This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
 
+        :type num_first_segment_words: int
+        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+
         :rtype: :class:`_DynamicStructBuilder`
         """
-        builder = _MallocMessageBuilder()
+        builder = _MallocMessageBuilder(num_first_segment_words)
         return builder.set_root(self)
 
     property schema:
@@ -2154,8 +2160,8 @@ class _StructABCMeta(type):
     def __instancecheck__(cls, obj):
         return isinstance(obj, cls.__base__) and obj.schema == cls._schema
 
-cdef _new_message(self, kwargs):
-    builder = _MallocMessageBuilder()
+cdef _new_message(self, kwargs, num_first_segment_words):
+    builder = _MallocMessageBuilder(num_first_segment_words)
     msg = builder.init_root(self.schema)
     if kwargs is not None:
         _from_dict(msg, kwargs)
@@ -2289,19 +2295,22 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`
         """
         return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(self.schema)
-    def new_message(self, **kwargs):
+    def new_message(self, num_first_segment_words=None, **kwargs):
         """Returns a newly allocated builder message.
 
+        :type num_first_segment_words: int
+        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+
         :type kwargs: dict
-        :param kwargs: A list of fields and their values to initialize in the struct
+        :param kwargs: A list of fields and their values to initialize in the struct. Note, this is not an actual argument, but refers to Python's ability to pass keyword arguments. ie. new_message(my_field=100)
 
         :rtype: :class:`_DynamicStructBuilder`
         """
-        return _new_message(self, kwargs)
+        return _new_message(self, kwargs, num_first_segment_words)
     def from_dict(self, kwargs):
         '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs'
         _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs', UserWarning)
-        return _new_message(self, kwargs)
+        return _new_message(self, kwargs, None)
     def from_object(self, obj):
         '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead'
         _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead', UserWarning)
@@ -2579,11 +2588,11 @@ cdef class _MallocMessageBuilder(_MessageBuilder):
         f = open('out.txt', 'w')
         _write_message_to_fd(f.fileno(), message)
     """
-    def __cinit__(self):
-        self.thisptr = new schema_cpp.MallocMessageBuilder()
-
-    def __init__(self):
-        pass
+    def __init__(self, size=None):
+        if size is None:
+            self.thisptr = new schema_cpp.MallocMessageBuilder()
+        else:
+            self.thisptr = new schema_cpp.MallocMessageBuilder(size)
 
 cdef class _MessageReader:
     """An abstract base class for reading Cap'n Proto messages

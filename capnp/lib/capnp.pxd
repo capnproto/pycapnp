@@ -16,4 +16,4 @@ cdef class _DynamicStructReader:
 
     cpdef _which(self)
 
-    cpdef as_builder(self)
+    cpdef as_builder(self, num_first_segment_words=?)

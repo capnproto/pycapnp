@@ -397,6 +397,17 @@ def test_build(all_types):
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
 
+def test_build_first_segment_size(all_types):
+    root = all_types.TestAllTypes.new_message(1)
+    init_all_types(root)
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    assert str(root) + '\n' == expectedText
+
+    root = all_types.TestAllTypes.new_message(1024*1024)
+    init_all_types(root)
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    assert str(root) + '\n' == expectedText
+
 def test_binary_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.binary'), 'r')
     root = all_types.TestAllTypes.read(f)
