@@ -845,6 +845,9 @@ cdef class _MessageSize:
         self.word_count = word_count
         self.cap_count = cap_count
 
+def _struct_reducer(schema_id, data):
+    return _global_schema_parser.modules_by_id[schema_id].from_bytes(data)
+
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
 
@@ -923,6 +926,9 @@ cdef class _DynamicStructReader:
         def __get__(self):
             size = self.thisptr.totalSize()
             return _MessageSize(size.wordCount, size.capCount)
+
+    def __reduce__(self):
+        return _struct_reducer, (self.schema.node.id, self.as_builder().to_bytes())
 
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
@@ -1178,6 +1184,9 @@ cdef class _DynamicStructBuilder:
         def __get__(self):
             size = self.thisptr.totalSize()
             return _MessageSize(size.wordCount, size.capCount)
+
+    def __reduce__(self):
+        return _struct_reducer, (self.schema.node.id, self.to_bytes())
 
 cdef class _DynamicStructPipeline:
     """Reads Cap'n Proto structs
@@ -2322,8 +2331,11 @@ cdef class SchemaParser:
     Do not use this class unless you're sure you know what you're doing. Use the convenience method :func:`load` instead.
     """
     cdef C_SchemaParser * thisptr
+    cdef public dict modules_by_id
+
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
+        self.modules_by_id = {}
 
     def __dealloc__(self):
         del self.thisptr
@@ -2380,6 +2392,8 @@ cdef class SchemaParser:
             module._nodeSchema = nodeSchema
             nodeProto = nodeSchema.get_proto()
             module._nodeProto = nodeProto
+
+            self.modules_by_id[nodeProto.id] = module
 
             for node in nodeProto.nestedNodes:
                 local_module = _ModuleType(node.name)
