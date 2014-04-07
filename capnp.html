@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.4.0-dev documentation</title>
+    <title>API Reference &mdash; capnp 0.4.3 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.4.0-dev',
+        VERSION:     '0.4.3',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.4.0-dev documentation" href="index.html" />
+    <link rel="top" title="capnp 0.4.3 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +40,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.4.0-dev documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.4.3 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -164,15 +164,20 @@ one yourself, but you may end up using some of their member methods.</p>
 
 <dl class="method">
 <dt id="capnp._StructModule.new_message">
-<tt class="descname">new_message</tt><big>(</big><em>self</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#capnp._StructModule.new_message" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">new_message</tt><big>(</big><em>self</em>, <em>num_first_segment_words=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#capnp._StructModule.new_message" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a newly allocated builder message.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; A list of fields and their values to initialize in the struct</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>num_first_segment_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Size of the first segment to allocate in the message (in words ie. 8 byte increments)</li>
+<li><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; A list of fields and their values to initialize in the struct. Note, this is not an actual argument, but refers to Python&#8217;s ability to pass keyword arguments. ie. new_message(my_field=100)</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -288,14 +293,16 @@ one yourself, but you may end up using some of their member methods.</p>
 </div>
 <dl class="method">
 <dt id="capnp._DynamicStructReader.as_builder">
-<tt class="descname">as_builder</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.as_builder" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">as_builder</tt><big>(</big><em>self</em>, <em>num_first_segment_words=None</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.as_builder" title="Permalink to this definition">¶</a></dt>
 <dd><p>A method for casting this Builder to a Reader</p>
 <p>This is a copying operation with respect to the message&#8217;s buffer. Changes in the new builder will not reflect in the original reader.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>num_first_segment_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Size of the first segment to allocate in the message (in words ie. 8 byte increments)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
 </tr>
 </tbody>
 </table>
@@ -318,26 +325,20 @@ one yourself, but you may end up using some of their member methods.</p>
 <tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="attribute">
+<dt id="capnp._DynamicStructReader.total_size">
+<tt class="descname">total_size</tt><a class="headerlink" href="#capnp._DynamicStructReader.total_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="capnp._DynamicStructReader.which">
-<tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.which" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">which</tt><a class="headerlink" href="#capnp._DynamicStructReader.which" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the enum corresponding to the union in this struct</p>
-<p>Enums are just strings in the python Cap&#8217;n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn&#8217;t a union, or a struct with an unnamed union:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
-
-<span class="n">person</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
-<span class="c"># ValueError: member was null</span>
-
-<span class="n">a</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
-<span class="k">print</span> <span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
-<span class="c"># &#39;employer&#39;</span>
-</pre></div>
-</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicEnumField</span></tt></td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string/enum corresponding to what field is set in the union</td>
 </tr>
@@ -424,14 +425,16 @@ one yourself, but you may end up using some of their member methods.</p>
 
 <dl class="method">
 <dt id="capnp._DynamicStructBuilder.copy">
-<tt class="descname">copy</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.copy" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">copy</tt><big>(</big><em>self</em>, <em>num_first_segment_words=None</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.copy" title="Permalink to this definition">¶</a></dt>
 <dd><p>A method for copying this Builder</p>
 <p>This is a copying operation with respect to the message&#8217;s buffer. Changes in the new builder will not reflect in the original reader.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>num_first_segment_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Size of the first segment to allocate in the message (in words ie. 8 byte increments)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a></td>
 </tr>
 </tbody>
 </table>
@@ -541,26 +544,20 @@ one yourself, but you may end up using some of their member methods.</p>
 <tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="attribute">
+<dt id="capnp._DynamicStructBuilder.total_size">
+<tt class="descname">total_size</tt><a class="headerlink" href="#capnp._DynamicStructBuilder.total_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="capnp._DynamicStructBuilder.which">
-<tt class="descname">which</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.which" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">which</tt><a class="headerlink" href="#capnp._DynamicStructBuilder.which" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the enum corresponding to the union in this struct</p>
-<p>Enums are just strings in the python Cap&#8217;n Proto API, so this function will either return a string equal to the field name of the active field in the union, or throw a ValueError if this isn&#8217;t a union, or a struct with an unnamed union:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
-
-<span class="n">person</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
-<span class="c"># ValueError: member was null</span>
-
-<span class="n">a</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
-<span class="k">print</span> <span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
-<span class="c"># &#39;employer&#39;</span>
-</pre></div>
-</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicEnumField</span></tt></td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string/enum corresponding to what field is set in the union</td>
 </tr>
@@ -971,6 +968,11 @@ parsed schemas and constants with . syntax</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="capnp.TwoPartyClient.on_disconnect">
+<tt class="descname">on_disconnect</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyClient.on_disconnect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="capnp.TwoPartyClient.restore">
 <tt class="descname">restore</tt><big>(</big><em>self</em>, <em>objectId</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyClient.restore" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -989,7 +991,12 @@ parsed schemas and constants with . syntax</p>
 <dl class="attribute">
 <dt id="capnp.TwoPartyServer.port">
 <tt class="descname">port</tt><a class="headerlink" href="#capnp.TwoPartyServer.port" title="Permalink to this definition">¶</a></dt>
-<dd><p>port: &#8216;int&#8217;</p>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="capnp.TwoPartyServer.port_promise">
+<tt class="descname">port_promise</tt><a class="headerlink" href="#capnp.TwoPartyServer.port_promise" title="Permalink to this definition">¶</a></dt>
+<dd><p>port_promise: object</p>
 </dd></dl>
 
 <dl class="method">
@@ -1101,6 +1108,12 @@ parsed schemas and constants with . syntax</p>
 </table>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="capnp.SchemaParser.modules_by_id">
+<tt class="descname">modules_by_id</tt><a class="headerlink" href="#capnp.SchemaParser.modules_by_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>modules_by_id: dict</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -1171,7 +1184,7 @@ parsed schemas and constants with . syntax</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.4.0-dev documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.4.3 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

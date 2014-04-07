@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Quickstart &mdash; capnp 0.4.0-dev documentation</title>
+    <title>Quickstart &mdash; capnp 0.4.3 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.4.0-dev',
+        VERSION:     '0.4.3',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.4.0-dev documentation" href="index.html" />
+    <link rel="top" title="capnp 0.4.3 documentation" href="index.html" />
     <link rel="next" title="API Reference" href="capnp.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.4.0-dev documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.4.3 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -74,7 +74,7 @@
 </div>
 <p>For future reference, here is the Cap&#8217;n Proto schema. Also available in the github repository under <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/examples">examples/addressbook.capnp</a>:</p>
 <div class="highlight-python"><pre># addressbook.capnp
-0x934efea7f017fff0;
+@0x934efea7f017fff0;
 
 const qux :UInt32 = 123;
 
@@ -95,11 +95,11 @@ struct Person {
     }
   }
 
-  employment @4 union {
-    unemployed @5 :Void;
-    employer @6 :Text;
-    school @7 :Text;
-    selfEmployed @8 :Void;
+  employment :union {
+    unemployed @4 :Void;
+    employer @5 :Text;
+    school @6 :Text;
+    selfEmployed @7 :Void;
     # We assume that a person is only one of these.
   }
 }
@@ -121,7 +121,7 @@ struct AddressBook {
 <h2>Build a message<a class="headerlink" href="#build-a-message" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="initialize-a-new-cap-n-proto-object">
 <h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#initialize-a-new-cap-n-proto-object" title="Permalink to this headline">¶</a></h3>
-<p>Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
+<p>Now that you&#8217;ve imported your schema, you need to allocate an actual struct from that schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -146,7 +146,7 @@ struct AddressBook {
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">It is a very bad idea to call <cite>init</cite> more than once. Every call to <cite>init</cite> allocates new memory inside your Cap&#8217;n Proto message, and if you call it more than once, the previous memory is leaked.</p>
+<p class="last">It is a very bad idea to call <cite>init</cite> more than once on a single field. Every call to <cite>init</cite> allocates new memory inside your Cap&#8217;n Proto message, and if you call it more than once, the previous memory is leaked.</p>
 </div>
 </div>
 <div class="section" id="primitive-types">
@@ -164,6 +164,10 @@ struct AddressBook {
 <span class="n">alice</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Alice&#39;</span>
 <span class="n">alice</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s">&#39;alice@example.com&#39;</span>
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Text fields will behave differently depending on your version of Python. In Python 2.x, Text fields will expect and return a <cite>bytes</cite> string, while in Python 3.x, they will expect and return a <cite>unicode</cite> string. Data fields will always a return <cite>bytes</cite> string.</p>
 </div>
 </div>
 <div class="section" id="enums">
@@ -320,8 +324,16 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 <p>For the reverse, all you have to do is pass keyword arguments to the new_message constructor:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">my_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span> <span class="p">:</span> <span class="s">&#39;alice&#39;</span><span class="p">}</span>
-<span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="o">**</span><span class="n">my_dict</span><span class="p">)</span>
-<span class="c"># equivalent to: alice = addressbook.Person.new_message(name=&#39;alice&#39;)</span>
+<span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="o">**</span><span class="n">my_dict</span><span class="p">)</span>
+<span class="c"># equivalent to: alice = addressbook_capnp.Person.new_message(name=&#39;alice&#39;)</span>
+</pre></div>
+</div>
+<p>It&#8217;s also worth noting, you can use python lists/dictionaries interchangably with their Cap&#8217;n Proto equivalent types:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">book</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="n">people</span><span class="o">=</span><span class="p">[{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&#39;Alice&#39;</span><span class="p">}])</span>
+<span class="o">...</span>
+<span class="n">book</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+<span class="n">book</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">book</span><span class="o">.</span><span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&#39;Bob&#39;</span><span class="p">}</span>
 </pre></div>
 </div>
 </div>
@@ -332,11 +344,11 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </pre></div>
 </div>
 <p>And a corresponding from_bytes function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">encoded_message</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">encoded_message</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>There are also packed versions:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice2</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes_packed</span><span class="p">(</span><span class="n">alice</span><span class="o">.</span><span class="n">to_bytes_packed</span><span class="p">())</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">alice2</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes_packed</span><span class="p">(</span><span class="n">alice</span><span class="o">.</span><span class="n">to_bytes_packed</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -355,6 +367,10 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">(</span><span class="s">&#39;localhost:60000&#39;</span><span class="p">)</span>
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You can also pass a raw socket with a <cite>fileno()</cite> method to TwoPartyClient</p>
 </div>
 </div>
 <div class="section" id="restoring">
@@ -377,16 +393,12 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <span class="n">eval_promise</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>This creates a request for the method named &#8216;evaluate&#8217;, sets <cite>expression.literal</cite> in that calls parameters to 123, and then sends the request and returns a promise (all non-blocking).</p>
+<p>This creates a request for the method named &#8216;evaluate&#8217;, sets <cite>expression.literal</cite> in that call&#8217;s parameters to 123, and then sends the request and returns a promise (all non-blocking).</p>
 <p>The shorter syntax for calling methods is:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">promise</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">getOperator</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="s">&#39;add&#39;</span><span class="p">)</span>
-<span class="c"># equivalent to:</span>
-<span class="n">request</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">getOperator_request</span><span class="p">()</span>
-<span class="n">request</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="s">&#39;add&#39;</span>
-<span class="n">promise</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">eval_promise</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">({</span><span class="s">&quot;literal&quot;</span><span class="p">:</span> <span class="mi">123</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>The major shortcoming with this method is that it doesn&#8217;t work for complex fields, such as <cite>expression.literal</cite> from the first example.</p>
+<p>The major shortcoming with this method is that expressing complex fields with many nested sub-structs can become very tedious.</p>
 <p>Once you have a promise, there are 2 ways of getting to the result. The first is to wait for it:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">result</span> <span class="o">=</span> <span class="n">eval_promise</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 </pre></div>
@@ -418,16 +430,14 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <h3>Server<a class="headerlink" href="#server" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="starting-a-server">
 <h4>Starting a Server<a class="headerlink" href="#starting-a-server" title="Permalink to this headline">¶</a></h4>
-<p>Once you have a socket, it&#8217;s quite simple to start a server:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">server</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyServer</span><span class="p">(</span><span class="s">&#39;*:60000&#39;</span><span class="p">,</span> <span class="n">restore</span><span class="p">)</span>
-
-<span class="n">server</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
-</pre></div>
-</div>
+<blockquote>
+<div><p>server = capnp.TwoPartyServer(&#8216;<a href="#id2"><span class="problematic" id="id3">*</span></a>:60000&#8217;, restore)</p>
+<p>server.run_forever()</p>
+</div></blockquote>
 <p>See the <a class="reference internal" href="#restore">Restore</a> section for an explanation of what the <cite>restore</cite> object needs to looks like.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">You can also pass a socket with a <cite>fileno()</cite> method to TwoPartyServer. In that case, <cite>run_forever</cite> will not work, and you will have to use <cite>on_disconnect.wait()</cite>.</p>
+<p class="last">You can also pass a raw socket with a <cite>fileno()</cite> method to TwoPartyServer. In that case, <cite>run_forever</cite> will not work, and you will have to use <cite>on_disconnect.wait()</cite>.</p>
 </div>
 </div>
 <div class="section" id="implementing-a-server">
@@ -454,7 +464,7 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </li>
 <li><p class="first">Method names of your class must either match the interface exactly, or have &#8216;_context&#8217; appended to it</p>
 </li>
-<li><p class="first">If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a <cite>_context</cite> parameter which is equivalent to the C++ API&#8217;s Context. I highly recommend having <a href="#id2"><span class="problematic" id="id3">**</span></a>kwargs as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine.</p>
+<li><p class="first">If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a <cite>_context</cite> parameter which is equivalent to the C++ API&#8217;s Context. I highly recommend having <a href="#id4"><span class="problematic" id="id5">**</span></a>kwargs as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine.</p>
 </li>
 <li><p class="first">Returns work with a bit of magic as well. If you return a promise, then it will be handled the same as if you returned a promise from a server method in the C++ API. Otherwise, your return statement will be filled into the results struct following the ordering in your spec, for example:</p>
 <div class="highlight-python"><pre># capability.capnp file
@@ -609,7 +619,7 @@ class TestInterface(capability_capnp.TestInterface.Server):
         <li class="right" >
           <a href="install.html" title="Installation"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.4.0-dev documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.4.3 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
