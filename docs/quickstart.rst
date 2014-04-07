@@ -26,7 +26,7 @@ This will look all through all the directories in your sys.path/PYTHONPATH, and 
 For future reference, here is the Cap'n Proto schema. Also available in the github repository under `examples/addressbook.capnp <https://github.com/jparyani/pycapnp/tree/master/examples>`_::
 
     # addressbook.capnp
-    0x934efea7f017fff0;
+    @0x934efea7f017fff0;
 
     const qux :UInt32 = 123;
 
@@ -47,11 +47,11 @@ For future reference, here is the Cap'n Proto schema. Also available in the gith
         }
       }
 
-      employment @4 union {
-        unemployed @5 :Void;
-        employer @6 :Text;
-        school @7 :Text;
-        selfEmployed @8 :Void;
+      employment :union {
+        unemployed @4 :Void;
+        employer @5 :Text;
+        school @6 :Text;
+        selfEmployed @7 :Void;
         # We assume that a person is only one of these.
       }
     }
