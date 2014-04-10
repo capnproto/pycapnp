@@ -1856,7 +1856,9 @@ cdef class TwoPartyClient:
         cdef _DynamicObjectBuilder object_builder
         cdef _DynamicObjectReader object_reader
 
-        if type(objectId) is _DynamicObjectBuilder:
+        if objectId is None:
+            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr)), self)
+        elif type(objectId) is _DynamicObjectBuilder:
             object_builder = objectId
             return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(object_builder.thisptr)), self)
         elif type(objectId) is _DynamicObjectReader:

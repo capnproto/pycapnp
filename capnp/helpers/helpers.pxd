@@ -25,6 +25,7 @@ cdef extern from "../helpers/capabilityHelper.h":
     VoidPromise convert_to_voidpromise(PyPromise&)
 
 cdef extern from "../helpers/rpcHelper.h":
+    Capability.Client restoreHelper(RpcSystem&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
     Capability.Client restoreHelper(RpcSystem&, MessageReader&)
     Capability.Client restoreHelper(RpcSystem&, AnyPointer.Reader&)

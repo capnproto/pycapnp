@@ -1,6 +1,7 @@
 #pragma once
 
 #include "capnp/dynamic.h"
+#include <capnp/rpc.capnp.h>
 #include "capnp/rpc-twoparty.h"
 #include "Python.h"
 #include "capabilityHelper.h"
@@ -33,27 +34,40 @@ private:
   PyObject * py_restorer;
 };
 
-capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageBuilder & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageBuilder & objectId) {
+    capnp::MallocMessageBuilder hostIdMessage(8);
     auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
     return client.restore(hostId, objectId.getRoot<capnp::AnyPointer>());
 }
 
-
-capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageReader & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::MessageReader & objectId) {
+    capnp::MallocMessageBuilder hostIdMessage(8);
     auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
     return client.restore(hostId, objectId.getRoot<capnp::AnyPointer>());
 }
-capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::AnyPointer::Reader & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
+
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::AnyPointer::Reader & objectId) {
+    capnp::MallocMessageBuilder hostIdMessage(8);
     auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
     return client.restore(hostId, objectId);
 }
-capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::AnyPointer::Builder & objectId) {  capnp::MallocMessageBuilder hostIdMessage(8);
+
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client, capnp::AnyPointer::Builder & objectId) {
+    capnp::MallocMessageBuilder hostIdMessage(8);
     auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
     return client.restore(hostId, objectId);
+}
+
+capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client) {
+    capnp::MallocMessageBuilder message;
+    capnp::rpc::SturdyRef::Builder ref = message.getRoot<capnp::rpc::SturdyRef>();
+    auto hostId = ref.getHostId().initAs<capnp::rpc::twoparty::SturdyRefHostId>();
+    hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
+    return client.restore(hostId, ref.getObjectId());
 }
 
 template <typename SturdyRefHostId, typename ProvisionId,
