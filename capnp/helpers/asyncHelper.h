@@ -31,3 +31,7 @@ private:
 void waitNeverDone(kj::WaitScope & scope) {
   kj::NEVER_DONE.wait(scope);
 }
+
+kj::Timer * getTimer(kj::AsyncIoContext * context) {
+  return &context->lowLevelProvider->getTimer();
+}

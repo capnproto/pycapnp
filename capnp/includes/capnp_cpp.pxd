@@ -100,6 +100,16 @@ cdef extern from "kj/array.h" namespace " ::kj":
 
 ctypedef Promise[PyArray] PyPromiseArray
 
+cdef extern from "kj/time.h" namespace " ::kj":
+    cdef cppclass Duration:
+        Duration(int64_t)
+    # cdef cppclass TimePoint:
+    #     TimePoint(Duration)
+    cdef cppclass Timer:
+        # int64_t now()
+        # VoidPromise atTime(TimePoint time)
+        VoidPromise afterDelay(Duration delay)
+
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream:
         pass
@@ -107,6 +117,7 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
         # Own[AsyncInputStream] wrapInputFd(int)
         # Own[AsyncOutputStream] wrapOutputFd(int)
         Own[AsyncIoStream] wrapSocketFd(int)
+        Timer& getTimer() except +reraise_kj_exception
     cdef cppclass AsyncIoProvider:
         pass
     cdef cppclass WaitScope:

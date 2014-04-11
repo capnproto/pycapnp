@@ -1350,6 +1350,19 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
 
     raise RuntimeError("You don't have any EventLoops running. Please make sure to add one")
 
+cdef class Timer:
+    cdef capnp.Timer * thisptr
+
+    cdef _init(self, capnp.Timer * timer):
+        self.thisptr = timer
+        return self
+
+    cpdef after_delay(self, time):
+        return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Duration(time)))
+
+def getTimer():
+    return Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().thisptr))
+
 # cpdef remove_event_loop():
 #     'Remove the global event loop'
 #     global C_DEFAULT_EVENT_LOOP

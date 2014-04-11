@@ -255,3 +255,15 @@ def test_tail_call():
 
     assert callee_server.count == 1
     assert caller_server.count == 1
+
+
+def test_timer():
+    global test_timer_var
+    test_timer_var = False
+
+    def set_timer_var():
+        global test_timer_var
+        test_timer_var = True
+    capnp.getTimer().after_delay(1).then(set_timer_var).wait()
+
+    assert test_timer_var is True
