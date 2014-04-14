@@ -1463,6 +1463,17 @@ cdef class Promise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
+        argspec = None
+        try:
+            argspec = _inspect.getargspec(func)
+        except:
+            pass
+        if argspec:
+            args_length = len(argspec.args) if argspec.args else 0
+            defaults_length = len(argspec.defaults) if argspec.defaults else 0
+            if args_length - defaults_length != 1:
+                raise ValueError('Function passed to `then` call must take exactly one argument')
+
         self.is_consumed = True
 
         return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)

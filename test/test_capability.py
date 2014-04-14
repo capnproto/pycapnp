@@ -289,3 +289,13 @@ def test_timer():
     joined = capnp.join_promises([promise, canceller])
     with pytest.raises(Exception):
         joined.wait()
+
+
+def test_then_args():
+    capnp.Promise(0).then(lambda x: 1)
+
+    with pytest.raises(ValueError):
+        capnp.Promise(0).then(lambda: 1)
+
+    with pytest.raises(ValueError):
+        capnp.Promise(0).then(lambda x, y: 1)
