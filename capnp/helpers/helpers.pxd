@@ -38,4 +38,4 @@ cdef extern from "../helpers/serialize.h":
 
 cdef extern from "../helpers/asyncHelper.h":
     void waitNeverDone(WaitScope&)
-    Timer * getTimer(AsyncIoContext *)
+    Timer * getTimer(AsyncIoContext *) except +reraise_kj_exception

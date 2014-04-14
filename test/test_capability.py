@@ -1,6 +1,7 @@
 import pytest
 import capnp
 import os
+import time
 
 import test_capability_capnp as capability
 
@@ -257,6 +258,19 @@ def test_tail_call():
     assert caller_server.count == 1
 
 
+def test_cancel():
+    client = capability.TestInterface._new_client(Server())
+
+    req = client._request('foo')
+    req.i = 5
+
+    remote = req.send()
+    remote.cancel()
+
+    with pytest.raises(ValueError):
+        remote.wait()
+
+
 def test_timer():
     global test_timer_var
     test_timer_var = False
@@ -267,3 +281,11 @@ def test_timer():
     capnp.getTimer().after_delay(1).then(set_timer_var).wait()
 
     assert test_timer_var is True
+
+    promise = capnp.Promise(0).then(lambda x: time.sleep(.1)).then(lambda x: time.sleep(.1))
+
+    canceller = capnp.getTimer().after_delay(1000).then(lambda: promise.cancel())
+
+    joined = capnp.join_promises([promise, canceller])
+    with pytest.raises(Exception):
+        joined.wait()

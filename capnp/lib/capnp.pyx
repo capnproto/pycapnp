@@ -1357,7 +1357,7 @@ cdef class Timer:
         self.thisptr = timer
         return self
 
-    cpdef after_delay(self, time):
+    cpdef after_delay(self, time) except +reraise_kj_exception:
         return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Duration(time)))
 
 def getTimer():
@@ -1434,7 +1434,7 @@ cdef class Promise:
         else:
             self.is_consumed = False
             self._obj = obj
-            Py_INCREF(obj)
+            Py_INCREF(obj) # TODO: MEM: fix leak
             self.thisptr = new PyPromise(<PyObject *>obj)
 
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
@@ -1475,6 +1475,15 @@ cdef class Promise:
         self.is_consumed = True
 
         return ret
+
+    cpdef cancel(self) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            
+        self.is_consumed = True
+        del self.thisptr
+        self.thisptr = NULL
+
 
 cdef class _VoidPromise:
     cdef VoidPromise * thisptr
@@ -1521,6 +1530,14 @@ cdef class _VoidPromise:
         self.is_consumed = True
 
         return ret
+
+    cpdef cancel(self) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            
+        self.is_consumed = True
+        del self.thisptr
+        self.thisptr = NULL
 
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
@@ -1588,6 +1605,14 @@ cdef class _RemotePromise:
 
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
+
+    cpdef cancel(self) except +reraise_kj_exception:
+        if self.is_consumed:
+            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            
+        self.is_consumed = True
+        del self.thisptr
+        self.thisptr = NULL
 
     # def attach(self, *args):
     #     if self.is_consumed:
