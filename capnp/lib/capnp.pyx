@@ -1526,6 +1526,17 @@ cdef class _VoidPromise:
         if self.is_consumed:
             raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
+        argspec = None
+        try:
+            argspec = _inspect.getargspec(func)
+        except:
+            pass
+        if argspec:
+            args_length = len(argspec.args) if argspec.args else 0
+            defaults_length = len(argspec.defaults) if argspec.defaults else 0
+            if args_length - defaults_length != 0:
+                raise ValueError('Function passed to `then` call must take no arguments')
+
         return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
@@ -1586,6 +1597,17 @@ cdef class _RemotePromise:
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
             raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        argspec = None
+        try:
+            argspec = _inspect.getargspec(func)
+        except:
+            pass
+        if argspec:
+            args_length = len(argspec.args) if argspec.args else 0
+            defaults_length = len(argspec.defaults) if argspec.defaults else 0
+            if args_length - defaults_length != 1:
+                raise ValueError('Function passed to `then` call must take exactly one argument')
 
         Py_INCREF(func)
         Py_INCREF(error_func)
@@ -1656,16 +1678,21 @@ cpdef join_promises(promises) except +reraise_kj_exception:
 
 cdef class _Request(_DynamicStructBuilder):
     cdef Request * thisptr_child
+    cdef public bint is_consumed
 
     cdef _init_child(self, Request other, parent):
         self.thisptr_child = new Request(moveRequest(other))
         self._init(<DynamicStruct_Builder>deref(self.thisptr_child), parent)
+        self.is_consumed = False
         return self
 
     def __dealloc__(self):
         del self.thisptr_child
 
     cpdef send(self):
+        if self.is_consumed:
+            raise ValueError('Request has already been sent. You can only send a request once.')
+        self.is_consumed = True
         return _RemotePromise()._init(self.thisptr_child.send(), self._parent)
 
 cdef class _Response(_DynamicStructReader):

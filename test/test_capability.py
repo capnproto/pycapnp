@@ -291,6 +291,17 @@ def test_timer():
         joined.wait()
 
 
+def test_double_send():
+    client = capability.TestInterface._new_client(Server())
+
+    req = client._request('foo')
+    req.i = 5
+
+    req.send()
+    with pytest.raises(ValueError):
+        req.send()
+
+
 def test_then_args():
     capnp.Promise(0).then(lambda x: 1)
 
@@ -299,3 +310,18 @@ def test_then_args():
 
     with pytest.raises(ValueError):
         capnp.Promise(0).then(lambda x, y: 1)
+
+    capnp.getTimer().after_delay(1).then(lambda: 1)  # after_delay is a VoidPromise
+
+    with pytest.raises(ValueError):
+        capnp.getTimer().after_delay(1).then(lambda x: 1)
+
+    client = capability.TestInterface._new_client(Server())
+
+    client.foo(i=5).then(lambda x: 1)
+
+    with pytest.raises(ValueError):
+        client.foo(i=5).then(lambda: 1)
+
+    with pytest.raises(ValueError):
+        client.foo(i=5).then(lambda x, y: 1)
