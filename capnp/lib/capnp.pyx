@@ -1474,9 +1474,8 @@ cdef class Promise:
             if args_length - defaults_length != 1:
                 raise ValueError('Function passed to `then` call must take exactly one argument')
 
-        self.is_consumed = True
-
-        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)
+        cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     def attach(self, *args):
         if self.is_consumed:
@@ -1487,10 +1486,10 @@ cdef class Promise:
 
         return ret
 
-    cpdef cancel(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-            
+    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
+        if numParents > 0 and hasattr(self._parent, 'cancel'):
+            self._parent.cancel(numParents - 1)
+
         self.is_consumed = True
         del self.thisptr
         self.thisptr = NULL
@@ -1537,7 +1536,8 @@ cdef class _VoidPromise:
             if args_length - defaults_length != 0:
                 raise ValueError('Function passed to `then` call must take no arguments')
 
-        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)
+        cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1553,10 +1553,10 @@ cdef class _VoidPromise:
 
         return ret
 
-    cpdef cancel(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-            
+    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
+        if numParents > 0 and hasattr(self._parent, 'cancel'):
+            self._parent.cancel(numParents - 1)
+        
         self.is_consumed = True
         del self.thisptr
         self.thisptr = NULL
@@ -1612,7 +1612,8 @@ cdef class _RemotePromise:
         Py_INCREF(func)
         Py_INCREF(error_func)
 
-        return Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func).attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), self)
+        cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
@@ -1639,10 +1640,10 @@ cdef class _RemotePromise:
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
 
-    cpdef cancel(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
-            
+    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
+        if numParents > 0 and hasattr(self._parent, 'cancel'):
+            self._parent.cancel(numParents - 1)
+        
         self.is_consumed = True
         del self.thisptr
         self.thisptr = NULL
