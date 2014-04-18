@@ -250,7 +250,7 @@ cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
     nature = wrapper.nature
 
     if wrapper.nature == 'PRECONDITION':
-        if 'has no such member' in wrapper_msg:
+        if 'has no such' in wrapper_msg:
             return AttributeError(wrapper_msg)
         else:
             return ValueError(wrapper_msg)
@@ -1731,7 +1731,7 @@ cdef class _DynamicCapabilityServer:
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
-    cdef public object _server, _parent
+    cdef public object _server, _parent, _methods_set
 
     cdef _init(self, C_DynamicCapability.Client other, object parent):
         self.thisptr = other
@@ -1801,7 +1801,12 @@ cdef class _DynamicCapabilityClient:
     def __getattr__(self, name):
         if name.endswith('_request'):
             short_name = name[:-8]
+            if short_name not in self._method_names:
+                raise AttributeError('Method named %s not found' % short_name)
             return _partial(self._request, short_name)
+
+        if name not in self._method_names:
+            raise AttributeError('Method named %s not found' % name)
         return _partial(self._send, name)
 
     cpdef upcast(self, schema) except +reraise_kj_exception:
@@ -1826,8 +1831,14 @@ cdef class _DynamicCapabilityClient:
         def __get__(self):
             return _InterfaceSchema()._init(self.thisptr.getSchema())
 
+    property _method_names:
+        def __get__(self):
+            if self._methods_set is None:
+                self._methods_set = set(self.schema.method_names)
+            return self._methods_set
+
     def __dir__(self):
-        return list(self.schema.method_names)
+        return list(self.schema._method_names)
 
 cdef class _CapabilityClient:
     cdef C_Capability.Client * thisptr

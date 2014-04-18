@@ -48,7 +48,7 @@ def test_client_context(capability):
 
     assert response.x == '26'
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         client.foo2_request()
 
     req = client.foo_request()
@@ -109,7 +109,7 @@ def test_simple_client_context(capability):
     with pytest.raises(ValueError):
         remote = client.foo(i='foo')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         remote = client.foo2(i=5)
 
     with pytest.raises(AttributeError):
