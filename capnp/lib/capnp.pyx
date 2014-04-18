@@ -1363,28 +1363,28 @@ cdef class Timer:
 def getTimer():
     return Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().thisptr))
 
-# cpdef remove_event_loop():
-#     'Remove the global event loop'
-#     global C_DEFAULT_EVENT_LOOP
-#     C_DEFAULT_EVENT_LOOP._remove()
-#     C_DEFAULT_EVENT_LOOP = None
+cpdef remove_event_loop():
+    'Remove the global event loop'
+    global C_DEFAULT_EVENT_LOOP
+    C_DEFAULT_EVENT_LOOP._remove()
+    C_DEFAULT_EVENT_LOOP = None
 
-# cpdef create_event_loop(is_thread_local=True):
-#     '''Create a new global event loop. This will not remove the previous
-#     EventLoop for you, so make sure to do that first'''
-#     global C_DEFAULT_EVENT_LOOP
-#     global _C_DEFAULT_EVENT_LOOP_LOCAL
-#     if is_thread_local:
-#         if _C_DEFAULT_EVENT_LOOP_LOCAL is None:
-#             _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
-#         _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
-#     else:
-#         C_DEFAULT_EVENT_LOOP = _EventLoop()
+cpdef create_event_loop(threaded=True):
+    '''Create a new global event loop. This will not remove the previous
+    EventLoop for you, so make sure to do that first'''
+    global C_DEFAULT_EVENT_LOOP
+    global _C_DEFAULT_EVENT_LOOP_LOCAL
+    if threaded:
+        if _C_DEFAULT_EVENT_LOOP_LOCAL is None:
+            _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
+        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
+    else:
+        C_DEFAULT_EVENT_LOOP = _EventLoop()
 
-# cpdef reset_event_loop():
-#     global C_DEFAULT_EVENT_LOOP
-#     C_DEFAULT_EVENT_LOOP._remove()
-#     C_DEFAULT_EVENT_LOOP = _EventLoop()
+cpdef reset_event_loop():
+    global C_DEFAULT_EVENT_LOOP
+    C_DEFAULT_EVENT_LOOP._remove()
+    C_DEFAULT_EVENT_LOOP = _EventLoop()
 
 def wait_forever():
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
