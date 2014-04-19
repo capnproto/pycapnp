@@ -328,3 +328,18 @@ def test_then_args():
 
     with pytest.raises(ValueError):
         client.foo(i=5).then(lambda x, y: 1)
+
+
+class ExtendsServer(Server):
+    def qux(self, **kwargs):
+        pass
+
+
+def test_inheritance():
+    client = capability.TestExtends._new_client(ExtendsServer())
+    client.qux().wait()
+
+    remote = client.foo(i=5)
+    response = remote.wait()
+
+    assert response.x == '26'

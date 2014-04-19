@@ -1731,7 +1731,7 @@ cdef class _DynamicCapabilityServer:
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
-    cdef public object _server, _parent, _methods_set
+    cdef public object _server, _parent, _cached_schema
 
     cdef _init(self, C_DynamicCapability.Client other, object parent):
         self.thisptr = other
@@ -1801,11 +1801,11 @@ cdef class _DynamicCapabilityClient:
     def __getattr__(self, name):
         if name.endswith('_request'):
             short_name = name[:-8]
-            if short_name not in self._method_names:
+            if short_name not in self.schema.method_names_inherited:
                 raise AttributeError('Method named %s not found' % short_name)
             return _partial(self._request, short_name)
 
-        if name not in self._method_names:
+        if name not in self.schema.method_names_inherited:
             raise AttributeError('Method named %s not found' % name)
         return _partial(self._send, name)
 
@@ -1829,13 +1829,9 @@ cdef class _DynamicCapabilityClient:
     property schema:
         """A property that returns the _InterfaceSchema object matching this client"""
         def __get__(self):
-            return _InterfaceSchema()._init(self.thisptr.getSchema())
-
-    property _method_names:
-        def __get__(self):
-            if self._methods_set is None:
-                self._methods_set = set(self.schema.method_names)
-            return self._methods_set
+            if self._cached_schema is None:
+                self._cached_schema = _InterfaceSchema()._init(self.thisptr.getSchema())
+            return self._cached_schema
 
     def __dir__(self):
         return list(self.schema._method_names)
@@ -2200,6 +2196,23 @@ cdef class _InterfaceSchema:
             self.__method_names = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__method_names
+
+    property method_names_inherited:
+        """A set of the function names in the interface, including inherited methods"""
+        def __get__(self):
+            fieldlist = self.thisptr.getMethods()
+            nfields = fieldlist.size()
+            ret = set(<char*>fieldlist[i].getProto().getName().cStr()
+                                      for i in xrange(nfields))
+            for interface in self.extends:
+                ret |= interface.method_names_inherited
+
+            return ret
+
+    property extends:
+        """A list of interfaces that this interface extends"""
+        def __get__(self):
+            return [self.get_dependency(i).as_interface() for i in self.node.interface.extends]
 
     property node:
         """The raw schema node"""
