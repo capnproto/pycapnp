@@ -17,9 +17,9 @@ from distutils.core import setup
 import os
 
 MAJOR = 0
-MINOR = 4
-MICRO = 3
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+MINOR = 5
+MICRO = 0
+VERSION = '%d.%d.%d-dev' % (MAJOR, MINOR, MICRO)
 
 def write_version_py(filename=None):
     cnt = """\
