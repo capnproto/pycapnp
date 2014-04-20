@@ -845,8 +845,11 @@ cdef class _MessageSize:
         self.word_count = word_count
         self.cap_count = cap_count
 
-def _struct_reducer(schema_id, data):
-    return _global_schema_parser.modules_by_id[schema_id].from_bytes(data)
+if getattr(_sys, 'subversion', [''])[0] == 'PyPy':
+    from pickle_helper import _struct_reducer
+else:
+    def _struct_reducer(schema_id, data):
+        return _global_schema_parser.modules_by_id[schema_id].from_bytes(data)
 
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
@@ -930,7 +933,7 @@ cdef class _DynamicStructReader:
             size = self.thisptr.totalSize()
             return _MessageSize(size.wordCount, size.capCount)
 
-    def __reduce__(self):
+    def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.as_builder().to_bytes())
 
 cdef class _DynamicStructBuilder:
@@ -1191,7 +1194,7 @@ cdef class _DynamicStructBuilder:
             size = self.thisptr.totalSize()
             return _MessageSize(size.wordCount, size.capCount)
 
-    def __reduce__(self):
+    def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.to_bytes())
 
 cdef class _DynamicStructPipeline:
