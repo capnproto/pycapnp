@@ -837,6 +837,17 @@ cdef class _DynamicEnumField:
     def __call__(self):
         return str(self)
 
+cdef class _MessageSize:
+    cdef public uint64_t word_count
+    cdef public uint cap_count
+
+    def __init__(self, uint64_t word_count, uint cap_count):
+        self.word_count = word_count
+        self.cap_count = cap_count
+
+def _struct_reducer(schema_id, data):
+    return _global_schema_parser.modules_by_id[schema_id].from_bytes(data)
+
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
 
@@ -901,15 +912,26 @@ cdef class _DynamicStructReader:
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
 
-    cpdef as_builder(self):
+    cpdef as_builder(self, num_first_segment_words=None):
         """A method for casting this Builder to a Reader
 
         This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
 
+        :type num_first_segment_words: int
+        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+
         :rtype: :class:`_DynamicStructBuilder`
         """
-        builder = _MallocMessageBuilder()
+        builder = _MallocMessageBuilder(num_first_segment_words)
         return builder.set_root(self)
+
+    property total_size:
+        def __get__(self):
+            size = self.thisptr.totalSize()
+            return _MessageSize(size.wordCount, size.capCount)
+
+    def __reduce__(self):
+        return _struct_reducer, (self.schema.node.id, self.as_builder().to_bytes())
 
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
@@ -992,12 +1014,26 @@ cdef class _DynamicStructBuilder:
         self._is_written = True
         return ret
 
-    cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception:
-        self._check_write()
+    cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count) except +reraise_kj_exception:
         cdef _MessageBuilder builder = self._parent
-        array = helpers.messageToPackedBytes(deref(builder.thisptr))
+        array = helpers.messageToPackedBytes(deref(builder.thisptr), word_count)
         cdef const char* ptr = <const char *>array.begin()
         cdef bytes ret = ptr[:array.size()]
+        return ret
+
+    cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception:
+        self._check_write()
+        word_count = self.total_size.word_count + 2
+
+        try:
+            ret = self._to_bytes_packed_helper(word_count)
+        except Exception as e:
+            if 'backing array was not large enough' in str(e):
+                word_count *= 2
+                ret = self._to_bytes_packed_helper(word_count)
+            else:
+                raise
+
         self._is_written = True
         return ret
 
@@ -1120,14 +1156,17 @@ cdef class _DynamicStructBuilder:
         reader._obj_to_pin = self
         return reader
 
-    cpdef copy(self):
+    cpdef copy(self, num_first_segment_words=None):
         """A method for copying this Builder
 
         This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
 
+        :type num_first_segment_words: int
+        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+
         :rtype: :class:`_DynamicStructBuilder`
         """
-        builder = _MallocMessageBuilder()
+        builder = _MallocMessageBuilder(num_first_segment_words)
         return builder.set_root(self)
 
     property schema:
@@ -1146,6 +1185,14 @@ cdef class _DynamicStructBuilder:
 
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
+
+    property total_size:
+        def __get__(self):
+            size = self.thisptr.totalSize()
+            return _MessageSize(size.wordCount, size.capCount)
+
+    def __reduce__(self):
+        return _struct_reducer, (self.schema.node.id, self.to_bytes())
 
 cdef class _DynamicStructPipeline:
     """Reads Cap'n Proto structs
@@ -1742,9 +1789,9 @@ cdef class _Restorer:
 
 cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
-    cdef _FdAsyncIoStream stream
+    cdef _AsyncIoStream stream
 
-    cdef _init(self, _FdAsyncIoStream stream, Side side):
+    cdef _init(self, _AsyncIoStream stream, Side side):
         self.stream = stream
         self.thisptr = makeTwoPartyVatNetwork(deref(stream.thisptr), side)
         return self
@@ -1769,7 +1816,7 @@ cdef class TwoPartyClient:
     cdef public _TwoPartyVatNetwork _network
     cdef public object _orig_stream
     cdef public _Restorer _restorer
-    cdef public _FdAsyncIoStream _stream
+    cdef public _AsyncIoStream _stream
 
     def __init__(self, socket, restorer=None):
         if isinstance(socket, basestring):
@@ -1809,7 +1856,9 @@ cdef class TwoPartyClient:
         cdef _DynamicObjectBuilder object_builder
         cdef _DynamicObjectReader object_reader
 
-        if type(objectId) is _DynamicObjectBuilder:
+        if objectId is None:
+            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr)), self)
+        elif type(objectId) is _DynamicObjectBuilder:
             object_builder = objectId
             return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(object_builder.thisptr)), self)
         elif type(objectId) is _DynamicObjectReader:
@@ -1849,7 +1898,7 @@ cdef class TwoPartyServer:
     cdef public _TwoPartyVatNetwork _network
     cdef public object _orig_stream, _server_socket, _disconnect_promise
     cdef public _Restorer _restorer
-    cdef public _FdAsyncIoStream _stream
+    cdef public _AsyncIoStream _stream
     cdef object _port
     cdef public object port_promise
     cdef capnp.TaskSet * _task_set
@@ -1908,8 +1957,10 @@ cdef class TwoPartyServer:
 
     # TODO: add restore functionality here?
 
-cdef class _FdAsyncIoStream:
+cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
+
+cdef class _FdAsyncIoStream(_AsyncIoStream):
     cdef _EventLoop _event_loop
 
     def __init__(self, int fd):
@@ -1918,6 +1969,10 @@ cdef class _FdAsyncIoStream:
     cdef _init(self, int fd) except +reraise_kj_exception:
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = self._event_loop.wrapSocketFd(fd)
+
+cdef class PyAsyncIoStream(_AsyncIoStream):
+    def __init__(self, int fd):
+        pass
 
 cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr
@@ -2107,8 +2162,8 @@ class _StructABCMeta(type):
     def __instancecheck__(cls, obj):
         return isinstance(obj, cls.__base__) and obj.schema == cls._schema
 
-cdef _new_message(self, kwargs):
-    builder = _MallocMessageBuilder()
+cdef _new_message(self, kwargs, num_first_segment_words):
+    builder = _MallocMessageBuilder(num_first_segment_words)
     msg = builder.init_root(self.schema)
     if kwargs is not None:
         _from_dict(msg, kwargs)
@@ -2221,10 +2276,12 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader` or :class:`_DynamicStructBuilder`
         """
         if builder:
-            message = _FlatMessageBuilder(buf)
+            # message = _FlatMessageBuilder(buf)
+            message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
+            return message.get_root(self.schema).as_builder()
         else:
             message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
-        return message.get_root(self.schema)
+            return message.get_root(self.schema)
     def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the packed object in buf.
 
@@ -2240,19 +2297,22 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`
         """
         return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(self.schema)
-    def new_message(self, **kwargs):
+    def new_message(self, num_first_segment_words=None, **kwargs):
         """Returns a newly allocated builder message.
 
+        :type num_first_segment_words: int
+        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+
         :type kwargs: dict
-        :param kwargs: A list of fields and their values to initialize in the struct
+        :param kwargs: A list of fields and their values to initialize in the struct. Note, this is not an actual argument, but refers to Python's ability to pass keyword arguments. ie. new_message(my_field=100)
 
         :rtype: :class:`_DynamicStructBuilder`
         """
-        return _new_message(self, kwargs)
+        return _new_message(self, kwargs, num_first_segment_words)
     def from_dict(self, kwargs):
         '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs'
         _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs', UserWarning)
-        return _new_message(self, kwargs)
+        return _new_message(self, kwargs, None)
     def from_object(self, obj):
         '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead'
         _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead', UserWarning)
@@ -2284,8 +2344,11 @@ cdef class SchemaParser:
     Do not use this class unless you're sure you know what you're doing. Use the convenience method :func:`load` instead.
     """
     cdef C_SchemaParser * thisptr
+    cdef public dict modules_by_id
+
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
+        self.modules_by_id = {}
 
     def __dealloc__(self):
         del self.thisptr
@@ -2342,6 +2405,8 @@ cdef class SchemaParser:
             module._nodeSchema = nodeSchema
             nodeProto = nodeSchema.get_proto()
             module._nodeProto = nodeProto
+
+            self.modules_by_id[nodeProto.id] = module
 
             for node in nodeProto.nestedNodes:
                 local_module = _ModuleType(node.name)
@@ -2525,11 +2590,11 @@ cdef class _MallocMessageBuilder(_MessageBuilder):
         f = open('out.txt', 'w')
         _write_message_to_fd(f.fileno(), message)
     """
-    def __cinit__(self):
-        self.thisptr = new schema_cpp.MallocMessageBuilder()
-
-    def __init__(self):
-        pass
+    def __init__(self, size=None):
+        if size is None:
+            self.thisptr = new schema_cpp.MallocMessageBuilder()
+        else:
+            self.thisptr = new schema_cpp.MallocMessageBuilder(size)
 
 cdef class _MessageReader:
     """An abstract base class for reading Cap'n Proto messages

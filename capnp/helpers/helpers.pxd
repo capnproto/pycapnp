@@ -25,6 +25,7 @@ cdef extern from "../helpers/capabilityHelper.h":
     VoidPromise convert_to_voidpromise(PyPromise&)
 
 cdef extern from "../helpers/rpcHelper.h":
+    Capability.Client restoreHelper(RpcSystem&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
     Capability.Client restoreHelper(RpcSystem&, MessageReader&)
     Capability.Client restoreHelper(RpcSystem&, AnyPointer.Reader&)
@@ -33,7 +34,7 @@ cdef extern from "../helpers/rpcHelper.h":
     PyPromise connectServer(TaskSet &, PyRestorer &, AsyncIoContext *, StringPtr)
 
 cdef extern from "../helpers/serialize.h":
-    ByteArray messageToPackedBytes(MessageBuilder &)
+    ByteArray messageToPackedBytes(MessageBuilder &, size_t wordCount)
 
 cdef extern from "../helpers/asyncHelper.h":
     void waitNeverDone(WaitScope&)

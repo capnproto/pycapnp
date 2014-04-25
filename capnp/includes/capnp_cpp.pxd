@@ -11,6 +11,9 @@ from .capnp.includes.types cimport *
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
         VOID " ::capnp::VOID"
+    cdef cppclass MessageSize:
+        uint64_t wordCount
+        uint capCount
 
 cdef extern from "capnp/common.h":
     int CAPNP_VERSION_MAJOR
@@ -214,11 +217,13 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             bint has(char *) except +reraise_kj_exception
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
+            MessageSize totalSize()
         cppclass Pipeline:
             Pipeline()
             Pipeline(Pipeline &)
             DynamicValueForward.Pipeline get(char *)
             StructSchema getSchema()
+
     cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder": # Need to flatten this class out, since nested C++ classes cause havoc with cython fused types
         DynamicStruct_Builder()
         DynamicStruct_Builder(DynamicStruct_Builder &)
@@ -232,6 +237,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         void adopt(char *, DynamicOrphan) except +reraise_kj_exception
         DynamicOrphan disown(char *)
         DynamicStruct.Reader asReader()
+        MessageSize totalSize()
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicCapability:

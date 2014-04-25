@@ -26,7 +26,7 @@ This will look all through all the directories in your sys.path/PYTHONPATH, and 
 For future reference, here is the Cap'n Proto schema. Also available in the github repository under `examples/addressbook.capnp <https://github.com/jparyani/pycapnp/tree/master/examples>`_::
 
     # addressbook.capnp
-    0x934efea7f017fff0;
+    @0x934efea7f017fff0;
 
     const qux :UInt32 = 123;
 
@@ -47,11 +47,11 @@ For future reference, here is the Cap'n Proto schema. Also available in the gith
         }
       }
 
-      employment @4 union {
-        unemployed @5 :Void;
-        employer @6 :Text;
-        school @7 :Text;
-        selfEmployed @8 :Void;
+      employment :union {
+        unemployed @4 :Void;
+        employer @5 :Text;
+        school @6 :Text;
+        selfEmployed @7 :Void;
         # We assume that a person is only one of these.
       }
     }
@@ -74,7 +74,7 @@ Build a message
 Initialize a New Cap'n Proto Object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now that you have a message buffer, you need to allocate an actual object that is from your schema. In this case, we will allocate an `AddressBook`::
+Now that you've imported your schema, you need to allocate an actual struct from that schema. In this case, we will allocate an `AddressBook`::
 
     addresses = addressbook_capnp.AddressBook.new_message()
 
@@ -98,7 +98,7 @@ For now, let's grab the first element out of this list and assign it to a variab
 
     alice = people[0]
 
-.. note:: It is a very bad idea to call `init` more than once. Every call to `init` allocates new memory inside your Cap'n Proto message, and if you call it more than once, the previous memory is leaked.
+.. note:: It is a very bad idea to call `init` more than once on a single field. Every call to `init` allocates new memory inside your Cap'n Proto message, and if you call it more than once, the previous memory is leaked.
 
 Primitive Types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,6 +116,8 @@ You can assign straight to the variable with the corresponding Python type. For 
     alice.id = 123
     alice.name = 'Alice'
     alice.email = 'alice@example.com'
+
+.. note:: Text fields will behave differently depending on your version of Python. In Python 2.x, Text fields will expect and return a `bytes` string, while in Python 3.x, they will expect and return a `unicode` string. Data fields will always a return `bytes` string.
 
 Enums
 ~~~~~~~~~~~~~~
@@ -346,7 +348,7 @@ There are 2 ways to call RPC methods. First the more verbose `request` syntax::
     request.expression.literal = 123
     eval_promise = request.send()
 
-This creates a request for the method named 'evaluate', sets `expression.literal` in that calls parameters to 123, and then sends the request and returns a promise (all non-blocking).
+This creates a request for the method named 'evaluate', sets `expression.literal` in that call's parameters to 123, and then sends the request and returns a promise (all non-blocking).
 
 The shorter syntax for calling methods is::
 
