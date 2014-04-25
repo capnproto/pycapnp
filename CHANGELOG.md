@@ -1,3 +1,7 @@
+## v0.4.4 (2014-04-25)
+- Fix compilation problem with gcc 4.8
+
+
 ## v0.4.3 (2014-02-18)
 - Fix problem with uninitialized unions in \_from\_dict
 - Add accesible version numbers for C++ libcapnp
