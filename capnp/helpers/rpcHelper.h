@@ -113,17 +113,17 @@ void acceptLoop(kj::TaskSet & tasks, PyRestorer & restorer, kj::Own<kj::Connecti
 }
 
 kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, PyRestorer & restorer, kj::AsyncIoContext * context, kj::StringPtr bindAddress) {
-    auto paf = kj::newPromiseAndFulfiller<uint>();
+    auto paf = kj::newPromiseAndFulfiller<uint32_t>();
     auto portPromise = paf.promise.fork();
 
     tasks.add(context->provider->getNetwork().parseAddress(bindAddress)
         .then(kj::mvCapture(paf.fulfiller,
-          [&](kj::Own<kj::PromiseFulfiller<uint>>&& portFulfiller,
+          [&](kj::Own<kj::PromiseFulfiller<uint32_t>>&& portFulfiller,
                  kj::Own<kj::NetworkAddress>&& addr) {
       auto listener = addr->listen();
       portFulfiller->fulfill(listener->getPort());
       acceptLoop(tasks, restorer, kj::mv(listener));
     })));
 
-    return portPromise.addBranch().then([&](uint port) { return PyLong_FromUnsignedLong(port); });
+    return portPromise.addBranch().then([&](uint32_t port) { return PyLong_FromUnsignedLong(port); });
 }
