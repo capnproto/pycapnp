@@ -58,6 +58,12 @@ def test_failed_import():
 def test_defualt_import_hook():
     import addressbook_capnp
 
+def test_dash_import():
+    import addressbook_with_dashes_capnp
+
+def test_spaces_import():
+    import addressbook_with_spaces_capnp
+
 def test_add_import_hook():
     capnp.add_import_hook([this_dir])
 

@@ -3116,6 +3116,12 @@ class _Importer:
 
         module_name = module_name[:-len('_capnp')]
         capnp_module_name = module_name + self.extension
+        has_underscores = False
+
+        if '_' in capnp_module_name:
+            capnp_module_name_dashes = capnp_module_name.replace('_', '-')
+            capnp_module_name_spaces = capnp_module_name.replace('_', ' ')
+            has_underscores = True
 
         if package_path:
             paths = package_path
@@ -3134,8 +3140,14 @@ class _Importer:
                 path = _os.getcwd()
             elif not is_abs(path):
                 path = abspath(path)
+
             if is_file(path+sep+capnp_module_name):
                 return _Loader(fullname, join_path(path, capnp_module_name), self.additional_paths)
+            if has_underscores:
+                if is_file(path+sep+capnp_module_name_dashes):
+                    return _Loader(fullname, join_path(path, capnp_module_name_dashes), self.additional_paths)
+                if is_file(path+sep+capnp_module_name_spaces):
+                    return _Loader(fullname, join_path(path, capnp_module_name_spaces), self.additional_paths)
 
 _importer = None
 
