@@ -1837,7 +1837,7 @@ cdef class _DynamicCapabilityClient:
             return self._cached_schema
 
     def __dir__(self):
-        return list(self.schema._method_names)
+        return list(self.schema.method_names_inherited)
 
 cdef class _CapabilityClient:
     cdef C_Capability.Client * thisptr
