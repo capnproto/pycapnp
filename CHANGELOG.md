@@ -1,3 +1,6 @@
+## v0.4.5 (2014-6-26)
+- Fix `to_dict` not converting enums to strings
+
 ## v0.4.4 (2014-04-25)
 - Fix compilation problem with gcc 4.8
 

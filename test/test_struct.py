@@ -171,3 +171,11 @@ def test_set_dict_union(addressbook):
     person = addressbook.Person.new_message(**{'employment': {'employer': {'name': 'foo'}}})
 
     assert person.employment.employer.name == 'foo'
+
+
+def test_to_dict_enum(addressbook):
+    person = addressbook.Person.new_message(**{'phones': [{'number': '999-9999', 'type': 'mobile'}]})
+
+    field = person.to_dict()['phones'][0]['type']
+    assert isinstance(field, basestring)
+    assert field == 'mobile'
