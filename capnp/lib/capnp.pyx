@@ -735,6 +735,9 @@ cdef _to_dict(msg, bint verbose):
 
         return ret
 
+    if msg_type is _DynamicEnum:
+        return str(msg)
+
     return msg
 
 
