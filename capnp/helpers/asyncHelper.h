@@ -2,6 +2,7 @@
 
 #include "kj/async.h"
 #include "Python.h"
+#include "capabilityHelper.h"
 
 class PyEventPort: public kj::EventPort {
 public:
@@ -10,14 +11,17 @@ public:
     // Py_INCREF(py_event_port);
   }
   virtual void wait() {
+    GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("wait"), NULL);
   }
 
   virtual void poll() {
+    GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("poll"), NULL);
   }
 
   virtual void setRunnable(bool runnable) {
+    GILAcquire gil;
     PyObject * arg = Py_False;
     if (runnable)
       arg = Py_True;
@@ -29,9 +33,25 @@ private:
 };
 
 void waitNeverDone(kj::WaitScope & scope) {
+  GILRelease gil;
   kj::NEVER_DONE.wait(scope);
 }
 
 kj::Timer * getTimer(kj::AsyncIoContext * context) {
   return &context->lowLevelProvider->getTimer();
+}
+
+void waitVoidPromise(kj::Promise<void> * promise, kj::WaitScope & scope) {
+  GILRelease gil;
+  promise->wait(scope);
+}
+
+PyObject * waitPyPromise(kj::Promise<PyObject *> * promise, kj::WaitScope & scope) {
+  GILRelease gil;
+  return promise->wait(scope);
+}
+
+capnp::Response< ::capnp::DynamicStruct> * waitRemote(capnp::RemotePromise< ::capnp::DynamicStruct> * promise, kj::WaitScope & scope) {
+  GILRelease gil;
+  return new capnp::Response< ::capnp::DynamicStruct>(promise->wait(scope));
 }

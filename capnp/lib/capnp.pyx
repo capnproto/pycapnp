@@ -12,6 +12,7 @@ from .capnp.helpers.helpers cimport makeRpcClientWithRestorer
 
 from libc.stdlib cimport malloc, free
 from cython.operator cimport dereference as deref
+from cpython.exc cimport PyErr_Clear
 
 from types import ModuleType as _ModuleType
 import os as _os
@@ -32,10 +33,10 @@ _CAPNP_VERSION_MICRO = capnp.CAPNP_VERSION_MICRO
 _CAPNP_VERSION = capnp.CAPNP_VERSION
 
 # By making it public, we'll be able to call it from capabilityHelper.h
-cdef public object wrap_dynamic_struct_reader(Response & r):
+cdef public object wrap_dynamic_struct_reader(Response & r) with gil:
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
 
-cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except *:
+cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
 
     func_obj = <object>func
@@ -46,7 +47,7 @@ cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except *:
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
 
-cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except *:
+cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except * with gil:
     server = <object>_server
     method_name = <object>_method_name
 
@@ -101,7 +102,7 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
 
     return NULL
     
-cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicObject.Reader & _reader) except *:
+cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicObject.Reader & _reader) except * with gil:
     restorer = <object>_restorer
     reader = _DynamicObjectReader()._init(_reader, None)
 
@@ -112,10 +113,10 @@ cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_Dynam
     return new C_Capability.Client(helpers.server_to_client(schema.thisptr, <PyObject *>server))
 
 
-cdef public convert_array_pyobject(PyArray & arr):
+cdef public convert_array_pyobject(PyArray & arr) with gil:
     return [<object>arr[i] for i in range(arr.size())]
 
-cdef public PyPromise * extract_promise(object obj):
+cdef public PyPromise * extract_promise(object obj) with gil:
     if type(obj) is Promise:
         promise = <Promise>obj
 
@@ -126,7 +127,7 @@ cdef public PyPromise * extract_promise(object obj):
 
     return NULL
 
-cdef public RemotePromise * extract_remote_promise(object obj):
+cdef public RemotePromise * extract_remote_promise(object obj) with gil:
     if type(obj) is _RemotePromise:
         promise = <_RemotePromise>obj
         promise.is_consumed = True
@@ -236,14 +237,14 @@ class KjException(Exception):
     def __str__(self):
         return self.message
 
-cdef public object wrap_kj_exception(capnp.Exception & exception):
+cdef public object wrap_kj_exception(capnp.Exception & exception) with gil:
     PyErr_Clear()
     wrapper = _KjExceptionWrapper()._init(exception)
     ret = KjException(wrapper=wrapper)
 
     return ret
 
-cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
+cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil:
     wrapper = _KjExceptionWrapper()._init(exception)
     wrapper_msg = str(wrapper)
     
@@ -265,12 +266,11 @@ cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception):
     ret = KjException(wrapper=wrapper)
     return ret
 
-cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb):
+cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil:
     try:
         return (exc_tb.tb_frame.f_code.co_filename.encode(), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode())
     except:
         return (b'', 0, b"Couldn't determine python exception")
-
 
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader
@@ -1341,6 +1341,7 @@ cdef class _EventLoop:
 cdef _EventLoop C_DEFAULT_EVENT_LOOP = _EventLoop()
 
 _C_DEFAULT_EVENT_LOOP_LOCAL = None
+_THREAD_LOCAL_EVENT_LOOPS = []
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
     'Optimization for not having to deal with threadlocal event loops unless we need to'
@@ -1369,11 +1370,28 @@ cdef class Timer:
 def getTimer():
     return Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().thisptr))
 
-cpdef remove_event_loop():
+cpdef remove_event_loop(ignore_errors=False):
     'Remove the global event loop'
     global C_DEFAULT_EVENT_LOOP
-    C_DEFAULT_EVENT_LOOP._remove()
-    C_DEFAULT_EVENT_LOOP = None
+    global _THREAD_LOCAL_EVENT_LOOPS
+    global _C_DEFAULT_EVENT_LOOP_LOCAL
+
+    if C_DEFAULT_EVENT_LOOP:
+        try:
+            C_DEFAULT_EVENT_LOOP._remove()
+        except:
+            if not ignore_errors:
+                raise
+        C_DEFAULT_EVENT_LOOP = None
+    if len(_THREAD_LOCAL_EVENT_LOOPS) > 0:
+        for loop in _THREAD_LOCAL_EVENT_LOOPS:
+            try:
+                loop._remove()
+            except:
+                if not ignore_errors:
+                    raise
+        _THREAD_LOCAL_EVENT_LOOPS = []
+        _C_DEFAULT_EVENT_LOOP_LOCAL = None
 
 cpdef create_event_loop(threaded=True):
     '''Create a new global event loop. This will not remove the previous
@@ -1383,7 +1401,9 @@ cpdef create_event_loop(threaded=True):
     if threaded:
         if _C_DEFAULT_EVENT_LOOP_LOCAL is None:
             _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
-        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
+        loop = _EventLoop()
+        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = loop
+        _THREAD_LOCAL_EVENT_LOOPS.append(loop)
     else:
         C_DEFAULT_EVENT_LOOP = _EventLoop()
 
@@ -1458,7 +1478,7 @@ cdef class Promise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = <object>self.thisptr.wait(deref(self._event_loop.thisptr).waitScope)
+        ret = <object>helpers.waitPyPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
         Py_DECREF(ret)
 
         self.is_consumed = True
@@ -1524,7 +1544,8 @@ cdef class _VoidPromise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        self.thisptr.wait(deref(self._event_loop.thisptr).waitScope)
+        helpers.waitVoidPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
+
         self.is_consumed = True
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
@@ -1590,7 +1611,7 @@ cdef class _RemotePromise:
         if self.is_consumed:
             raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = _Response()._init_child(self.thisptr.wait(deref(self._event_loop.thisptr).waitScope), self._parent)
+        ret = _Response()._init_childptr(helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
         self.is_consumed = True
 
         return ret

@@ -1,5 +1,4 @@
 from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
-from cpython.exc cimport PyErr_Clear
 from libc.stdint cimport *
 ctypedef unsigned int uint
 ctypedef uint8_t byte

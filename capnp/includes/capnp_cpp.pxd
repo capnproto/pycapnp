@@ -51,7 +51,7 @@ cdef extern from "kj/memory.h" namespace " ::kj":
     Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
 
 cdef extern from "kj/async.h" namespace " ::kj":
-    cdef cppclass Promise[T]:
+    cdef cppclass Promise[T] nogil:
         Promise()
         Promise(Promise)
         Promise(T)
