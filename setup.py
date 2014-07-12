@@ -49,12 +49,26 @@ try:
 except (IOError, ImportError):
     long_description = ''
 
+from distutils.command.clean import clean as _clean
+class clean(_clean):
+    def run(self):
+        _clean.run(self)
+        for x in [ 'capnp/lib/capnp.cpp', 'capnp/lib/capnp.h', 'capnp/version.py' ]:
+            print('removing %s' % x)
+            try:
+                os.remove(x)
+            except OSError:
+                pass
+
 setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx']},
     ext_modules=cythonize('capnp/lib/*.pyx', language="c++"),
+    cmdclass = {
+        'clean': clean
+    },
     install_requires=[
         'cython > 0.19',
         'setuptools >= 0.8'],
