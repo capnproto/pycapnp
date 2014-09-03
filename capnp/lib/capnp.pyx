@@ -725,13 +725,13 @@ cdef _to_dict(msg, bint verbose):
         ret = {}
         try:
             which = msg.which()
-            ret[which] = _to_dict(getattr(msg, which), verbose)
+            ret[which] = _to_dict(msg._get(which), verbose)
         except ValueError:
             pass
 
         for field in msg.schema.non_union_fields:
             if verbose or msg._has(field):
-                ret[field] = _to_dict(getattr(msg, field), verbose)
+                ret[field] = _to_dict(msg._get(field), verbose)
 
         return ret
 
@@ -867,7 +867,11 @@ cdef class _DynamicStructReader:
         self.thisptr = other
         self._parent = parent
         self.is_root = isRoot
+        self._schema = None
         return self
+
+    cpdef _get(self, field):
+        return to_python_reader(self.thisptr.get(field), self._parent)
 
     def __getattr__(self, field):
         return to_python_reader(self.thisptr.get(field), self._parent)
@@ -875,7 +879,7 @@ cdef class _DynamicStructReader:
     def _get_by_field(self, _StructSchemaField field):
         return to_python_reader(self.thisptr.getByField(field.thisptr), self._parent)
 
-    def _has(self, field):
+    cpdef _has(self, field):
         return self.thisptr.has(field)
 
     def _has_by_field(self, _StructSchemaField field):
@@ -910,7 +914,9 @@ cdef class _DynamicStructReader:
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
-            return _StructSchema()._init(self.thisptr.getSchema())
+            if self._schema is None:
+                self._schema = _StructSchema()._init(self.thisptr.getSchema())
+            return self._schema
 
     def __dir__(self):
         return list(self.schema.fieldnames)
@@ -945,6 +951,7 @@ cdef class _DynamicStructReader:
     def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.as_builder().to_bytes())
 
+
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
 
@@ -962,11 +969,13 @@ cdef class _DynamicStructBuilder:
     cdef public object _parent
     cdef public bint is_root
     cdef bint _is_written
+    cdef object _schema
     cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot = False):
         self.thisptr = other
         self._parent = parent
         self.is_root = isRoot
         self._is_written = False
+        self._schema = None
         return self
 
     cdef _check_write(self):
@@ -1049,18 +1058,18 @@ cdef class _DynamicStructBuilder:
         self._is_written = True
         return ret
 
-    cdef _get(self, field):
-        cdef C_DynamicValue.Builder value = self.thisptr.get(field)
-
-        return to_python_builder(value, self._parent)
+    cpdef _get(self, field):
+        return to_python_builder(self.thisptr.get(field), self._parent)
 
     def _get_by_field(self, _StructSchemaField field):
         return to_python_builder(self.thisptr.getByField(field.thisptr), self._parent)
 
     def __getattr__(self, field):
-        return self._get(field)
+        cdef C_DynamicValue.Builder value = self.thisptr.get(field)
 
-    cdef _set(self, field, value):
+        return to_python_builder(value, self._parent)
+
+    cpdef _set(self, field, value):
         _setDynamicField(self.thisptr, field, value, self._parent)
 
     def _set_by_field(self, _StructSchemaField field, value):
@@ -1068,12 +1077,12 @@ cdef class _DynamicStructBuilder:
         _setDynamicField(self.thisptr, field.proto.name, value, self._parent)
 
     def __setattr__(self, field, value):
-        self._set(field, value)
+        _setDynamicField(self.thisptr, field, value, self._parent)
 
-    def _has(self, field):
+    cpdef _has(self, field):
         return self.thisptr.has(field)
 
-    def _has_by_field(self, _StructSchemaField field):
+    cpdef _has_by_field(self, _StructSchemaField field):
         return self.thisptr.hasByField(field.thisptr)
 
     cpdef init(self, field, size=None):
@@ -1214,7 +1223,9 @@ cdef class _DynamicStructBuilder:
     property schema:
         """A property that returns the _StructSchema object matching this writer"""
         def __get__(self):
-            return _StructSchema()._init(self.thisptr.getSchema())
+            if self._schema is None:
+                self._schema = _StructSchema()._init(self.thisptr.getSchema())
+            return self._schema
 
     def __dir__(self):
         return list(self.schema.fieldnames)

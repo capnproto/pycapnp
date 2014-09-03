@@ -11,9 +11,12 @@ cdef class _DynamicStructReader:
     cdef public object _parent
     cdef public bint is_root
     cdef object _obj_to_pin
+    cdef object _schema
 
     cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=?)
 
+    cpdef _get(self, field)
+    cpdef _has(self, field)
     cpdef _which(self)
 
     cpdef as_builder(self, num_first_segment_words=?)
