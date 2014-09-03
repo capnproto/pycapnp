@@ -156,7 +156,7 @@ def test_addressbook_resizable(addressbook):
         bob.employment.unemployed = None
 
         people.finish()
-        
+
         addresses.write(file)
 
 
@@ -192,6 +192,75 @@ def test_addressbook_resizable(addressbook):
     f = open('example', 'r')
     printAddressBook(f)
 
+def test_addressbook_explicit_fields(addressbook):
+    def writeAddressBook(file):
+        addresses = addressbook.AddressBook.new_message()
+        address_fields = addressbook.AddressBook.schema.fields
+        person_fields = addressbook.Person.schema.fields
+        phone_fields = addressbook.Person.PhoneNumber.schema.fields
+        people = addresses._init_by_field(address_fields['people'], 2)
+
+        alice = people[0]
+        alice._set_by_field(person_fields['id'], 123)
+        alice._set_by_field(person_fields['name'], 'Alice')
+        alice._set_by_field(person_fields['email'], 'alice@example.com')
+        alicePhones = alice._init_by_field(person_fields['phones'], 1)
+        alicePhones[0]._set_by_field(phone_fields['number'], "555-1212")
+        alicePhones[0]._set_by_field(phone_fields['type'], 'mobile')
+        employment = alice._get_by_field(person_fields['employment'])
+        employment._set_by_field(addressbook.Person.Employment.schema.fields['school'], "MIT")
+
+        bob = people[1]
+        bob._set_by_field(person_fields['id'], 456)
+        bob._set_by_field(person_fields['name'], 'Bob')
+        bob._set_by_field(person_fields['email'], 'bob@example.com')
+        bobPhones = bob._init_by_field(person_fields['phones'], 2)
+        bobPhones[0]._set_by_field(phone_fields['number'], "555-4567")
+        bobPhones[0]._set_by_field(phone_fields['type'], 'home')
+        bobPhones[1]._set_by_field(phone_fields['number'], "555-7654")
+        bobPhones[1]._set_by_field(phone_fields['type'], 'work')
+        employment = bob._get_by_field(person_fields['employment'])
+        employment._set_by_field(addressbook.Person.Employment.schema.fields['unemployed'], None)
+
+        addresses.write(file)
+
+
+    def printAddressBook(file):
+        addresses = addressbook.AddressBook.read(file)
+        address_fields = addressbook.AddressBook.schema.fields
+        person_fields = addressbook.Person.schema.fields
+        phone_fields = addressbook.Person.PhoneNumber.schema.fields
+
+        people = addresses._get_by_field(address_fields['people'])
+
+        alice = people[0]
+        assert alice._get_by_field(person_fields['id']) == 123
+        assert alice._get_by_field(person_fields['name']) == 'Alice'
+        assert alice._get_by_field(person_fields['email']) == 'alice@example.com'
+        alicePhones = alice._get_by_field(person_fields['phones'])
+        assert alicePhones[0]._get_by_field(phone_fields['number']) == "555-1212"
+        assert alicePhones[0]._get_by_field(phone_fields['type']) == 'mobile'
+        employment = alice._get_by_field(person_fields['employment'])
+        employment._get_by_field(addressbook.Person.Employment.schema.fields['school']) == "MIT"
+
+        bob = people[1]
+        assert bob._get_by_field(person_fields['id']) == 456
+        assert bob._get_by_field(person_fields['name']) == 'Bob'
+        assert bob._get_by_field(person_fields['email']) == 'bob@example.com'
+        bobPhones = bob._get_by_field(person_fields['phones'])
+        assert bobPhones[0]._get_by_field(phone_fields['number']) == "555-4567"
+        assert bobPhones[0]._get_by_field(phone_fields['type']) == 'home'
+        assert bobPhones[1]._get_by_field(phone_fields['number']) == "555-7654"
+        assert bobPhones[1]._get_by_field(phone_fields['type']) == 'work'
+        employment = bob._get_by_field(person_fields['employment'])
+        employment._get_by_field(addressbook.Person.Employment.schema.fields['unemployed']) == None
+
+
+    f = open('example', 'w')
+    writeAddressBook(f)
+
+    f = open('example', 'r')
+    printAddressBook(f)
 
 @pytest.fixture
 def all_types():

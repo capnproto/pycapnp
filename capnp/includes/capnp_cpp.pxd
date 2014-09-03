@@ -43,7 +43,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
         int getDurability()
         StringPtr getDescription()
 
-cdef extern from "kj/memory.h" namespace " ::kj":    
+cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T]:
         T& operator*()
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side)
@@ -225,7 +225,9 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicStruct:
         cppclass Reader:
             DynamicValueForward.Reader get(char *) except +reraise_kj_exception
+            DynamicValueForward.Reader getByField"get"(StructSchema.Field) except +reraise_kj_exception
             bint has(char *) except +reraise_kj_exception
+            bint hasByField"has"(StructSchema.Field) except +reraise_kj_exception
             StructSchema getSchema()
             Maybe[StructSchema.Field] which()
             MessageSize totalSize()
@@ -239,10 +241,15 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         DynamicStruct_Builder()
         DynamicStruct_Builder(DynamicStruct_Builder &)
         DynamicValueForward.Builder get(char *) except +reraise_kj_exception
+        DynamicValueForward.Builder getByField"get"(StructSchema.Field) except +reraise_kj_exception
         bint has(char *) except +reraise_kj_exception
+        bint hasByField"has"(StructSchema.Field) except +reraise_kj_exception
         void set(char *, DynamicValueForward.Reader) except +reraise_kj_exception
+        void setByField"set"(StructSchema.Field, DynamicValueForward.Reader) except +reraise_kj_exception
         DynamicValueForward.Builder init(char *, uint size) except +reraise_kj_exception
         DynamicValueForward.Builder init(char *) except +reraise_kj_exception
+        DynamicValueForward.Builder initByField"init"(StructSchema.Field, uint size) except +reraise_kj_exception
+        DynamicValueForward.Builder initByField"init"(StructSchema.Field) except +reraise_kj_exception
         StructSchema getSchema()
         Maybe[StructSchema.Field] which()
         void adopt(char *, DynamicOrphan) except +reraise_kj_exception

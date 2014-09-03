@@ -101,7 +101,7 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
                 setattr(results, arg_name, arg_val)
 
     return NULL
-    
+
 cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicObject.Reader & _reader) except * with gil:
     restorer = <object>_restorer
     reader = _DynamicObjectReader()._init(_reader, None)
@@ -150,13 +150,13 @@ def _make_enum(enum_name, *sequential, **named):
     enums['reverse_mapping'] = reverse
     return type(enum_name, (), enums)
 
-_Nature = _make_enum('_Nature', 
+_Nature = _make_enum('_Nature',
                     PRECONDITION = 0,
                     LOCAL_BUG = 1,
                     OS_ERROR = 2,
                     NETWORK_FAILURE = 3,
                     OTHER = 4)
-_Durability = _make_enum('_Durability', 
+_Durability = _make_enum('_Durability',
                     PERMANENT = 0,
                     TEMPORARY = 1,
                     OVERLOADED = 2)
@@ -208,7 +208,7 @@ class KjException(Exception):
             self.message = message
             self.nature = nature
             self.durability = durability
-    
+
     @property
     def file(self):
         return self.wrapper.file
@@ -247,7 +247,7 @@ cdef public object wrap_kj_exception(capnp.Exception & exception) with gil:
 cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil:
     wrapper = _KjExceptionWrapper()._init(exception)
     wrapper_msg = str(wrapper)
-    
+
     nature = wrapper.nature
 
     if wrapper.nature == 'PRECONDITION':
@@ -415,7 +415,7 @@ cdef class _DynamicResizableListBuilder:
         person = addressbook.Person.new_message()
 
         phones = person.init_resizable_list('phones') # This returns a _DynamicResizableListBuilder
-        
+
         phone = phones.add()
         phone.number = 'foo'
         phone = phones.add()
@@ -447,7 +447,7 @@ cdef class _DynamicResizableListBuilder:
         orphan_val = orphan.get()
         self._list.append((orphan, orphan_val))
         return orphan_val
-        
+
     def __getitem__(self, index):
         return self._list[index][1]
 
@@ -477,7 +477,7 @@ cdef class _DynamicListBuilder:
         person = addressbook.Person.new_message()
 
         phones = person.init('phones', 2) # This returns a _DynamicListBuilder
-        
+
         phone = phones[0]
         phone.number = 'foo'
         phone = phones[1]
@@ -872,8 +872,14 @@ cdef class _DynamicStructReader:
     def __getattr__(self, field):
         return to_python_reader(self.thisptr.get(field), self._parent)
 
+    def _get_by_field(self, _StructSchemaField field):
+        return to_python_reader(self.thisptr.getByField(field.thisptr), self._parent)
+
     def _has(self, field):
         return self.thisptr.has(field)
+
+    def _has_by_field(self, _StructSchemaField field):
+        return self.thisptr.hasByField(field.thisptr)
 
     cpdef _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -945,7 +951,7 @@ cdef class _DynamicStructBuilder:
     This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder. The only difference is that instead of a `get`/`set` method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don't follow valid python naming convention for fields, use the global functions :py:func:`getattr`/:py:func:`setattr`::
 
         person = addressbook.Person.new_message() # This returns a _DynamicStructBuilder
-        
+
         person.name = 'foo' # using . syntax
         print person.name # using . syntax
 
@@ -971,15 +977,15 @@ cdef class _DynamicStructBuilder:
 
     def write(self, file):
         """Writes the struct's containing message to the given file object in unpacked binary format.
-        
+
         This is a shortcut for calling capnp._write_message_to_fd().  This can only be called on the
         message's root struct.
-        
+
         :type file: file
         :param file: A file or socket object (or anything with a fileno() method), open for write.
-        
+
         :rtype: void
-        
+
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
         self._check_write()
@@ -988,15 +994,15 @@ cdef class _DynamicStructBuilder:
 
     def write_packed(self, file):
         """Writes the struct's containing message to the given file object in packed binary format.
-        
+
         This is a shortcut for calling capnp._write_packed_message_to_fd().  This can only be called on
         the message's root struct.
-        
+
         :type file: file
         :param file: A file or socket object (or anything with a fileno() method), open for write.
-        
+
         :rtype: void
-        
+
         :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
         """
         self._check_write()
@@ -1047,12 +1053,19 @@ cdef class _DynamicStructBuilder:
         cdef C_DynamicValue.Builder value = self.thisptr.get(field)
 
         return to_python_builder(value, self._parent)
-        
+
+    def _get_by_field(self, _StructSchemaField field):
+        return to_python_builder(self.thisptr.getByField(field.thisptr), self._parent)
+
     def __getattr__(self, field):
         return self._get(field)
 
     cdef _set(self, field, value):
         _setDynamicField(self.thisptr, field, value, self._parent)
+
+    def _set_by_field(self, _StructSchemaField field, value):
+        # TODO: make this faster
+        _setDynamicField(self.thisptr, field.proto.name, value, self._parent)
 
     def __setattr__(self, field, value):
         self._set(field, value)
@@ -1060,10 +1073,13 @@ cdef class _DynamicStructBuilder:
     def _has(self, field):
         return self.thisptr.has(field)
 
+    def _has_by_field(self, _StructSchemaField field):
+        return self.thisptr.hasByField(field.thisptr)
+
     cpdef init(self, field, size=None):
         """Method for initializing fields that are of type union/struct/list
 
-        Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists. 
+        Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists.
 
         :type field: str
         :param field: The field name to initialize
@@ -1080,10 +1096,30 @@ cdef class _DynamicStructBuilder:
         else:
             return to_python_builder(self.thisptr.init(field, size), self._parent)
 
+    def _init_by_field(self, _StructSchemaField field, size=None):
+        """Method for initializing fields that are of type union/struct/list
+
+        Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists.
+
+        :type field: str
+        :param field: The field name to initialize
+
+        :type size: int
+        :param size: The size of the list to initiialize. This should be None for struct/union initialization.
+
+        :rtype: :class:`_DynamicStructBuilder` or :class:`_DynamicListBuilder`
+
+        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
+        """
+        if size is None:
+            return to_python_builder(self.thisptr.initByField(field.thisptr), self._parent)
+        else:
+            return to_python_builder(self.thisptr.initByField(field.thisptr, size), self._parent)
+
     cpdef init_resizable_list(self, field):
         """Method for initializing fields that are of type list (of structs)
 
-        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since for primitive types you can just define a normal python list and fill it yourself. 
+        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since for primitive types you can just define a normal python list and fill it yourself.
 
         .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the list object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
 
@@ -1583,7 +1619,7 @@ cdef class _VoidPromise:
     cpdef cancel(self, numParents=1) except +reraise_kj_exception:
         if numParents > 0 and hasattr(self._parent, 'cancel'):
             self._parent.cancel(numParents - 1)
-        
+
         self.is_consumed = True
         del self.thisptr
         self.thisptr = NULL
@@ -1670,7 +1706,7 @@ cdef class _RemotePromise:
     cpdef cancel(self, numParents=1) except +reraise_kj_exception:
         if numParents > 0 and hasattr(self._parent, 'cancel'):
             self._parent.cancel(numParents - 1)
-        
+
         self.is_consumed = True
         del self.thisptr
         self.thisptr = NULL
@@ -1962,7 +1998,7 @@ cdef class TwoPartyClient:
         return sock
 
     cpdef restore(self, objectId) except +reraise_kj_exception:
-        cdef _MessageBuilder builder 
+        cdef _MessageBuilder builder
         cdef _MessageReader reader
         cdef _DynamicObjectBuilder object_builder
         cdef _DynamicObjectReader object_reader
@@ -2129,12 +2165,13 @@ cdef class _Schema:
 
 cdef class _StructSchema:
     cdef C_StructSchema thisptr
-    cdef object __fieldnames, __union_fields, __non_union_fields
+    cdef object __fieldnames, __union_fields, __non_union_fields, __fields
     cdef _init(self, C_StructSchema other):
         self.thisptr = other
         self.__fieldnames = None
         self.__union_fields = None
         self.__non_union_fields = None
+        self.__fields = None
         return self
 
     property fieldnames:
@@ -2169,6 +2206,17 @@ cdef class _StructSchema:
             self.__non_union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             return self.__non_union_fields
+
+    property fields:
+        """A tuple of the field names in the struct."""
+        def __get__(self):
+            if self.__fields is not None:
+               return self.__fields
+            fieldlist = self.thisptr.getFields()
+            nfields = fieldlist.size()
+            self.__fields = {<char*>fieldlist[i].getProto().getName().cStr() : _StructSchemaField()._init(fieldlist[i], self)
+                                      for i in xrange(nfields)}
+            return self.__fields
 
     property node:
         """The raw schema node"""
@@ -2315,13 +2363,14 @@ class _StructModule(object):
         for field in schema.node.struct.fields:
             if field.which() == 'group':
                 name = field.name.capitalize()
-                union_schema = schema.get_dependency(field.group.typeId).node.struct
-                
+                raw_schema = schema.get_dependency(field.group.typeId)
+                union_schema = raw_schema.node.struct
+
                 if union_schema.discriminantCount == 0:
                     continue
 
                 union_module = _StructModuleWhich()
-                setattr(union_module, 'schema', union_schema)
+                setattr(union_module, 'schema', raw_schema.as_struct())
                 for union_field in union_schema.fields:
                     setattr(union_module, union_field.name, union_field.discriminantValue)
                 setattr(self, name, union_module)
@@ -2331,7 +2380,7 @@ class _StructModule(object):
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
-        
+
         :type traversal_limit_in_words: int
         :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
@@ -2346,7 +2395,7 @@ class _StructModule(object):
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
-        
+
         :type traversal_limit_in_words: int
         :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
@@ -2361,7 +2410,7 @@ class _StructModule(object):
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
-        
+
         :type traversal_limit_in_words: int
         :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
@@ -2376,7 +2425,7 @@ class _StructModule(object):
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
-        
+
         :type traversal_limit_in_words: int
         :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
@@ -2391,7 +2440,7 @@ class _StructModule(object):
 
         :type buf: buffer
         :param buf: Any Python object that supports the buffer interface.
-        
+
         :type traversal_limit_in_words: int
         :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
@@ -2415,7 +2464,7 @@ class _StructModule(object):
 
         :type buf: buffer
         :param buf: Any Python object that supports the readable buffer interface.
-        
+
         :type traversal_limit_in_words: int
         :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
@@ -2497,7 +2546,7 @@ cdef class SchemaParser:
         return ret
 
     def load(self, file_name, display_name=None, imports=[]):
-        """Load a Cap'n Proto schema from a file 
+        """Load a Cap'n Proto schema from a file
 
         You will have to load a schema before you can begin doing anything
         meaningful with this library. Loading a schema is much like loading
@@ -2663,7 +2712,7 @@ cdef class _MessageBuilder:
         :return: An AnyPointer that you can set fields in
         """
         return _DynamicObjectBuilder()._init(self.thisptr.getRootAnyPointer(), self)
-    
+
     cpdef set_root(self, value) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto structs by copying from an existing struct
 
@@ -2819,7 +2868,7 @@ cdef class _PackedMessageReader(_MessageReader):
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
-            
+
         self.thisptr = new schema_cpp.PackedMessageReader(stream, opts)
         return self
 
@@ -2836,13 +2885,13 @@ cdef class _PackedMessageReaderBytes(_MessageReader):
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
-            
+
         cdef const void *ptr
         cdef Py_ssize_t sz
         PyObject_AsReadBuffer(buf, &ptr, &sz)
 
         self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>ptr, sz))
-            
+
         self.thisptr = new schema_cpp.PackedMessageReader(deref(self.stream), opts)
 
     def __dealloc__(self):
@@ -2873,7 +2922,7 @@ cdef class _InputMessageReader(_MessageReader):
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
-            
+
         self.thisptr = new schema_cpp.InputStreamMessageReader(stream, opts)
         return self
 
@@ -2896,7 +2945,7 @@ cdef class _PackedFdMessageReader(_MessageReader):
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
-            
+
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
 
 cdef class _MultipleMessageReader:
@@ -2909,7 +2958,7 @@ cdef class _MultipleMessageReader:
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
-            
+
         self.stream = new schema_cpp.FdInputStream(fd)
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
@@ -2940,7 +2989,7 @@ cdef class _MultiplePackedMessageReader:
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
-            
+
         self.stream = new schema_cpp.FdInputStream(fd)
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
@@ -2971,7 +3020,7 @@ cdef class _FlatArrayMessageReader(_MessageReader):
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
-            
+
         cdef const void *ptr
         cdef Py_ssize_t sz
         PyObject_AsReadBuffer(buf, &ptr, &sz)
@@ -3062,7 +3111,7 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
 _global_schema_parser = None
 
 def load(file_name, display_name=None, imports=[]):
-    """Load a Cap'n Proto schema from a file 
+    """Load a Cap'n Proto schema from a file
 
     You will have to load a schema before you can begin doing anything
     meaningful with this library. Loading a schema is much like loading

@@ -187,3 +187,12 @@ def test_to_dict_enum(addressbook):
     field = person.to_dict()['phones'][0]['type']
     assert isstr(field)
     assert field == 'mobile'
+
+def test_explicit_field(addressbook):
+    person = addressbook.Person.new_message(**{'name': 'Test'})
+
+    name_field = addressbook.Person.schema.fields['name']
+
+    assert person.name == person._get_by_field(name_field)
+    assert person.name == person.as_reader()._get_by_field(name_field)
+
