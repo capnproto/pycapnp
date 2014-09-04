@@ -6,6 +6,23 @@ from .capnp.includes.types cimport *
 from .capnp.helpers.non_circular cimport reraise_kj_exception
 from .capnp.helpers cimport helpers
 
+
+cdef class _StructSchemaField:
+    cdef C_StructSchema.Field thisptr
+    cdef object _parent
+    cdef _init(self, C_StructSchema.Field other, parent=?)
+
+
+cdef class _DynamicOrphan:
+    cdef C_DynamicOrphan thisptr
+    cdef public object _parent
+
+    cdef _init(self, C_DynamicOrphan other, object parent)
+
+    cdef C_DynamicOrphan move(self)
+    cpdef get(self)
+
+
 cdef class _DynamicStructReader:
     cdef C_DynamicStruct.Reader thisptr
     cdef public object _parent
@@ -18,5 +35,50 @@ cdef class _DynamicStructReader:
     cpdef _get(self, field)
     cpdef _has(self, field)
     cpdef _which(self)
+    cpdef _get_by_field(self, _StructSchemaField field)
+    cpdef _has_by_field(self, _StructSchemaField field)
 
     cpdef as_builder(self, num_first_segment_words=?)
+
+
+cdef class _DynamicStructBuilder:
+    cdef DynamicStruct_Builder thisptr
+    cdef public object _parent
+    cdef public bint is_root
+    cdef bint _is_written
+    cdef object _schema
+
+    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot=?)
+
+    cdef _check_write(self)
+    cpdef to_bytes(_DynamicStructBuilder self)
+    cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count)
+    cpdef to_bytes_packed(_DynamicStructBuilder self)
+
+    cpdef _get(self, field)
+    cpdef _set(self, field, value)
+    cpdef _has(self, field)
+    cpdef init(self, field, size=?)
+    cpdef _get_by_field(self, _StructSchemaField field)
+    cpdef _set_by_field(self, _StructSchemaField field, value)
+    cpdef _has_by_field(self, _StructSchemaField field)
+    cpdef _init_by_field(self, _StructSchemaField field, size=?)
+    cpdef init_resizable_list(self, field)
+    cpdef _which(self)
+    cpdef adopt(self, field, _DynamicOrphan orphan)
+    cpdef disown(self, field)
+
+    cpdef as_reader(self)
+    cpdef copy(self, num_first_segment_words=?)
+
+cdef class _Schema:
+    cdef C_Schema thisptr
+
+    cdef _init(self, C_Schema other)
+
+    cpdef as_const_value(self)
+    cpdef as_struct(self)
+    cpdef as_interface(self)
+    cpdef as_enum(self)
+    cpdef get_dependency(self, id)
+    cpdef get_proto(self)

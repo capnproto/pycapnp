@@ -6,11 +6,11 @@ from non_circular cimport reraise_kj_exception
 
 from cpython.ref cimport PyObject
 
-cdef extern from "../helpers/fixMaybe.h":
+cdef extern from "capnp/helpers/fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
     StructSchema.Field fixMaybe(Maybe[StructSchema.Field]) except +reraise_kj_exception
 
-cdef extern from "../helpers/capabilityHelper.h":
+cdef extern from "capnp/helpers/capabilityHelper.h":
     # PyPromise evalLater(EventLoop &, PyObject * func)
     # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
     PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
@@ -24,7 +24,7 @@ cdef extern from "../helpers/capabilityHelper.h":
     PyPromise convert_to_pypromise(VoidPromise&)
     VoidPromise convert_to_voidpromise(PyPromise&)
 
-cdef extern from "../helpers/rpcHelper.h":
+cdef extern from "capnp/helpers/rpcHelper.h":
     Capability.Client restoreHelper(RpcSystem&)
     Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
     Capability.Client restoreHelper(RpcSystem&, MessageReader&)
@@ -33,10 +33,10 @@ cdef extern from "../helpers/rpcHelper.h":
     RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
     PyPromise connectServer(TaskSet &, PyRestorer &, AsyncIoContext *, StringPtr)
 
-cdef extern from "../helpers/serialize.h":
+cdef extern from "capnp/helpers/serialize.h":
     ByteArray messageToPackedBytes(MessageBuilder &, size_t wordCount)
 
-cdef extern from "../helpers/asyncHelper.h":
+cdef extern from "capnp/helpers/asyncHelper.h":
     void waitNeverDone(WaitScope&)
     Response * waitRemote(RemotePromise *, WaitScope&)
     PyObject * waitPyPromise(PyPromise *, WaitScope&)

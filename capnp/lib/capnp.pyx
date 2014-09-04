@@ -2,6 +2,7 @@
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
 # distutils: libraries = capnpc capnp capnp-rpc
+# distutils: include_dirs = .
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
@@ -874,15 +875,15 @@ cdef class _DynamicStructReader:
         return to_python_reader(self.thisptr.get(field), self._parent)
 
     def __getattr__(self, field):
-        return to_python_reader(self.thisptr.get(field), self._parent)
+        return self._get(field)
 
-    def _get_by_field(self, _StructSchemaField field):
+    cpdef _get_by_field(self, _StructSchemaField field):
         return to_python_reader(self.thisptr.getByField(field.thisptr), self._parent)
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
 
-    def _has_by_field(self, _StructSchemaField field):
+    cpdef _has_by_field(self, _StructSchemaField field):
         return self.thisptr.hasByField(field.thisptr)
 
     cpdef _which(self):
@@ -965,11 +966,6 @@ cdef class _DynamicStructBuilder:
         setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef DynamicStruct_Builder thisptr
-    cdef public object _parent
-    cdef public bint is_root
-    cdef bint _is_written
-    cdef object _schema
     cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot = False):
         self.thisptr = other
         self._parent = parent
@@ -1061,23 +1057,21 @@ cdef class _DynamicStructBuilder:
     cpdef _get(self, field):
         return to_python_builder(self.thisptr.get(field), self._parent)
 
-    def _get_by_field(self, _StructSchemaField field):
+    cpdef _get_by_field(self, _StructSchemaField field):
         return to_python_builder(self.thisptr.getByField(field.thisptr), self._parent)
 
     def __getattr__(self, field):
-        cdef C_DynamicValue.Builder value = self.thisptr.get(field)
-
-        return to_python_builder(value, self._parent)
+        return self._get(field)
 
     cpdef _set(self, field, value):
         _setDynamicField(self.thisptr, field, value, self._parent)
 
-    def _set_by_field(self, _StructSchemaField field, value):
+    cpdef _set_by_field(self, _StructSchemaField field, value):
         # TODO: make this faster
         _setDynamicField(self.thisptr, field.proto.name, value, self._parent)
 
     def __setattr__(self, field, value):
-        _setDynamicField(self.thisptr, field, value, self._parent)
+        self._set(field, value)
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
@@ -1105,7 +1099,7 @@ cdef class _DynamicStructBuilder:
         else:
             return to_python_builder(self.thisptr.init(field, size), self._parent)
 
-    def _init_by_field(self, _StructSchemaField field, size=None):
+    cpdef _init_by_field(self, _StructSchemaField field, size=None):
         """Method for initializing fields that are of type union/struct/list
 
         Typically, you don't have to worry about initializing structs/unions, so this method is mainly for lists.
@@ -1295,8 +1289,6 @@ cdef class _DynamicStructPipeline:
         return _to_dict(self, verbose)
 
 cdef class _DynamicOrphan:
-    cdef C_DynamicOrphan thisptr
-    cdef public object _parent
     cdef _init(self, C_DynamicOrphan other, object parent):
         self.thisptr = moveOrphan(other)
         self._parent = parent
@@ -2146,7 +2138,6 @@ cdef class PromiseFulfillerPair:
         deref(deref(self.thisptr).fulfiller).fulfill()
 
 cdef class _Schema:
-    cdef C_Schema thisptr
     cdef _init(self, C_Schema other):
         self.thisptr = other
         return self
@@ -2176,13 +2167,16 @@ cdef class _Schema:
 
 cdef class _StructSchema:
     cdef C_StructSchema thisptr
-    cdef object __fieldnames, __union_fields, __non_union_fields, __fields
+    cdef object __fieldnames, __union_fields, __non_union_fields, __fields, __getters
+    cdef list __fields_list
     cdef _init(self, C_StructSchema other):
         self.thisptr = other
         self.__fieldnames = None
         self.__union_fields = None
         self.__non_union_fields = None
         self.__fields = None
+        self.__fields_list = None
+        self.__getters = None
         return self
 
     property fieldnames:
@@ -2219,7 +2213,7 @@ cdef class _StructSchema:
             return self.__non_union_fields
 
     property fields:
-        """A tuple of the field names in the struct."""
+        """All of the _StructSchemaField in this schema as a dict"""
         def __get__(self):
             if self.__fields is not None:
                return self.__fields
@@ -2228,6 +2222,17 @@ cdef class _StructSchema:
             self.__fields = {<char*>fieldlist[i].getProto().getName().cStr() : _StructSchemaField()._init(fieldlist[i], self)
                                       for i in xrange(nfields)}
             return self.__fields
+
+    property fields_list:
+        """All of the _StructSchemaField in this schema as a list"""
+        def __get__(self):
+            if self.__fields_list is not None:
+               return self.__fields_list
+            fieldlist = self.thisptr.getFields()
+            nfields = fieldlist.size()
+            self.__fields_list = [_StructSchemaField()._init(fieldlist[i], self)
+                                      for i in xrange(nfields)]
+            return self.__fields_list
 
     property node:
         """The raw schema node"""
@@ -2249,8 +2254,6 @@ cdef class _StructSchema:
         return '<schema for %s>' % self.node.displayName
 
 cdef class _StructSchemaField:
-    cdef C_StructSchema.Field thisptr
-    cdef object _parent
     cdef _init(self, C_StructSchema.Field other, parent=None):
         self.thisptr = other
         self._parent = parent

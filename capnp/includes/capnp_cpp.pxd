@@ -1,7 +1,7 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-cdef extern from "../helpers/checkCompiler.h":
+cdef extern from "capnp/helpers/checkCompiler.h":
     pass
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
