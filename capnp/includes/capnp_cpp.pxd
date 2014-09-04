@@ -229,6 +229,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             bint has(char *) except +reraise_kj_exception
             bint hasByField"has"(StructSchema.Field) except +reraise_kj_exception
             StructSchema getSchema()
+            uint64_t getId"getSchema().getProto().getId"()
             Maybe[StructSchema.Field] which()
             MessageSize totalSize()
         cppclass Pipeline:
@@ -251,6 +252,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         DynamicValueForward.Builder initByField"init"(StructSchema.Field, uint size) except +reraise_kj_exception
         DynamicValueForward.Builder initByField"init"(StructSchema.Field) except +reraise_kj_exception
         StructSchema getSchema()
+        uint64_t getId"getSchema().getProto().getId"()
         Maybe[StructSchema.Field] which()
         void adopt(char *, DynamicOrphan) except +reraise_kj_exception
         DynamicOrphan disown(char *)

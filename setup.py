@@ -53,11 +53,15 @@ setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
-    package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx']},
+    package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx', 'templates/*']},
     ext_modules=cythonize('capnp/lib/*.pyx', language="c++"),
     install_requires=[
+        'jinja2 >= 2.7.3',
         'cython > 0.19',
         'setuptools >= 0.8'],
+    entry_points={
+        'console_scripts' : ['capnpc-cython = capnp._gen:main']
+    },
     # PyPi info
     description="A cython wrapping of the C++ Cap'n Proto library",
     long_description=long_description,

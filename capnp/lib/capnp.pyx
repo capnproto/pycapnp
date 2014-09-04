@@ -33,6 +33,14 @@ _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
 _CAPNP_VERSION_MICRO = capnp.CAPNP_VERSION_MICRO
 _CAPNP_VERSION = capnp.CAPNP_VERSION
 
+cdef dict _type_registry = {}
+
+def register_type(id, klass):
+    _type_registry[id] = klass
+
+def deregister_all_types():
+    _type_registry = {}
+
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef public object wrap_dynamic_struct_reader(Response & r) with gil:
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
@@ -671,6 +679,17 @@ cdef _setBaseString(_DynamicSetterClasses thisptr, field, value):
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.set(field, temp)
 
+cdef _setBytesField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
+    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>value, len(value))
+    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
+    thisptr.setByField(field.thisptr, temp)
+
+cdef _setBaseStringField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
+    encoded_value = value.encode()
+    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
+    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
+    thisptr.setByField(field.thisptr, temp)
+
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
@@ -717,6 +736,48 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     else:
         raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
+cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent):
+    cdef C_DynamicValue.Reader temp
+    value_type = type(value)
+
+    if value_type is int or value_type is long:
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        thisptr.setByField(field.thisptr, temp)
+    elif value_type is float:
+        temp = C_DynamicValue.Reader(<double>value)
+        thisptr.setByField(field.thisptr, temp)
+    elif value_type is bool:
+        temp = C_DynamicValue.Reader(<cbool>value)
+        thisptr.setByField(field.thisptr, temp)
+    elif value_type is bytes:
+        _setBytesField(thisptr, field, value)
+    elif isinstance(value, basestring):
+        _setBaseStringField(thisptr, field, value)
+    elif value_type is list:
+        builder = to_python_builder(thisptr.init(field.proto.name, len(value)), parent)
+        _from_list(builder, value)
+    elif value_type is dict:
+        builder = to_python_builder(thisptr.getByField(field.thisptr), parent)
+        _from_dict(builder, value)
+    elif value is None:
+        temp = C_DynamicValue.Reader(VOID)
+        thisptr.setByField(field.thisptr, temp)
+    elif value_type is _DynamicStructBuilder:
+        thisptr.setByField(field.thisptr, _extract_dynamic_struct_builder(value))
+    elif value_type is _DynamicStructReader:
+        thisptr.setByField(field.thisptr, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicCapabilityClient:
+        thisptr.setByField(field.thisptr, _extract_dynamic_client(value))
+    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+        thisptr.setByField(field.thisptr, _extract_dynamic_server(value))
+    elif value_type is _DynamicEnum:
+        thisptr.setByField(field.thisptr, _extract_dynamic_enum(value))
+    else:
+        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+
 cdef _to_dict(msg, bint verbose):
     msg_type = type(msg)
     if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
@@ -735,6 +796,9 @@ cdef _to_dict(msg, bint verbose):
                 ret[field] = _to_dict(msg._get(field), verbose)
 
         return ret
+
+    if isinstance(msg, (_DynamicStructBuilder, _DynamicStructReader)):
+        return msg.to_dict()
 
     if msg_type is _DynamicEnum:
         return str(msg)
@@ -864,11 +928,16 @@ cdef class _DynamicStructReader:
         print person.name # using . syntax
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=False):
+    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=False, bint tryRegistry = True):
         self.thisptr = other
         self._parent = parent
         self.is_root = isRoot
         self._schema = None
+
+        if tryRegistry and len(_type_registry) > 0:
+            registered_type = _type_registry.get(self.thisptr.getId(), None)
+            if registered_type:
+                return registered_type[0](self)
         return self
 
     cpdef _get(self, field):
@@ -966,12 +1035,17 @@ cdef class _DynamicStructBuilder:
         setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot = False):
+    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot = False, bint tryRegistry = True):
         self.thisptr = other
         self._parent = parent
         self.is_root = isRoot
         self._is_written = False
         self._schema = None
+
+        if tryRegistry and len(_type_registry) > 0:
+            registered_type = _type_registry.get(self.thisptr.getId(), None)
+            if registered_type:
+                return registered_type[1](self)
         return self
 
     cdef _check_write(self):
@@ -1067,8 +1141,7 @@ cdef class _DynamicStructBuilder:
         _setDynamicField(self.thisptr, field, value, self._parent)
 
     cpdef _set_by_field(self, _StructSchemaField field, value):
-        # TODO: make this faster
-        _setDynamicField(self.thisptr, field.proto.name, value, self._parent)
+        _setDynamicFieldWithField(self.thisptr, field, value, self._parent)
 
     def __setattr__(self, field, value):
         self._set(field, value)

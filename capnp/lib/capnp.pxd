@@ -30,7 +30,7 @@ cdef class _DynamicStructReader:
     cdef object _obj_to_pin
     cdef object _schema
 
-    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=?)
+    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=?, bint tryRegistry=?)
 
     cpdef _get(self, field)
     cpdef _has(self, field)
@@ -48,7 +48,7 @@ cdef class _DynamicStructBuilder:
     cdef bint _is_written
     cdef object _schema
 
-    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot=?)
+    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot=?, bint tryRegistry=?)
 
     cdef _check_write(self)
     cpdef to_bytes(_DynamicStructBuilder self)
@@ -82,3 +82,8 @@ cdef class _Schema:
     cpdef as_enum(self)
     cpdef get_dependency(self, id)
     cpdef get_proto(self)
+
+cdef to_python_reader(C_DynamicValue.Reader self, object parent)
+cdef to_python_builder(C_DynamicValue.Builder self, object parent)
+cdef _to_dict(msg, bint verbose)
+cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent)
