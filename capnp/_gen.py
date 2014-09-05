@@ -38,7 +38,7 @@ def main():
     with open(filename, 'w') as out:
       out.write(module.render(code=file_code, file=f, include_dir=include_dir))
 
-  setup = env.get_template('setup.py')
+  setup = env.get_template('setup.py.tmpl')
   with open('setup_capnp.py', 'w') as out:
     out.write(setup.render(code=code))
   print('You now need to build the cython module by running `python setup_capnp.py build_ext --inplace`.')

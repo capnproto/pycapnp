@@ -5,7 +5,7 @@ import os
 import re
 
 
-files = [{% for file in code.requestedFiles %}"{{file.filename}}",{% endfor %}]
+files = [{% for f in code.requestedFiles %}"{{f.filename}}",{% endfor %}]
 
 for f in files:
   cpp_file = f + '.cpp'
