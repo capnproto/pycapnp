@@ -83,7 +83,34 @@ cdef class _Schema:
     cpdef get_dependency(self, id)
     cpdef get_proto(self)
 
+cdef class _InterfaceSchema:
+    cdef C_InterfaceSchema thisptr
+    cdef object __method_names
+    cdef _init(self, C_InterfaceSchema other)
+    cpdef get_dependency(self, id)
+
+cdef class _DynamicEnum:
+    cdef capnp.DynamicEnum thisptr
+    cdef public object _parent
+
+    cdef _init(self, capnp.DynamicEnum other, object parent)
+    cpdef _as_str(self)
+
+cdef class _DynamicListBuilder:
+    cdef C_DynamicList.Builder thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicList.Builder other, object parent)
+
+    cdef _get(self, index)
+    cdef _set(self, index, value)
+
+    cpdef adopt(self, index, _DynamicOrphan orphan)
+    cpdef disown(self, index)
+
 cdef to_python_reader(C_DynamicValue.Reader self, object parent)
 cdef to_python_builder(C_DynamicValue.Builder self, object parent)
 cdef _to_dict(msg, bint verbose)
+cdef _from_dict(_DynamicStructBuilder msg, dict d)
+cdef _from_list(_DynamicListBuilder msg, list d)
 cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent)
+cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)

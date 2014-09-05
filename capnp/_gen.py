@@ -4,6 +4,7 @@ import capnp
 import schema_capnp
 import sys
 from jinja2 import Environment, PackageLoader
+import os
 
 def main():
   env = Environment(loader=PackageLoader('capnp', 'templates'))
@@ -11,24 +12,31 @@ def main():
 
   code = schema_capnp.CodeGeneratorRequest.read(sys.stdin)
   code=code.to_dict()
-  code['nodes'] = [node for node in code['nodes'] if 'struct' in node]
+  code['nodes'] = [node for node in code['nodes'] if 'struct' in node and node['scopeId'] != 0]
   for node in code['nodes']:
     displayName = node['displayName']
     parent, path = displayName.split(':')
     node['module_path'] = parent.replace('.', '_') + '.' + '.'.join([x[0].upper() + x[1:] for x in path.split('.')])
     node['module_name'] = path.replace('.', '_')
+    node['c_module_path'] = '::'.join([x[0].upper() + x[1:] for x in path.split('.')])
     node['schema'] = '_{}_Schema'.format(node['module_name'])
     is_union = False
     for field in node['struct']['fields']:
       if field['discriminantValue'] != 65535:
         is_union = True
+      field['c_name'] = field['name'][0].upper() + field['name'][1:]
     node['is_union'] = is_union
 
+  include_dir = os.path.abspath(os.path.join(os.path.dirname(capnp.__file__), '..'))
   module = env.get_template('module.pyx')
-  filename = code['requestedFiles'][0]['filename'].replace('.', '_') + '_cython.pyx'
-  # TODO: handle multiple files
-  with open(filename, 'w') as out:
-    out.write(module.render(code=code))
+
+  for f in code['requestedFiles']:
+    filename = f['filename'].replace('.', '_') + '_cython.pyx'
+
+    file_code = dict(code)
+    file_code['nodes'] = [node for node in file_code['nodes'] if node['displayName'].startswith(f['filename'])]
+    with open(filename, 'w') as out:
+      out.write(module.render(code=file_code, file=f, include_dir=include_dir))
 
   setup = env.get_template('setup.py')
   with open('setup_capnp.py', 'w') as out:

@@ -495,8 +495,6 @@ cdef class _DynamicListBuilder:
         for phone in phones:
             print phone.number
     """
-    cdef C_DynamicList.Builder thisptr
-    cdef public object _parent
     cdef _init(self, C_DynamicList.Builder other, object parent):
         self.thisptr = other
         self._parent = parent
@@ -778,6 +776,48 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
     else:
         raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
+cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent):
+    cdef C_DynamicValue.Reader temp
+    value_type = type(value)
+
+    if value_type is int or value_type is long:
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        thisptr.set(field, temp)
+    elif value_type is float:
+        temp = C_DynamicValue.Reader(<double>value)
+        thisptr.set(field, temp)
+    elif value_type is bool:
+        temp = C_DynamicValue.Reader(<cbool>value)
+        thisptr.set(field, temp)
+    elif value_type is bytes:
+        _setBytes(thisptr, field, value)
+    elif isinstance(value, basestring):
+        _setBaseString(thisptr, field, value)
+    elif value_type is list:
+        builder = to_python_builder(thisptr.init(field, len(value)), parent)
+        _from_list(builder, value)
+    elif value_type is dict:
+        builder = to_python_builder(thisptr.get(field), parent)
+        _from_dict(builder, value)
+    elif value is None:
+        temp = C_DynamicValue.Reader(VOID)
+        thisptr.set(field, temp)
+    elif value_type is _DynamicStructBuilder:
+        thisptr.set(field, _extract_dynamic_struct_builder(value))
+    elif value_type is _DynamicStructReader:
+        thisptr.set(field, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicCapabilityClient:
+        thisptr.set(field, _extract_dynamic_client(value))
+    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+        thisptr.set(field, _extract_dynamic_server(value))
+    elif value_type is _DynamicEnum:
+        thisptr.set(field, _extract_dynamic_enum(value))
+    else:
+        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+
 cdef _to_dict(msg, bint verbose):
     msg_type = type(msg)
     if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
@@ -824,9 +864,6 @@ cdef _from_list(_DynamicListBuilder msg, list d):
 
 
 cdef class _DynamicEnum:
-    cdef capnp.DynamicEnum thisptr
-    cdef public object _parent
-
     cdef _init(self, capnp.DynamicEnum other, object parent):
         self.thisptr = other
         self._parent = parent
@@ -2341,9 +2378,6 @@ cdef class _StructSchemaField:
         return '<field schema for %s>' % self.proto.name
 
 cdef class _InterfaceSchema:
-    cdef C_InterfaceSchema thisptr
-    cdef object __method_names
-
     cdef _init(self, C_InterfaceSchema other):
         self.thisptr = other
         return self
