@@ -5,8 +5,8 @@ cdef extern from "../helpers/checkCompiler.h":
     pass
 
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
-from .capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
-from .capnp.includes.types cimport *
+from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
+from capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
     enum Void:
@@ -43,7 +43,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
         int getDurability()
         StringPtr getDescription()
 
-cdef extern from "kj/memory.h" namespace " ::kj":    
+cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T]:
         T& operator*()
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side)
