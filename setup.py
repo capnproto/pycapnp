@@ -54,10 +54,9 @@ setup(
     packages=["capnp"],
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx', 'templates/*']},
-    ext_modules=cythonize('capnp/lib/*.pyx', language="c++"),
+    ext_modules=cythonize('capnp/lib/*.pyx'),
     install_requires=[
-        'jinja2 >= 2.7.3',
-        'cython > 0.19',
+        'cython >= 0.21',
         'setuptools >= 0.8'],
     entry_points={
         'console_scripts' : ['capnpc-cython = capnp._gen:main']

@@ -1,5 +1,5 @@
 jinja2 >= 2.7.3
-cython > 0.19
+cython >= 0.21
 setuptools >= 0.8
 pytest
 tox
