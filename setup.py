@@ -18,7 +18,7 @@ import os
 
 MAJOR = 0
 MINOR = 4
-MICRO = 5
+MICRO = 6
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 def write_version_py(filename=None):
@@ -49,14 +49,28 @@ try:
 except (IOError, ImportError):
     long_description = ''
 
+from distutils.command.clean import clean as _clean
+class clean(_clean):
+    def run(self):
+        _clean.run(self)
+        for x in [ 'capnp/lib/capnp.cpp', 'capnp/lib/capnp.h', 'capnp/version.py' ]:
+            print('removing %s' % x)
+            try:
+                os.remove(x)
+            except OSError:
+                pass
+
 setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx']},
-    ext_modules=cythonize('capnp/lib/*.pyx', language="c++"),
+    ext_modules=cythonize('capnp/lib/*.pyx'),
+    cmdclass = {
+        'clean': clean
+    },
     install_requires=[
-        'cython > 0.19',
+        'cython >= 0.21',
         'setuptools >= 0.8'],
     # PyPi info
     description="A cython wrapping of the C++ Cap'n Proto library",
