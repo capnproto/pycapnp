@@ -1,3 +1,6 @@
+## v0.4.6 (2014-9-10)
+- Fix build for new 0.21 release of Cython. 0.21 is now the minimum supported version of Cython.
+
 ## v0.4.5 (2014-6-26)
 - Fix `to_dict` not converting enums to strings
 
