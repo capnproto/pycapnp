@@ -1974,12 +1974,11 @@ cdef class _DynamicCapabilityClient:
 
     cpdef _find_method_args(self, method_name):
         s = self.schema
-        meth = None
-        for meth in s.node.interface.methods:
-            if meth.name == method_name:
-                break
+        meth = s.methods_inherited.get(method_name, None)
+        if meth is None:
+            raise AttributeError("Method named %s not found." % method_name)
 
-        params = s.get_dependency(meth.paramStructType).node
+        params = meth.param_type.node
         if params.scopeId != 0:
             raise ValueError("Cannot call method `%s` with positional args, since its param struct is not implicitly defined and thus does not have a set order of arguments" % method_name)
 
@@ -2312,6 +2311,8 @@ cdef class _Schema:
         return _EnumSchema()._init(self.thisptr.asEnum())
 
     cpdef get_dependency(self, id):
+        '.. warning:: This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream'
+        _warnings.warn('This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream', UserWarning)
         return _Schema()._init(self.thisptr.getDependency(id))
 
     cpdef get_proto(self):
@@ -2397,6 +2398,8 @@ cdef class _StructSchema:
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
     cpdef get_dependency(self, id):
+        '.. warning:: This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream'
+        _warnings.warn('This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream', UserWarning)
         return _Schema()._init(self.thisptr.getDependency(id))
 
     def __richcmp__(_StructSchema self, _StructSchema other, mode):
@@ -2421,8 +2424,36 @@ cdef class _StructSchemaField:
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
+    property schema:
+        """The schema of this field, or None if it's a type without a schema"""
+        def __get__(self):
+            cdef capnp.SchemaType fieldType = self.thisptr.getType()
+
+            # TODO(soon): make sure this is memory safe
+            if fieldType.isInterface():
+                return _InterfaceSchema()._init(fieldType.asInterface())
+            elif fieldType.isStruct():
+                return _StructSchema()._init(fieldType.asStruct())
+            elif fieldType.isEnum():
+                return _EnumSchema()._init(fieldType.asEnum())
+            else:
+                return None
+
     def __repr__(self):
         return '<field schema for %s>' % self.proto.name
+
+cdef class _InterfaceMethod:
+    cdef C_InterfaceSchema.Method thisptr
+
+    cdef _init(self, C_InterfaceSchema.Method other):
+        self.thisptr = other
+        return self
+
+    property param_type:
+        """The type of this method's parameter struct"""
+        def __get__(self):
+            # TODO(soon): make sure this is memory safe
+            return _StructSchema()._init(self.thisptr.getParamType())
 
 cdef class _InterfaceSchema:
     cdef _init(self, C_InterfaceSchema other):
@@ -2443,19 +2474,51 @@ cdef class _InterfaceSchema:
     property method_names_inherited:
         """A set of the function names in the interface, including inherited methods"""
         def __get__(self):
+            if self.__method_names_inherited is not None:
+               return self.__method_names_inherited
+
             fieldlist = self.thisptr.getMethods()
             nfields = fieldlist.size()
-            ret = set(<char*>fieldlist[i].getProto().getName().cStr()
+            self.__method_names_inherited = set(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
             for interface in self.superclasses:
-                ret |= interface.method_names_inherited
+                self.__method_names_inherited |= interface.method_names_inherited
 
-            return ret
+            return self.__method_names_inherited
+
+    property methods:
+        """A mapping of method names to their respective _InterfaceMethod"""
+        def __get__(self):
+            if self.__methods is not None:
+               return self.__methods
+
+            fieldlist = self.thisptr.getMethods()
+            nfields = fieldlist.size()
+            # TODO(soon): make sure this is memory safe
+            self.__methods = {fieldlist[i].getProto().getName().cStr() : _InterfaceMethod()._init(fieldlist[i])
+                                      for i in xrange(nfields)}
+            return self.__methods
+
+    property methods_inherited:
+        """A mapping of method names to their respective _InterfaceMethod, including inherited methods"""
+        def __get__(self):
+            if self.__methods_inherited is not None:
+               return self.__methods_inherited
+
+            fieldlist = self.thisptr.getMethods()
+            nfields = fieldlist.size()
+            # TODO(soon): make sure this is memory safe
+            self.__methods_inherited = {fieldlist[i].getProto().getName().cStr() : _InterfaceMethod()._init(fieldlist[i])
+                                      for i in xrange(nfields)}
+            for interface in self.superclasses:
+                self.__methods_inherited.update(interface.methods_inherited)
+
+            return self.__methods_inherited
 
     property superclasses:
         """A list of superclasses for this interface"""
         def __get__(self):
-            cdef capnp.SuperclassList classes = self.thisptr.getSuperclasses()
+            cdef C_InterfaceSchema.SuperclassList classes = self.thisptr.getSuperclasses()
             return [_InterfaceSchema()._init(classes[i]) for i in range(classes.size())]
 
     property node:
@@ -2464,6 +2527,8 @@ cdef class _InterfaceSchema:
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
     cpdef get_dependency(self, id):
+        '.. warning:: This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream'
+        _warnings.warn('This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream', UserWarning)
         return _Schema()._init(self.thisptr.getDependency(id))
 
     def __repr__(self):
@@ -2529,17 +2594,17 @@ class _StructModule(object):
         self.Restorer = type(name + '.Restorer', (_RestorerImpl,), {'schema':schema, '_restore':_restore})
 
         # Add enums for union fields
-        for field in schema.node.struct.fields:
+        for field, raw_field in zip(schema.node.struct.fields, schema.fields_list):
             if field.which() == 'group':
                 name = field.name[0].upper() + field.name[1:]
-                raw_schema = schema.get_dependency(field.group.typeId)
+                raw_schema = raw_field.schema
                 field_schema = raw_schema.node.struct
 
                 if field_schema.discriminantCount == 0:
                     sub_module = _StructModule(raw_schema, name)
                 else:
                     sub_module = _StructModuleWhich()
-                    setattr(sub_module, 'schema', raw_schema.as_struct())
+                    setattr(sub_module, 'schema', raw_schema)
                     for union_field in field_schema.fields:
                         setattr(sub_module, union_field.name, union_field.discriminantValue)
                 setattr(self, name, sub_module)

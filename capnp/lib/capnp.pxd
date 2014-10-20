@@ -93,7 +93,7 @@ cdef class _Schema:
 
 cdef class _InterfaceSchema:
     cdef C_InterfaceSchema thisptr
-    cdef object __method_names
+    cdef object __method_names, __method_names_inherited, __methods, __methods_inherited
     cdef _init(self, C_InterfaceSchema other)
     cpdef get_dependency(self, id)
 

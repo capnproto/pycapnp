@@ -134,6 +134,17 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
     AsyncIoContext setupAsyncIo()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
+    cdef cppclass SchemaType" ::capnp::Type":
+        cbool isList()
+        cbool isEnum()
+        cbool isStruct()
+        cbool isInterface()
+
+        StructSchema asStruct()
+        EnumSchema asEnum()
+        InterfaceSchema asInterface()
+        # ListSchema asList()
+
     cdef cppclass Schema:
         Node.Reader getProto() except +reraise_kj_exception
         StructSchema asStruct() except +reraise_kj_exception
@@ -143,11 +154,17 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         InterfaceSchema asInterface() except +reraise_kj_exception
 
     cdef cppclass InterfaceSchema(Schema):
+        cppclass SuperclassList:
+            uint size()
+            InterfaceSchema operator[](uint index)
+
         cppclass Method:
             InterfaceNode.Method.Reader getProto()
             InterfaceSchema getContainingInterface()
             uint16_t getOrdinal()
             uint getIndex()
+            StructSchema getParamType()
+            StructSchema getResultType()
 
         cppclass MethodList:
             uint size()
@@ -160,15 +177,12 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         SuperclassList getSuperclasses()
         # kj::Maybe<InterfaceSchema> findSuperclass(uint64_t typeId) const;
 
-    cdef cppclass SuperclassList" ::capnp::InterfaceSchema::SuperclassList":
-        uint size()
-        InterfaceSchema operator[](uint index)
-
     cdef cppclass StructSchema(Schema):
         cppclass Field:
             StructNode.Member.Reader getProto()
             StructSchema getContainingStruct()
             uint getIndex()
+            SchemaType getType()
 
         cppclass FieldList:
             uint size()
