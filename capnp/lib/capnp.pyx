@@ -6,10 +6,11 @@
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
+# cython: profile=True
 
 cimport cython
 
-from .capnp.helpers.helpers cimport makeRpcClientWithRestorer
+from capnp.helpers.helpers cimport makeRpcClientWithRestorer
 
 from libc.stdlib cimport malloc, free
 from cython.operator cimport dereference as deref
@@ -396,12 +397,15 @@ cdef class _DynamicListReader:
         self._parent = parent
         return self
 
-    def __getitem__(self, index):
-        size = self.thisptr.size()
+    cpdef _get(self, int64_t index):
+        return to_python_reader(self.thisptr[index], self._parent)
+
+    def __getitem__(self, int64_t index):
+        cdef uint size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        return to_python_reader(self.thisptr[index], self._parent)
+        return self._get(index)
 
     def __len__(self):
         return self.thisptr.size()
@@ -457,6 +461,9 @@ cdef class _DynamicResizableListBuilder:
         self._list.append((orphan, orphan_val))
         return orphan_val
 
+    cpdef _get(self, index):
+        return self._list[index][1]
+
     def __getitem__(self, index):
         return self._list[index][1]
 
@@ -500,17 +507,17 @@ cdef class _DynamicListBuilder:
         self._parent = parent
         return self
 
-    cdef _get(self, index):
+    cpdef _get(self, int64_t index):
         return to_python_builder(self.thisptr[index], self._parent)
 
-    def __getitem__(self, index):
-        size = self.thisptr.size()
+    def __getitem__(self, int64_t index):
+        cdef uint size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
         return self._get(index)
 
-    cdef _set(self, index, value):
+    cpdef _set(self, index, value):
         _setDynamicField(self.thisptr, index, value, self._parent)
 
     def __setitem__(self, index, value):
@@ -714,10 +721,10 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif value_type is dict:
         if _DynamicSetterClasses is DynamicStruct_Builder:
             builder = to_python_builder(thisptr.get(field), parent)
-            _from_dict(builder, value)
+            builder.from_dict(value)
         else:
             builder = to_python_builder(thisptr[field], parent)
-            _from_dict(builder, value)
+            builder.from_dict(value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
         thisptr.set(field, temp)
@@ -759,7 +766,7 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
         _from_list(builder, value)
     elif value_type is dict:
         builder = to_python_builder(thisptr.getByField(field.thisptr), parent)
-        _from_dict(builder, value)
+        builder.from_dict(value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
         thisptr.setByField(field.thisptr, temp)
@@ -801,7 +808,7 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
         _from_list(builder, value)
     elif value_type is dict:
         builder = to_python_builder(thisptr.get(field), parent)
-        _from_dict(builder, value)
+        builder.from_dict(value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
         thisptr.set(field, temp)
@@ -818,22 +825,49 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
     else:
         raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
+cdef _DynamicListBuilder temp_list_b
+cdef _DynamicListReader temp_list_r
+cdef _DynamicResizableListBuilder temp_list_rb
+cdef _DynamicStructBuilder temp_msg_b
+cdef _DynamicStructReader temp_msg_r
 cdef _to_dict(msg, bint verbose):
     msg_type = type(msg)
-    if msg_type is _DynamicListBuilder or msg_type is _DynamicListReader or msg_type is _DynamicResizableListBuilder:
-        return [_to_dict(x, verbose) for x in msg]
+    if msg_type is _DynamicListBuilder:
+        temp_list_b = msg
+        return [_to_dict(temp_list_b._get(i), verbose) for i in range(len(msg))]
+    elif msg_type is _DynamicListReader:
+        temp_list_r = msg
+        return [_to_dict(temp_list_r._get(i), verbose) for i in range(len(msg))]
+    elif msg_type is _DynamicResizableListBuilder:
+        temp_list_rb = msg
+        return [_to_dict(temp_list_rb._get(i), verbose) for i in range(len(msg))]
 
-    if msg_type is _DynamicStructBuilder or msg_type is _DynamicStructReader:
+    if msg_type is _DynamicStructBuilder:
+        temp_msg_b = msg
         ret = {}
         try:
-            which = msg.which()
-            ret[which] = _to_dict(msg._get(which), verbose)
+            which = temp_msg_b.which()
+            ret[which] = _to_dict(temp_msg_b._get(which), verbose)
         except ValueError:
             pass
 
-        for field in msg.schema.non_union_fields:
-            if verbose or msg._has(field):
-                ret[field] = _to_dict(msg._get(field), verbose)
+        for field in temp_msg_b.schema.non_union_fields:
+            if verbose or temp_msg_b._has(field):
+                ret[field] = _to_dict(temp_msg_b._get(field), verbose)
+
+        return ret
+    elif msg_type is _DynamicStructReader:
+        temp_msg_r = msg
+        ret = {}
+        try:
+            which = temp_msg_r.which()
+            ret[which] = _to_dict(temp_msg_r._get(which), verbose)
+        except ValueError:
+            pass
+
+        for field in temp_msg_r.schema.non_union_fields:
+            if verbose or temp_msg_r._has(field):
+                ret[field] = _to_dict(temp_msg_r._get(field), verbose)
 
         return ret
 
@@ -845,22 +879,10 @@ cdef _to_dict(msg, bint verbose):
 
     return msg
 
-
-cdef _from_dict(_DynamicStructBuilder msg, dict d):
-    for key, val in d.iteritems():
-        if key != 'which':
-            try:
-                msg._set(key, val)
-            except Exception as e:
-                if 'expected isSetInUnion(field)' in str(e):
-                    msg.init(key)
-                    msg._set(key, val)
-
 cdef _from_list(_DynamicListBuilder msg, list d):
     cdef size_t count = 0
-    for val in d:
-        msg._set(count, val)
-        count += 1
+    for i in range(len(d)):
+        msg._set(i, d[i])
 
 
 cdef class _DynamicEnum:
@@ -903,8 +925,6 @@ cdef class _DynamicEnum:
             return left >= right
 
 cdef class _DynamicEnumField:
-    cdef object thisptr
-
     cdef _init(self, proto):
         self.thisptr = proto
         return self
@@ -914,8 +934,11 @@ cdef class _DynamicEnumField:
         def __get__(self):
             return self.thisptr.discriminantValue
 
-    def __str__(self):
+    cpdef _str(self):
         return self.thisptr.name
+
+    def __str__(self):
+        return self._str()
 
     def __repr__(self):
         return '<%s which-enum>' % str(self)
@@ -992,7 +1015,13 @@ cdef class _DynamicStructReader:
     cpdef _has_by_field(self, _StructSchemaField field):
         return self.thisptr.hasByField(field.thisptr)
 
-    cpdef _which(self):
+    cpdef _which_str(self):
+        try:
+            return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
+        except:
+            raise ValueError("Attempted to call which on a non-union type")
+
+    cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
 
         :rtype: :class:`_DynamicEnumField`
@@ -1245,7 +1274,13 @@ cdef class _DynamicStructBuilder:
         """
         return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
-    cpdef _which(self):
+    cpdef _which_str(self):
+        try:
+            return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
+        except:
+            raise ValueError("Attempted to call which on a non-union type")
+
+    cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
 
         :rtype: :class:`_DynamicEnumField`
@@ -1342,6 +1377,18 @@ cdef class _DynamicStructBuilder:
 
     def to_dict(self, verbose=False):
         return _to_dict(self, verbose)
+
+    def from_dict(self, dict d):
+        for key, val in d.iteritems():
+            if key != 'which':
+                try:
+                    self._set(key, val)
+                except Exception as e:
+                    if 'expected isSetInUnion(field)' in str(e):
+                        self.init(key)
+                        self._set(key, val)
+                    else:
+                        raise
 
     property total_size:
         def __get__(self):
@@ -2463,7 +2510,7 @@ cdef _new_message(self, kwargs, num_first_segment_words):
     builder = _MallocMessageBuilder(num_first_segment_words)
     msg = builder.init_root(self.schema)
     if kwargs is not None:
-        _from_dict(msg, kwargs)
+        msg.from_dict(kwargs)
     return msg
 
 class _RestorerImpl(object):
@@ -2483,18 +2530,18 @@ class _StructModule(object):
         # Add enums for union fields
         for field in schema.node.struct.fields:
             if field.which() == 'group':
-                name = field.name.capitalize()
+                name = field.name[0].upper() + field.name[1:]
                 raw_schema = schema.get_dependency(field.group.typeId)
-                union_schema = raw_schema.node.struct
+                field_schema = raw_schema.node.struct
 
-                if union_schema.discriminantCount == 0:
-                    continue
-
-                union_module = _StructModuleWhich()
-                setattr(union_module, 'schema', raw_schema.as_struct())
-                for union_field in union_schema.fields:
-                    setattr(union_module, union_field.name, union_field.discriminantValue)
-                setattr(self, name, union_module)
+                if field_schema.discriminantCount == 0:
+                    sub_module = _StructModule(raw_schema, name)
+                else:
+                    sub_module = _StructModuleWhich()
+                    setattr(sub_module, 'schema', raw_schema.as_struct())
+                    for union_field in field_schema.fields:
+                        setattr(sub_module, union_field.name, union_field.discriminantValue)
+                setattr(self, name, sub_module)
 
     def read(self, file, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the unpacked object read from file.

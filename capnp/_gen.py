@@ -6,6 +6,13 @@ import sys
 from jinja2 import Environment, PackageLoader
 import os
 
+def find_type(code, id):
+  for node in code['nodes']:
+    if node['id'] == id:
+      return node
+
+  return None
+
 def main():
   env = Environment(loader=PackageLoader('capnp', 'templates'))
   env.filters['format_name'] = lambda name: name[name.find(':')+1:]
@@ -25,6 +32,18 @@ def main():
       if field['discriminantValue'] != 65535:
         is_union = True
       field['c_name'] = field['name'][0].upper() + field['name'][1:]
+      if 'slot' in field:
+        field['type'] = field['slot']['type'].keys()[0]
+        if not isinstance(field['slot']['type'][field['type']], dict):
+          continue
+        sub_type = field['slot']['type'][field['type']].get('typeId', None)
+        if sub_type:
+          field['sub_type'] = find_type(code, sub_type)
+        sub_type = field['slot']['type'][field['type']].get('elementType', None)
+        if sub_type:
+          field['sub_type'] = sub_type
+      else:
+        field['type'] = find_type(code, field['group']['typeId'])
     node['is_union'] = is_union
 
   include_dir = os.path.abspath(os.path.join(os.path.dirname(capnp.__file__), '..'))

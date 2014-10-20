@@ -5,14 +5,21 @@ import os
 import re
 
 
-files = [{% for f in code.requestedFiles %}"{{f.filename}}",{% endfor %}]
+files = [{% for f in code.requestedFiles %}"{{f.filename}}", {% endfor %}]
 
 for f in files:
   cpp_file = f + '.cpp'
-  if not os.path.exists(cpp_file):
-    if not os.path.exists(f + '.c++'):
+  cplus_file = f + '.c++'
+  cpp_mod = os.path.getmtime(cpp_file)
+  cplus_mod = 0
+  try:
+    cplus_mod = os.path.getmtime(cplus_file)
+  except:
+    pass
+  if not os.path.exists(cpp_file) or cpp_mod < cplus_mod:
+    if not os.path.exists(cplus_file):
       raise RuntimeError("You need to run `capnp compile -oc++` in addition to `-ocython` first.")
-    os.rename(f + '.c++', cpp_file)
+    os.rename(cplus_file, cpp_file)
 
     with open(f + '.h', "r") as file:
         lines = file.readlines()
