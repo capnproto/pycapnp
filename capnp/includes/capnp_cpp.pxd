@@ -157,7 +157,12 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         Maybe[Method] findMethodByName(StringPtr name)
         Method getMethodByName(StringPtr name)
         bint extends(InterfaceSchema other)
+        SuperclassList getSuperclasses()
         # kj::Maybe<InterfaceSchema> findSuperclass(uint64_t typeId) const;
+
+    cdef cppclass SuperclassList" ::capnp::InterfaceSchema::SuperclassList":
+        uint size()
+        InterfaceSchema operator[](uint index)
 
     cdef cppclass StructSchema(Schema):
         cppclass Field:

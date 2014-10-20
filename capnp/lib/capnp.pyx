@@ -2447,15 +2447,16 @@ cdef class _InterfaceSchema:
             nfields = fieldlist.size()
             ret = set(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
-            for interface in self.extends:
+            for interface in self.superclasses:
                 ret |= interface.method_names_inherited
 
             return ret
 
-    property extends:
-        """A list of interfaces that this interface extends"""
+    property superclasses:
+        """A list of superclasses for this interface"""
         def __get__(self):
-            return [self.get_dependency(i).as_interface() for i in self.node.interface.extends]
+            cdef capnp.SuperclassList classes = self.thisptr.getSuperclasses()
+            return [_InterfaceSchema()._init(classes[i]) for i in range(classes.size())]
 
     property node:
         """The raw schema node"""
@@ -2951,9 +2952,6 @@ cdef class _MessageReader:
         del self.thisptr
     def __init__(self):
         raise NotImplementedError("This is an abstract base class")
-
-    cpdef _get_root_node(self):
-        return _NodeReader().init(self.thisptr.getRootNode())
 
     cpdef get_root(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto structs
