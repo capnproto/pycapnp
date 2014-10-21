@@ -302,9 +302,12 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
 cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef cppclass RpcSystem" ::capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>":
         RpcSystem(RpcSystem&&)
-    enum Side" ::capnp::rpc::twoparty::Side":
-        CLIENT" ::capnp::rpc::twoparty::Side::CLIENT"
-        SERVER" ::capnp::rpc::twoparty::Side::SERVER"
+
+    cdef cppclass Side" ::capnp::rpc::twoparty::Side":
+        pass
+    cdef Side CLIENT" ::capnp::rpc::twoparty::Side::CLIENT"
+    cdef Side SERVER" ::capnp::rpc::twoparty::Side::SERVER"
+
     cdef cppclass TwoPartyVatNetwork:
         TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side)
         VoidPromise onDisconnect()
