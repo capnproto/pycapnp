@@ -214,11 +214,11 @@ cdef class {{node.module_name}}_Reader(_DynamicStructReader):
             return self._get_{{field.name}}()
     {%- endfor %}
 
-    def to_dict(self, verbose=False):
+    def to_dict(self, verbose=False, ordered=False):
         ret = {
         {% for field in node.struct.fields %}
         {% if field.discriminantValue == 65535 %}
-        '{{field.name}}': _to_dict(self.{{field.name}}, verbose),
+        '{{field.name}}': _to_dict(self.{{field.name}}, verbose, ordered),
         {% endif %}
         {%- endfor %}
         }
@@ -246,11 +246,11 @@ cdef class {{node.module_name}}_Builder(_DynamicStructBuilder):
             self._set_{{field.name}}(value)
     {%- endfor %}
 
-    def to_dict(self, verbose=False):
+    def to_dict(self, verbose=False, ordered=False):
         ret = {
         {% for field in node.struct.fields %}
         {% if field.discriminantValue == 65535 %}
-        '{{field.name}}': _to_dict(self.{{field.name}}, verbose),
+        '{{field.name}}': _to_dict(self.{{field.name}}, verbose, ordered),
         {% endif %}
         {%- endfor %}
         }

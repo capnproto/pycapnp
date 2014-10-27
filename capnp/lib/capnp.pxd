@@ -117,7 +117,7 @@ cdef class _DynamicListBuilder:
 
 cdef to_python_reader(C_DynamicValue.Reader self, object parent)
 cdef to_python_builder(C_DynamicValue.Builder self, object parent)
-cdef _to_dict(msg, bint verbose)
+cdef _to_dict(msg, bint verbose, bint ordered)
 cdef _from_list(_DynamicListBuilder msg, list d)
 cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent)
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
