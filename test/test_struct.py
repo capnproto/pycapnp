@@ -188,6 +188,7 @@ def test_to_dict_enum(addressbook):
     assert isstr(field)
     assert field == 'mobile'
 
+
 def test_explicit_field(addressbook):
     person = addressbook.Person.new_message(**{'name': 'Test'})
 
@@ -196,3 +197,18 @@ def test_explicit_field(addressbook):
     assert person.name == person._get_by_field(name_field)
     assert person.name == person.as_reader()._get_by_field(name_field)
 
+
+def test_to_dict_verbose(addressbook):
+    person = addressbook.Person.new_message(**{'name': 'Test'})
+
+    assert person.to_dict(verbose=True)['phones'] == []
+    assert person.to_dict(verbose=True, ordered=True)['phones'] == []
+
+    with pytest.raises(KeyError):
+        assert person.to_dict()['phones'] == []
+
+
+def test_to_dict_ordered(addressbook):
+    person = addressbook.Person.new_message(**{'name': 'Alice', 'phones': [{'type': 'mobile', 'number': '555-1212'}], 'id': 123L, 'employment': {'school': 'MIT'}, 'email': 'alice@example.com'})
+
+    assert list(person.to_dict(ordered=True).keys()) == ['id', 'name', 'email', 'phones', 'employment']
