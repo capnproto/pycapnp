@@ -202,7 +202,9 @@ def test_to_dict_verbose(addressbook):
     person = addressbook.Person.new_message(**{'name': 'Test'})
 
     assert person.to_dict(verbose=True)['phones'] == []
-    assert person.to_dict(verbose=True, ordered=True)['phones'] == []
+
+    if sys.version_info >= (2, 7):
+        assert person.to_dict(verbose=True, ordered=True)['phones'] == []
 
     with pytest.raises(KeyError):
         assert person.to_dict()['phones'] == []
@@ -211,4 +213,8 @@ def test_to_dict_verbose(addressbook):
 def test_to_dict_ordered(addressbook):
     person = addressbook.Person.new_message(**{'name': 'Alice', 'phones': [{'type': 'mobile', 'number': '555-1212'}], 'id': 123L, 'employment': {'school': 'MIT'}, 'email': 'alice@example.com'})
 
-    assert list(person.to_dict(ordered=True).keys()) == ['id', 'name', 'email', 'phones', 'employment']
+    if sys.version_info >= (2, 7):
+        assert list(person.to_dict(ordered=True).keys()) == ['id', 'name', 'email', 'phones', 'employment']
+    else:
+        with pytest.raises(Exception):
+            person.to_dict(ordered=True)
