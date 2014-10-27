@@ -7,7 +7,6 @@
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
-# cython: profile=True
 
 {% macro getter(field, type) -%}
     {% if 'uint' in field['type'] -%}
