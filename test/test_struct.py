@@ -211,7 +211,7 @@ def test_to_dict_verbose(addressbook):
 
 
 def test_to_dict_ordered(addressbook):
-    person = addressbook.Person.new_message(**{'name': 'Alice', 'phones': [{'type': 'mobile', 'number': '555-1212'}], 'id': 123L, 'employment': {'school': 'MIT'}, 'email': 'alice@example.com'})
+    person = addressbook.Person.new_message(**{'name': 'Alice', 'phones': [{'type': 'mobile', 'number': '555-1212'}], 'id': 123, 'employment': {'school': 'MIT'}, 'email': 'alice@example.com'})
 
     if sys.version_info >= (2, 7):
         assert list(person.to_dict(ordered=True).keys()) == ['id', 'name', 'email', 'phones', 'employment']
