@@ -20,7 +20,7 @@ public:
   // ~PyRestorer() {
   //   Py_DECREF(py_restorer);
   // }
-  
+
   capnp::Capability::Client restore(capnp::AnyPointer::Reader objectId) override {
     GILAcquire gil;
     capnp::Capability::Client * ret = call_py_restorer(py_restorer, objectId);
@@ -64,11 +64,13 @@ capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::S
 }
 
 capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client) {
-    capnp::MallocMessageBuilder message;
-    capnp::rpc::SturdyRef::Builder ref = message.getRoot<capnp::rpc::SturdyRef>();
-    auto hostId = ref.getHostId().initAs<capnp::rpc::twoparty::SturdyRefHostId>();
+    capnp::MallocMessageBuilder hostIdMessage(8);
+    auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
-    return client.restore(hostId, ref.getObjectId());
+
+    capnp::MallocMessageBuilder blankMessage(8);
+    auto objectId = blankMessage.getRoot<capnp::AnyPointer>();
+    return client.restore(hostId, objectId);
 }
 
 template <typename SturdyRefHostId, typename ProvisionId,
@@ -77,8 +79,7 @@ capnp::RpcSystem<SturdyRefHostId> makeRpcClientWithRestorer(
     capnp::VatNetwork<SturdyRefHostId, ProvisionId, RecipientId, ThirdPartyCapId, JoinAnswer>& network,
     PyRestorer& restorer) {
     using namespace capnp;
-  return RpcSystem<SturdyRefHostId>(network,
-      kj::Maybe<SturdyRefRestorer<AnyPointer>&>(restorer));
+  return RpcSystem<SturdyRefHostId>(network, restorer);
 }
 
 struct ServerContext {
