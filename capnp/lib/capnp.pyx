@@ -2569,6 +2569,34 @@ cdef class _EnumSchema:
 cdef class ListSchema:
     cdef C_ListSchema thisptr
 
+    def __init__(self, schema=None):
+        cdef _StructSchema ss
+        cdef _EnumSchema es
+        cdef _InterfaceSchema iis
+        cdef ListSchema ls
+
+        if schema is not None:
+            if hasattr(schema, 'schema'):
+                s = schema.schema
+            else:
+                s = schema
+
+            typeSchema = type(s)
+            if typeSchema is _StructSchema:
+                ss = s
+                self.thisptr = capnp.listSchemaOfStruct(ss.thisptr)
+            elif typeSchema is _EnumSchema:
+                es = s
+                self.thisptr = capnp.listSchemaOfEnum(es.thisptr)
+            elif typeSchema is _InterfaceSchema:
+                iis = s
+                self.thisptr = capnp.listSchemaOfInterface(iis.thisptr)
+            elif typeSchema is ListSchema:
+                ls = s
+                self.thisptr = capnp.listSchemaOfList(ls.thisptr)
+            else:
+                raise ValueError("Unknown schema type")
+
     cdef _init(self, C_ListSchema other):
         self.thisptr = other
         return self

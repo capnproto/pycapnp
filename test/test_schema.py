@@ -18,3 +18,7 @@ def test_list_schema(addressbook):
     personType = peopleField.schema.elementType
 
     assert personType.node.id == addressbook.Person.schema.node.id
+
+    personListSchema = capnp.ListSchema(addressbook.Person)
+
+    assert personListSchema.elementType.node.id == addressbook.Person.schema.node.id

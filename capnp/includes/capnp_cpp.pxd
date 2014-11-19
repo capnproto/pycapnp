@@ -217,6 +217,11 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass ListSchema:
         SchemaType getElementType()
 
+    ListSchema listSchemaOfStruct" ::capnp::ListSchema::of"(StructSchema)
+    ListSchema listSchemaOfEnum" ::capnp::ListSchema::of"(EnumSchema)
+    ListSchema listSchemaOfInterface" ::capnp::ListSchema::of"(InterfaceSchema)
+    ListSchema listSchemaOfList" ::capnp::ListSchema::of"(ListSchema)
+
     cdef cppclass ConstSchema:
         pass
 
