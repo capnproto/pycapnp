@@ -2976,6 +2976,7 @@ cdef class SchemaParser:
         abs_path = _os.path.abspath(file_name)
         module.__path__ = _os.path.dirname(abs_path)
         module.__file__ = abs_path
+        module.schema = fileSchema
 
         return module
 
