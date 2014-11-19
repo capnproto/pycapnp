@@ -336,29 +336,10 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         Maybe[StructSchema.Field] which()
         RemotePromise send()
 
-cdef extern from "capnp/any.h" namespace " ::capnp":
-    cdef cppclass AnyPointer:
-        cppclass Reader:
-            DynamicStruct.Reader getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
-            StringPtr getAsText"getAs< ::capnp::Text>"()
-        cppclass Builder:
-            Builder(Builder)
-            DynamicStruct_Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema)
-            StringPtr getAsText"getAs< ::capnp::Text>"()
-            void setAsStruct"setAs< ::capnp::DynamicStruct>"(DynamicStruct.Reader&) except +reraise_kj_exception
-            void setAsText"setAs< ::capnp::Text>"(char*) except +reraise_kj_exception
-
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum:
         uint16_t getRaw()
         Maybe[EnumSchema.Enumerant] getEnumerant()
-
-    cdef cppclass DynamicObject:
-        cppclass Reader:
-            DynamicStruct.Reader as(StructSchema schema)
-        cppclass Builder:
-            DynamicObject.Reader asReader()
-            # DynamicList::Reader as(ListSchema schema) const;
 
     cdef cppclass DynamicList:
         cppclass Reader:
@@ -375,6 +356,28 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicOrphan disown(uint)
             StructSchema getStructElementType'getSchema().getStructElementType'()
 
+cdef extern from "capnp/any.h" namespace " ::capnp":
+    cdef cppclass AnyPointer:
+        cppclass Reader:
+            DynamicStruct.Reader getAs"getAs< ::capnp::DynamicStruct>"(StructSchema) except +reraise_kj_exception
+            DynamicCapability.Client getAsCapability"getAs< ::capnp::DynamicCapability>"(InterfaceSchema) except +reraise_kj_exception
+            DynamicList.Reader getAsList"getAs< ::capnp::DynamicList>"(ListSchema) except +reraise_kj_exception
+            StringPtr getAsText"getAs< ::capnp::Text>"() except +reraise_kj_exception
+        cppclass Builder:
+            Builder(Builder)
+            DynamicStruct_Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema) except +reraise_kj_exception
+            DynamicCapability.Client getAsCapability"getAs< ::capnp::DynamicCapability>"(InterfaceSchema) except +reraise_kj_exception
+            DynamicList.Builder getAsList"getAs< ::capnp::DynamicList>"(ListSchema) except +reraise_kj_exception
+            StringPtr getAsText"getAs< ::capnp::Text>"() except +reraise_kj_exception
+            void setAsStruct"setAs< ::capnp::DynamicStruct>"(DynamicStruct.Reader&) except +reraise_kj_exception
+            void setAsText"setAs< ::capnp::Text>"(char*) except +reraise_kj_exception
+            AnyPointer.Reader asReader() except +reraise_kj_exception
+            void set(AnyPointer.Reader) except +reraise_kj_exception
+            DynamicStruct_Builder initAsStruct"initAs< ::capnp::DynamicStruct>"(StructSchema) except +reraise_kj_exception
+            DynamicList.Builder initAsList"initAs< ::capnp::DynamicList>"(ListSchema, uint) except +reraise_kj_exception
+
+
+cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicValue:
         cppclass Reader:
             Reader()

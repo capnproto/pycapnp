@@ -1491,6 +1491,24 @@ cdef class _DynamicObjectReader:
 
         return _DynamicStructReader()._init(self.thisptr.getAs(s.thisptr), self._parent)
 
+    cpdef as_interface(self, schema) except +reraise_kj_exception:
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicCapabilityClient()._init(self.thisptr.getAsCapability(s.thisptr), self._parent)
+
+    cpdef as_list(self, schema) except +reraise_kj_exception:
+        cdef ListSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicListReader()._init(self.thisptr.getAsList(s.thisptr), self._parent)
+
     cpdef as_text(self) except +reraise_kj_exception:
         return (<char*>self.thisptr.getAsText().cStr())[:]
 
@@ -1515,11 +1533,46 @@ cdef class _DynamicObjectBuilder:
 
         return _DynamicStructBuilder()._init(self.thisptr.getAs(s.thisptr), self._parent)
 
+    cpdef as_interface(self, schema) except +reraise_kj_exception:
+        cdef _InterfaceSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicCapabilityClient()._init(self.thisptr.getAsCapability(s.thisptr), self._parent)
+
+    cpdef as_list(self, schema) except +reraise_kj_exception:
+        cdef ListSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicListBuilder()._init(self.thisptr.getAsList(s.thisptr), self._parent)
+
+    cpdef set(self, other):
+        "Set value of this object with the value of another AnyPointer::Reader. Don't use this for structs"
+        cdef _DynamicObjectReader reader = other
+        self.thisptr.set(reader.thisptr)
+
     cpdef set_as_text(self, text):
         self.thisptr.setAsText(text)
 
+    cpdef init_as_list(self, schema, size):
+        cdef ListSchema s
+        if hasattr(schema, 'schema'):
+            s = schema.schema
+        else:
+            s = schema
+
+        return _DynamicListBuilder()._init(self.thisptr.initAsList(s.thisptr, size), self._parent)
+
     cpdef as_text(self) except +reraise_kj_exception:
         return (<char*>self.thisptr.getAsText().cStr())[:]
+
+    cpdef as_reader(self):
+        return _DynamicObjectReader()._init(self.thisptr.asReader(), self._parent)
 
 cdef class _EventLoop:
     cdef capnp.AsyncIoContext * thisptr
