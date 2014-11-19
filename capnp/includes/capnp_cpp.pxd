@@ -140,10 +140,10 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         cbool isStruct()
         cbool isInterface()
 
-        StructSchema asStruct()
-        EnumSchema asEnum()
-        InterfaceSchema asInterface()
-        # ListSchema asList()
+        StructSchema asStruct() except +reraise_kj_exception
+        EnumSchema asEnum() except +reraise_kj_exception
+        InterfaceSchema asInterface() except +reraise_kj_exception
+        ListSchema asList() except +reraise_kj_exception
 
     cdef cppclass Schema:
         Node.Reader getProto() except +reraise_kj_exception
@@ -213,6 +213,9 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         EnumerantList getEnumerants()
         Enumerant getEnumerantByName(char * name)
         Node.Reader getProto()
+
+    cdef cppclass ListSchema:
+        SchemaType getElementType()
 
     cdef cppclass ConstSchema:
         pass

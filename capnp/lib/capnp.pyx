@@ -2419,6 +2419,19 @@ cdef class _StructSchema:
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
 
+cdef typeAsSchema(capnp.SchemaType fieldType):
+    # TODO(soon): make sure this is memory safe
+    if fieldType.isInterface():
+        return _InterfaceSchema()._init(fieldType.asInterface())
+    elif fieldType.isStruct():
+        return _StructSchema()._init(fieldType.asStruct())
+    elif fieldType.isEnum():
+        return _EnumSchema()._init(fieldType.asEnum())
+    elif fieldType.isList():
+        return ListSchema()._init(fieldType.asList())
+    else:
+        raise ValueError("Schema type is unknown")
+
 cdef class _StructSchemaField:
     cdef _init(self, C_StructSchema.Field other, parent=None):
         self.thisptr = other
@@ -2433,17 +2446,7 @@ cdef class _StructSchemaField:
     property schema:
         """The schema of this field, or None if it's a type without a schema"""
         def __get__(self):
-            cdef capnp.SchemaType fieldType = self.thisptr.getType()
-
-            # TODO(soon): make sure this is memory safe
-            if fieldType.isInterface():
-                return _InterfaceSchema()._init(fieldType.asInterface())
-            elif fieldType.isStruct():
-                return _StructSchema()._init(fieldType.asStruct())
-            elif fieldType.isEnum():
-                return _EnumSchema()._init(fieldType.asEnum())
-            else:
-                return None
+            return typeAsSchema(self.thisptr.getType())
 
     def __repr__(self):
         return '<field schema for %s>' % self.proto.name
@@ -2562,6 +2565,18 @@ cdef class _EnumSchema:
         """The raw schema node"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
+
+cdef class ListSchema:
+    cdef C_ListSchema thisptr
+
+    cdef _init(self, C_ListSchema other):
+        self.thisptr = other
+        return self
+
+    property elementType:
+        """The schema of the element type of this list"""
+        def __get__(self):
+            return typeAsSchema(self.thisptr.getElementType())
 
 cdef class _ParsedSchema(_Schema):
     cdef C_ParsedSchema thisptr_child
