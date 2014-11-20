@@ -2619,6 +2619,86 @@ cdef class _EnumSchema:
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
+cdef class _SchemaType:
+    cdef capnp.SchemaType thisptr
+
+types = _ModuleType('capnp.types')
+cdef _SchemaType _void = _SchemaType()
+_void.thisptr = capnp.SchemaType(capnp.TypeWhichVOID)
+types.Void = _void
+
+cdef _SchemaType _bool = _SchemaType()
+_bool.thisptr = capnp.SchemaType(capnp.TypeWhichBOOL)
+types.Bool = _bool
+
+cdef _SchemaType _int8 = _SchemaType()
+_int8.thisptr = capnp.SchemaType(capnp.TypeWhichINT8)
+types.Int8 = _int8
+
+cdef _SchemaType _int16 = _SchemaType()
+_int16.thisptr = capnp.SchemaType(capnp.TypeWhichINT16)
+types.Int16 = _int16
+
+cdef _SchemaType _int32 = _SchemaType()
+_int32.thisptr = capnp.SchemaType(capnp.TypeWhichINT32)
+types.Int32 = _int32
+
+cdef _SchemaType _int64 = _SchemaType()
+_int64.thisptr = capnp.SchemaType(capnp.TypeWhichINT64)
+types.Int64 = _int64
+
+cdef _SchemaType _uint8 = _SchemaType()
+_uint8.thisptr = capnp.SchemaType(capnp.TypeWhichUINT8)
+types.UInt8 = _uint8
+
+cdef _SchemaType _uint16 = _SchemaType()
+_uint16.thisptr = capnp.SchemaType(capnp.TypeWhichUINT16)
+types.UInt16 = _uint16
+
+cdef _SchemaType _uint32 = _SchemaType()
+_uint32.thisptr = capnp.SchemaType(capnp.TypeWhichUINT32)
+types.UInt32 = _uint32
+
+cdef _SchemaType _uint64 = _SchemaType()
+_uint64.thisptr = capnp.SchemaType(capnp.TypeWhichUINT64)
+types.UInt64 = _uint64
+
+cdef _SchemaType _float32 = _SchemaType()
+_float32.thisptr = capnp.SchemaType(capnp.TypeWhichFLOAT32)
+types.Float32 = _float32
+
+cdef _SchemaType _float64 = _SchemaType()
+_float64.thisptr = capnp.SchemaType(capnp.TypeWhichFLOAT64)
+types.Float64 = _float64
+
+cdef _SchemaType _text = _SchemaType()
+_text.thisptr = capnp.SchemaType(capnp.TypeWhichTEXT)
+types.Text = _text
+
+cdef _SchemaType _data = _SchemaType()
+_data.thisptr = capnp.SchemaType(capnp.TypeWhichDATA)
+types.Data = _data
+
+# cdef _SchemaType _list = _SchemaType()
+# _list.thisptr = capnp.SchemaType(capnp.TypeWhichLIST)
+# types.list = _list
+
+cdef _SchemaType _enum = _SchemaType()
+_enum.thisptr = capnp.SchemaType(capnp.TypeWhichENUM)
+types.Enum = _enum
+
+# cdef _SchemaType _struct = _SchemaType()
+# _struct.thisptr = capnp.SchemaType(capnp.TypeWhichSTRUCT)
+# types.struct = _struct
+
+# cdef _SchemaType _interface = _SchemaType()
+# _interface.thisptr = capnp.SchemaType(capnp.TypeWhichINTERFACE)
+# types.interface = _interface
+
+cdef _SchemaType _any_pointer = _SchemaType()
+_any_pointer.thisptr = capnp.SchemaType(capnp.TypeWhichANY_POINTER)
+types.AnyPointer = _any_pointer
+
 cdef class ListSchema:
     cdef C_ListSchema thisptr
 
@@ -2627,6 +2707,7 @@ cdef class ListSchema:
         cdef _EnumSchema es
         cdef _InterfaceSchema iis
         cdef ListSchema ls
+        cdef _SchemaType st
 
         if schema is not None:
             if hasattr(schema, 'schema'):
@@ -2647,6 +2728,9 @@ cdef class ListSchema:
             elif typeSchema is ListSchema:
                 ls = s
                 self.thisptr = capnp.listSchemaOfList(ls.thisptr)
+            elif typeSchema is _SchemaType:
+                st = s
+                self.thisptr = capnp.listSchemaOfType(st.thisptr)
             else:
                 raise ValueError("Unknown schema type")
 

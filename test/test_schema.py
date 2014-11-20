@@ -44,3 +44,7 @@ def test_annotations(annotations):
     assert annotation_list[0].test == 100
     assert annotation_list[1].test == 101
 
+    annotation = annotations.TestAnnotationFour.schema.node.annotations[0]
+    annotation_list = annotation.value.list.as_list(capnp.ListSchema(capnp.types.UInt16))
+    assert annotation_list[0] == 200
+    assert annotation_list[1] == 201

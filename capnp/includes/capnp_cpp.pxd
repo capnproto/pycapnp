@@ -133,8 +133,32 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
 
     AsyncIoContext setupAsyncIo()
 
+cdef extern from "capnp/schema.capnp.h" namespace " ::capnp":
+    enum TypeWhich" ::capnp::schema::Type::Which":
+        TypeWhichVOID " ::capnp::schema::Type::Which::VOID"
+        TypeWhichBOOL " ::capnp::schema::Type::Which::BOOL"
+        TypeWhichINT8 " ::capnp::schema::Type::Which::INT8"
+        TypeWhichINT16 " ::capnp::schema::Type::Which::INT16"
+        TypeWhichINT32 " ::capnp::schema::Type::Which::INT32"
+        TypeWhichINT64 " ::capnp::schema::Type::Which::INT64"
+        TypeWhichUINT8 " ::capnp::schema::Type::Which::UINT8"
+        TypeWhichUINT16 " ::capnp::schema::Type::Which::UINT16"
+        TypeWhichUINT32 " ::capnp::schema::Type::Which::UINT32"
+        TypeWhichUINT64 " ::capnp::schema::Type::Which::UINT64"
+        TypeWhichFLOAT32 " ::capnp::schema::Type::Which::FLOAT32"
+        TypeWhichFLOAT64 " ::capnp::schema::Type::Which::FLOAT64"
+        TypeWhichTEXT " ::capnp::schema::Type::Which::TEXT"
+        TypeWhichDATA " ::capnp::schema::Type::Which::DATA"
+        TypeWhichLIST " ::capnp::schema::Type::Which::LIST"
+        TypeWhichENUM " ::capnp::schema::Type::Which::ENUM"
+        TypeWhichSTRUCT " ::capnp::schema::Type::Which::STRUCT"
+        TypeWhichINTERFACE " ::capnp::schema::Type::Which::INTERFACE"
+        TypeWhichANY_POINTER " ::capnp::schema::Type::Which::ANY_POINTER"
+
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass SchemaType" ::capnp::Type":
+        SchemaType()
+        SchemaType(TypeWhich)
         cbool isList()
         cbool isEnum()
         cbool isStruct()
@@ -221,6 +245,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
     ListSchema listSchemaOfEnum" ::capnp::ListSchema::of"(EnumSchema)
     ListSchema listSchemaOfInterface" ::capnp::ListSchema::of"(InterfaceSchema)
     ListSchema listSchemaOfList" ::capnp::ListSchema::of"(ListSchema)
+    ListSchema listSchemaOfType" ::capnp::ListSchema::of"(SchemaType)
 
     cdef cppclass ConstSchema:
         pass
