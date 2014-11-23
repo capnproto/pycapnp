@@ -916,7 +916,7 @@ cdef class _DynamicStructReader:
         return _to_dict(self, verbose)
 
     cpdef as_builder(self, num_first_segment_words=None):
-        """A method for casting this Builder to a Reader
+        """A method for casting this Reader to a Builder
 
         This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
 
