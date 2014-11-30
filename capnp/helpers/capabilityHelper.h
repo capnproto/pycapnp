@@ -83,7 +83,7 @@ void check_py_error() {
         PyObject * ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
         if(ptype == NULL || pvalue == NULL || ptraceback == NULL)
-          throw kj::Exception(kj::Exception::Nature::OTHER, kj::Exception::Durability::PERMANENT, kj::heapString("capabilityHelper.h"), 44, kj::heapString("Unknown error occurred"));
+          throw kj::Exception(kj::Exception::Type::FAILED, kj::heapString("capabilityHelper.h"), 44, kj::heapString("Unknown error occurred"));
 
         PyObject * info = get_exception_info(ptype, pvalue, ptraceback);
 
@@ -102,7 +102,7 @@ void check_py_error() {
         Py_DECREF(info);
         PyErr_Clear();
 
-        throw kj::Exception(kj::Exception::Nature::OTHER, kj::Exception::Durability::PERMANENT, kj::mv(filename), line, kj::mv(description));
+        throw kj::Exception(kj::Exception::Type::FAILED, kj::mv(filename), line, kj::mv(description));
     }
 }
 
@@ -163,7 +163,7 @@ kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::D
   if(error_func == Py_None)
     return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); } );
   else
-    return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); } 
+    return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); }
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
@@ -171,7 +171,7 @@ kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::D
   if(error_func == Py_None)
     return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return wrapRemoteCall(func, arg); } );
   else
-    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return  wrapRemoteCall(func, arg); } 
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return  wrapRemoteCall(func, arg); }
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
@@ -179,7 +179,7 @@ kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::D
   if(error_func == Py_None)
     return promise.then([func]() { return wrapPyFuncNoArg(func); } );
   else
-    return promise.then([func]() { return wrapPyFuncNoArg(func); } 
+    return promise.then([func]() { return wrapPyFuncNoArg(func); }
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 

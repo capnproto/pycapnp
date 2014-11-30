@@ -37,9 +37,9 @@ def test_which_builder(addressbook):
     assert bob.employment.which == addressbook.Person.Employment.unemployed
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
 
 
@@ -71,9 +71,9 @@ def test_which_reader(addressbook):
     bob = people[1]
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
 
 

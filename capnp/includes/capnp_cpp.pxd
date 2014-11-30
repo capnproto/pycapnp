@@ -39,8 +39,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
         Exception(Exception)
         char* getFile()
         int getLine()
-        int getNature()
-        int getDurability()
+        int getType()
         StringPtr getDescription()
 
 cdef extern from "kj/memory.h" namespace " ::kj":

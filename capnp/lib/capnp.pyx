@@ -104,7 +104,7 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
                 ret = (ret,)
             names = _find_field_order(context.results.schema.node.struct)
             if len(ret) > len(names):
-                raise ValueError('Too many values returned from `%s`. Expected %d and got %d' % (method_name, len(names), len(ret)))
+                raise KjException('Too many values returned from `%s`. Expected %d and got %d' % (method_name, len(names), len(ret)))
 
             results = context.results
             for arg_name, arg_val in zip(names, ret):
@@ -160,16 +160,12 @@ def _make_enum(enum_name, *sequential, **named):
     enums['reverse_mapping'] = reverse
     return type(enum_name, (), enums)
 
-_Nature = _make_enum('_Nature',
-                    PRECONDITION = 0,
-                    LOCAL_BUG = 1,
-                    OS_ERROR = 2,
-                    NETWORK_FAILURE = 3,
+_Type = _make_enum('_Type',
+                    FAILED = 0,
+                    OVERLOADED = 1,
+                    DISCONNECTED = 2,
+                    UNIMPLEMENTED = 3,
                     OTHER = 4)
-_Durability = _make_enum('_Durability',
-                    PERMANENT = 0,
-                    TEMPORARY = 1,
-                    OVERLOADED = 2)
 
 cdef class _KjExceptionWrapper:
     cdef capnp.Exception * thisptr
@@ -187,14 +183,10 @@ cdef class _KjExceptionWrapper:
     property line:
         def __get__(self):
             return self.thisptr.getLine()
-    property nature:
+    property type:
         def __get__(self):
-            cdef int temp = <int>self.thisptr.getNature()
-            return _Nature.reverse_mapping[temp]
-    property durability:
-        def __get__(self):
-            cdef int temp = <int>self.thisptr.getDurability()
-            return _Durability.reverse_mapping[temp]
+            cdef int temp = <int>self.thisptr.getType()
+            return _Type.reverse_mapping[temp]
     property description:
         def __get__(self):
             return <char*>self.thisptr.getDescription().cStr()
@@ -205,10 +197,9 @@ cdef class _KjExceptionWrapper:
 # Extension classes can't inherit from Exception, so we're going to proxy wrap kj::Exception, and forward all calls to it from this Python class
 class KjException(Exception):
 
-    '''KjException is a wrapper of the internal C++ exception type. There are 2 enums, `Nature` and `Durability`, listed below, and a bunch of fields'''
+    '''KjException is a wrapper of the internal C++ exception type. There is an enum named `Type` listed below, and a bunch of fields'''
 
-    Nature = _make_enum('Nature', **{x : x for x in _Nature.reverse_mapping.values()})
-    Durability = _make_enum('Durability', **{x : x for x in _Durability.reverse_mapping.values()})
+    Type = _make_enum('Type', **{x : x for x in _Type.reverse_mapping.values()})
 
     def __init__(self, message=None, nature=None, durability=None, wrapper=None):
         if wrapper is not None:
@@ -226,17 +217,11 @@ class KjException(Exception):
     def line(self):
         return self.wrapper.line
     @property
-    def nature(self):
+    def type(self):
         if self.wrapper is not None:
-            return self.wrapper.nature
+            return self.wrapper.type
         else:
-            return self.nature
-    @property
-    def durability(self):
-        if self.wrapper is not None:
-            return self.wrapper.durability
-        else:
-            return self.durability
+            return self.type
     @property
     def description(self):
         if self.wrapper is not None:
@@ -247,6 +232,13 @@ class KjException(Exception):
     def __str__(self):
         return self.message
 
+    def _to_python(self):
+        message = self.message
+        if self.wrapper.type == 'FAILED':
+            if 'has no such' in self.message:
+                return AttributeError(message)
+        return self
+
 cdef public object wrap_kj_exception(capnp.Exception & exception) with gil:
     PyErr_Clear()
     wrapper = _KjExceptionWrapper()._init(exception)
@@ -256,22 +248,6 @@ cdef public object wrap_kj_exception(capnp.Exception & exception) with gil:
 
 cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil:
     wrapper = _KjExceptionWrapper()._init(exception)
-    wrapper_msg = str(wrapper)
-
-    nature = wrapper.nature
-
-    if wrapper.nature == 'PRECONDITION':
-        if 'has no such' in wrapper_msg:
-            return AttributeError(wrapper_msg)
-        else:
-            return ValueError(wrapper_msg)
-    # elif wrapper.nature == 'LOCAL_BUG':
-    #     return ValueError(str(wrapper))
-    if wrapper.nature == 'OS_ERROR':
-        return OSError(wrapper_msg)
-    if wrapper.nature == 'NETWORK_FAILURE':
-        return IOError(wrapper_msg)
-
 
     ret = KjException(wrapper=wrapper)
     return ret
@@ -587,9 +563,9 @@ cdef class _List_NestedNode_Reader:
 #     # elif type == capnp.TYPE_STRUCT:
 #     #     return _DynamicStructReader()._init(self.asStruct(), parent)
 #     elif type == capnp.TYPE_UNKNOWN:
-#         raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+#         raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
 #     else:
-#         raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+#         raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
 cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     cdef int type = self.getType()
@@ -620,9 +596,9 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     elif type == capnp.TYPE_CAPABILITY:
         return _DynamicCapabilityClient()._init(self.asCapability(), parent)
     elif type == capnp.TYPE_UNKNOWN:
-        raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+        raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
-        raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+        raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
 cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     cdef int type = self.getType()
@@ -653,9 +629,9 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_CAPABILITY:
         return _DynamicCapabilityClient()._init(self.asCapability(), parent)
     elif type == capnp.TYPE_UNKNOWN:
-        raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+        raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
-        raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+        raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
 cdef C_DynamicValue.Reader _extract_dynamic_struct_builder(_DynamicStructBuilder value):
     return C_DynamicValue.Reader(value.thisptr.asReader())
@@ -739,7 +715,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
     else:
-        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
 cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -781,7 +757,7 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
     elif value_type is _DynamicEnum:
         thisptr.setByField(field.thisptr, _extract_dynamic_enum(value))
     else:
-        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -823,7 +799,7 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
     else:
-        raise ValueError("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
 cdef _DynamicListBuilder temp_list_b
 cdef _DynamicListReader temp_list_r
@@ -851,7 +827,7 @@ cdef _to_dict(msg, bint verbose, bint ordered):
         try:
             which = temp_msg_b.which()
             ret[which] = _to_dict(temp_msg_b._get(which), verbose, ordered)
-        except ValueError:
+        except KjException:
             pass
 
         for field in temp_msg_b.schema.non_union_fields:
@@ -868,7 +844,7 @@ cdef _to_dict(msg, bint verbose, bint ordered):
         try:
             which = temp_msg_r.which()
             ret[which] = _to_dict(temp_msg_r._get(which), verbose, ordered)
-        except ValueError:
+        except KjException:
             pass
 
         for field in temp_msg_r.schema.non_union_fields:
@@ -1010,7 +986,10 @@ cdef class _DynamicStructReader:
         return to_python_reader(self.thisptr.get(field), self._parent)
 
     def __getattr__(self, field):
-        return self._get(field)
+        try:
+            return self._get(field)
+        except KjException as e:
+            raise e._to_python()
 
     cpdef _get_by_field(self, _StructSchemaField field):
         return to_python_reader(self.thisptr.getByField(field.thisptr), self._parent)
@@ -1025,7 +1004,7 @@ cdef class _DynamicStructReader:
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
         except:
-            raise ValueError("Attempted to call which on a non-union type")
+            raise KjException("Attempted to call which on a non-union type")
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1033,12 +1012,12 @@ cdef class _DynamicStructReader:
         :rtype: :class:`_DynamicEnumField`
         :return: A string/enum corresponding to what field is set in the union
 
-        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        :Raises: :exc:`KjException` if this struct doesn't contain a union
         """
         try:
             which = _DynamicEnumField()._init(_StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
         except:
-            raise ValueError("Attempted to call which on a non-union type")
+            raise KjException("Attempted to call which on a non-union type")
 
         return which
 
@@ -1048,7 +1027,7 @@ cdef class _DynamicStructReader:
         :rtype: :class:`_DynamicEnumField`
         :return: A string/enum corresponding to what field is set in the union
 
-        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        :Raises: :exc:`KjException` if this struct doesn't contain a union
         """
         def __get__(_DynamicStructReader self):
             return self._which()
@@ -1122,7 +1101,7 @@ cdef class _DynamicStructBuilder:
 
     cdef _check_write(self):
         if not self.is_root:
-            raise ValueError("You can only call write() on the message's root struct.")
+            raise KjException("You can only call write() on the message's root struct.")
         if self._is_written:
             _warnings.warn("This message has already been written once. Be very careful that you're not setting Text/Struct/List fields more than once, since that will cause memory leaks (both in memory and in the serialized data). You can disable this warning by setting the `_is_written` field of this object to False after every write.")
 
@@ -1137,7 +1116,7 @@ cdef class _DynamicStructBuilder:
 
         :rtype: void
 
-        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        :Raises: :exc:`KjException` if this isn't the message's root struct.
         """
         self._check_write()
         _write_message_to_fd(file.fileno(), self._parent)
@@ -1154,7 +1133,7 @@ cdef class _DynamicStructBuilder:
 
         :rtype: void
 
-        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        :Raises: :exc:`KjException` if this isn't the message's root struct.
         """
         self._check_write()
         _write_packed_message_to_fd(file.fileno(), self._parent)
@@ -1167,7 +1146,7 @@ cdef class _DynamicStructBuilder:
 
         :rtype: bytes
 
-        :Raises: :exc:`exceptions.ValueError` if this isn't the message's root struct.
+        :Raises: :exc:`KjException` if this isn't the message's root struct.
         """
         self._check_write()
         cdef _MessageBuilder builder = self._parent
@@ -1207,7 +1186,10 @@ cdef class _DynamicStructBuilder:
         return to_python_builder(self.thisptr.getByField(field.thisptr), self._parent)
 
     def __getattr__(self, field):
-        return self._get(field)
+        try:
+            return self._get(field)
+        except KjException as e:
+            raise e._to_python()
 
     cpdef _set(self, field, value):
         _setDynamicField(self.thisptr, field, value, self._parent)
@@ -1216,7 +1198,10 @@ cdef class _DynamicStructBuilder:
         _setDynamicFieldWithField(self.thisptr, field, value, self._parent)
 
     def __setattr__(self, field, value):
-        self._set(field, value)
+        try:
+            self._set(field, value)
+        except KjException as e:
+            raise e._to_python()
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
@@ -1237,7 +1222,7 @@ cdef class _DynamicStructBuilder:
 
         :rtype: :class:`_DynamicStructBuilder` or :class:`_DynamicListBuilder`
 
-        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
+        :Raises: :exc:`KjException` if the field isn't in this struct
         """
         if size is None:
             return to_python_builder(self.thisptr.init(field), self._parent)
@@ -1257,7 +1242,7 @@ cdef class _DynamicStructBuilder:
 
         :rtype: :class:`_DynamicStructBuilder` or :class:`_DynamicListBuilder`
 
-        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
+        :Raises: :exc:`KjException` if the field isn't in this struct
         """
         if size is None:
             return to_python_builder(self.thisptr.initByField(field.thisptr), self._parent)
@@ -1276,7 +1261,7 @@ cdef class _DynamicStructBuilder:
 
         :rtype: :class:`_DynamicResizableListBuilder`
 
-        :Raises: :exc:`exceptions.ValueError` if the field isn't in this struct
+        :Raises: :exc:`KjException` if the field isn't in this struct
         """
         return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
@@ -1284,7 +1269,7 @@ cdef class _DynamicStructBuilder:
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
         except:
-            raise ValueError("Attempted to call which on a non-union type")
+            raise KjException("Attempted to call which on a non-union type")
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1292,12 +1277,12 @@ cdef class _DynamicStructBuilder:
         :rtype: :class:`_DynamicEnumField`
         :return: A string/enum corresponding to what field is set in the union
 
-        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        :Raises: :exc:`KjException` if this struct doesn't contain a union
         """
         try:
             which = _DynamicEnumField()._init(_StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
         except:
-            raise ValueError("Attempted to call which on a non-union type")
+            raise KjException("Attempted to call which on a non-union type")
 
         return which
 
@@ -1307,7 +1292,7 @@ cdef class _DynamicStructBuilder:
         :rtype: :class:`_DynamicEnumField`
         :return: A string/enum corresponding to what field is set in the union
 
-        :Raises: :exc:`exceptions.ValueError` if this struct doesn't contain a union
+        :Raises: :exc:`KjException` if this struct doesn't contain a union
         """
         def __get__(_DynamicStructBuilder self):
             return self._which()
@@ -1427,12 +1412,15 @@ cdef class _DynamicStructPipeline:
         elif type == capnp.TYPE_STRUCT:
             return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
-            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+            raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
-            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+            raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
     def __getattr__(self, field):
-        return self._get(field)
+        try:
+            return self._get(field)
+        except KjException as e:
+            raise e._to_python()
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -1610,7 +1598,7 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
             _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
             return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
-    raise RuntimeError("You don't have any EventLoops running. Please make sure to add one")
+    raise KjException("You don't have any EventLoops running. Please make sure to add one")
 
 cdef class _Timer:
     cdef capnp.Timer * thisptr
@@ -1731,7 +1719,7 @@ cdef class Promise:
 
     cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         ret = <object>helpers.waitPyPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
         Py_DECREF(ret)
@@ -1742,7 +1730,7 @@ cdef class Promise:
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         argspec = None
         try:
@@ -1753,14 +1741,14 @@ cdef class Promise:
             args_length = len(argspec.args) if argspec.args else 0
             defaults_length = len(argspec.defaults) if argspec.defaults else 0
             if args_length - defaults_length != 1:
-                raise ValueError('Function passed to `then` call must take exactly one argument')
+                raise KjException('Function passed to `then` call must take exactly one argument')
 
         cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
         return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     def attach(self, *args):
         if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         ret = Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
         self.is_consumed = True
@@ -1797,7 +1785,7 @@ cdef class _VoidPromise:
 
     cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         helpers.waitVoidPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
 
@@ -1805,7 +1793,7 @@ cdef class _VoidPromise:
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         argspec = None
         try:
@@ -1816,19 +1804,19 @@ cdef class _VoidPromise:
             args_length = len(argspec.args) if argspec.args else 0
             defaults_length = len(argspec.defaults) if argspec.defaults else 0
             if args_length - defaults_length != 0:
-                raise ValueError('Function passed to `then` call must take no arguments')
+                raise KjException('Function passed to `then` call must take no arguments')
 
         cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
         return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
         return Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     def attach(self, *args):
         if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         ret = _VoidPromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
         self.is_consumed = True
@@ -1864,7 +1852,7 @@ cdef class _RemotePromise:
 
     cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         ret = _Response()._init_childptr(helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
         self.is_consumed = True
@@ -1873,12 +1861,12 @@ cdef class _RemotePromise:
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
         return Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise RuntimeError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         argspec = None
         try:
@@ -1889,7 +1877,7 @@ cdef class _RemotePromise:
             args_length = len(argspec.args) if argspec.args else 0
             defaults_length = len(argspec.defaults) if argspec.defaults else 0
             if args_length - defaults_length != 1:
-                raise ValueError('Function passed to `then` call must take exactly one argument')
+                raise KjException('Function passed to `then` call must take exactly one argument')
 
         Py_INCREF(func)
         Py_INCREF(error_func)
@@ -1904,12 +1892,15 @@ cdef class _RemotePromise:
         elif type == capnp.TYPE_STRUCT:
             return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
-            raise ValueError("Cannot convert type to Python. Type is unknown by capnproto library")
+            raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
-            raise ValueError("Cannot convert type to Python. Type is unhandled by capnproto library")
+            raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
     def __getattr__(self, field):
-        return self._get(field)
+        try:
+            return self._get(field)
+        except KjException as e:
+            raise e._to_python()
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -1932,7 +1923,7 @@ cdef class _RemotePromise:
 
     # def attach(self, *args):
     #     if self.is_consumed:
-    #         raise ValueError('Promise was already used in a consuming operation. You can no longer use this Promise object')
+    #         raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
     #     ret = _RemotePromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
     #     self.is_consumed = True
@@ -1953,7 +1944,7 @@ cpdef join_promises(promises) except +reraise_kj_exception:
             pyPromise = <Promise>promise.as_pypromise()
             new_promises_append(pyPromise)
         else:
-            raise ValueError('One of the promises passed to `join_promises` had a non promise value of: ' + str(promise))
+            raise KjException('One of the promises passed to `join_promises` had a non promise value of: ' + str(promise))
         heap.add(movePromise(deref(pyPromise.thisptr)))
         pyPromise.is_consumed = True
 
@@ -1974,7 +1965,7 @@ cdef class _Request(_DynamicStructBuilder):
 
     cpdef send(self):
         if self.is_consumed:
-            raise ValueError('Request has already been sent. You can only send a request once.')
+            raise KjException('Request has already been sent. You can only send a request once.')
         self.is_consumed = True
         return _RemotePromise()._init(self.thisptr_child.send(), self._parent)
 
@@ -2009,7 +2000,10 @@ cdef class _DynamicCapabilityServer:
         self.server = server
 
     def __getattr__(self, field):
-        return getattr(self.server, field)
+        try:
+            return getattr(self.server, field)
+        except KjException as e:
+            raise e._to_python()
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
@@ -2039,7 +2033,7 @@ cdef class _DynamicCapabilityClient:
 
         params = meth.param_type.node
         if params.scopeId != 0:
-            raise ValueError("Cannot call method `%s` with positional args, since its param struct is not implicitly defined and thus does not have a set order of arguments" % method_name)
+            raise KjException("Cannot call method `%s` with positional args, since its param struct is not implicitly defined and thus does not have a set order of arguments" % method_name)
 
         return _find_field_order(params.struct)
 
@@ -2047,7 +2041,7 @@ cdef class _DynamicCapabilityClient:
         if args is not None:
             arg_names = self._find_method_args(name)
             if len(args) > len(arg_names):
-                raise ValueError('Too many arguments passed to `%s`. Expected %d and got %d' % (name, len(arg_names), len(args)))
+                raise KjException('Too many arguments passed to `%s`. Expected %d and got %d' % (name, len(arg_names), len(args)))
             for arg_name, arg_val in zip(arg_names, args):
                 _setDynamicField(<DynamicStruct_Builder>deref(request), arg_name, arg_val, self)
 
@@ -2080,15 +2074,18 @@ cdef class _DynamicCapabilityClient:
         return self._send_helper(name, word_count, args, kwargs)
 
     def __getattr__(self, name):
-        if name.endswith('_request'):
-            short_name = name[:-8]
-            if short_name not in self.schema.method_names_inherited:
-                raise AttributeError('Method named %s not found' % short_name)
-            return _partial(self._request, short_name)
+        try:
+            if name.endswith('_request'):
+                short_name = name[:-8]
+                if short_name not in self.schema.method_names_inherited:
+                    raise AttributeError('Method named %s not found' % short_name)
+                return _partial(self._request, short_name)
 
-        if name not in self.schema.method_names_inherited:
-            raise AttributeError('Method named %s not found' % name)
-        return _partial(self._send, name)
+            if name not in self.schema.method_names_inherited:
+                raise AttributeError('Method named %s not found' % name)
+            return _partial(self._send, name)
+        except KjException as e:
+            raise e._to_python()
 
     cpdef upcast(self, schema) except +reraise_kj_exception:
         cdef _InterfaceSchema s
@@ -2174,7 +2171,7 @@ cdef _Restorer _convert_restorer(restorer):
     elif callable(restorer):
         return _Restorer(restorer)
     else:
-        raise ValueError("Restorer object ({}) isn't able to be used as a restore".format(str(restorer)))
+        raise KjException("Restorer object ({}) isn't able to be used as a restore".format(str(restorer)))
 
 cdef class TwoPartyClient:
     cdef RpcSystem * thisptr
@@ -2231,9 +2228,9 @@ cdef class TwoPartyClient:
             return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), object_reader.thisptr), self)
         else:
             if not hasattr(objectId, 'is_root'):
-                raise ValueError("objectId was not a valid Cap'n Proto struct")
+                raise KjException("objectId was not a valid Cap'n Proto struct")
             if not objectId.is_root:
-                raise ValueError("objectId must be the root of a Cap'n Proto message, ie. addressbook_capnp.Person.new_message()")
+                raise KjException("objectId must be the root of a Cap'n Proto message, ie. addressbook_capnp.Person.new_message()")
 
             try:
                 builder = objectId._parent
@@ -2245,7 +2242,7 @@ cdef class TwoPartyClient:
             elif reader is not None:
                 return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
             else:
-                raise ValueError("objectId unexpectedly was not convertible to the proper type")
+                raise KjException("objectId unexpectedly was not convertible to the proper type")
 
     cpdef ez_restore(self, textId) except +reraise_kj_exception:
         # ez-rpc from the C++ API uses Text under the hood
@@ -2308,7 +2305,7 @@ cdef class TwoPartyServer:
 
     cpdef run_forever(self):
         if self.port_promise is None:
-            raise ValueError("You must pass a string as the socket parameter in __init__ to use this function")
+            raise KjException("You must pass a string as the socket parameter in __init__ to use this function")
 
         wait_forever()
 
@@ -2483,7 +2480,7 @@ cdef typeAsSchema(capnp.SchemaType fieldType):
     elif fieldType.isList():
         return ListSchema()._init(fieldType.asList())
     else:
-        raise ValueError("Schema type is unknown")
+        raise KjException("Schema type is unknown")
 
 cdef class _StructSchemaField:
     cdef _init(self, C_StructSchema.Field other, parent=None):
@@ -2732,7 +2729,7 @@ cdef class ListSchema:
                 st = s
                 self.thisptr = capnp.listSchemaOfType(st.thisptr)
             else:
-                raise ValueError("Unknown schema type")
+                raise KjException("Unknown schema type")
 
     cdef _init(self, C_ListSchema other):
         self.thisptr = other
@@ -2995,7 +2992,7 @@ cdef class SchemaParser:
 
         :Raises:
             - :exc:`exceptions.IOError` if `file_name` doesn't exist
-            - :exc:`exceptions.RuntimeError` if the Cap'n Proto C++ library has any problems loading the schema
+            - :exc:`KjException` if the Cap'n Proto C++ library has any problems loading the schema
 
         """
         def _load(nodeSchema, module):
@@ -3388,7 +3385,7 @@ cdef class _MultipleMessageReader:
         try:
             reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
             return reader.get_root(self.schema)
-        except ValueError as e:
+        except KjException as e:
             if 'EOF' in str(e):
                 raise StopIteration
             else:
@@ -3419,7 +3416,7 @@ cdef class _MultiplePackedMessageReader:
         try:
             reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
             return reader.get_root(self.schema)
-        except ValueError as e:
+        except KjException as e:
             if 'EOF' in str(e):
                 raise StopIteration
             else:
@@ -3443,7 +3440,7 @@ cdef class _FlatArrayMessageReader(_MessageReader):
         cdef Py_ssize_t sz
         PyObject_AsReadBuffer(buf, &ptr, &sz)
         if sz % 8 != 0:
-            raise ValueError("input length must be a multiple of eight bytes")
+            raise KjException("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
 
         self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
@@ -3456,7 +3453,7 @@ cdef class _FlatMessageBuilder(_MessageBuilder):
         cdef Py_ssize_t sz
         PyObject_AsWriteBuffer(buf, &ptr, &sz)
         if sz % 8 != 0:
-            raise ValueError("input length must be a multiple of eight bytes")
+            raise KjException("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
         self.thisptr = new schema_cpp.FlatMessageBuilder(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
 
@@ -3555,7 +3552,7 @@ def load(file_name, display_name=None, imports=[]):
     :return: A module corresponding to the loaded schema. You can access
         parsed schemas and constants with . syntax
 
-    :Raises: :exc:`exceptions.ValueError` if `file_name` doesn't exist
+    :Raises: :exc:`KjException` if `file_name` doesn't exist
 
     """
     global _global_schema_parser

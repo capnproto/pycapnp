@@ -52,7 +52,7 @@ def test_failed_import():
 
     foo.name = 'foo'
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         bar.foo = foo
 
 def test_defualt_import_hook():
