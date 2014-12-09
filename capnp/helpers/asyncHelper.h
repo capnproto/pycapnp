@@ -10,12 +10,12 @@ public:
     // We don't need to incref/decref, since this C++ class will be owned by the Python wrapper class, and we'll make sure the python class doesn't refcount to 0 elsewhere.
     // Py_INCREF(py_event_port);
   }
-  virtual void wait() {
+  virtual bool wait() {
     GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("wait"), NULL);
   }
 
-  virtual void poll() {
+  virtual bool poll() {
     GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("poll"), NULL);
   }
