@@ -1,7 +1,7 @@
 # capnp.pyx
 # distutils: language = c++
 # distutils: extra_compile_args = --std=c++11
-# distutils: libraries = capnpc capnp capnp-rpc
+# distutils: libraries = capnpc capnp-rpc capnp kj-async kj
 # cython: c_string_type = str
 # cython: c_string_encoding = default
 # cython: embedsignature = True
