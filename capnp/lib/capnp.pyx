@@ -25,6 +25,8 @@ from operator import attrgetter as _attrgetter
 import threading as _threading
 import socket as _socket
 import random as _random
+from libc.stdlib cimport malloc, free
+from libc.string cimport memcpy
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -2837,21 +2839,45 @@ cdef class _MultiplePackedMessageReader:
         return self
 
 @cython.internal
+cdef class _AlignedBuffer:
+    cdef char * buf
+    cdef bint allocated
+
+    # other should also have a length that's a multiple of 8
+    def __init__(self, other):
+        cdef char * other_buf = other
+        other_len = len(other)
+
+        # malloc is defined as being word aligned
+        # we don't care about adding NULL terminating character
+        self.buf = <char *>malloc(other_len)
+        memcpy(self.buf, other_buf, other_len)
+        self.allocated = True
+
+    def __dealloc__(self):
+        if self.allocated:
+            free(self.buf)
+
+@cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
     cdef object _object_to_pin
     def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts
+        cdef _AlignedBuffer aligned
 
         if traversal_limit_in_words is not None:
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
 
-        cdef const void *ptr
-        cdef Py_ssize_t sz
-        PyObject_AsReadBuffer(buf, &ptr, &sz)
+        sz = len(buf)
         if sz % 8 != 0:
             raise ValueError("input length must be a multiple of eight bytes")
+
+        cdef char * ptr = buf
+        if (<uintptr_t>ptr) % 8 != 0:
+            aligned = _AlignedBuffer(buf)
+            ptr = aligned.buf
         self._object_to_pin = buf
 
         self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
