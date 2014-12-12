@@ -120,6 +120,8 @@ def detect_version(basedir, compiler=None, **compiler_attrs):
         cc = ccompiler.new_compiler(compiler=compiler)
         cc.output_dir = basedir
         if not cc.has_function('timer_create'):
+            if 'libraries' not in compiler_attrs:
+                compiler_attrs['libraries'] = []
             compiler_attrs['libraries'].append('rt')
 
     cc = get_compiler(compiler=compiler, **compiler_attrs)
