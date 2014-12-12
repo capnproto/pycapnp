@@ -14,6 +14,7 @@ if setuptools_version < '0.8':
     raise RuntimeError('Old setuptools installed (%s). Please run `pip install -U setuptools`. Running `pip install pycapnp` will not work alone, since setuptools needs to be upgraded before installing anything else.' % setuptools_version)
 
 from distutils.core import setup
+from distutils.extension import Extension
 import os
 
 MAJOR = 0
@@ -60,12 +61,60 @@ class clean(_clean):
             except OSError:
                 pass
 
+include_path = []
+
+BUNDLED_CAPNP_VERSION = (0, 4, 1)
+CAPNP_PATH = 'capnproto-c++-%i.%i.%i' % BUNDLED_CAPNP_VERSION
+CAPNP_ARCHIVE = CAPNP_PATH + '.tar.gz'
+CAPNP_URL = 'https://capnproto.org/%s' % CAPNP_ARCHIVE
+# Absolute path to installation
+CAPNP_INSTALL_PATH = os.path.join(os.getcwd(), CAPNP_PATH, 'build')
+CAPNP_INCLUDE_PATH = os.path.join(CAPNP_INSTALL_PATH, 'include')
+
+# Check if Cap'n Proto is installed. Currently this checks if the `capnp`
+# command-line tool is available.
+# TODO: Attempt to build a simple program that links to the Cap'n Proto
+# libraries to ensure they are present.
+import os
+import shutil
+import subprocess
+import tarfile
+import urllib
+if os.system('capnp id') != 0:
+    # Cap'n Proto not installed, let's fetch and install
+    print 'Cap\'n Proto not installed, downloading... ',
+    urllib.urlretrieve(CAPNP_URL, CAPNP_ARCHIVE)
+    print 'done.'
+    print 'Extracting... ',
+    tarfile.open(CAPNP_ARCHIVE).extractall()
+    print 'done.'
+    print 'Compiling... ',
+    os.chdir(CAPNP_PATH)
+    ret = subprocess.call(
+        './configure --disable-shared --prefix=%s && make check && make install' %
+            CAPNP_INSTALL_PATH,
+        shell=True)
+    os.chdir('..')
+    os.remove(CAPNP_ARCHIVE)
+    if ret == 0:
+        print 'done.'
+    else:
+        print 'error. Cleaning up.'
+        shutil.rmtree(CAPNP_PATH)
+        raise RuntimeError('Error compiling Cap\'n Proto')
+    # Now put the compiled libraries on the include path
+    include_path.append(CAPNP_INCLUDE_PATH)
+
+extensions = [
+    Extension('*', ['capnp/lib/*.pyx'], include_dirs=include_path, library_dirs=include_path)
+]
+
 setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx']},
-    ext_modules=cythonize('capnp/lib/*.pyx'),
+    ext_modules=cythonize(extensions),
     cmdclass = {
         'clean': clean
     },
@@ -98,3 +147,5 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Communications'],
 )
+
+shutil.rmtree(CAPNP_PATH)
