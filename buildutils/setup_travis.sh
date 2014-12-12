@@ -9,6 +9,5 @@ sudo update-alternatives --quiet --install /usr/bin/gcc  gcc  /usr/bin/gcc-4.8  
 sudo update-alternatives --quiet --set gcc /usr/bin/gcc-4.8
 
 if ! [ -z "${BUILD_CAPNP}" ]; then
-  sudo apt-get install autoconf automake libtool autotools-dev
-  wget https://github.com/kentonv/capnproto/archive/master.zip && unzip master.zip && cd capnproto-master/c++ && ./setup-autotools.sh && autoreconf -i && ./configure && make -j6 check && sudo make install && sudo ldconfig && cd ../..
+  wget https://capnproto.org/capnproto-c++-0.4.1.tar.gz && tar xzvf capnproto-c++-0.4.1.tar.gz && cd capnproto-c++-0.4.1 && ./configure && make -j6 check && sudo make install && sudo ldconfig && cd ..
 fi
