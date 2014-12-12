@@ -17,6 +17,7 @@ if setuptools_version < '0.8':
 
 from distutils.core import setup
 import os
+import sys
 from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
 from distutils.errors import CompileError
 from distutils.extension import Extension
@@ -70,6 +71,13 @@ class clean(_clean):
             except OSError:
                 pass
 
+# hack to parse commandline arguments
+force_bundled_libcapnp = "--force-bundled-libcapnp" in sys.argv
+if force_bundled_libcapnp:
+    sys.argv.remove("--force-bundled-libcapnp")
+force_system_libcapnp = "--force-system-libcapnp" in sys.argv
+if force_system_libcapnp:
+    sys.argv.remove("--force-system-libcapnp")
 
 class build_libcapnp_ext(build_ext_c):
 
@@ -77,10 +85,17 @@ class build_libcapnp_ext(build_ext_c):
         build_ext_c.build_extension(self, ext)
 
     def run(self):
+        build_failed = False
         try:
             test_build()
         except CompileError:
-            info("*WARNING* no libcapnp detected. Will download and build it from source now. If you have C++ Cap'n Proto installed, it may be out of date or is not being detected. Downloading and building libcapnp may take a while.")
+            build_failed = True
+
+        if build_failed and force_system_libcapnp:
+            raise RuntimeError("libcapnp C++ library not detected and --force-system-libcapnp was used")
+        if build_failed or force_bundled_libcapnp:
+            if build_failed:
+                info("*WARNING* no libcapnp detected. Will download and build it from source now. If you have C++ Cap'n Proto installed, it may be out of date or is not being detected. Downloading and building libcapnp may take a while.")
             bundle_dir = os.path.join(_this_dir, "bundled")
             if not os.path.exists(bundle_dir):
                 os.mkdir(bundle_dir)
