@@ -13,6 +13,8 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
     stdout = f
     if verbose:
       stdout = None
+    cxxflags = os.environ.get('CXXFLAGS', '')
+    os.environ['CXXFLAGS'] = cxxflags + ' -fPIC'
     conf = subprocess.Popen(['./configure', '--disable-shared', '--prefix', build_dir], cwd=capnp_dir, stdout=stdout)
     returncode = conf.wait()
     if returncode != 0:
