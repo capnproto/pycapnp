@@ -11,6 +11,7 @@ cimport cython
 from capnp.helpers.helpers cimport makeRpcClientWithRestorer
 
 from libc.stdlib cimport malloc, free
+from libc.string cimport memcpy
 from cython.operator cimport dereference as deref
 
 from types import ModuleType as _ModuleType
@@ -25,8 +26,6 @@ from operator import attrgetter as _attrgetter
 import threading as _threading
 import socket as _socket
 import random as _random
-from libc.stdlib cimport malloc, free
-from libc.string cimport memcpy
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -2845,13 +2844,15 @@ cdef class _AlignedBuffer:
 
     # other should also have a length that's a multiple of 8
     def __init__(self, other):
-        cdef char * other_buf = other
+        cdef const void *ptr
+        cdef Py_ssize_t sz
+        PyObject_AsReadBuffer(other, &ptr, &sz)
         other_len = len(other)
 
         # malloc is defined as being word aligned
         # we don't care about adding NULL terminating character
         self.buf = <char *>malloc(other_len)
-        memcpy(self.buf, other_buf, other_len)
+        memcpy(self.buf, ptr, other_len)
         self.allocated = True
 
     def __dealloc__(self):
@@ -2878,7 +2879,9 @@ cdef class _FlatArrayMessageReader(_MessageReader):
         if (<uintptr_t>ptr) % 8 != 0:
             aligned = _AlignedBuffer(buf)
             ptr = aligned.buf
-        self._object_to_pin = buf
+            self._object_to_pin = aligned
+        else:
+            self._object_to_pin = buf
 
         self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
 
