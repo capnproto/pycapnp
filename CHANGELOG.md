@@ -1,8 +1,24 @@
+## v0.5.0 (2014-12-15)
+- Timer class `capnp.getTimer()`
+- pycapnp is now thread-safe and allows an event loop to be run in each thread
+  - You must destroy and re-create the event loop to get this functionality (see `test_threads.py`)
+- Inheritance now works correctly for interfaces (previously inherited methods were inaccessible from pycapnp)
+- Add ability to import modules with dashes or spaces. Use underscores in place of them
+- `from_bytes` with builder=True is no longer zero copy. It never worked correctly, and is much safer now
+- Add `num_first_segment_words` argument wherever message creation can occur
+- Allow restoring a null objectId by passing None to restore
+- Support ordered dictionary in `to_dict`
+- Add ListSchema class and schemas for native types under `capnp.types` which completes all the Schemas needed to be wrapped. See `test_schema.py` for examples using it
+- Add automatic build of C++ libcapnp if it's not detected on the system. Also add flags --force-bundled-libcapnp and --force-system-libcapnp respectively
+
+
 ## v0.4.6 (2014-9-10)
 - Fix build for new 0.21 release of Cython. 0.21 is now the minimum supported version of Cython.
 
+
 ## v0.4.5 (2014-6-26)
 - Fix `to_dict` not converting enums to strings
+
 
 ## v0.4.4 (2014-04-25)
 - Fix compilation problem with gcc 4.8
