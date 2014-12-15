@@ -132,7 +132,7 @@ An error like:
     capnp/capnp.cpp:312:10: fatal error: 'capnp/dynamic.h' file not found
     #include "capnp/dynamic.h"
 
-Means you haven't installed the Cap'n Proto C++ library. Please follow the directions at the [official installation docs](http://kentonv.github.io/capnproto/install.html)
+Means your sytem can't find the installed the Cap'n Proto C++ library. If you haven't installed it yet, please follow the directions at the [official installation docs](http://kentonv.github.io/capnproto/install.html). Otherwise trying `LDFLAGS=-L/usr/local/lib CPPFLAGS=-I/usr/local/include pip install pycapnp` may fix the problem for you.
 
 
 [![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)

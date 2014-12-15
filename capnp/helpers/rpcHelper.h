@@ -20,8 +20,9 @@ public:
   // ~PyRestorer() {
   //   Py_DECREF(py_restorer);
   // }
-  
+
   capnp::Capability::Client restore(capnp::AnyPointer::Reader objectId) override {
+    GILAcquire gil;
     capnp::Capability::Client * ret = call_py_restorer(py_restorer, objectId);
     check_py_error();
     capnp::Capability::Client stack_ret(*ret);
@@ -63,11 +64,13 @@ capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::S
 }
 
 capnp::Capability::Client restoreHelper(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client) {
-    capnp::MallocMessageBuilder message;
-    capnp::rpc::SturdyRef::Builder ref = message.getRoot<capnp::rpc::SturdyRef>();
-    auto hostId = ref.getHostId().initAs<capnp::rpc::twoparty::SturdyRefHostId>();
+    capnp::MallocMessageBuilder hostIdMessage(8);
+    auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
     hostId.setSide(capnp::rpc::twoparty::Side::SERVER);
-    return client.restore(hostId, ref.getObjectId());
+
+    capnp::MallocMessageBuilder blankMessage(8);
+    auto objectId = blankMessage.getRoot<capnp::AnyPointer>();
+    return client.restore(hostId, objectId);
 }
 
 template <typename SturdyRefHostId, typename ProvisionId,
@@ -76,8 +79,7 @@ capnp::RpcSystem<SturdyRefHostId> makeRpcClientWithRestorer(
     capnp::VatNetwork<SturdyRefHostId, ProvisionId, RecipientId, ThirdPartyCapId, JoinAnswer>& network,
     PyRestorer& restorer) {
     using namespace capnp;
-  return RpcSystem<SturdyRefHostId>(network,
-      kj::Maybe<SturdyRefRestorer<AnyPointer>&>(restorer));
+  return RpcSystem<SturdyRefHostId>(network, restorer);
 }
 
 struct ServerContext {
@@ -113,17 +115,17 @@ void acceptLoop(kj::TaskSet & tasks, PyRestorer & restorer, kj::Own<kj::Connecti
 }
 
 kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, PyRestorer & restorer, kj::AsyncIoContext * context, kj::StringPtr bindAddress) {
-    auto paf = kj::newPromiseAndFulfiller<uint32_t>();
+    auto paf = kj::newPromiseAndFulfiller<unsigned int>();
     auto portPromise = paf.promise.fork();
 
     tasks.add(context->provider->getNetwork().parseAddress(bindAddress)
         .then(kj::mvCapture(paf.fulfiller,
-          [&](kj::Own<kj::PromiseFulfiller<uint32_t>>&& portFulfiller,
+          [&](kj::Own<kj::PromiseFulfiller<unsigned int>>&& portFulfiller,
                  kj::Own<kj::NetworkAddress>&& addr) {
       auto listener = addr->listen();
       portFulfiller->fulfill(listener->getPort());
       acceptLoop(tasks, restorer, kj::mv(listener));
     })));
 
-    return portPromise.addBranch().then([&](uint32_t port) { return PyLong_FromUnsignedLong(port); });
+    return portPromise.addBranch().then([&](unsigned int port) { return PyLong_FromUnsignedLong(port); });
 }

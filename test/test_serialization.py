@@ -4,6 +4,7 @@ import os
 import platform
 import test_regression
 import tempfile
+import pickle
 
 this_dir = os.path.dirname(__file__)
 
@@ -98,3 +99,11 @@ def test_file_and_bytes_packed(all_types):
     f.seek(0)
 
     assert f.read() == msg.to_bytes_packed()
+
+def test_pickle(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+    data = pickle.dumps(msg)
+    msg2 = pickle.loads(data)
+
+    test_regression.check_all_types(msg2)

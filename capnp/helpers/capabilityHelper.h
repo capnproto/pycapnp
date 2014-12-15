@@ -3,7 +3,6 @@
 #include "capnp/dynamic.h"
 #include <stdexcept>
 #include "Python.h"
-#include <iostream>
 
 extern "C" {
    PyObject * wrap_remote_call(PyObject * func, capnp::Response<capnp::DynamicStruct> &);
@@ -17,12 +16,38 @@ extern "C" {
    ::capnp::RemotePromise< ::capnp::DynamicStruct> * extract_remote_promise(PyObject *);
  }
 
+class GILAcquire {
+public:
+  GILAcquire() : gstate(PyGILState_Ensure()) {}
+  ~GILAcquire() {
+    PyGILState_Release(gstate);
+  }
+
+  PyGILState_STATE gstate;
+};
+
+class GILRelease {
+public:
+  GILRelease() {
+    Py_UNBLOCK_THREADS
+  }
+  ~GILRelease() {
+    Py_BLOCK_THREADS
+  }
+
+  PyThreadState *_save; // The macros above read/write from this variable
+};
+
 ::kj::Promise<PyObject *> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> & promise) {
     return promise.then([](capnp::Response<capnp::DynamicStruct>&& response) { return wrap_dynamic_struct_reader(response); } );
 }
 
 ::kj::Promise<PyObject *> convert_to_pypromise(kj::Promise<void> & promise) {
-    return promise.then([]() { Py_RETURN_NONE;} );
+    return promise.then([]() {
+      GILAcquire gil;
+      Py_INCREF( Py_None );
+      return Py_None;
+    });
 }
 
 template<class T>
@@ -31,6 +56,7 @@ template<class T>
 }
 
 void reraise_kj_exception() {
+  GILAcquire gil;
   try {
     if (PyErr_Occurred())
       ; // let the latest Python exn pass through and ignore the current one
@@ -51,12 +77,13 @@ void reraise_kj_exception() {
 }
 
 void check_py_error() {
+    GILAcquire gil;
     PyObject * err = PyErr_Occurred();
     if(err) {
         PyObject * ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
         if(ptype == NULL || pvalue == NULL || ptraceback == NULL)
-          throw kj::Exception(kj::Exception::Nature::OTHER, kj::Exception::Durability::PERMANENT, kj::heapString("capabilityHelper.h"), 44, kj::heapString("Unknown error occurred"));
+          throw kj::Exception(kj::Exception::Type::FAILED, kj::heapString("capabilityHelper.h"), 44, kj::heapString("Unknown error occurred"));
 
         PyObject * info = get_exception_info(ptype, pvalue, ptraceback);
 
@@ -75,11 +102,12 @@ void check_py_error() {
         Py_DECREF(info);
         PyErr_Clear();
 
-        throw kj::Exception(kj::Exception::Nature::OTHER, kj::Exception::Durability::PERMANENT, kj::mv(filename), line, kj::mv(description));
+        throw kj::Exception(kj::Exception::Type::FAILED, kj::mv(filename), line, kj::mv(description));
     }
 }
 
 kj::Promise<PyObject *> wrapPyFunc(PyObject * func, PyObject * arg) {
+    GILAcquire gil;
     auto arg_promise = extract_promise(arg);
 
     if(arg_promise == NULL) {
@@ -102,6 +130,7 @@ kj::Promise<PyObject *> wrapPyFunc(PyObject * func, PyObject * arg) {
 }
 
 kj::Promise<PyObject *> wrapPyFuncNoArg(PyObject * func) {
+    GILAcquire gil;
     PyObject * result = PyObject_CallFunctionObjArgs(func, NULL);
 
     check_py_error();
@@ -116,6 +145,7 @@ kj::Promise<PyObject *> wrapPyFuncNoArg(PyObject * func) {
 }
 
 kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::DynamicStruct> & arg) {
+    GILAcquire gil;
     PyObject * ret = wrap_remote_call(func, arg);
 
     check_py_error();
@@ -133,7 +163,7 @@ kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::D
   if(error_func == Py_None)
     return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); } );
   else
-    return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); } 
+    return promise.then([func](PyObject * arg) { return wrapPyFunc(func, arg); }
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
@@ -141,7 +171,7 @@ kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::D
   if(error_func == Py_None)
     return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return wrapRemoteCall(func, arg); } );
   else
-    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return  wrapRemoteCall(func, arg); } 
+    return promise.then([func](capnp::Response<capnp::DynamicStruct>&& arg) { return  wrapRemoteCall(func, arg); }
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
@@ -149,7 +179,7 @@ kj::Promise<PyObject *> wrapRemoteCall(PyObject * func, capnp::Response<capnp::D
   if(error_func == Py_None)
     return promise.then([func]() { return wrapPyFuncNoArg(func); } );
   else
-    return promise.then([func]() { return wrapPyFuncNoArg(func); } 
+    return promise.then([func]() { return wrapPyFuncNoArg(func); }
                                      , [error_func](kj::Exception arg) { return wrapPyFunc(error_func, wrap_kj_exception(arg)); } );
 }
 
@@ -163,10 +193,12 @@ public:
 
   PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema, PyObject * _py_server)
       : capnp::DynamicCapability::Server(schema), py_server(_py_server) {
+        GILAcquire gil;
         Py_INCREF(_py_server);
       }
 
   ~PythonInterfaceDynamicImpl() {
+    GILAcquire gil;
     Py_DECREF(py_server);
   }
 
@@ -192,14 +224,17 @@ public:
   PyObject * obj;
 
   PyRefCounter(PyObject * o) : obj(o) {
+    GILAcquire gil;
     Py_INCREF(obj);
   }
 
   PyRefCounter(const PyRefCounter & ref) : obj(ref.obj) {
+    GILAcquire gil;
     Py_INCREF(obj);
   }
 
   ~PyRefCounter() {
+    GILAcquire gil;
     Py_DECREF(obj);
   }
 };

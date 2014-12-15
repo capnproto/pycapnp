@@ -25,8 +25,8 @@ from Cython.Distutils import build_ext as build_ext_c
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
-MINOR = 4
-MICRO = 6
+MINOR = 5
+MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 # Write version info
@@ -114,7 +114,7 @@ setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
-    package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx']},
+    package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx', 'templates/*']},
     ext_modules=cythonize('capnp/lib/*.pyx'),
     cmdclass = {
         'clean': clean,
@@ -123,6 +123,9 @@ setup(
     install_requires=[
         'cython >= 0.21',
         'setuptools >= 0.8'],
+    entry_points={
+        'console_scripts' : ['capnpc-cython = capnp._gen:main']
+    },
     # PyPi info
     description="A cython wrapping of the C++ Cap'n Proto library",
     long_description=long_description,

@@ -37,9 +37,9 @@ def test_which_builder(addressbook):
     assert bob.employment.which == addressbook.Person.Employment.unemployed
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
 
 
@@ -71,9 +71,9 @@ def test_which_reader(addressbook):
     bob = people[1]
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         addresses.which
 
 
@@ -187,3 +187,34 @@ def test_to_dict_enum(addressbook):
     field = person.to_dict()['phones'][0]['type']
     assert isstr(field)
     assert field == 'mobile'
+
+
+def test_explicit_field(addressbook):
+    person = addressbook.Person.new_message(**{'name': 'Test'})
+
+    name_field = addressbook.Person.schema.fields['name']
+
+    assert person.name == person._get_by_field(name_field)
+    assert person.name == person.as_reader()._get_by_field(name_field)
+
+
+def test_to_dict_verbose(addressbook):
+    person = addressbook.Person.new_message(**{'name': 'Test'})
+
+    assert person.to_dict(verbose=True)['phones'] == []
+
+    if sys.version_info >= (2, 7):
+        assert person.to_dict(verbose=True, ordered=True)['phones'] == []
+
+    with pytest.raises(KeyError):
+        assert person.to_dict()['phones'] == []
+
+
+def test_to_dict_ordered(addressbook):
+    person = addressbook.Person.new_message(**{'name': 'Alice', 'phones': [{'type': 'mobile', 'number': '555-1212'}], 'id': 123, 'employment': {'school': 'MIT'}, 'email': 'alice@example.com'})
+
+    if sys.version_info >= (2, 7):
+        assert list(person.to_dict(ordered=True).keys()) == ['id', 'name', 'email', 'phones', 'employment']
+    else:
+        with pytest.raises(Exception):
+            person.to_dict(ordered=True)

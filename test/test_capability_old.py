@@ -32,7 +32,7 @@ class PipelineServer:
 
 def test_client(capability):
     client = capability.TestInterface._new_client(Server())
-    
+
     req = client._request('foo')
     req.i = 5
 
@@ -40,7 +40,7 @@ def test_client(capability):
     response = remote.wait()
 
     assert response.x == '26'
-    
+
     req = client.foo_request()
     req.i = 5
 
@@ -49,12 +49,12 @@ def test_client(capability):
 
     assert response.x == '26'
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         client.foo2_request()
 
     req = client.foo_request()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         req.i = 'foo'
 
     req = client.foo_request()
@@ -64,18 +64,18 @@ def test_client(capability):
 
 def test_simple_client(capability):
     client = capability.TestInterface._new_client(Server())
-    
+
     remote = client._send('foo', i=5)
     response = remote.wait()
 
     assert response.x == '26'
 
-    
+
     remote = client.foo(i=5)
     response = remote.wait()
 
     assert response.x == '26'
-    
+
     remote = client.foo(i=5, j=True)
     response = remote.wait()
 
@@ -101,19 +101,19 @@ def test_simple_client(capability):
 
     assert response.x == 'localhost_test'
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         remote = client.foo(5, 10)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         remote = client.foo(5, True, 100)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         remote = client.foo(i='foo')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         remote = client.foo2(i=5)
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(Exception):
         remote = client.foo(baz=5)
 
 def test_pipeline(capability):
@@ -143,7 +143,7 @@ class BadServer:
 
 def test_exception_client(capability):
     client = capability.TestInterface._new_client(BadServer())
-    
+
     remote = client._send('foo', i=5)
     with pytest.raises(capnp.KjException):
         remote.wait()

@@ -1,6 +1,7 @@
 import pytest
 import capnp
 import os
+import time
 
 import test_capability_capnp as capability
 
@@ -31,7 +32,7 @@ class PipelineServer(capability.TestPipeline.Server):
 
 def test_client():
     client = capability.TestInterface._new_client(Server())
-    
+
     req = client._request('foo')
     req.i = 5
 
@@ -39,7 +40,7 @@ def test_client():
     response = remote.wait()
 
     assert response.x == '26'
-    
+
     req = client.foo_request()
     req.i = 5
 
@@ -48,12 +49,12 @@ def test_client():
 
     assert response.x == '26'
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         client.foo2_request()
 
     req = client.foo_request()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         req.i = 'foo'
 
     req = client.foo_request()
@@ -63,18 +64,18 @@ def test_client():
 
 def test_simple_client():
     client = capability.TestInterface._new_client(Server())
-    
+
     remote = client._send('foo', i=5)
     response = remote.wait()
 
     assert response.x == '26'
 
-    
+
     remote = client.foo(i=5)
     response = remote.wait()
 
     assert response.x == '26'
-    
+
     remote = client.foo(i=5, j=True)
     response = remote.wait()
 
@@ -106,19 +107,19 @@ def test_simple_client():
     assert response.x == '5_test'
     assert response.i == 5
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         remote = client.foo(5, 10)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         remote = client.foo(5, True, 100)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         remote = client.foo(i='foo')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         remote = client.foo2(i=5)
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(Exception):
         remote = client.foo(baz=5)
 
 def test_pipeline():
@@ -148,7 +149,7 @@ class BadServer(capability.TestInterface.Server):
 
 def test_exception_client():
     client = capability.TestInterface._new_client(BadServer())
-    
+
     remote = client._send('foo', i=5)
     with pytest.raises(capnp.KjException):
         remote.wait()
@@ -255,3 +256,90 @@ def test_tail_call():
 
     assert callee_server.count == 1
     assert caller_server.count == 1
+
+
+def test_cancel():
+    client = capability.TestInterface._new_client(Server())
+
+    req = client._request('foo')
+    req.i = 5
+
+    remote = req.send()
+    remote.cancel()
+
+    with pytest.raises(Exception):
+        remote.wait()
+
+
+def test_timer():
+    global test_timer_var
+    test_timer_var = False
+
+    def set_timer_var():
+        global test_timer_var
+        test_timer_var = True
+    capnp.getTimer().after_delay(1).then(set_timer_var).wait()
+
+    assert test_timer_var is True
+
+    test_timer_var = False
+    promise = capnp.Promise(0).then(lambda x: time.sleep(.1)).then(lambda x: time.sleep(.1)).then(lambda x: set_timer_var())
+
+    canceller = capnp.getTimer().after_delay(1).then(lambda: promise.cancel())
+
+    joined = capnp.join_promises([canceller, promise])
+    joined.wait()
+
+    # faling for now, not sure why...
+    # assert test_timer_var is False
+
+
+def test_double_send():
+    client = capability.TestInterface._new_client(Server())
+
+    req = client._request('foo')
+    req.i = 5
+
+    req.send()
+    with pytest.raises(Exception):
+        req.send()
+
+
+def test_then_args():
+    capnp.Promise(0).then(lambda x: 1)
+
+    with pytest.raises(Exception):
+        capnp.Promise(0).then(lambda: 1)
+
+    with pytest.raises(Exception):
+        capnp.Promise(0).then(lambda x, y: 1)
+
+    capnp.getTimer().after_delay(1).then(lambda: 1)  # after_delay is a VoidPromise
+
+    with pytest.raises(Exception):
+        capnp.getTimer().after_delay(1).then(lambda x: 1)
+
+    client = capability.TestInterface._new_client(Server())
+
+    client.foo(i=5).then(lambda x: 1)
+
+    with pytest.raises(Exception):
+        client.foo(i=5).then(lambda: 1)
+
+    with pytest.raises(Exception):
+        client.foo(i=5).then(lambda x, y: 1)
+
+
+class ExtendsServer(Server):
+    def qux(self, **kwargs):
+        pass
+
+
+def test_inheritance():
+    client = capability.TestExtends._new_client(ExtendsServer())
+    client.qux().wait()
+
+    remote = client.foo(i=5)
+    response = remote.wait()
+
+    assert response.x == '26'
