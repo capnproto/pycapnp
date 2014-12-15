@@ -4,19 +4,19 @@ More thorough docs are available at [http://jparyani.github.io/pycapnp/](http://
 
 ## Requirements
 
-First you need a system-wide installation of the Cap'n Proto C++ library == 0.4.x. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
+First you need a system-wide installation of the Cap'n Proto C++ library == 0.5.x. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
 
 ```bash
-curl -O http://capnproto.org/capnproto-c++-0.4.0.tar.gz
-tar zxf capnproto-c++-0.4.0.tar.gz
-cd capnproto-c++-0.4.0
+curl -O http://capnproto.org/capnproto-c++-0.5.0.tar.gz
+tar zxf capnproto-c++-0.5.0.tar.gz
+cd capnproto-c++-0.5.0
 ./configure
 make -j6 check
 sudo make install
 ```
 
 A recent version of cython and setuptools is also required. You can install these with:
-    
+
 ```bash
 pip install -U cython
 pip install -U setuptools
@@ -132,7 +132,7 @@ An error like:
     capnp/capnp.cpp:312:10: fatal error: 'capnp/dynamic.h' file not found
     #include "capnp/dynamic.h"
 
-Means you haven't installed the Cap'n Proto C++ library. Please follow the directions at the [official installation docs](http://kentonv.github.io/capnproto/install.html)
+Means your sytem can't find the installed the Cap'n Proto C++ library. If you haven't installed it yet, please follow the directions at the [official installation docs](http://kentonv.github.io/capnproto/install.html). Otherwise trying `LDFLAGS=-L/usr/local/lib CPPFLAGS=-I/usr/local/include pip install pycapnp` may fix the problem for you.
 
 
 [![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)

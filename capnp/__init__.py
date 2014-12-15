@@ -1,7 +1,7 @@
 """A python library wrapping the Cap'n Proto C++ library
 
 Example Usage::
-    
+
     import capnp
 
     addressbook = capnp.load('addressbook.capnp')

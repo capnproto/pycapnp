@@ -1,4 +1,4 @@
-@0x934efea7f017fff0;
+@0xc39aee9191aedcf3;
 
 const qux :UInt32 = 123;
 
@@ -18,20 +18,19 @@ struct Person {
       work @2;
     }
   }
+
   employment :union {
     unemployed @4 :Void;
-    employer @5 :Text;
+    employer @5 :Employer;
     school @6 :Text;
     selfEmployed @7 :Void;
     # We assume that a person is only one of these.
   }
+}
 
-  testGroup :group {
-    field1 @8 :UInt32;
-    field2 @9 :UInt32;
-    field3 @10 :UInt32;
-  }
-  extraData @11 :Data;
+struct Employer {
+  name @0 :Text;
+  boss @1 :Person;
 }
 
 struct AddressBook {
