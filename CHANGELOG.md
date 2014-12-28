@@ -1,3 +1,7 @@
+## v0.5.1 (2014-12-27)
+- Remove installation dependency on cython. We now have no dependencies since libcapnp will automatically build as well.
+
+
 ## v0.5.0 (2014-12-15)
 - Timer class `capnp.getTimer()`
 - pycapnp is now thread-safe and allows an event loop to be run in each thread
