@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+use_cython = True
 try:
     from Cython.Build import cythonize
     import Cython
 except ImportError:
-    raise RuntimeError('No cython installed. Please run `pip install cython`')
+    use_cython = False
 
-if Cython.__version__ < '0.19.1':
-    raise RuntimeError('Old cython installed (%s). Please run `pip install -U cython`' % Cython.__version__)
+if use_cython and Cython.__version__ < '0.19.1':
+    use_cython = False
 
 import pkg_resources
 setuptools_version = pkg_resources.get_distribution("setuptools").version
 if setuptools_version < '0.8':
-    raise RuntimeError('Old setuptools installed (%s). Please run `pip install -U setuptools`. Running `pip install pycapnp` will not work alone, since setuptools needs to be upgraded before installing anything else.' % setuptools_version)
+    # older versions of setuptools don't work with cython
+    use_cython = False
 
 from distutils.core import setup
 import os
@@ -21,13 +23,18 @@ import sys
 from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
 from distutils.errors import CompileError
 from distutils.extension import Extension
-from Cython.Distutils import build_ext as build_ext_c
+if use_cython:
+    from Cython.Distutils import build_ext as build_ext_c
+else:
+    from distutils.command.build_ext import build_ext as build_ext_c
+
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
 MINOR = 5
 MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+
 
 # Write version info
 def write_version_py(filename=None):
@@ -79,8 +86,8 @@ force_system_libcapnp = "--force-system-libcapnp" in sys.argv
 if force_system_libcapnp:
     sys.argv.remove("--force-system-libcapnp")
 
-class build_libcapnp_ext(build_ext_c):
 
+class build_libcapnp_ext(build_ext_c):
     def build_extension(self, ext):
         build_ext_c.build_extension(self, ext)
 
@@ -110,19 +117,27 @@ class build_libcapnp_ext(build_ext_c):
             self.library_dirs += [os.path.join(build_dir, 'lib')]
 
         return build_ext_c.run(self)
+
+if use_cython:
+    extensions = cythonize('capnp/lib/*.pyx')
+else:
+    extensions = [Extension("capnp.lib.capnp", ["capnp/lib/capnp.cpp"],
+                            include_dirs=["."],
+                            language='c++',
+                            extra_compile_args=['--std=c++11'],
+                            libraries=['capnpc', 'capnp-rpc', 'capnp', 'kj-async', 'kj'])]
+
 setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
     package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx', 'templates/*']},
-    ext_modules=cythonize('capnp/lib/*.pyx'),
+    ext_modules=extensions,
     cmdclass = {
         'clean': clean,
         'build_ext': build_libcapnp_ext
     },
-    install_requires=[
-        'cython >= 0.21',
-        'setuptools >= 0.8'],
+    install_requires=[],
     entry_points={
         'console_scripts' : ['capnpc-cython = capnp._gen:main']
     },
