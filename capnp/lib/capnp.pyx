@@ -2853,6 +2853,36 @@ class _StructModule(object):
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultiplePackedMessageReader(file.fileno(), self.schema, traversal_limit_in_words, nesting_limit)
         return reader
+    def read_multiple_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns an iterable, that when traversed will return Readers for messages.
+
+        :type buf: buffer
+        :param buf: Any Python object that supports the buffer interface.
+
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
+        reader = _MultipleBytesMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit)
+        return reader
+    def read_multiple_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns an iterable, that when traversed will return Readers for messages.
+
+        :type buf: buffer
+        :param buf: Any Python object that supports the buffer interface.
+
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
+        reader = _MultipleBytesPackedMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit)
+        return reader
     def from_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
         """Returns a Reader for the unpacked object in buf.
 
@@ -3407,6 +3437,78 @@ cdef class _MultiplePackedMessageReader:
         self.nesting_limit = nesting_limit
 
         self.stream = new schema_cpp.FdInputStream(fd)
+        self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
+
+    def __dealloc__(self):
+        del self.stream
+        del self.buffered_stream
+
+    def __next__(self):
+        try:
+            reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            return reader.get_root(self.schema)
+        except KjException as e:
+            if 'EOF' in str(e):
+                raise StopIteration
+            else:
+                raise
+
+    def __iter__(self):
+        return self
+
+cdef class _MultipleBytesMessageReader:
+    cdef schema_cpp.ArrayInputStream * stream
+    cdef schema_cpp.BufferedInputStream * buffered_stream
+
+    cdef public object traversal_limit_in_words, nesting_limit, schema, buf
+
+    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None):
+        self.schema = schema
+        self.traversal_limit_in_words = traversal_limit_in_words
+        self.nesting_limit = nesting_limit
+
+        cdef const void *ptr
+        cdef Py_ssize_t sz
+        PyObject_AsReadBuffer(buf, &ptr, &sz)
+
+        self.buf = buf
+        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>ptr, sz))
+        self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
+
+    def __dealloc__(self):
+        del self.stream
+        del self.buffered_stream
+
+    def __next__(self):
+        try:
+            reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            return reader.get_root(self.schema)
+        except KjException as e:
+            if 'EOF' in str(e):
+                raise StopIteration
+            else:
+                raise
+
+    def __iter__(self):
+        return self
+
+cdef class _MultipleBytesPackedMessageReader:
+    cdef schema_cpp.ArrayInputStream * stream
+    cdef schema_cpp.BufferedInputStream * buffered_stream
+
+    cdef public object traversal_limit_in_words, nesting_limit, schema, buf
+
+    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None):
+        self.schema = schema
+        self.traversal_limit_in_words = traversal_limit_in_words
+        self.nesting_limit = nesting_limit
+
+        cdef const void *ptr
+        cdef Py_ssize_t sz
+        PyObject_AsReadBuffer(buf, &ptr, &sz)
+
+        self.buf = buf
+        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>ptr, sz))
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
     def __dealloc__(self):

@@ -60,6 +60,17 @@ def test_roundtrip_file_multiple(all_types):
     for msg in all_types.TestAllTypes.read_multiple(f):
         test_regression.check_all_types(msg)
 
+def test_roundtrip_bytes_multiple(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    msgs = msg.to_bytes()
+    msgs += msg.to_bytes()
+    msgs += msg.to_bytes()
+
+    for msg in all_types.TestAllTypes.read_multiple_bytes(msgs):
+        test_regression.check_all_types(msg)
+
 def test_roundtrip_file_multiple_packed(all_types):
     f = tempfile.TemporaryFile()
     msg = all_types.TestAllTypes.new_message()
@@ -70,6 +81,17 @@ def test_roundtrip_file_multiple_packed(all_types):
 
     f.seek(0)
     for msg in all_types.TestAllTypes.read_multiple_packed(f):
+        test_regression.check_all_types(msg)
+
+def test_roundtrip_bytes_multiple_packed(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    msgs = msg.to_bytes_packed()
+    msgs += msg.to_bytes_packed()
+    msgs += msg.to_bytes_packed()
+
+    for msg in all_types.TestAllTypes.read_multiple_bytes_packed(msgs):
         test_regression.check_all_types(msg)
 
 def test_roundtrip_dict(all_types):
