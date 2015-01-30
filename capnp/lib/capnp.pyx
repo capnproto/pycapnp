@@ -3227,6 +3227,7 @@ cdef class _MessageReader:
 
     .. warning:: Don't ever instantiate this class. It is only used for inheritance.
     """
+    cdef public object _parent
     cdef schema_cpp.MessageReader * thisptr
     def __dealloc__(self):
         del self.thisptr
@@ -3301,7 +3302,6 @@ cdef class _PackedMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    cdef public object _parent
     def __init__(self):
         pass
 
@@ -3319,7 +3319,6 @@ cdef class _PackedMessageReader(_MessageReader):
         return self
 
 cdef class _PackedMessageReaderBytes(_MessageReader):
-    cdef public object _parent
     cdef schema_cpp.ArrayInputStream * stream
 
     def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
@@ -3355,7 +3354,6 @@ cdef class _InputMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    cdef public object _parent
     def __init__(self):
         pass
 
@@ -3476,8 +3474,8 @@ cdef class _MultipleBytesMessageReader:
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
     def __dealloc__(self):
-        del self.stream
         del self.buffered_stream
+        del self.stream
 
     def __next__(self):
         try:
@@ -3512,8 +3510,8 @@ cdef class _MultipleBytesPackedMessageReader:
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
     def __dealloc__(self):
-        del self.stream
         del self.buffered_stream
+        del self.stream
 
     def __next__(self):
         try:
