@@ -11,6 +11,12 @@ env:
   - BUILD_CAPNP=true
   - BUILD_CAPNP=
 
+# skip testing for pypy + BUILD_CAPNP=false since it's failing in travis for some reason
+matrix:
+  exclude:
+    - python: pypy
+      env: BUILD_CAPNP=
+
 compiler: gcc
 
 before_install:
@@ -22,5 +28,4 @@ before_install:
 install:
   - travis_retry pip install --editable .
 
-# skip testing for pypy + BUILD_CAPNP=false since it's failing in travis for some reason
-script: if [[ $TRAVIS_PYTHON_VERSION != 'pypy' || $BUILD_CAPNP == 'true' ]]; then py.test test; fi
+script: py.test test;
