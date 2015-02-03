@@ -35,6 +35,18 @@ Note: for OSX, if using clang from Xcode 5, you will need to set `CFLAGS` like s
 
     CFLAGS='-stdlib=libc++' pip install pycapnp
 
+### Binary Packages
+
+In order to build binary packages from this source code, you must specify the `--disable-cython` option:
+
+Building a dumb binary distribution:
+
+    python setup.py bdist_dumb --disable-cython
+
+Building a Python wheel distributiion:
+
+    python setup.py bdist_wheel --disable-cython
+
 ## Python Versions
 
 Python 2.6/2.7 are supported as well as Python 3.2+. PyPy 2.1+ is also supported.
