@@ -85,6 +85,14 @@ if force_bundled_libcapnp:
 force_system_libcapnp = "--force-system-libcapnp" in sys.argv
 if force_system_libcapnp:
     sys.argv.remove("--force-system-libcapnp")
+disable_cython = "--disable-cython" in sys.argv
+if disable_cython:
+    sys.argv.remove("--disable-cython")
+    use_cython = False
+force_cython = "--force-cython" in sys.argv
+if force_cython:
+    sys.argv.remove("--force-cython")
+    use_cython = True
 
 
 class build_libcapnp_ext(build_ext_c):
