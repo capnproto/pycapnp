@@ -47,6 +47,10 @@ Building a Python wheel distributiion:
 
     python setup.py bdist_wheel --disable-cython
 
+If it fails with an error like `clang: error: no such file or directory: 'capnp/lib/capnp.cpp'`, then you need to cythonize fist. This can be done with:
+
+    python setup.py build --force-cython
+
 ## Python Versions
 
 Python 2.6/2.7 are supported as well as Python 3.2+. PyPy 2.1+ is also supported.
