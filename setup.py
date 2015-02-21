@@ -159,7 +159,7 @@ setup(
     download_url = 'https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
     keywords = ['capnp', 'capnproto', "Cap'n Proto"],
     classifiers = [
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: MacOS :: MacOS X',
