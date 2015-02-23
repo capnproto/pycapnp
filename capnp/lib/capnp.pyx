@@ -3229,8 +3229,7 @@ cdef class _MessageReader:
     """
     cdef public object _parent
     cdef schema_cpp.MessageReader * thisptr
-    def __dealloc__(self):
-        del self.thisptr
+
     def __init__(self):
         raise NotImplementedError("This is an abstract base class")
 
@@ -3290,6 +3289,10 @@ cdef class _StreamFdMessageReader(_MessageReader):
 
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
 
+    def __dealloc__(self):
+        del self.thisptr
+
+
 cdef class _PackedMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
@@ -3318,6 +3321,10 @@ cdef class _PackedMessageReader(_MessageReader):
         self.thisptr = new schema_cpp.PackedMessageReader(stream, opts)
         return self
 
+    def __dealloc__(self):
+        del self.thisptr
+
+
 cdef class _PackedMessageReaderBytes(_MessageReader):
     cdef schema_cpp.ArrayInputStream * stream
 
@@ -3340,6 +3347,7 @@ cdef class _PackedMessageReaderBytes(_MessageReader):
         self.thisptr = new schema_cpp.PackedMessageReader(deref(self.stream), opts)
 
     def __dealloc__(self):
+        del self.thisptr
         del self.stream
 
 cdef class _InputMessageReader(_MessageReader):
@@ -3370,6 +3378,10 @@ cdef class _InputMessageReader(_MessageReader):
         self.thisptr = new schema_cpp.InputStreamMessageReader(stream, opts)
         return self
 
+    def __dealloc__(self):
+        del self.thisptr
+
+
 cdef class _PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
@@ -3391,6 +3403,10 @@ cdef class _PackedFdMessageReader(_MessageReader):
             opts.nestingLimit = nesting_limit
 
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
+
+    def __dealloc__(self):
+        del self.thisptr
+
 
 cdef class _MultipleMessageReader:
     cdef schema_cpp.FdInputStream * stream
@@ -3573,6 +3589,10 @@ cdef class _FlatArrayMessageReader(_MessageReader):
             self._object_to_pin = buf
 
         self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
+
+    def __dealloc__(self):
+        del self.thisptr
+
 
 @cython.internal
 cdef class _FlatMessageBuilder(_MessageBuilder):
