@@ -86,3 +86,17 @@ def test_ez_rpc():
 
     with pytest.raises(capnp.KjException):
         response = remote.wait()
+
+def test_simple_rpc_bootstrap():
+    read, write = socket.socketpair(socket.AF_UNIX)
+
+    server = capnp.TwoPartyServer(write, bootstrap=Server(100))
+    client = capnp.TwoPartyClient(read)
+
+    cap = client.bootstrap()
+    cap = cap.cast_as(test_capability_capnp.TestInterface)
+
+    remote = cap.foo(i=5)
+    response = remote.wait()
+
+    assert response.x == '125'

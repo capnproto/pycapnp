@@ -2253,6 +2253,9 @@ cdef class TwoPartyClient:
 
         return self.restore(ref)
 
+    cpdef bootstrap(self) except +reraise_kj_exception:
+        return _CapabilityClient()._init(helpers.bootstrapHelper(deref(self.thisptr)), self)
+
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
@@ -2263,12 +2266,18 @@ cdef class TwoPartyServer:
     cdef public _Restorer _restorer
     cdef public _AsyncIoStream _stream
     cdef object _port
-    cdef public object port_promise
+    cdef public object port_promise, _bootstrap
     cdef capnp.TaskSet * _task_set
     cdef capnp.ErrorHandler _error_handler
 
-    def __init__(self, socket, restorer, server_socket=None):
-        self._restorer = _convert_restorer(restorer)
+    def __init__(self, socket, restorer=None, server_socket=None, bootstrap=None):
+        if not restorer and not bootstrap:
+            raise KjException("You must provide either a bootstrap interface or a restorer (deperecated) to a server constructor.")
+
+        cdef _InterfaceSchema schema
+        self._restorer = None
+        self._bootstrap = None
+
         if isinstance(socket, basestring):
             self._connect(socket)
         else:
@@ -2277,11 +2286,19 @@ cdef class TwoPartyServer:
             self._server_socket = server_socket
             self._port = 0
             self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
-            self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
+
+            if bootstrap:
+                self._bootstrap = bootstrap
+                schema = bootstrap.schema
+                self.thisptr = new RpcSystem(makeRpcServerBootstrap(deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
+            elif restorer:
+                self._restorer = _convert_restorer(restorer)
+                self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
             Py_INCREF(self._orig_stream)
             Py_INCREF(self._stream)
             Py_INCREF(self._restorer)
+            Py_INCREF(self._bootstrap)
             Py_INCREF(self._network)
             self._disconnect_promise = self.on_disconnect().then(self._decref)
 
@@ -2292,6 +2309,7 @@ cdef class TwoPartyServer:
         self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
 
     def _decref(self):
+        Py_DECREF(self._bootstrap)
         Py_DECREF(self._restorer)
         Py_DECREF(self._orig_stream)
         Py_DECREF(self._stream)
@@ -2317,8 +2335,6 @@ cdef class TwoPartyServer:
                 return self._port
             else:
                 return self._port
-
-    # TODO: add restore functionality here?
 
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr

@@ -345,6 +345,7 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
         VoidPromise onDisconnect()
         VoidPromise onDrained()
     RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&)
+    RpcSystem makeRpcServerBootstrap"makeRpcServer"(TwoPartyVatNetwork&, Capability.Client)
     RpcSystem makeRpcClient(TwoPartyVatNetwork&)
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
