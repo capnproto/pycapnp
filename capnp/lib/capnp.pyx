@@ -2979,6 +2979,23 @@ class _EnumModule(object):
         for name, val in schema.enumerants.items():
             setattr(self, name, val)
 
+cdef class _StringArrayPtr:
+    cdef StringPtr * thisptr
+    cdef object parent
+    cdef size_t size
+
+    def __cinit__(self, size_t size, parent):
+        self.size = size
+        self.thisptr = <StringPtr *>malloc(sizeof(StringPtr) * size)
+        self.parent = parent
+
+    def __dealloc__(self):
+        free(self.thisptr)
+
+    cdef ArrayPtr[StringPtr] asArrayPtr(self) except +reraise_kj_exception:
+        return ArrayPtr[StringPtr](self.thisptr, self.size)
+
+
 cdef class SchemaParser:
     """A class for loading Cap'n Proto schema files.
 
@@ -2986,26 +3003,34 @@ cdef class SchemaParser:
     """
     cdef C_SchemaParser * thisptr
     cdef public dict modules_by_id
+    cdef list _all_imports
+    cdef _StringArrayPtr _last_import_array
 
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
         self.modules_by_id = {}
+        self._all_imports = []
 
     def __dealloc__(self):
         del self.thisptr
 
     cpdef _parse_disk_file(self, displayName, diskPath, imports) except +reraise_kj_exception:
-        cdef StringPtr * importArray = <StringPtr *>malloc(sizeof(StringPtr) * len(imports))
+        cdef _StringArrayPtr importArray
 
-        for i in range(len(imports)):
-            importArray[i] = StringPtr(imports[i])
+        if self._last_import_array and self._last_import_array.parent == imports:
+            importArray = self._last_import_array
+        else:
+            importArray = _StringArrayPtr(len(imports), imports)
 
-        cdef ArrayPtr[StringPtr] importsPtr = ArrayPtr[StringPtr](importArray, <size_t>len(imports))
+            for i in range(len(imports)):
+                curr_import = imports[i]
+                importArray.thisptr[i] = StringPtr(curr_import, <size_t>len(curr_import))
+
+            self._all_imports.append(importArray)
+            self._last_import_array = importArray
 
         ret = _ParsedSchema()
-        ret._init_child(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
-
-        free(importArray)
+        ret._init_child(self.thisptr.parseDiskFile(displayName, diskPath, importArray.asArrayPtr()))
 
         return ret
 
