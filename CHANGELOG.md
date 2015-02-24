@@ -1,4 +1,4 @@
-## v0.5.2 (2015-02-23)
+## v0.5.3 (2015-02-23)
 - Fix possible crash due to bad destructor ordering in MessageReader (by @JohnEmhoff)
 - Default to no longer using cython
 
