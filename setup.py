@@ -3,12 +3,6 @@ from __future__ import print_function
 
 use_cython = False
 
-import pkg_resources
-setuptools_version = pkg_resources.get_distribution("setuptools").version
-if setuptools_version < '0.8':
-    # older versions of setuptools don't work with cython
-    use_cython = False
-
 from distutils.core import setup
 import os
 import sys
@@ -65,6 +59,11 @@ class clean(_clean):
                 os.remove(x)
             except OSError:
                 pass
+
+# set use_cython if lib/capnp.cpp is not detected
+capnp_compiled_file = os.path.join(os.path.dirname(__file__), 'capnp', 'lib', 'capnp.cpp')
+if not os.path.isfile(capnp_compiled_file):
+    use_cython = True
 
 # hack to parse commandline arguments
 force_bundled_libcapnp = "--force-bundled-libcapnp" in sys.argv
