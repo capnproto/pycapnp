@@ -4,23 +4,9 @@ More thorough docs are available at [http://jparyani.github.io/pycapnp/](http://
 
 ## Requirements
 
-First you need a system-wide installation of the Cap'n Proto C++ library == 0.5.x. Follow the [official installation docs](http://kentonv.github.io/capnproto/install.html) or for the lazy:
+pycapnp's distribution has no requirements beyond a C++11 compatible compiler. GCC 4.8+ or Clang 3.3+ should work fine.
 
-```bash
-curl -O http://capnproto.org/capnproto-c++-0.5.0.tar.gz
-tar zxf capnproto-c++-0.5.0.tar.gz
-cd capnproto-c++-0.5.0
-./configure
-make -j6 check
-sudo make install
-```
-
-A recent version of cython and setuptools is also required. You can install these with:
-
-```bash
-pip install -U cython
-pip install -U setuptools
-```
+pycapnp has additional development dependencies, including cython and py.test. See requirements.txt for them all.
 
 ## Building and installation
 
@@ -31,9 +17,19 @@ Or you can clone the repo like so:
     git clone https://github.com/jparyani/pycapnp.git
     pip install --install-option '--force-cython' ./pycapnp
 
-Note: for OSX, if using clang from Xcode 5, you will need to set `CFLAGS` like so:
+Note: for OSX, if using clang from Xcode 5, you may need to set `CFLAGS` like so:
 
     CFLAGS='-stdlib=libc++' pip install pycapnp
+
+## Python Versions
+
+Python 2.6/2.7 are supported as well as Python 3.2+. PyPy 2.1+ is also supported.
+
+One oddity to note is that `Text` type fields will be treated as byte strings under Python 2, and unicode strings under Python 3. `Data` fields will always be treated as byte strings.
+
+## Development
+
+This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/). Essentially, just make sure you do your changes in the `develop` branch. You can run the tests by installing pytest with `pip install pytest`, and then run `py.test` from the `test` directory.
 
 ### Binary Packages
 
@@ -51,20 +47,10 @@ If it fails with an error like `clang: error: no such file or directory: 'capnp/
 
     python setup.py build --force-cython
 
-## Python Versions
-
-Python 2.6/2.7 are supported as well as Python 3.2+. PyPy 2.1+ is also supported.
-
-One oddity to note is that `Text` type fields will be treated as byte strings under Python 2, and unicode strings under Python 3. `Data` fields will always be treated as byte strings.
-
-## Development
-
-This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/). Essentially, just make sure you do your changes in the `develop` branch. You can run the tests by installing pytest with `pip install pytest`, and then run `py.test` from the `test` directory.
-
 ## Documentation/Example
 There is some basic documentation [here](http://jparyani.github.io/pycapnp/).
 
-The examples directory has one example that shows off the capabilities quite nicely. Here it is, reproduced:
+The examples directory has one example that shows off pycapnp quite nicely. Here it is, reproduced:
 
 ```python
 from __future__ import print_function
@@ -130,6 +116,49 @@ if __name__ == '__main__':
     printAddressBook(f)
 ```
 
+Also, pycapnp has gained RPC features that include pipelining and a promise style API. Refer to the calculator example in the examples directory for a much better demonstration:
+
+```python
+import capnp
+import socket
+
+import test_capability_capnp
+
+
+class Server(test_capability_capnp.TestInterface.Server):
+
+    def __init__(self, val=1):
+        self.val = val
+
+    def foo(self, i, j, **kwargs):
+        return str(i * 5 + self.val)
+
+
+def server(write_end):
+    server = capnp.TwoPartyServer(write_end, bootstrap=Server(100))
+
+
+def client(read_end):
+    client = capnp.TwoPartyClient(read_end)
+
+    cap = client.bootstrap()
+    cap = cap.cast_as(test_capability_capnp.TestInterface)
+
+    remote = cap.foo(i=5)
+    response = remote.wait()
+
+    assert response.x == '125'
+
+
+if __name__ == '__main__':
+    read_end, write_end = socket.socketpair(socket.AF_UNIX)
+    # This is a toy example using socketpair.
+    # In real situations, you can use any socket.
+
+    server(write_end)
+    client(read_end)
+```
+
 ## Common Problems
 
 If you get an error on installation like:
@@ -140,15 +169,6 @@ If you get an error on installation like:
     gcc-4.8: fatal error: no input files
 
 Then you have too old a version of setuptools. Run `pip install -U setuptools` then try again.
-
-
-An error like:
-
-    ...
-    capnp/capnp.cpp:312:10: fatal error: 'capnp/dynamic.h' file not found
-    #include "capnp/dynamic.h"
-
-Means your sytem can't find the installed the Cap'n Proto C++ library. If you haven't installed it yet, please follow the directions at the [official installation docs](http://kentonv.github.io/capnproto/install.html). Otherwise trying `LDFLAGS=-L/usr/local/lib CPPFLAGS=-I/usr/local/include pip install pycapnp` may fix the problem for you.
 
 
 [![Build Status](https://travis-ci.org/jparyani/pycapnp.png?branch=develop)](https://travis-ci.org/jparyani/pycapnp)
