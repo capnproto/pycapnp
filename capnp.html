@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -7,15 +6,15 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>API Reference &mdash; capnp 0.4.3 documentation</title>
+    <title>API Reference &mdash; capnp 0.5.4 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
-        VERSION:     '0.4.3',
+        URL_ROOT:    './',
+        VERSION:     '0.5.4',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.4.3 documentation" href="index.html" />
+    <link rel="top" title="capnp 0.5.4 documentation" href="index.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
@@ -40,7 +39,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.4.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.5.4 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -98,7 +97,7 @@ one yourself, but you may end up using some of their member methods.</p>
 </div>
 <dl class="class">
 <dt id="capnp._StructModule">
-<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_StructModule</tt><a class="headerlink" href="#capnp._StructModule" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_StructModule</tt><big>(</big><em>self</em>, <em>schema</em>, <em>name</em><big>)</big><a class="headerlink" href="#capnp._StructModule" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="capnp._StructModule.from_bytes">
 <tt class="descname">from_bytes</tt><big>(</big><em>self</em>, <em>buf</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em>, <em>builder=False</em><big>)</big><a class="headerlink" href="#capnp._StructModule.from_bytes" title="Permalink to this definition">¶</a></dt>
@@ -228,6 +227,50 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="capnp._StructModule.read_multiple_bytes">
+<tt class="descname">read_multiple_bytes</tt><big>(</big><em>self</em>, <em>buf</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.read_multiple_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterable, that when traversed will return Readers for messages.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>buf</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#buffer" title="(in Python v2.7)"><em>buffer</em></a>) &#8211; Any Python object that supports the buffer interface.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Iterable with elements of <a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="capnp._StructModule.read_multiple_bytes_packed">
+<tt class="descname">read_multiple_bytes_packed</tt><big>(</big><em>self</em>, <em>buf</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.read_multiple_bytes_packed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterable, that when traversed will return Readers for messages.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>buf</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#buffer" title="(in Python v2.7)"><em>buffer</em></a>) &#8211; Any Python object that supports the buffer interface.</li>
+<li><strong>traversal_limit_in_words</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</li>
+<li><strong>nesting_limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Limits how many total words of data are allowed to be traversed. Default is 64.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Iterable with elements of <a class="reference internal" href="#capnp._DynamicStructReader" title="capnp._DynamicStructReader"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructReader</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="capnp._StructModule.read_multiple_packed">
 <tt class="descname">read_multiple_packed</tt><big>(</big><em>self</em>, <em>file</em>, <em>traversal_limit_in_words=None</em>, <em>nesting_limit=None</em><big>)</big><a class="headerlink" href="#capnp._StructModule.read_multiple_packed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an iterable, that when traversed will return Readers for messages.</p>
@@ -275,7 +318,7 @@ one yourself, but you may end up using some of their member methods.</p>
 
 <dl class="class">
 <dt id="capnp._InterfaceModule">
-<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_InterfaceModule</tt><a class="headerlink" href="#capnp._InterfaceModule" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">_InterfaceModule</tt><big>(</big><em>self</em>, <em>schema</em>, <em>name</em><big>)</big><a class="headerlink" href="#capnp._InterfaceModule" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -294,7 +337,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <dl class="method">
 <dt id="capnp._DynamicStructReader.as_builder">
 <tt class="descname">as_builder</tt><big>(</big><em>self</em>, <em>num_first_segment_words=None</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.as_builder" title="Permalink to this definition">¶</a></dt>
-<dd><p>A method for casting this Builder to a Reader</p>
+<dd><p>A method for casting this Reader to a Builder</p>
 <p>This is a copying operation with respect to the message&#8217;s buffer. Changes in the new builder will not reflect in the original reader.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -322,7 +365,7 @@ one yourself, but you may end up using some of their member methods.</p>
 
 <dl class="method">
 <dt id="capnp._DynamicStructReader.to_dict">
-<tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em>, <em>ordered=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -342,7 +385,7 @@ one yourself, but you may end up using some of their member methods.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string/enum corresponding to what field is set in the union</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this struct doesn&#8217;t contain a union</td>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if this struct doesn&#8217;t contain a union</td>
 </tr>
 </tbody>
 </table>
@@ -458,6 +501,11 @@ one yourself, but you may end up using some of their member methods.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="capnp._DynamicStructBuilder.from_dict">
+<tt class="descname">from_dict</tt><big>(</big><em>self</em>, <em>dict d</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.from_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="capnp._DynamicStructBuilder.init">
 <tt class="descname">init</tt><big>(</big><em>self</em>, <em>field</em>, <em>size=None</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.init" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method for initializing fields that are of type union/struct/list</p>
@@ -475,7 +523,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicStructBuilder</span></tt></a> or <a class="reference internal" href="#capnp._DynamicListBuilder" title="capnp._DynamicListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicListBuilder</span></tt></a></p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if the field isn&#8217;t in this struct</p>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if the field isn&#8217;t in this struct</p>
 </td>
 </tr>
 </tbody>
@@ -499,7 +547,7 @@ one yourself, but you may end up using some of their member methods.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><tt class="xref py py-class docutils literal"><span class="pre">_DynamicResizableListBuilder</span></tt></a></td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if the field isn&#8217;t in this struct</td>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if the field isn&#8217;t in this struct</td>
 </tr>
 </tbody>
 </table>
@@ -528,7 +576,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bytes</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this isn&#8217;t the message&#8217;s root struct.</td>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if this isn&#8217;t the message&#8217;s root struct.</td>
 </tr>
 </tbody>
 </table>
@@ -541,7 +589,7 @@ one yourself, but you may end up using some of their member methods.</p>
 
 <dl class="method">
 <dt id="capnp._DynamicStructBuilder.to_dict">
-<tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">to_dict</tt><big>(</big><em>self</em>, <em>verbose=False</em>, <em>ordered=False</em><big>)</big><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -561,7 +609,7 @@ one yourself, but you may end up using some of their member methods.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string/enum corresponding to what field is set in the union</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this struct doesn&#8217;t contain a union</td>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if this struct doesn&#8217;t contain a union</td>
 </tr>
 </tbody>
 </table>
@@ -581,7 +629,7 @@ message&#8217;s root struct.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">void</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this isn&#8217;t the message&#8217;s root struct.</td>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if this isn&#8217;t the message&#8217;s root struct.</td>
 </tr>
 </tbody>
 </table>
@@ -601,7 +649,7 @@ the message&#8217;s root struct.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">void</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises :</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if this isn&#8217;t the message&#8217;s root struct.</td>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if this isn&#8217;t the message&#8217;s root struct.</td>
 </tr>
 </tbody>
 </table>
@@ -772,64 +820,39 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 
 <dl class="class">
 <dt id="capnp.KjException">
-<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">KjException</tt><a class="headerlink" href="#capnp.KjException" title="Permalink to this definition">¶</a></dt>
-<dd><p>KjException is a wrapper of the internal C++ exception type. There are 2 enums, <cite>Nature</cite> and <cite>Durability</cite>, listed below, and a bunch of fields</p>
+<em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">KjException</tt><big>(</big><em>self</em>, <em>message=None</em>, <em>nature=None</em>, <em>durability=None</em>, <em>wrapper=None</em><big>)</big><a class="headerlink" href="#capnp.KjException" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException is a wrapper of the internal C++ exception type. There is an enum named <cite>Type</cite> listed below, and a bunch of fields</p>
 <dl class="class">
-<dt id="capnp.KjException.Durability">
-<em class="property">class </em><tt class="descname">Durability</tt><a class="headerlink" href="#capnp.KjException.Durability" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp.KjException.Type">
+<em class="property">class </em><tt class="descname">Type</tt><a class="headerlink" href="#capnp.KjException.Type" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
-<dt id="capnp.KjException.Durability.OVERLOADED">
-<tt class="descname">OVERLOADED</tt><em class="property"> = 'OVERLOADED'</em><a class="headerlink" href="#capnp.KjException.Durability.OVERLOADED" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp.KjException.Type.DISCONNECTED">
+<tt class="descname">DISCONNECTED</tt><em class="property"> = 'DISCONNECTED'</em><a class="headerlink" href="#capnp.KjException.Type.DISCONNECTED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="capnp.KjException.Durability.PERMANENT">
-<tt class="descname">PERMANENT</tt><em class="property"> = 'PERMANENT'</em><a class="headerlink" href="#capnp.KjException.Durability.PERMANENT" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp.KjException.Type.FAILED">
+<tt class="descname">FAILED</tt><em class="property"> = 'FAILED'</em><a class="headerlink" href="#capnp.KjException.Type.FAILED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="capnp.KjException.Durability.TEMPORARY">
-<tt class="descname">TEMPORARY</tt><em class="property"> = 'TEMPORARY'</em><a class="headerlink" href="#capnp.KjException.Durability.TEMPORARY" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp.KjException.Type.OTHER">
+<tt class="descname">OTHER</tt><em class="property"> = 'OTHER'</em><a class="headerlink" href="#capnp.KjException.Type.OTHER" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="capnp.KjException.Durability.reverse_mapping">
-<tt class="descname">reverse_mapping</tt><em class="property"> = {'PERMANENT': 'PERMANENT', 'TEMPORARY': 'TEMPORARY', 'OVERLOADED': 'OVERLOADED'}</em><a class="headerlink" href="#capnp.KjException.Durability.reverse_mapping" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="capnp.KjException.Nature">
-<em class="property">class </em><tt class="descclassname">KjException.</tt><tt class="descname">Nature</tt><a class="headerlink" href="#capnp.KjException.Nature" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="capnp.KjException.Nature.LOCAL_BUG">
-<tt class="descname">LOCAL_BUG</tt><em class="property"> = 'LOCAL_BUG'</em><a class="headerlink" href="#capnp.KjException.Nature.LOCAL_BUG" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp.KjException.Type.OVERLOADED">
+<tt class="descname">OVERLOADED</tt><em class="property"> = 'OVERLOADED'</em><a class="headerlink" href="#capnp.KjException.Type.OVERLOADED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="capnp.KjException.Nature.NETWORK_FAILURE">
-<tt class="descname">NETWORK_FAILURE</tt><em class="property"> = 'NETWORK_FAILURE'</em><a class="headerlink" href="#capnp.KjException.Nature.NETWORK_FAILURE" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp.KjException.Type.UNIMPLEMENTED">
+<tt class="descname">UNIMPLEMENTED</tt><em class="property"> = 'UNIMPLEMENTED'</em><a class="headerlink" href="#capnp.KjException.Type.UNIMPLEMENTED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="capnp.KjException.Nature.OS_ERROR">
-<tt class="descname">OS_ERROR</tt><em class="property"> = 'OS_ERROR'</em><a class="headerlink" href="#capnp.KjException.Nature.OS_ERROR" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="capnp.KjException.Nature.OTHER">
-<tt class="descname">OTHER</tt><em class="property"> = 'OTHER'</em><a class="headerlink" href="#capnp.KjException.Nature.OTHER" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="capnp.KjException.Nature.PRECONDITION">
-<tt class="descname">PRECONDITION</tt><em class="property"> = 'PRECONDITION'</em><a class="headerlink" href="#capnp.KjException.Nature.PRECONDITION" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="capnp.KjException.Nature.reverse_mapping">
-<tt class="descname">reverse_mapping</tt><em class="property"> = {'PRECONDITION': 'PRECONDITION', 'LOCAL_BUG': 'LOCAL_BUG', 'NETWORK_FAILURE': 'NETWORK_FAILURE', 'OS_ERROR': 'OS_ERROR', 'OTHER': 'OTHER'}</em><a class="headerlink" href="#capnp.KjException.Nature.reverse_mapping" title="Permalink to this definition">¶</a></dt>
+<dt id="capnp.KjException.Type.reverse_mapping">
+<tt class="descname">reverse_mapping</tt><em class="property"> = {'FAILED': 'FAILED', 'UNIMPLEMENTED': 'UNIMPLEMENTED', 'OVERLOADED': 'OVERLOADED', 'DISCONNECTED': 'DISCONNECTED', 'OTHER': 'OTHER'}</em><a class="headerlink" href="#capnp.KjException.Type.reverse_mapping" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -843,12 +866,6 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 <dt id="capnp.KjException.description">
 <tt class="descclassname">KjException.</tt><tt class="descname">description</tt><a class="headerlink" href="#capnp.KjException.description" title="Permalink to this definition">¶</a></dt>
 <dd><p>KjException.description(self)</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="capnp.KjException.durability">
-<tt class="descclassname">KjException.</tt><tt class="descname">durability</tt><a class="headerlink" href="#capnp.KjException.durability" title="Permalink to this definition">¶</a></dt>
-<dd><p>KjException.durability(self)</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -869,9 +886,9 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="capnp.KjException.nature">
-<tt class="descclassname">KjException.</tt><tt class="descname">nature</tt><a class="headerlink" href="#capnp.KjException.nature" title="Permalink to this definition">¶</a></dt>
-<dd><p>KjException.nature(self)</p>
+<dt id="capnp.KjException.type">
+<tt class="descclassname">KjException.</tt><tt class="descname">type</tt><a class="headerlink" href="#capnp.KjException.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>KjException.type(self)</p>
 </dd></dl>
 
 </dd></dl>
@@ -882,7 +899,7 @@ Class for building growable Cap&#8217;n Proto Lists</p>
 <h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="capnp.load">
-<tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">capnp.</tt><tt class="descname">load</tt><big>(</big><em>file_name</em>, <em>display_name=None</em>, <em>imports=[]</em><big>)</big><a class="headerlink" href="#capnp.load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a Cap&#8217;n Proto schema from a file</p>
 <p>You will have to load a schema before you can begin doing anything
 meaningful with this library. Loading a schema is much like loading
@@ -913,7 +930,7 @@ for the loaded schema. By default, it&#8217;s just os.path.basename(file_name)</
 parsed schemas and constants with . syntax</p>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><p class="first last"><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.ValueError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.ValueError</span></tt></a> if <cite>file_name</cite> doesn&#8217;t exist</p>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if <cite>file_name</cite> doesn&#8217;t exist</p>
 </td>
 </tr>
 </tbody>
@@ -922,7 +939,7 @@ parsed schemas and constants with . syntax</p>
 
 <dl class="function">
 <dt id="capnp.add_import_hook">
-<tt class="descclassname">capnp.</tt><tt class="descname">add_import_hook</tt><big>(</big><em>additional_paths=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.add_import_hook" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">capnp.</tt><tt class="descname">add_import_hook</tt><big>(</big><em>additional_paths=[]</em><big>)</big><a class="headerlink" href="#capnp.add_import_hook" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a hook to the python import system, so that Cap&#8217;n Proto modules are directly importable</p>
 <p>After calling this function, you can use the python import syntax to directly import capnproto schemas. This function is automatically called upon first import of <cite>capnp</cite>, so you will typically never need to use this function.:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
@@ -963,6 +980,11 @@ parsed schemas and constants with . syntax</p>
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">TwoPartyClient</tt><a class="headerlink" href="#capnp.TwoPartyClient" title="Permalink to this definition">¶</a></dt>
 <dd><p>TwoPartyClient(socket, restorer=None)</p>
 <dl class="method">
+<dt id="capnp.TwoPartyClient.bootstrap">
+<tt class="descname">bootstrap</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyClient.bootstrap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="capnp.TwoPartyClient.ez_restore">
 <tt class="descname">ez_restore</tt><big>(</big><em>self</em>, <em>textId</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyClient.ez_restore" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -982,7 +1004,7 @@ parsed schemas and constants with . syntax</p>
 <dl class="class">
 <dt id="capnp.TwoPartyServer">
 <em class="property">class </em><tt class="descclassname">capnp.</tt><tt class="descname">TwoPartyServer</tt><a class="headerlink" href="#capnp.TwoPartyServer" title="Permalink to this definition">¶</a></dt>
-<dd><p>TwoPartyServer(socket, restorer, server_socket=None)</p>
+<dd><p>TwoPartyServer(socket, restorer=None, server_socket=None, bootstrap=None)</p>
 <dl class="method">
 <dt id="capnp.TwoPartyServer.on_disconnect">
 <tt class="descname">on_disconnect</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#capnp.TwoPartyServer.on_disconnect" title="Permalink to this definition">¶</a></dt>
@@ -1013,6 +1035,11 @@ parsed schemas and constants with . syntax</p>
 <dl class="method">
 <dt id="capnp.Promise.attach">
 <tt class="descname">attach</tt><big>(</big><em>self</em>, <em>*args</em><big>)</big><a class="headerlink" href="#capnp.Promise.attach" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="capnp.Promise.cancel">
+<tt class="descname">cancel</tt><big>(</big><em>self</em>, <em>numParents=1</em><big>)</big><a class="headerlink" href="#capnp.Promise.cancel" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -1066,7 +1093,7 @@ parsed schemas and constants with . syntax</p>
 <p>Do not use this class unless you&#8217;re sure you know what you&#8217;re doing. Use the convenience method <a class="reference internal" href="#capnp.load" title="capnp.load"><tt class="xref py py-func docutils literal"><span class="pre">load()</span></tt></a> instead.</p>
 <dl class="method">
 <dt id="capnp.SchemaParser.load">
-<tt class="descname">load</tt><big>(</big><em>self</em>, <em>file_name</em>, <em>display_name=None</em>, <em>imports=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="headerlink" href="#capnp.SchemaParser.load" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">load</tt><big>(</big><em>self</em>, <em>file_name</em>, <em>display_name=None</em>, <em>imports=[]</em><big>)</big><a class="headerlink" href="#capnp.SchemaParser.load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a Cap&#8217;n Proto schema from a file</p>
 <p>You will have to load a schema before you can begin doing anything
 meaningful with this library. Loading a schema is much like loading
@@ -1098,9 +1125,9 @@ for the loaded schema. By default, it&#8217;s just os.path.basename(file_name)</
 parsed schemas and constants with . syntax</p>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Raises :</th><td class="field-body"><ul class="first last simple">
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
 <li><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.IOError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.IOError</span></tt></a> if <cite>file_name</cite> doesn&#8217;t exist</li>
-<li><a class="reference external" href="http://docs.python.org/library/exceptions.html#exceptions.RuntimeError" title="(in Python v2.7)"><tt class="xref py py-exc docutils literal"><span class="pre">exceptions.RuntimeError</span></tt></a> if the Cap&#8217;n Proto C++ library has any problems loading the schema</li>
+<li><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><tt class="xref py py-exc docutils literal"><span class="pre">KjException</span></tt></a> if the Cap&#8217;n Proto C++ library has any problems loading the schema</li>
 </ul>
 </td>
 </tr>
@@ -1184,12 +1211,12 @@ parsed schemas and constants with . syntax</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.4.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">capnp 0.5.4 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2013, Author.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>
 </html>
