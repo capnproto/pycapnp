@@ -45,6 +45,9 @@ write_version_py()
 try:
     import pypandoc
     long_description = pypandoc.convert('README.md', 'rst')
+    changelog = pypandoc.convert('CHANGELOG.md', 'rst')
+    changelog = '\nChangelog\n=============\n' + changelog
+    long_description += changelog
 except (IOError, ImportError):
     long_description = ''
 
