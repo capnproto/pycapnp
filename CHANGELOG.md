@@ -1,3 +1,7 @@
+## v0.5.5 (2015-03-06)
+- Update bundled C++ libcapnp to v0.5.1.2 security release
+
+
 ## v0.5.4 (2015-03-02)
 - Update bundled C++ libcapnp to v0.5.1.1 security release
 - Add bootstrap RPC methods
