@@ -14,7 +14,7 @@ _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
 MINOR = 5
-MICRO = 4
+MICRO = 5
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
@@ -45,6 +45,9 @@ write_version_py()
 try:
     import pypandoc
     long_description = pypandoc.convert('README.md', 'rst')
+    changelog = pypandoc.convert('CHANGELOG.md', 'rst')
+    changelog = '\nChangelog\n=============\n' + changelog
+    long_description += changelog
 except (IOError, ImportError):
     long_description = ''
 
