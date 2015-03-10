@@ -30,6 +30,7 @@ cdef extern from "capnp/helpers/rpcHelper.h":
     Capability.Client restoreHelper(RpcSystem&, MessageReader&)
     Capability.Client restoreHelper(RpcSystem&, AnyPointer.Reader&)
     Capability.Client restoreHelper(RpcSystem&, AnyPointer.Builder&)
+    Capability.Client bootstrapHelper(RpcSystem&)
     RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
     PyPromise connectServer(TaskSet &, PyRestorer &, AsyncIoContext *, StringPtr)
 

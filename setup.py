@@ -1,21 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-use_cython = True
-try:
-    from Cython.Build import cythonize
-    import Cython
-except ImportError:
-    use_cython = False
-
-if use_cython and Cython.__version__ < '0.19.1':
-    use_cython = False
-
-import pkg_resources
-setuptools_version = pkg_resources.get_distribution("setuptools").version
-if setuptools_version < '0.8':
-    # older versions of setuptools don't work with cython
-    use_cython = False
+use_cython = False
 
 from distutils.core import setup
 import os
@@ -23,16 +9,12 @@ import sys
 from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
 from distutils.errors import CompileError
 from distutils.extension import Extension
-if use_cython:
-    from Cython.Distutils import build_ext as build_ext_c
-else:
-    from distutils.command.build_ext import build_ext as build_ext_c
 
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
 MINOR = 5
-MICRO = 2
+MICRO = 4
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
@@ -78,6 +60,11 @@ class clean(_clean):
             except OSError:
                 pass
 
+# set use_cython if lib/capnp.cpp is not detected
+capnp_compiled_file = os.path.join(os.path.dirname(__file__), 'capnp', 'lib', 'capnp.cpp')
+if not os.path.isfile(capnp_compiled_file):
+    use_cython = True
+
 # hack to parse commandline arguments
 force_bundled_libcapnp = "--force-bundled-libcapnp" in sys.argv
 if force_bundled_libcapnp:
@@ -85,15 +72,15 @@ if force_bundled_libcapnp:
 force_system_libcapnp = "--force-system-libcapnp" in sys.argv
 if force_system_libcapnp:
     sys.argv.remove("--force-system-libcapnp")
-disable_cython = "--disable-cython" in sys.argv
-if disable_cython:
-    sys.argv.remove("--disable-cython")
-    use_cython = False
 force_cython = "--force-cython" in sys.argv
 if force_cython:
     sys.argv.remove("--force-cython")
     use_cython = True
 
+if use_cython:
+    from Cython.Distutils import build_ext as build_ext_c
+else:
+    from distutils.command.build_ext import build_ext as build_ext_c
 
 class build_libcapnp_ext(build_ext_c):
     def build_extension(self, ext):
@@ -127,6 +114,8 @@ class build_libcapnp_ext(build_ext_c):
         return build_ext_c.run(self)
 
 if use_cython:
+    from Cython.Build import cythonize
+    import Cython
     extensions = cythonize('capnp/lib/*.pyx')
 else:
     extensions = [Extension("capnp.lib.capnp", ["capnp/lib/capnp.cpp"],

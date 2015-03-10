@@ -1,3 +1,14 @@
+## v0.5.4 (2015-03-02)
+- Update bundled C++ libcapnp to v0.5.1.1 security release
+- Add bootstrap RPC methods
+- Fix possible segfault when importing multiple schemas
+
+
+## v0.5.3 (2015-02-23)
+- Fix possible crash due to bad destructor ordering in MessageReader (by @JohnEmhoff)
+- Default to no longer using cython
+
+
 ## v0.5.2 (2015-02-20)
 - Add read\_multiple\_bytes/read\_multiple\_bytes\_packed methods
 - Added Python 3.4 to the travis build matrix

@@ -2253,6 +2253,9 @@ cdef class TwoPartyClient:
 
         return self.restore(ref)
 
+    cpdef bootstrap(self) except +reraise_kj_exception:
+        return _CapabilityClient()._init(helpers.bootstrapHelper(deref(self.thisptr)), self)
+
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
@@ -2263,12 +2266,18 @@ cdef class TwoPartyServer:
     cdef public _Restorer _restorer
     cdef public _AsyncIoStream _stream
     cdef object _port
-    cdef public object port_promise
+    cdef public object port_promise, _bootstrap
     cdef capnp.TaskSet * _task_set
     cdef capnp.ErrorHandler _error_handler
 
-    def __init__(self, socket, restorer, server_socket=None):
-        self._restorer = _convert_restorer(restorer)
+    def __init__(self, socket, restorer=None, server_socket=None, bootstrap=None):
+        if not restorer and not bootstrap:
+            raise KjException("You must provide either a bootstrap interface or a restorer (deperecated) to a server constructor.")
+
+        cdef _InterfaceSchema schema
+        self._restorer = None
+        self._bootstrap = None
+
         if isinstance(socket, basestring):
             self._connect(socket)
         else:
@@ -2277,11 +2286,19 @@ cdef class TwoPartyServer:
             self._server_socket = server_socket
             self._port = 0
             self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
-            self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
+
+            if bootstrap:
+                self._bootstrap = bootstrap
+                schema = bootstrap.schema
+                self.thisptr = new RpcSystem(makeRpcServerBootstrap(deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
+            elif restorer:
+                self._restorer = _convert_restorer(restorer)
+                self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
             Py_INCREF(self._orig_stream)
             Py_INCREF(self._stream)
             Py_INCREF(self._restorer)
+            Py_INCREF(self._bootstrap)
             Py_INCREF(self._network)
             self._disconnect_promise = self.on_disconnect().then(self._decref)
 
@@ -2292,6 +2309,7 @@ cdef class TwoPartyServer:
         self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
 
     def _decref(self):
+        Py_DECREF(self._bootstrap)
         Py_DECREF(self._restorer)
         Py_DECREF(self._orig_stream)
         Py_DECREF(self._stream)
@@ -2317,8 +2335,6 @@ cdef class TwoPartyServer:
                 return self._port
             else:
                 return self._port
-
-    # TODO: add restore functionality here?
 
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
@@ -2963,6 +2979,23 @@ class _EnumModule(object):
         for name, val in schema.enumerants.items():
             setattr(self, name, val)
 
+cdef class _StringArrayPtr:
+    cdef StringPtr * thisptr
+    cdef object parent
+    cdef size_t size
+
+    def __cinit__(self, size_t size, parent):
+        self.size = size
+        self.thisptr = <StringPtr *>malloc(sizeof(StringPtr) * size)
+        self.parent = parent
+
+    def __dealloc__(self):
+        free(self.thisptr)
+
+    cdef ArrayPtr[StringPtr] asArrayPtr(self) except +reraise_kj_exception:
+        return ArrayPtr[StringPtr](self.thisptr, self.size)
+
+
 cdef class SchemaParser:
     """A class for loading Cap'n Proto schema files.
 
@@ -2970,26 +3003,34 @@ cdef class SchemaParser:
     """
     cdef C_SchemaParser * thisptr
     cdef public dict modules_by_id
+    cdef list _all_imports
+    cdef _StringArrayPtr _last_import_array
 
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
         self.modules_by_id = {}
+        self._all_imports = []
 
     def __dealloc__(self):
         del self.thisptr
 
     cpdef _parse_disk_file(self, displayName, diskPath, imports) except +reraise_kj_exception:
-        cdef StringPtr * importArray = <StringPtr *>malloc(sizeof(StringPtr) * len(imports))
+        cdef _StringArrayPtr importArray
 
-        for i in range(len(imports)):
-            importArray[i] = StringPtr(imports[i])
+        if self._last_import_array and self._last_import_array.parent == imports:
+            importArray = self._last_import_array
+        else:
+            importArray = _StringArrayPtr(len(imports), imports)
 
-        cdef ArrayPtr[StringPtr] importsPtr = ArrayPtr[StringPtr](importArray, <size_t>len(imports))
+            for i in range(len(imports)):
+                curr_import = imports[i]
+                importArray.thisptr[i] = StringPtr(curr_import, <size_t>len(curr_import))
+
+            self._all_imports.append(importArray)
+            self._last_import_array = importArray
 
         ret = _ParsedSchema()
-        ret._init_child(self.thisptr.parseDiskFile(displayName, diskPath, importsPtr))
-
-        free(importArray)
+        ret._init_child(self.thisptr.parseDiskFile(displayName, diskPath, importArray.asArrayPtr()))
 
         return ret
 
@@ -3229,8 +3270,7 @@ cdef class _MessageReader:
     """
     cdef public object _parent
     cdef schema_cpp.MessageReader * thisptr
-    def __dealloc__(self):
-        del self.thisptr
+
     def __init__(self):
         raise NotImplementedError("This is an abstract base class")
 
@@ -3290,6 +3330,10 @@ cdef class _StreamFdMessageReader(_MessageReader):
 
         self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
 
+    def __dealloc__(self):
+        del self.thisptr
+
+
 cdef class _PackedMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
@@ -3318,6 +3362,10 @@ cdef class _PackedMessageReader(_MessageReader):
         self.thisptr = new schema_cpp.PackedMessageReader(stream, opts)
         return self
 
+    def __dealloc__(self):
+        del self.thisptr
+
+
 cdef class _PackedMessageReaderBytes(_MessageReader):
     cdef schema_cpp.ArrayInputStream * stream
 
@@ -3340,6 +3388,7 @@ cdef class _PackedMessageReaderBytes(_MessageReader):
         self.thisptr = new schema_cpp.PackedMessageReader(deref(self.stream), opts)
 
     def __dealloc__(self):
+        del self.thisptr
         del self.stream
 
 cdef class _InputMessageReader(_MessageReader):
@@ -3370,6 +3419,10 @@ cdef class _InputMessageReader(_MessageReader):
         self.thisptr = new schema_cpp.InputStreamMessageReader(stream, opts)
         return self
 
+    def __dealloc__(self):
+        del self.thisptr
+
+
 cdef class _PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
@@ -3391,6 +3444,10 @@ cdef class _PackedFdMessageReader(_MessageReader):
             opts.nestingLimit = nesting_limit
 
         self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
+
+    def __dealloc__(self):
+        del self.thisptr
+
 
 cdef class _MultipleMessageReader:
     cdef schema_cpp.FdInputStream * stream
@@ -3573,6 +3630,10 @@ cdef class _FlatArrayMessageReader(_MessageReader):
             self._object_to_pin = buf
 
         self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
+
+    def __dealloc__(self):
+        del self.thisptr
+
 
 @cython.internal
 cdef class _FlatMessageBuilder(_MessageBuilder):

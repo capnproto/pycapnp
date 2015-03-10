@@ -29,7 +29,7 @@ Install with `pip install pycapnp`. You can set the CC environment variable to c
 Or you can clone the repo like so:
 
     git clone https://github.com/jparyani/pycapnp.git
-    pip install ./pycapnp
+    pip install --install-option '--force-cython' ./pycapnp
 
 Note: for OSX, if using clang from Xcode 5, you will need to set `CFLAGS` like so:
 
