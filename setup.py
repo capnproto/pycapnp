@@ -32,7 +32,7 @@ _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
 MINOR = 5
-MICRO = 1
+MICRO = 2
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
@@ -85,6 +85,14 @@ if force_bundled_libcapnp:
 force_system_libcapnp = "--force-system-libcapnp" in sys.argv
 if force_system_libcapnp:
     sys.argv.remove("--force-system-libcapnp")
+disable_cython = "--disable-cython" in sys.argv
+if disable_cython:
+    sys.argv.remove("--disable-cython")
+    use_cython = False
+force_cython = "--force-cython" in sys.argv
+if force_cython:
+    sys.argv.remove("--force-cython")
+    use_cython = True
 
 
 class build_libcapnp_ext(build_ext_c):
@@ -151,7 +159,7 @@ setup(
     download_url = 'https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
     keywords = ['capnp', 'capnproto', "Cap'n Proto"],
     classifiers = [
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: MacOS :: MacOS X',

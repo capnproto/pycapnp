@@ -1,3 +1,9 @@
+## v0.5.2 (2015-02-20)
+- Add read\_multiple\_bytes/read\_multiple\_bytes\_packed methods
+- Added Python 3.4 to the travis build matrix
+- Bump version for bundled C++ libcapnp to v0.5.1
+
+
 ## v0.5.1 (2014-12-27)
 - Remove installation dependency on cython. We now have no dependencies since libcapnp will automatically build as well.
 

@@ -32,6 +32,9 @@ nosetests.xml
 .project
 .pydevproject
 
+# IntelliJ 
+.idea/
+
 # Cpp files
 capnp/*.cpp
 

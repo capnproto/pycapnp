@@ -4,22 +4,28 @@ python:
   - 2.6
   - 2.7
   - 3.3
+  - 3.4
   - pypy
 
 env:
   - BUILD_CAPNP=true
   - BUILD_CAPNP=
 
+# skip testing for pypy + BUILD_CAPNP=false since it's failing in travis for some reason
+matrix:
+  exclude:
+    - python: pypy
+      env: BUILD_CAPNP=
+
 compiler: gcc
 
 before_install:
   - buildutils/setup_travis.sh
-  - pip install -U setuptools
-  - pip install cython
-  - pip install pytest
+  - travis_retry pip install -U setuptools
+  - travis_retry pip install cython==0.21.2
+  - travis_retry pip install pytest
 
 install:
-  - pip install --editable .
+  - travis_retry pip install --editable .
 
-# skip testing for pypy + BUILD_CAPNP=false since it's failing in travis for some reason
-script: if [[ $TRAVIS_PYTHON_VERSION != 'pypy' || $BUILD_CAPNP == 'true' ]]; then py.test test; fi
+script: py.test test;
