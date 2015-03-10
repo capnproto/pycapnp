@@ -10,7 +10,7 @@ python:
 env:
   - BUILD_CAPNP=
   - BUILD_CAPNP=true
-  - BUILD_CAPNP=true CXXFLAGS="-g"
+  - BUILD_CAPNP=true CFLAGS="-DKJ_DEBUG"
 
 # skip testing for pypy + BUILD_CAPNP=false since it's failing in travis for some reason
 matrix:
