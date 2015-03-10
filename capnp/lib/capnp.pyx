@@ -2697,9 +2697,9 @@ types.Data = _data
 # _list.thisptr = capnp.SchemaType(capnp.TypeWhichLIST)
 # types.list = _list
 
-cdef _SchemaType _enum = _SchemaType()
-_enum.thisptr = capnp.SchemaType(capnp.TypeWhichENUM)
-types.Enum = _enum
+# cdef _SchemaType _enum = _SchemaType()
+# _enum.thisptr = capnp.SchemaType(capnp.TypeWhichENUM)
+# types.Enum = _enum
 
 # cdef _SchemaType _struct = _SchemaType()
 # _struct.thisptr = capnp.SchemaType(capnp.TypeWhichSTRUCT)
