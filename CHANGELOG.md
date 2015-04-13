@@ -1,3 +1,8 @@
+## v0.5.6 (2015-04-13)
+- Fix a serious bug in TwoPartyServer that was preventing it from working when passed a string address.
+- Fix bugs that were exposed by defining KJDEBUG (thanks @davidcarne for finding this)
+
+
 ## v0.5.5 (2015-03-06)
 - Update bundled C++ libcapnp to v0.5.1.2 security release
 
