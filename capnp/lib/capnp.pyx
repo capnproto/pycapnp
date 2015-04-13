@@ -2204,13 +2204,18 @@ cdef class TwoPartyClient:
         del self.thisptr
 
     cpdef _connect(self, host_string):
-        host, port = host_string.split(':')
+        if host_string.startswith('unix:'):
+            path = host_string[5:]
+            sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+            sock.connect(path)
+        else:
+            host, port = host_string.split(':')
 
-        sock = _socket.create_connection((host, port))
+            sock = _socket.create_connection((host, port))
 
-        # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
-        # neccessary, but it speeds things up.
-        sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
+            # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
+            # neccessary, but it speeds things up.
+            sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         return sock
 
     cpdef restore(self, objectId) except +reraise_kj_exception:

@@ -2,9 +2,12 @@ import capnp
 import os
 import socket
 import gc
+import subprocess
+import time
 
 import sys  # add examples dir to sys.path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'examples'))
+examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
+sys.path.append(examples_dir)
 import calculator_client
 import calculator_server
 
@@ -15,6 +18,31 @@ def test_calculator():
     server = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
     calculator_client.main(read)
 
+
+def run_subprocesses(address):
+    server = subprocess.Popen([examples_dir + '/calculator_server.py', address])
+    time.sleep(.1)  # Give the server some small amount of time to start listening
+    client = subprocess.Popen([examples_dir + '/calculator_client.py', address])
+
+    ret = client.wait()
+    server.kill()
+    assert ret == 0
+
+
+def test_calculator_tcp():
+    address = '127.0.0.1:36431'
+    run_subprocesses(address)
+
+
+def test_calculator_unix():
+    path = '/tmp/pycapnp-test'
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+    address = 'unix:' + path
+    run_subprocesses(address)
 
 def test_calculator_gc():
     def new_evaluate_impl(old_evaluate_impl):
