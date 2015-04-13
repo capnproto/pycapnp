@@ -13,8 +13,8 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
     stdout = f
     if verbose:
       stdout = None
-    cxxflags = os.environ.get('CXXFLAGS', '')
-    os.environ['CXXFLAGS'] = cxxflags + ' -fPIC -O2 -DNDEBUG'
+    cxxflags = os.environ.get('CXXFLAGS', None)
+    os.environ['CXXFLAGS'] = (cxxflags or '') + ' -fPIC -O2 -DNDEBUG'
     conf = subprocess.Popen(['./configure', '--disable-shared', '--prefix', build_dir], cwd=capnp_dir, stdout=stdout)
     returncode = conf.wait()
     if returncode != 0:
@@ -22,5 +22,9 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
 
     make = subprocess.Popen(['make', '-j4', 'install'], cwd=capnp_dir, stdout=stdout)
     returncode = make.wait()
+    if cxxflags is None:
+      del os.environ['CXXFLAGS']
+    else:
+      os.environ['CXXFLAGS'] = cxxflags
     if returncode != 0:
       raise RuntimeError('Make failed')

@@ -2279,7 +2279,7 @@ cdef class TwoPartyServer:
         self._bootstrap = None
 
         if isinstance(socket, basestring):
-            self._connect(socket)
+            self._connect(socket, restorer, bootstrap)
         else:
             self._orig_stream = socket
             self._stream = _FdAsyncIoStream(socket.fileno())
@@ -2302,11 +2302,19 @@ cdef class TwoPartyServer:
             Py_INCREF(self._network)
             self._disconnect_promise = self.on_disconnect().then(self._decref)
 
-    cpdef _connect(self, host_string):
+    cpdef _connect(self, host_string, restorer, bootstrap):
+        cdef _InterfaceSchema schema
         cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>host_string, len(host_string))
         self._task_set = new capnp.TaskSet(self._error_handler)
-        self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
+        if restorer:
+            self._restorer = _convert_restorer(restorer)
+            self.port_promise = Promise()._init(helpers.connectServerRestorer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
+        else:
+            self._bootstrap = bootstrap
+            Py_INCREF(self._bootstrap)
+            schema = bootstrap.schema
+            self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string))
 
     def _decref(self):
         Py_DECREF(self._bootstrap)
@@ -2697,9 +2705,9 @@ types.Data = _data
 # _list.thisptr = capnp.SchemaType(capnp.TypeWhichLIST)
 # types.list = _list
 
-cdef _SchemaType _enum = _SchemaType()
-_enum.thisptr = capnp.SchemaType(capnp.TypeWhichENUM)
-types.Enum = _enum
+# cdef _SchemaType _enum = _SchemaType()
+# _enum.thisptr = capnp.SchemaType(capnp.TypeWhichENUM)
+# types.Enum = _enum
 
 # cdef _SchemaType _struct = _SchemaType()
 # _struct.thisptr = capnp.SchemaType(capnp.TypeWhichSTRUCT)

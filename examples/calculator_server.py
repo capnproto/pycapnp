@@ -130,15 +130,10 @@ given address/port ADDRESS may be '*' to bind to all local addresses.\
     return parser.parse_args()
 
 
-def restore(ref):
-    assert ref.as_text() == 'calculator'
-    return CalculatorImpl()
-
-
 def main():
     address = parse_args().address
 
-    server = capnp.TwoPartyServer(address, restore)
+    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())
     server.run_forever()
 
 if __name__ == '__main__':

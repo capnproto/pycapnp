@@ -39,7 +39,7 @@ def main(host):
     # takes a struct or AnyPointer as an argument), and then cast the returned
     # capability to it's proper type. This casting is due to capabilities not
     # having a reference to their schema
-    calculator = client.ez_restore('calculator').cast_as(calculator_capnp.Calculator)
+    calculator = client.bootstrap().cast_as(calculator_capnp.Calculator)
 
     '''Make a request that just evaluates the literal value 123.
 

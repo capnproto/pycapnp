@@ -12,7 +12,7 @@ import calculator_server
 def test_calculator():
     read, write = socket.socketpair(socket.AF_UNIX)
 
-    server = capnp.TwoPartyServer(write, calculator_server.restore)
+    server = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
     calculator_client.main(read)
 
 
@@ -29,7 +29,7 @@ def test_calculator_gc():
     evaluate_impl_orig = calculator_server.evaluate_impl
     calculator_server.evaluate_impl = new_evaluate_impl(evaluate_impl_orig)
 
-    server = capnp.TwoPartyServer(write, calculator_server.restore)
+    server = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
     calculator_client.main(read)
 
     calculator_server.evaluate_impl = evaluate_impl_orig
