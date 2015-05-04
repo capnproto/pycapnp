@@ -37,3 +37,6 @@ struct AddressBook {
   people @0 :List(Person);
 }
 
+struct NestedList {
+  list @0 :List(List(Int32));
+}

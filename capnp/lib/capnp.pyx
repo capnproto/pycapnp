@@ -534,6 +534,17 @@ cdef class _DynamicListBuilder:
         """
         return _DynamicOrphan()._init(self.thisptr.disown(index), self._parent)
 
+    cpdef init(self, index, size):
+        """A method for initializing an element in a list
+
+        :type index: int
+        :param index: The index of the element in the list
+
+        :type size: int
+        :param size: Size of the element to be initialized.
+        """
+        return to_python_builder(self.thisptr.init(index, size), self._parent)
+
     def __str__(self):
         return <char*>printListBuilder(self.thisptr).flatten().cStr()
 

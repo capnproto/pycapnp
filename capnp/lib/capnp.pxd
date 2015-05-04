@@ -115,6 +115,8 @@ cdef class _DynamicListBuilder:
     cpdef adopt(self, index, _DynamicOrphan orphan)
     cpdef disown(self, index)
 
+    cpdef init(self, index, size)
+
 cdef to_python_reader(C_DynamicValue.Reader self, object parent)
 cdef to_python_builder(C_DynamicValue.Builder self, object parent)
 cdef _to_dict(msg, bint verbose, bint ordered)
