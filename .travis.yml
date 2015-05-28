@@ -1,3 +1,6 @@
+# Use older, non-container infrastructure to allow sudo
+sudo: required
+
 language: python
 
 python:
