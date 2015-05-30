@@ -873,10 +873,10 @@ cdef _to_dict(msg, bint verbose, bint ordered):
 
     return msg
 
+
 cdef _from_list(_DynamicListBuilder msg, list d):
-    cdef size_t count = 0
-    for i in range(len(d)):
-        msg._set(i, d[i])
+    for i, x in enumerate(d):
+        msg._set(i, x)
 
 
 cdef class _DynamicEnum:
