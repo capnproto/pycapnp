@@ -343,3 +343,18 @@ def test_inheritance():
     response = remote.wait()
 
     assert response.x == '26'
+
+
+class TestPassedCap(capability.TestPassedCap.Server):
+    def foo(self, cap, _context, **kwargs):
+        def set_result(res):
+            _context.results.x = res.x
+        return cap.foo(5).then(set_result)
+
+
+def test_null_cap():
+    client = capability.TestPassedCap._new_client(TestPassedCap())
+    assert client.foo(Server()).wait().x == '26'
+
+    with pytest.raises(capnp.KjException):
+        client.foo().wait()

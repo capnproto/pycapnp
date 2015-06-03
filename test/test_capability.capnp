@@ -77,3 +77,7 @@ interface TestTailCallee {
 interface TestTailCaller {
   foo @0 (i :Int32, callee :TestTailCallee) -> TestTailCallee.TailResult;
 }
+
+interface TestPassedCap {
+  foo @0 (cap :TestInterface) -> (x: Text);
+}
