@@ -2352,6 +2352,9 @@ cdef class TwoPartyServer:
 
         wait_forever()
 
+    cpdef bootstrap(self) except +reraise_kj_exception:
+        return _CapabilityClient()._init(helpers.bootstrapHelperServer(deref(self.thisptr)), self)
+
     property port:
         def __get__(self):
             if self._port is None:

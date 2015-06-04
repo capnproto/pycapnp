@@ -80,6 +80,13 @@ capnp::Capability::Client bootstrapHelper(capnp::RpcSystem<capnp::rpc::twoparty:
     return client.bootstrap(hostId);
 }
 
+capnp::Capability::Client bootstrapHelperServer(capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId>& client) {
+    capnp::MallocMessageBuilder hostIdMessage(8);
+    auto hostId = hostIdMessage.initRoot<capnp::rpc::twoparty::SturdyRefHostId>();
+    hostId.setSide(capnp::rpc::twoparty::Side::CLIENT);
+    return client.bootstrap(hostId);
+}
+
 template <typename SturdyRefHostId, typename ProvisionId,
           typename RecipientId, typename ThirdPartyCapId, typename JoinAnswer>
 capnp::RpcSystem<SturdyRefHostId> makeRpcClientWithRestorer(
