@@ -661,6 +661,12 @@ cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
 cdef C_DynamicValue.Reader _extract_dynamic_enum(_DynamicEnum value):
     return C_DynamicValue.Reader(value.thisptr)
 
+cdef C_DynamicValue.Reader _extract_any_pointer(_DynamicObjectReader value):
+    return C_DynamicValue.Reader(value.thisptr)
+
+cdef C_DynamicValue.Reader _extract_any_pointer_builder(_DynamicObjectBuilder value):
+    return C_DynamicValue.Reader(value.thisptr.asReader())
+
 cdef _setBytes(_DynamicSetterClasses thisptr, field, value):
     cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>value, len(value))
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
@@ -726,6 +732,10 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
+    elif value_type is _DynamicObjectReader:
+        thisptr.set(field, _extract_any_pointer(value))
+    elif value_type is _DynamicObjectBuilder:
+        thisptr.set(field, _extract_any_pointer_builder(value))
     else:
         raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
@@ -768,6 +778,10 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
         thisptr.setByField(field.thisptr, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.setByField(field.thisptr, _extract_dynamic_enum(value))
+    elif value_type is _DynamicObjectReader:
+        thisptr.set(field, _extract_any_pointer(value))
+    elif value_type is _DynamicObjectBuilder:
+        thisptr.set(field, _extract_any_pointer_builder(value))
     else:
         raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
@@ -810,6 +824,10 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
         thisptr.set(field, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
+    elif value_type is _DynamicObjectReader:
+        thisptr.set(field, _extract_any_pointer(value))
+    elif value_type is _DynamicObjectBuilder:
+        thisptr.set(field, _extract_any_pointer_builder(value))
     else:
         raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 

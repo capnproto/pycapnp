@@ -89,3 +89,7 @@ struct BarParams {
   a @0 :Text;
   b @1 :Int32;
 }
+
+interface TestGeneric(MyObject)  {
+  foo @0 (a :MyObject) -> (b: Text);
+}

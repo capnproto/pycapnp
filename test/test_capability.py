@@ -370,3 +370,16 @@ def test_struct_args():
     assert client.bar(a='test', b=1).wait().c == 'test1'
     with pytest.raises(capnp.KjException):
         assert client.bar('test', 1).wait().c == 'test1'
+
+
+class TestGeneric(capability.TestGeneric.Server):
+    def foo(self, a, **kwargs):
+        return a.as_text() + 'test'
+
+
+def test_generic():
+    client = capability.TestGeneric._new_client(TestGeneric())
+
+    obj = capnp._MallocMessageBuilder().get_root_as_any()
+    obj.set_as_text("anypointer_")
+    assert client.foo(obj).wait().b == 'anypointer_test'

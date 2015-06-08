@@ -427,6 +427,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Reader(DynamicStruct.Reader& value)
             Reader(DynamicCapability.Client& value)
             Reader(PythonInterfaceDynamicImpl& value)
+            Reader(AnyPointer.Reader& value)
             Type getType()
             int64_t asInt"as<int64_t>"()
             uint64_t asUint"as<uint64_t>"()
