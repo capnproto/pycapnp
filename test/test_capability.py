@@ -358,3 +358,15 @@ def test_null_cap():
 
     with pytest.raises(capnp.KjException):
         client.foo().wait()
+
+
+class TestStructArg(capability.TestStructArg.Server):
+    def bar(self, a, b, **kwargs):
+        return a + str(b)
+
+
+def test_struct_args():
+    client = capability.TestStructArg._new_client(TestStructArg())
+    assert client.bar(a='test', b=1).wait().c == 'test1'
+    with pytest.raises(capnp.KjException):
+        assert client.bar('test', 1).wait().c == 'test1'

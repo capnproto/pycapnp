@@ -81,3 +81,11 @@ interface TestTailCaller {
 interface TestPassedCap {
   foo @0 (cap :TestInterface) -> (x: Text);
 }
+
+interface TestStructArg {
+  bar @0 BarParams -> (c: Text);
+}
+struct BarParams {
+  a @0 :Text;
+  b @1 :Int32;
+}

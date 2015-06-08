@@ -2050,7 +2050,7 @@ cdef class _DynamicCapabilityClient:
         return _find_field_order(params.struct)
 
     cdef _set_fields(self, Request * request, name, args, kwargs):
-        if args is not None:
+        if args is not None and len(args) > 0:
             arg_names = self._find_method_args(name)
             if len(args) > len(arg_names):
                 raise KjException('Too many arguments passed to `%s`. Expected %d and got %d' % (name, len(arg_names), len(args)))
