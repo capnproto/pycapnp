@@ -1,3 +1,13 @@
+## v0.5.7 (2015-06-16)
+- Update bundled libcapnp to v0.5.2
+- Add warnings for using old restorer methods. You should use `bootstrap` instead
+- Fix warning from PyEventPort
+- Handle AnyPointers better as arguments to RPC functions
+- Add support for using keyword arguments with a named struct in an RPC
+- Add bootstrap method to TwoPartyServer
+- Add `init` method to lists
+- Add support for unix sockets in RPC
+
 ## v0.5.6 (2015-04-13)
 - Fix a serious bug in TwoPartyServer that was preventing it from working when passed a string address.
 - Fix bugs that were exposed by defining KJDEBUG (thanks @davidcarne for finding this)
