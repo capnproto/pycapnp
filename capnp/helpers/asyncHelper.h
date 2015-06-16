@@ -13,11 +13,13 @@ public:
   virtual bool wait() {
     GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("wait"), NULL);
+    return true;  // TODO: get the bool result from python
   }
 
   virtual bool poll() {
     GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("poll"), NULL);
+    return true;  // TODO: get the bool result from python
   }
 
   virtual void setRunnable(bool runnable) {
