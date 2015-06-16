@@ -2221,6 +2221,7 @@ cdef class TwoPartyClient:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
             self._restorer = None
         else:
+            _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
             self._restorer = _convert_restorer(restorer)
             self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
@@ -2248,6 +2249,7 @@ cdef class TwoPartyClient:
         return sock
 
     cpdef restore(self, objectId) except +reraise_kj_exception:
+        _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
         cdef _MessageBuilder builder
         cdef _MessageReader reader
         cdef _DynamicObjectBuilder object_builder
@@ -2326,6 +2328,7 @@ cdef class TwoPartyServer:
                 schema = bootstrap.schema
                 self.thisptr = new RpcSystem(makeRpcServerBootstrap(deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
             elif restorer:
+                _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
                 self._restorer = _convert_restorer(restorer)
                 self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
