@@ -2,7 +2,7 @@
 
 set -exo pipefail
 
-CAPNP_VERSION=0.5.1.2
+CAPNP_VERSION=0.5.2
 
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt-get -qq update
