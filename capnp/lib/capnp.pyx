@@ -2579,6 +2579,12 @@ cdef class _InterfaceMethod:
             # TODO(soon): make sure this is memory safe
             return _StructSchema()._init(self.thisptr.getParamType())
 
+    property result_type:
+        """The type of this method's result struct"""
+        def __get__(self):
+            # TODO(soon): make sure this is memory safe
+            return _StructSchema()._init(self.thisptr.getResultType())
+
 cdef class _InterfaceSchema:
     cdef _init(self, C_InterfaceSchema other):
         self.thisptr = other
