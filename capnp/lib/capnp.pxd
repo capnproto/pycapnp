@@ -52,9 +52,9 @@ cdef class _DynamicStructBuilder:
     cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot=?, bint tryRegistry=?)
 
     cdef _check_write(self)
-    cpdef to_bytes(_DynamicStructBuilder self)
-    cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count)
-    cpdef to_bytes_packed(_DynamicStructBuilder self)
+    cpdef to_bytes(_DynamicStructBuilder self) except +reraise_kj_exception
+    cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count) except +reraise_kj_exception
+    cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception
 
     cpdef _get(self, field)
     cpdef _set(self, field, value)
@@ -102,7 +102,7 @@ cdef class _DynamicEnum:
     cdef public object _parent
 
     cdef _init(self, capnp.DynamicEnum other, object parent)
-    cpdef _as_str(self)
+    cpdef _as_str(self) except +reraise_kj_exception
 
 cdef class _DynamicListBuilder:
     cdef C_DynamicList.Builder thisptr
