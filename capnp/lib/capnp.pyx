@@ -207,6 +207,7 @@ class KjException(Exception):
             self.wrapper = wrapper
             self.message = str(wrapper)
         else:
+            self.wrapper = None
             self.message = message
             self.nature = nature
             self.durability = durability
