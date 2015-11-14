@@ -302,11 +302,11 @@ cdef extern from "<utility>" namespace "std":
     capnp.AsyncIoContext moveAsyncContext"std::move"(capnp.AsyncIoContext)
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
-    StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader)
-    StringTree printStructBuilder" ::capnp::prettyPrint"(DynamicStruct_Builder)
-    StringTree printRequest" ::capnp::prettyPrint"(Request &)
-    StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader)
-    StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder)
+    StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader) except +reraise_kj_exception
+    StringTree printStructBuilder" ::capnp::prettyPrint"(DynamicStruct_Builder) except +reraise_kj_exception
+    StringTree printRequest" ::capnp::prettyPrint"(Request &) except +reraise_kj_exception
+    StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader) except +reraise_kj_exception
+    StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder) except +reraise_kj_exception
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
