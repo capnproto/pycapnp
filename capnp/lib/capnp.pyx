@@ -2877,7 +2877,7 @@ class _StructModule(object):
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :rtype: :class:`_DynamicStructReader`"""
-        reader = _StreamFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
+        reader = _StreamFdMessageReader(file, traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
     def read_multiple(self, file, traversal_limit_in_words = None, nesting_limit = None):
         """Returns an iterable, that when traversed will return Readers for messages.
@@ -2892,7 +2892,7 @@ class _StructModule(object):
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
-        reader = _MultipleMessageReader(file.fileno(), self.schema, traversal_limit_in_words, nesting_limit)
+        reader = _MultipleMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit)
         return reader
     def read_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the packed object read from file.
@@ -2907,7 +2907,7 @@ class _StructModule(object):
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :rtype: :class:`_DynamicStructReader`"""
-        reader = _PackedFdMessageReader(file.fileno(), traversal_limit_in_words, nesting_limit)
+        reader = _PackedFdMessageReader(file, traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
     def read_multiple_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
         """Returns an iterable, that when traversed will return Readers for messages.
@@ -2922,7 +2922,7 @@ class _StructModule(object):
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
-        reader = _MultiplePackedMessageReader(file.fileno(), self.schema, traversal_limit_in_words, nesting_limit)
+        reader = _MultiplePackedMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit)
         return reader
     def read_multiple_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         """Returns an iterable, that when traversed will return Readers for messages.
@@ -3369,21 +3369,23 @@ cdef class _StreamFdMessageReader(_MessageReader):
     You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_message_to_fd` and :class:`_MessageBuilder`, but in one class::
 
         f = open('out.txt')
-        message = _StreamFdMessageReader(f.fileno())
+        message = _StreamFdMessageReader(f)
         person = message.get_root(addressbook.Person)
         print person.name
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, int fd, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts
+
+        self._parent = file
 
         if traversal_limit_in_words is not None:
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
 
-        self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
+        self.thisptr = new schema_cpp.StreamFdMessageReader(file.fileno(), opts)
 
     def __dealloc__(self):
         del self.thisptr
@@ -3395,7 +3397,7 @@ cdef class _PackedMessageReader(_MessageReader):
     You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
 
         f = open('out.txt')
-        message = _PackedFdMessageReader(f.fileno())
+        message = _PackedFdMessageReader(f)
         person = message.get_root(addressbook.Person)
         print person.name
 
@@ -3452,7 +3454,7 @@ cdef class _InputMessageReader(_MessageReader):
     You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
 
         f = open('out.txt')
-        message = _PackedFdMessageReader(f.fileno())
+        message = _PackedFdMessageReader(f)
         person = message.get_root(addressbook.Person)
         print person.name
 
@@ -3484,21 +3486,23 @@ cdef class _PackedFdMessageReader(_MessageReader):
     You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
 
         f = open('out.txt')
-        message = _PackedFdMessageReader(f.fileno())
+        message = _PackedFdMessageReader(f)
         person = message.get_root(addressbook.Person)
         print person.name
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, int fd, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts
+
+        self._parent = file
 
         if traversal_limit_in_words is not None:
             opts.traversalLimitInWords = traversal_limit_in_words
         if nesting_limit is not None:
             opts.nestingLimit = nesting_limit
 
-        self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
+        self.thisptr = new schema_cpp.PackedFdMessageReader(file.fileno(), opts)
 
     def __dealloc__(self):
         del self.thisptr
@@ -3508,14 +3512,15 @@ cdef class _MultipleMessageReader:
     cdef schema_cpp.FdInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
 
-    cdef public object traversal_limit_in_words, nesting_limit, schema
+    cdef public object traversal_limit_in_words, nesting_limit, schema, file
 
-    def __init__(self, int fd, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None):
+        self.file = file
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
 
-        self.stream = new schema_cpp.FdInputStream(fd)
+        self.stream = new schema_cpp.FdInputStream(file.fileno())
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
     def __dealloc__(self):
@@ -3539,14 +3544,15 @@ cdef class _MultiplePackedMessageReader:
     cdef schema_cpp.FdInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
 
-    cdef public object traversal_limit_in_words, nesting_limit, schema
+    cdef public object traversal_limit_in_words, nesting_limit, schema, file
 
-    def __init__(self, int fd, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None):
+        self.file = file
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
 
-        self.stream = new schema_cpp.FdInputStream(fd)
+        self.stream = new schema_cpp.FdInputStream(file.fileno())
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
     def __dealloc__(self):
@@ -3730,7 +3736,7 @@ def _write_message_to_fd(int fd, _MessageBuilder message):
         _write_message_to_fd(f.fileno(), message)
         ...
         f = open('out.txt')
-        _StreamFdMessageReader(f.fileno())
+        _StreamFdMessageReader(f)
 
     :type fd: int
     :param fd: A file descriptor
@@ -3756,7 +3762,7 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
         _write_packed_message_to_fd(f.fileno(), message)
         ...
         f = open('out.txt')
-        _PackedFdMessageReader(f.fileno())
+        _PackedFdMessageReader(f)
 
     :type fd: int
     :param fd: A file descriptor

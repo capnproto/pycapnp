@@ -39,7 +39,7 @@ def test_addressbook_message_classes(addressbook):
 
 
     def printAddressBook(fd):
-        message = capnp._PackedFdMessageReader(f.fileno())
+        message = capnp._PackedFdMessageReader(f)
         addressBook = message.get_root(addressbook.AddressBook)
 
         people = addressBook.people
