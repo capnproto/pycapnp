@@ -2879,7 +2879,7 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`"""
         reader = _StreamFdMessageReader(file, traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
-    def read_multiple(self, file, traversal_limit_in_words = None, nesting_limit = None):
+    def read_multiple(self, file, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type file: file
@@ -2891,8 +2891,11 @@ class _StructModule(object):
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
+        :type skip_copy: bool
+        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you're doing.
+
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
-        reader = _MultipleMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit)
+        reader = _MultipleMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit, skip_copy)
         return reader
     def read_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the packed object read from file.
@@ -2909,7 +2912,7 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`"""
         reader = _PackedFdMessageReader(file, traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
-    def read_multiple_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
+    def read_multiple_packed(self, file, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type file: file
@@ -2921,8 +2924,11 @@ class _StructModule(object):
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
+        :type skip_copy: bool
+        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you're doing.
+
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
-        reader = _MultiplePackedMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit)
+        reader = _MultiplePackedMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit, skip_copy)
         return reader
     def read_multiple_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         """Returns an iterable, that when traversed will return Readers for messages.
@@ -3511,14 +3517,16 @@ cdef class _PackedFdMessageReader(_MessageReader):
 cdef class _MultipleMessageReader:
     cdef schema_cpp.FdInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
+    cdef cbool skip_copy
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, file
 
-    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         self.file = file
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
+        self.skip_copy = skip_copy
 
         self.stream = new schema_cpp.FdInputStream(file.fileno())
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
@@ -3530,7 +3538,10 @@ cdef class _MultipleMessageReader:
     def __next__(self):
         try:
             reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
-            return reader.get_root(self.schema)
+            ret = reader.get_root(self.schema)
+            if not self.skip_copy:
+              ret = ret.as_builder().as_reader()
+            return ret
         except KjException as e:
             if 'EOF' in str(e):
                 raise StopIteration
@@ -3543,14 +3554,16 @@ cdef class _MultipleMessageReader:
 cdef class _MultiplePackedMessageReader:
     cdef schema_cpp.FdInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
+    cdef cbool skip_copy
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, file
 
-    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         self.file = file
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
+        self.skip_copy = skip_copy
 
         self.stream = new schema_cpp.FdInputStream(file.fileno())
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
@@ -3562,7 +3575,10 @@ cdef class _MultiplePackedMessageReader:
     def __next__(self):
         try:
             reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
-            return reader.get_root(self.schema)
+            ret = reader.get_root(self.schema)
+            if not self.skip_copy:
+              ret = ret.as_builder().as_reader()
+            return ret
         except KjException as e:
             if 'EOF' in str(e):
                 raise StopIteration
