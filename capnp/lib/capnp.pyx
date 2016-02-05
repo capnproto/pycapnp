@@ -29,6 +29,7 @@ import threading as _threading
 import socket as _socket
 import random as _random
 import collections as _collections
+import mmap as _mmap
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -277,6 +278,8 @@ ctypedef fused PromiseTypes:
 cdef extern from "Python.h":
     cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
     cdef int PyObject_AsWriteBuffer(object, void** b, Py_ssize_t* c)
+    cdef int PyObject_GetBuffer(object, Py_buffer *view, int flags)
+    cdef void PyBuffer_Release(Py_buffer *view)
 
 # Templated classes are weird in cython. I couldn't put it in a pxd header for some reason
 cdef extern from "capnp/list.h" namespace " ::capnp":
@@ -3682,6 +3685,19 @@ cdef class _AlignedBuffer:
         if self.allocated:
             free(self.buf)
 
+
+@cython.internal
+cdef class _BufferView:
+    cdef Py_buffer view
+    cdef char * buf
+
+    def __init__(self, other):
+        PyObject_GetBuffer(other, &self.view, 0)
+        self.buf = <char*>self.view.buf
+
+    def __dealloc__(self):
+        PyBuffer_Release(&self.view)
+
 @cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
     cdef object _object_to_pin
@@ -3698,13 +3714,19 @@ cdef class _FlatArrayMessageReader(_MessageReader):
         if sz % 8 != 0:
             raise ValueError("input length must be a multiple of eight bytes")
 
-        cdef char * ptr = buf
-        if (<uintptr_t>ptr) % 8 != 0:
-            aligned = _AlignedBuffer(buf)
-            ptr = aligned.buf
-            self._object_to_pin = aligned
+        cdef char * ptr
+        if type(buf) == _mmap.mmap:
+            view = _BufferView(buf)
+            ptr = <char*>view.view.buf
+            self._object_to_pin = view
         else:
-            self._object_to_pin = buf
+            ptr = buf
+            if (<uintptr_t>ptr) % 8 != 0:
+                aligned = _AlignedBuffer(buf)
+                ptr = aligned.buf
+                self._object_to_pin = aligned
+            else:
+                self._object_to_pin = buf
 
         self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
 

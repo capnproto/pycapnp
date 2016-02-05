@@ -5,6 +5,7 @@ import platform
 import test_regression
 import tempfile
 import pickle
+import mmap
 
 this_dir = os.path.dirname(__file__)
 
@@ -39,6 +40,20 @@ def test_roundtrip_bytes(all_types):
 
     msg = all_types.TestAllTypes.from_bytes(message_bytes)
     test_regression.check_all_types(msg)
+
+def test_roundtrip_bytes_mmap(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    with tempfile.TemporaryFile() as f:
+        msg.write(f)
+        length = f.tell()
+
+        f.seek(0)
+        memory = mmap.mmap(f.fileno(), length)
+
+        msg = all_types.TestAllTypes.from_bytes(memory)
+        test_regression.check_all_types(msg)
 
 def test_roundtrip_bytes_packed(all_types):
     msg = all_types.TestAllTypes.new_message()
