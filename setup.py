@@ -79,6 +79,14 @@ force_cython = "--force-cython" in sys.argv
 if force_cython:
     sys.argv.remove("--force-cython")
     use_cython = True
+libcapnp_url = None
+try:
+    libcapnp_url_index = sys.argv.index("--libcapnp-url")
+    libcapnp_url = sys.argv[libcapnp_url_index + 1]
+    sys.argv.remove("--libcapnp-url")
+    sys.argv.remove(libcapnp_url)
+except:
+    pass
 
 if use_cython:
     from Cython.Distutils import build_ext as build_ext_c
@@ -107,7 +115,7 @@ class build_libcapnp_ext(build_ext_c):
             build_dir = os.path.join(_this_dir, "build")
             if not os.path.exists(build_dir):
                 os.mkdir(build_dir)
-            fetch_libcapnp(bundle_dir)
+            fetch_libcapnp(bundle_dir, libcapnp_url)
 
             build_libcapnp(bundle_dir, build_dir)
 

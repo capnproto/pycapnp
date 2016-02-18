@@ -73,19 +73,32 @@ def fetch_archive(savedir, url, fname, force=False):
 # libcapnp
 #-----------------------------------------------------------------------------
 
-def fetch_libcapnp(savedir):
+def fetch_libcapnp(savedir, url=None):
     """download and extract libcapnp"""
+    is_preconfigured = False
+    if url is None:
+        url = libcapnp_url
+        is_preconfigured = True
     dest = pjoin(savedir, 'capnproto-c++')
     if os.path.exists(dest):
         info("already have %s" % dest)
         return
-    fname = fetch_archive(savedir, libcapnp_url, libcapnp)
+    fname = fetch_archive(savedir, url, libcapnp)
     tf = tarfile.open(fname)
     with_version = pjoin(savedir, tf.firstmember.path)
     tf.extractall(savedir)
     tf.close()
     # remove version suffix:
-    shutil.move(with_version, dest)
+    if is_preconfigured:
+        shutil.move(with_version, dest)
+    else:
+        cpp_dir = os.path.join(with_version, 'c++')
+        conf = Popen(['autoreconf', '-i'], cwd=cpp_dir)
+        returncode = conf.wait()
+        if returncode != 0:
+          raise RuntimeError('Autoreconf failed. Make sure autotools are installed on your system.')
+        shutil.move(cpp_dir, dest)
+
 
 def stage_platform_hpp(capnproot):
     """stage platform.hpp into libcapnp sources
@@ -162,4 +175,3 @@ def copy_and_patch_libcapnp(capnp, libcapnp):
         out,err = p.communicate()
         if p.returncode:
             fatal("Could not patch bundled libcapnp install_name: %s"%err, p.returncode)
-

@@ -21,6 +21,11 @@ Note: for OSX, if using clang from Xcode 5, you may need to set `CFLAGS` like so
 
     CFLAGS='-stdlib=libc++' pip install pycapnp
 
+If you wish to install using the latest upstream C++ Cap'n Proto:
+
+    pip install --install-option "--libcapnp-url" --install-option "https://github.com/sandstorm-io/capnproto/archive/master.tar.gz" --install-option "--force-bundled-libcapnp" .
+
+
 ## Python Versions
 
 Python 2.6/2.7 are supported as well as Python 3.2+. PyPy 2.1+ is also supported.
