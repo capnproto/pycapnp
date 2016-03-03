@@ -679,7 +679,7 @@ cdef _setBytes(_DynamicSetterClasses thisptr, field, value):
     thisptr.set(field, temp)
 
 cdef _setBaseString(_DynamicSetterClasses thisptr, field, value):
-    encoded_value = value.encode()
+    encoded_value = value.encode('utf-8')
     cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.set(field, temp)
@@ -690,7 +690,7 @@ cdef _setBytesField(DynamicStruct_Builder thisptr, _StructSchemaField field, val
     thisptr.setByField(field.thisptr, temp)
 
 cdef _setBaseStringField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
-    encoded_value = value.encode()
+    encoded_value = value.encode('utf-8')
     cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.setByField(field.thisptr, temp)

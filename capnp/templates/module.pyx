@@ -90,7 +90,7 @@ cpdef _set_{{field.name}}(self, value):
     if type(value) is bytes:
         temp_string = StringPtr(<char*>value, len(value))
     else:
-        encoded_value = value.encode()
+        encoded_value = value.encode('utf-8')
         temp_string = StringPtr(<char*>encoded_value, len(encoded_value))
     self.thisptr_child.set{{field.c_name}}(temp_string)
     {% elif 'data' == field['type'] -%}
@@ -99,7 +99,7 @@ cpdef _set_{{field.name}}(self, value):
     if type(value) is bytes:
         temp_string = StringPtr(<char*>value, len(value))
     else:
-        encoded_value = value.encode()
+        encoded_value = value.encode('utf-8')
         temp_string = StringPtr(<char*>encoded_value, len(encoded_value))
     self.thisptr_child.set{{field.c_name}}(ArrayPtr[byte](<byte *>temp_string.begin(), temp_string.size()))
     {% else -%}
