@@ -79,6 +79,9 @@ force_cython = "--force-cython" in sys.argv
 if force_cython:
     sys.argv.remove("--force-cython")
     use_cython = True
+elif os.environ.get('FORCE_CYTHON', None) == '1':
+    use_cython = True
+
 libcapnp_url = None
 try:
     libcapnp_url_index = sys.argv.index("--libcapnp-url")
