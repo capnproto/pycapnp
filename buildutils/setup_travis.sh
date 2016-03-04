@@ -11,5 +11,5 @@ sudo update-alternatives --quiet --install /usr/bin/gcc  gcc  /usr/bin/gcc-4.8  
 sudo update-alternatives --quiet --set gcc /usr/bin/gcc-4.8
 
 if ! [ -z "${BUILD_CAPNP}" ]; then
-  wget https://capnproto.org/capnproto-c++-${CAPNP_VERSION}.tar.gz && tar xzvf capnproto-c++-${CAPNP_VERSION}.tar.gz && cd capnproto-c++-${CAPNP_VERSION} && ./configure && make -j6 check && sudo make install && sudo ldconfig && cd ..
+  wget https://capnproto.org/capnproto-c++-${CAPNP_VERSION}.tar.gz && tar xzvf capnproto-c++-${CAPNP_VERSION}.tar.gz && cd capnproto-c++-${CAPNP_VERSION} && ./configure && make -j6 && sudo make install && sudo ldconfig && cd ..
 fi
