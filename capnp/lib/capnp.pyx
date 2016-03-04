@@ -15,6 +15,8 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 from cython.operator cimport dereference as deref
 from cpython.exc cimport PyErr_Clear
+from cpython cimport Py_buffer
+from cpython.buffer cimport PyBUF_SIMPLE
 
 from types import ModuleType as _ModuleType
 import os as _os
@@ -3692,7 +3694,9 @@ cdef class _BufferView:
     cdef char * buf
 
     def __init__(self, other):
-        PyObject_GetBuffer(other, &self.view, 0)
+        cdef int ret = PyObject_GetBuffer(other, &self.view, PyBUF_SIMPLE)
+        if ret < 0:
+          raise ValueError("Invalid buffer passed to BufferView")
         self.buf = <char*>self.view.buf
 
     def __dealloc__(self):
@@ -3717,7 +3721,7 @@ cdef class _FlatArrayMessageReader(_MessageReader):
         cdef char * ptr
         if type(buf) == _mmap.mmap:
             view = _BufferView(buf)
-            ptr = <char*>view.view.buf
+            ptr = view.buf
             self._object_to_pin = view
         else:
             ptr = buf
