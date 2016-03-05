@@ -1,9 +1,18 @@
+ # -*- coding: utf-8 -*-
+
 import pytest
 import capnp
 import os
 import math
+import sys
 
 this_dir = os.path.dirname(__file__)
+
+if sys.version_info[0] < 3:
+    EXPECT_BYTES = True
+else:
+    EXPECT_BYTES = False
+
 
 @pytest.fixture
 def addressbook():
@@ -300,7 +309,7 @@ def init_all_types(builder):
     subBuilder.uInt64Field = 345678901234567890
     subBuilder.float32Field = -1.25e-10
     subBuilder.float64Field = 345
-    subBuilder.textField = "baz"
+    subBuilder.textField = b"\xe2\x98\x83".decode('utf-8') # This is u"☃", but py3.2 doesn't support u
     subBuilder.dataField = b"qux"
     subSubBuilder = subBuilder.structField
     subSubBuilder.textField = "nested"
@@ -390,7 +399,15 @@ def check_all_types(reader):
     assert subReader.uInt64Field == 345678901234567890
     assert_almost(subReader.float32Field, -1.25e-10)
     assert subReader.float64Field == 345
-    assert subReader.textField == "baz"
+
+    assert subReader.textField == "☃"
+    # This assertion highlights the encoding we expect to see here, since
+    # otherwise this appears a bit magical...
+    if EXPECT_BYTES:
+        assert len(subReader.textField) == 3
+    else:
+        assert len(subReader.textField) == 1
+
     assert subReader.dataField == b"qux"
 
     subSubReader = subReader.structField

@@ -90,7 +90,7 @@ cpdef _set_{{field.name}}(self, value):
     if type(value) is bytes:
         temp_string = StringPtr(<char*>value, len(value))
     else:
-        encoded_value = value.encode()
+        encoded_value = value.encode('utf-8')
         temp_string = StringPtr(<char*>encoded_value, len(encoded_value))
     self.thisptr_child.set{{field.c_name}}(temp_string)
     {% elif 'data' == field['type'] -%}
@@ -99,7 +99,7 @@ cpdef _set_{{field.name}}(self, value):
     if type(value) is bytes:
         temp_string = StringPtr(<char*>value, len(value))
     else:
-        encoded_value = value.encode()
+        encoded_value = value.encode('utf-8')
         temp_string = StringPtr(<char*>encoded_value, len(encoded_value))
     self.thisptr_child.set{{field.c_name}}(ArrayPtr[byte](<byte *>temp_string.begin(), temp_string.size()))
     {% else -%}
@@ -132,40 +132,6 @@ cdef _from_list(_DynamicListBuilder msg, list d):
     for val in d:
         msg._set(count, val)
         count += 1
-
-cdef DynamicValue.Reader to_dynamic_value(value):
-    cdef DynamicValue.Reader temp
-    cdef StringPtr temp_string
-    value_type = type(value)
-
-    if value_type is int or value_type is long:
-        if value < 0:
-           temp = DynamicValue.Reader(<long long>value)
-        else:
-           temp = DynamicValue.Reader(<unsigned long long>value)
-    elif value_type is float:
-        temp = DynamicValue.Reader(<double>value)
-    elif value_type is bool:
-        temp = DynamicValue.Reader(<cbool>value)
-    elif value_type is bytes:
-        temp_string = StringPtr(<char*>value, len(value))
-        temp = DynamicValue.Reader(temp_string)
-    elif isinstance(value, basestring):
-        encoded_value = value.encode()
-        temp_string = StringPtr(<char*>encoded_value, len(encoded_value))
-        temp = DynamicValue.Reader(temp_string)
-    elif value is None:
-        temp = DynamicValue.Reader(VOID)
-    elif value_type is _DynamicStructBuilder:
-        temp = _extract_dynamic_struct_builder(value)
-    elif value_type is _DynamicStructReader:
-        temp = _extract_dynamic_struct_reader(value)
-    elif value_type is _DynamicEnum:
-        temp = _extract_dynamic_enum(value)
-    else:
-        raise ValueError("Tried to convert value of: '{}' which is an unsupported type: '{}'".format(str(value), str(type(value))))
-
-    return temp
 
 
 cdef extern from "{{file.filename}}.h":

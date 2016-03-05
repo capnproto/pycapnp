@@ -679,7 +679,7 @@ cdef _setBytes(_DynamicSetterClasses thisptr, field, value):
     thisptr.set(field, temp)
 
 cdef _setBaseString(_DynamicSetterClasses thisptr, field, value):
-    encoded_value = value.encode()
+    encoded_value = value.encode('utf-8')
     cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.set(field, temp)
@@ -690,7 +690,7 @@ cdef _setBytesField(DynamicStruct_Builder thisptr, _StructSchemaField field, val
     thisptr.setByField(field.thisptr, temp)
 
 cdef _setBaseStringField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
-    encoded_value = value.encode()
+    encoded_value = value.encode('utf-8')
     cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.setByField(field.thisptr, temp)
@@ -1025,7 +1025,7 @@ cdef class _DynamicStructReader:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python()
+            raise e._to_python(), None, _sys.exc_info()[2]
 
     cpdef _get_by_field(self, _StructSchemaField field):
         return to_python_reader(self.thisptr.getByField(field.thisptr), self._parent)
@@ -1225,7 +1225,7 @@ cdef class _DynamicStructBuilder:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python()
+            raise e._to_python(), None, _sys.exc_info()[2]
 
     cpdef _set(self, field, value):
         _setDynamicField(self.thisptr, field, value, self._parent)
@@ -1237,7 +1237,7 @@ cdef class _DynamicStructBuilder:
         try:
             self._set(field, value)
         except KjException as e:
-            raise e._to_python()
+            raise e._to_python(), None, _sys.exc_info()[2]
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
@@ -1456,7 +1456,7 @@ cdef class _DynamicStructPipeline:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python()
+            raise e._to_python(), None, _sys.exc_info()[2]
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -1936,7 +1936,7 @@ cdef class _RemotePromise:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python()
+            raise e._to_python(), None, _sys.exc_info()[2]
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -2039,7 +2039,7 @@ cdef class _DynamicCapabilityServer:
         try:
             return getattr(self.server, field)
         except KjException as e:
-            raise e._to_python()
+            raise e._to_python(), None, _sys.exc_info()[2]
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
@@ -2121,7 +2121,7 @@ cdef class _DynamicCapabilityClient:
                 raise AttributeError('Method named %s not found' % name)
             return _partial(self._send, name)
         except KjException as e:
-            raise e._to_python()
+            raise e._to_python(), None, _sys.exc_info()[2]
 
     cpdef upcast(self, schema) except +reraise_kj_exception:
         cdef _InterfaceSchema s
