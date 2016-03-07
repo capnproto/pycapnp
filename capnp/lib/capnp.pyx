@@ -1617,7 +1617,9 @@ cdef class _EventLoop:
     cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
         return deref(deref(self.thisptr).lowLevelProvider).wrapSocketFd(fd)
 
-cdef _EventLoop C_DEFAULT_EVENT_LOOP = _EventLoop()
+# We don't want to start off with an event loop because creating
+# one will override signal handlers, which the user may not want.
+cdef _EventLoop C_DEFAULT_EVENT_LOOP = None
 
 _C_DEFAULT_EVENT_LOOP_LOCAL = None
 _THREAD_LOCAL_EVENT_LOOPS = []
