@@ -57,6 +57,7 @@ def test_roundtrip_bytes_mmap(all_types):
         msg = all_types.TestAllTypes.from_bytes(memory)
         test_regression.check_all_types(msg)
 
+@pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="This works in PyPy 4.0.1 but travisci's version of PyPy has some bug that fails this test.")
 def test_roundtrip_bytes_packed(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
