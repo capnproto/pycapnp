@@ -628,6 +628,11 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             void setId(UInt64)
             Value getValue()
             void setValue(Value)
+    cdef cppclass ListNestedNodeReader"capnp::List<capnp::schema::Node::NestedNode>::Reader":
+       ListNestedNodeReader()
+       ListNestedNodeReader(ListNestedNodeReader)
+       Node.NestedNode.Reader operator[](uint)
+       uint size()
 
 cdef extern from "capnp/message.h" namespace " ::capnp":
     cdef cppclass ReaderOptions:

@@ -559,9 +559,9 @@ cdef class _DynamicListBuilder:
         return '<capnp list builder %s>' % <char*>strListBuilder(self.thisptr).cStr()
 
 cdef class _List_NestedNode_Reader:
-    cdef List[C_Node.NestedNode].Reader thisptr
+    cdef C_Node.NestedNode.Reader.ListNestedNodeReader thisptr
     cdef _init(self, List[C_Node.NestedNode].Reader other):
-        self.thisptr = other
+        self.thisptr = <C_Node.NestedNode.Reader.ListNestedNodeReader>other
         return self
 
     def __getitem__(self, index):
