@@ -1,3 +1,17 @@
+## v0.5.8 (2016-05-27)
+- Fix build problem with Cython v0.24
+- Include the changelog in the manifest (should fix install problems if pandoc is present)
+- Include the traceback in exceptions
+- Make sure to encode to utf-8, not the default encoding (thanks to @novas0x2a)
+- Add --libcapnp-url option in installer to allow installing arbitrary libcapnp versions
+- Support mmap objects for reading with from_bytes (thanks to @bpiwowar)
+- Change read_multiple and read_multiple_packed to copy by default
+- Fix mistakenly discarding the file parameter on reads
+- Add reraise_kj_exception to the prettyPrint functions. (thanks to @kdienes)
+- Fix KjException init (missing wrapper). (thanks to @E8-Storage)
+- Add `result_type` to InterfaceMethodSchema
+
+
 ## v0.5.7 (2015-06-16)
 - Update bundled libcapnp to v0.5.2
 - Add warnings for using old restorer methods. You should use `bootstrap` instead
