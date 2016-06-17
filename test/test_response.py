@@ -26,7 +26,7 @@ def test_response_reference():
 
     foo = bar.foo
     # This used to cause an exception about invalid pointers because the response got garbage collected
-    foo.foo().wait()
+    assert foo.foo().wait().val == 1
 
 def test_response_reference2():
     baz = test_response_capnp.Baz._new_client(BazServer())
@@ -37,4 +37,4 @@ def test_response_reference2():
     response = baz.grault().wait()
     bar = response.bar
     foo = bar.foo
-    foo.foo().wait()
+    assert foo.foo().wait().val == 1
