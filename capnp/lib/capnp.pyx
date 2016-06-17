@@ -1019,7 +1019,7 @@ cdef class _DynamicStructReader:
         return self
 
     cpdef _get(self, field):
-        return to_python_reader(self.thisptr.get(field), self._parent)
+        return to_python_reader(self.thisptr.get(field), self)
 
     def __getattr__(self, field):
         try:
@@ -1028,7 +1028,7 @@ cdef class _DynamicStructReader:
             raise e._to_python(), None, _sys.exc_info()[2]
 
     cpdef _get_by_field(self, _StructSchemaField field):
-        return to_python_reader(self.thisptr.getByField(field.thisptr), self._parent)
+        return to_python_reader(self.thisptr.getByField(field.thisptr), self)
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
