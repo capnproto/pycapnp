@@ -304,6 +304,27 @@ There are also packed versions::
 
     alice2 = addressbook_capnp.Person.from_bytes_packed(alice.to_bytes_packed())
 
+
+Byte Segments
+~~~~~~~~~~~~~
+
+Cap'n Proto supports a serialization mode which minimizes object copies. In the C++ interface, ``capnp::MessageBuilder::getSegmentsForOutput()`` returns an array of pointers to segments of the message's content without copying. ``capnp::SegmentArrayMessageReader`` performs the reverse operation, i.e., takes an array of pointers to segments and uses the underlying data, again without copying. This produces a different wire serialization format from ``to_bytes()`` serialization, which uses ``capnp::messageToFlatArray()`` and ``capnp::FlatArrayMessageReader`` (both of which use segments internally, but write them in an incompatible way).
+
+For compatibility on the Python side, use the ``to_segments()`` and ``from_segments()`` functions::
+
+    segments = alice.to_segments()
+
+This returns a list of segments, each a byte buffer. Each segment can be, e.g., turned into a ZeroMQ message frame. The list of segments can also be turned back into an object::
+
+    alice = addressbook_capnp.Person.from_segments(segments)
+
+For more information, please refer to the following links:
+
+- `Advice on minimizing copies from Cap'n Proto <https://stackoverflow.com/questions/28149139/serializing-mutable-state-and-sending-it-asynchronously-over-the-network-with-ne/28156323#28156323>`_ (from the author of Cap'n Proto)
+- `Advice on using Cap'n Proto over ZeroMQ <https://stackoverflow.com/questions/32041315/how-to-send-capn-proto-message-over-zmq/32042234#32042234>`_ (from the author of Cap'n Proto)
+- `Discussion about sending and reassembling Cap'n Proto message segments in C++ <https://groups.google.com/forum/#!topic/capnproto/ClDjGbO7egA>`_ (from the Cap'n Proto mailing list; includes sample code)
+
+
 RPC
 ----------
 
