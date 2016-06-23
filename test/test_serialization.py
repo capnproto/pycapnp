@@ -42,6 +42,13 @@ def test_roundtrip_bytes(all_types):
     msg = all_types.TestAllTypes.from_bytes(message_bytes)
     test_regression.check_all_types(msg)
 
+def test_roundtrip_segments(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+    segments = msg.to_segments()
+    msg = all_types.TestAllTypes.from_segments(segments)
+    test_regression.check_all_types(msg)
+
 @pytest.mark.skipif(sys.version_info[0] < 3, reason="mmap doesn't implement the buffer interface under python 2.")
 def test_roundtrip_bytes_mmap(all_types):
     msg = all_types.TestAllTypes.new_message()
