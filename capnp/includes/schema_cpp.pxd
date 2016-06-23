@@ -667,6 +667,8 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         DynamicStruct_Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
         void setRootDynamicStruct'setRoot< ::capnp::DynamicStruct::Reader>'(DynamicStruct.Reader)
 
+        ConstWordArrayArrayPtr getSegmentsForOutput'getSegmentsForOutput'()
+
         AnyPointer.Builder getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
 
         DynamicOrphan newOrphan'getOrphanage().newOrphan'(StructSchema)
@@ -691,6 +693,10 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         MallocMessageBuilder()
         MallocMessageBuilder(int)
 
+    cdef cppclass SegmentArrayMessageReader(MessageReader):
+        SegmentArrayMessageReader(ConstWordArrayArrayPtr array) except +reraise_kj_exception
+        SegmentArrayMessageReader(ConstWordArrayArrayPtr array, ReaderOptions) except +reraise_kj_exception
+
     cdef cppclass FlatMessageBuilder(MessageBuilder):
         FlatMessageBuilder(WordArrayPtr array)
         FlatMessageBuilder(WordArrayPtr array, ReaderOptions)
@@ -714,6 +720,16 @@ cdef extern from "kj/common.h" namespace " ::kj":
         ByteArrayPtr(byte *, size_t size)
         size_t size()
         byte& operator[](size_t index)
+    cdef cppclass ConstWordArrayPtr " ::kj::ArrayPtr< const ::capnp::word>":
+        ConstWordArrayPtr()
+        ConstWordArrayPtr(word *, size_t size)
+        size_t size()
+        const word* begin()
+    cdef cppclass ConstWordArrayArrayPtr " ::kj::ArrayPtr< const ::kj::ArrayPtr< const ::capnp::word>>":
+        ConstWordArrayArrayPtr()
+        ConstWordArrayArrayPtr(ConstWordArrayPtr*, size_t size)
+        size_t size()
+        ConstWordArrayPtr& operator[](size_t index)
 
 cdef extern from "kj/array.h" namespace " ::kj":
     # Cython can't handle Array[word] as a function argument
