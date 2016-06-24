@@ -3789,20 +3789,20 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
             opts.nestingLimit = nesting_limit
         # take a Python array of bytes and constructs a ConstWordArrayArrayPtr
         num_segments = len(segments)
-        cdef char* ptr
+        cdef const void* ptr
+        cdef Py_ssize_t segment_size
         cdef schema_cpp.ConstWordArrayPtr seg_ptr
         self._seg_ptrs = <schema_cpp.ConstWordArrayPtr*>malloc(num_segments * sizeof(schema_cpp.ConstWordArrayPtr))
         self._objects_to_pin = []
         for i in range(0, num_segments):
-            segment = bytes(segments[i])
-            ptr = segment
+            PyObject_AsReadBuffer(segments[i], &ptr, &segment_size)
             if (<uintptr_t>ptr) % 8 != 0:
-                aligned = _AlignedBuffer(segment)
+                aligned = _AlignedBuffer(segments[i])
                 ptr = aligned.buf
                 self._objects_to_pin.append(aligned)
             else:
-                self._objects_to_pin.append(segment)
-            seg_ptr = schema_cpp.ConstWordArrayPtr(<schema_cpp.word*>ptr, len(segment)//8)
+                self._objects_to_pin.append(segments[i])
+            seg_ptr = schema_cpp.ConstWordArrayPtr(<schema_cpp.word*>ptr, segment_size//8)
             self._seg_ptrs[i] = seg_ptr
         self.thisptr = new schema_cpp.SegmentArrayMessageReader(
             schema_cpp.ConstWordArrayArrayPtr(self._seg_ptrs, num_segments),
