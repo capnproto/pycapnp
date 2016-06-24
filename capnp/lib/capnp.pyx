@@ -1193,6 +1193,14 @@ cdef class _DynamicStructBuilder:
         return ret
 
     cpdef to_segments(_DynamicStructBuilder self) except +reraise_kj_exception:
+        """Returns the struct's containing message as a Python list of Python bytes objects.
+
+        This avoids making copies.
+
+        NB: This is not currently supported on PyPy.
+
+        :rtype: list
+        """
         self._check_write()
         cdef _MessageBuilder builder = self._parent
         segments = builder.get_segments_for_output()
@@ -2996,6 +3004,14 @@ class _StructModule(object):
             message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
             return message.get_root(self.schema)
     def from_segments(self, segments, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns a Reader for a list of segment bytes.
+
+        This avoids making copies.
+
+        NB: This is not currently supported on PyPy.
+
+        :rtype: list
+        """
         message = _SegmentArrayMessageReader(segments, traversal_limit_in_words, nesting_limit)
         return message.get_root(self.schema)
     def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
