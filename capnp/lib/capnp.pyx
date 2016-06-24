@@ -3779,6 +3779,7 @@ cdef class _FlatArrayMessageReader(_MessageReader):
 cdef class _SegmentArrayMessageReader(_MessageReader):
 
     cdef object _objects_to_pin
+    cdef schema_cpp.ConstWordArrayPtr* _seg_ptrs
 
     def __init__(self, segments, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts
@@ -3790,7 +3791,7 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
         num_segments = len(segments)
         cdef char* ptr
         cdef schema_cpp.ConstWordArrayPtr seg_ptr
-        cdef schema_cpp.ConstWordArrayPtr* seg_ptrs = <schema_cpp.ConstWordArrayPtr*>malloc(num_segments * sizeof(schema_cpp.ConstWordArrayPtr))
+        self._seg_ptrs = <schema_cpp.ConstWordArrayPtr*>malloc(num_segments * sizeof(schema_cpp.ConstWordArrayPtr))
         self._objects_to_pin = []
         for i in range(0, num_segments):
             segment = bytes(segments[i])
@@ -3802,12 +3803,13 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
             else:
                 self._objects_to_pin.append(segment)
             seg_ptr = schema_cpp.ConstWordArrayPtr(<schema_cpp.word*>ptr, len(segment)//8)
-            seg_ptrs[i] = seg_ptr
+            self._seg_ptrs[i] = seg_ptr
         self.thisptr = new schema_cpp.SegmentArrayMessageReader(
-            schema_cpp.ConstWordArrayArrayPtr(seg_ptrs, num_segments),
+            schema_cpp.ConstWordArrayArrayPtr(self._seg_ptrs, num_segments),
             opts)
 
     def __dealloc__(self):
+        free(self._seg_ptrs)
         del self.thisptr
 
 
