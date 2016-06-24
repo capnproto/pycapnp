@@ -2995,8 +2995,8 @@ class _StructModule(object):
         else:
             message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
             return message.get_root(self.schema)
-    def from_segments(self, segments):
-        message = _SegmentArrayMessageReader(segments)
+    def from_segments(self, segments, traversal_limit_in_words = None, nesting_limit = None):
+        message = _SegmentArrayMessageReader(segments, traversal_limit_in_words, nesting_limit)
         return message.get_root(self.schema)
     def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the packed object in buf.
@@ -3764,8 +3764,13 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
 
     cdef object _objects_to_pin
 
-    def __init__(self, segments):
-        # takes a Python array of bytes and constructs a ConstWordArrayArrayPtr
+    def __init__(self, segments, traversal_limit_in_words = None, nesting_limit = None):
+        cdef schema_cpp.ReaderOptions opts
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
+        # take a Python array of bytes and constructs a ConstWordArrayArrayPtr
         num_segments = len(segments)
         cdef char* ptr
         cdef schema_cpp.ConstWordArrayPtr seg_ptr
@@ -3783,7 +3788,8 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
             seg_ptr = schema_cpp.ConstWordArrayPtr(<schema_cpp.word*>ptr, len(segment)//8)
             seg_ptrs[i] = seg_ptr
         self.thisptr = new schema_cpp.SegmentArrayMessageReader(
-            schema_cpp.ConstWordArrayArrayPtr(seg_ptrs, num_segments))
+            schema_cpp.ConstWordArrayArrayPtr(seg_ptrs, num_segments),
+            opts)
 
     def __dealloc__(self):
         del self.thisptr
