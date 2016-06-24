@@ -308,6 +308,8 @@ There are also packed versions::
 Byte Segments
 ~~~~~~~~~~~~~
 
+.. note:: This feature is not supported in PyPy at the moment, pending investigation.
+
 Cap'n Proto supports a serialization mode which minimizes object copies. In the C++ interface, ``capnp::MessageBuilder::getSegmentsForOutput()`` returns an array of pointers to segments of the message's content without copying. ``capnp::SegmentArrayMessageReader`` performs the reverse operation, i.e., takes an array of pointers to segments and uses the underlying data, again without copying. This produces a different wire serialization format from ``to_bytes()`` serialization, which uses ``capnp::messageToFlatArray()`` and ``capnp::FlatArrayMessageReader`` (both of which use segments internally, but write them in an incompatible way).
 
 For compatibility on the Python side, use the ``to_segments()`` and ``from_segments()`` functions::
