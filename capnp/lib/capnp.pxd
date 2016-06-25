@@ -53,6 +53,7 @@ cdef class _DynamicStructBuilder:
 
     cdef _check_write(self)
     cpdef to_bytes(_DynamicStructBuilder self) except +reraise_kj_exception
+    cpdef to_segments(_DynamicStructBuilder self) except +reraise_kj_exception
     cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count) except +reraise_kj_exception
     cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception
 

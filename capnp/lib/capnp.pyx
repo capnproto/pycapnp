@@ -1192,6 +1192,20 @@ cdef class _DynamicStructBuilder:
         self._is_written = True
         return ret
 
+    cpdef to_segments(_DynamicStructBuilder self) except +reraise_kj_exception:
+        """Returns the struct's containing message as a Python list of Python bytes objects.
+
+        This avoids making copies.
+
+        NB: This is not currently supported on PyPy.
+
+        :rtype: list
+        """
+        self._check_write()
+        cdef _MessageBuilder builder = self._parent
+        segments = builder.get_segments_for_output()
+        return segments
+
     cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count) except +reraise_kj_exception:
         cdef _MessageBuilder builder = self._parent
         array = helpers.messageToPackedBytes(deref(builder.thisptr), word_count)
@@ -2989,6 +3003,17 @@ class _StructModule(object):
         else:
             message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
             return message.get_root(self.schema)
+    def from_segments(self, segments, traversal_limit_in_words = None, nesting_limit = None):
+        """Returns a Reader for a list of segment bytes.
+
+        This avoids making copies.
+
+        NB: This is not currently supported on PyPy.
+
+        :rtype: list
+        """
+        message = _SegmentArrayMessageReader(segments, traversal_limit_in_words, nesting_limit)
+        return message.get_root(self.schema)
     def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         """Returns a Reader for the packed object in buf.
 
@@ -3284,6 +3309,18 @@ cdef class _MessageBuilder:
         elif value_type is _DynamicStructReader:
             self.thisptr.setRootDynamicStruct((<_DynamicStructReader>value).thisptr)
             return self.get_root(value.schema)
+
+    cpdef get_segments_for_output(self) except +reraise_kj_exception:
+        segments = self.thisptr.getSegmentsForOutput()
+        res = []
+        cdef const char* ptr
+        cdef bytes segment_bytes
+        for i in range(0, segments.size()):
+            segment = segments[i]
+            ptr = <const char *> segment.begin()
+            segment_bytes = ptr[:8*segment.size()]
+            res.append(segment_bytes)
+        return res
 
     cpdef new_orphan(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto orphans
@@ -3735,6 +3772,44 @@ cdef class _FlatArrayMessageReader(_MessageReader):
         self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
 
     def __dealloc__(self):
+        del self.thisptr
+
+
+@cython.internal
+cdef class _SegmentArrayMessageReader(_MessageReader):
+
+    cdef object _objects_to_pin
+    cdef schema_cpp.ConstWordArrayPtr* _seg_ptrs
+
+    def __init__(self, segments, traversal_limit_in_words = None, nesting_limit = None):
+        cdef schema_cpp.ReaderOptions opts
+        if traversal_limit_in_words is not None:
+            opts.traversalLimitInWords = traversal_limit_in_words
+        if nesting_limit is not None:
+            opts.nestingLimit = nesting_limit
+        # take a Python array of bytes and constructs a ConstWordArrayArrayPtr
+        num_segments = len(segments)
+        cdef const void* ptr
+        cdef Py_ssize_t segment_size
+        cdef schema_cpp.ConstWordArrayPtr seg_ptr
+        self._seg_ptrs = <schema_cpp.ConstWordArrayPtr*>malloc(num_segments * sizeof(schema_cpp.ConstWordArrayPtr))
+        self._objects_to_pin = []
+        for i in range(0, num_segments):
+            PyObject_AsReadBuffer(segments[i], &ptr, &segment_size)
+            if (<uintptr_t>ptr) % 8 != 0:
+                aligned = _AlignedBuffer(segments[i])
+                ptr = aligned.buf
+                self._objects_to_pin.append(aligned)
+            else:
+                self._objects_to_pin.append(segments[i])
+            seg_ptr = schema_cpp.ConstWordArrayPtr(<schema_cpp.word*>ptr, segment_size//8)
+            self._seg_ptrs[i] = seg_ptr
+        self.thisptr = new schema_cpp.SegmentArrayMessageReader(
+            schema_cpp.ConstWordArrayArrayPtr(self._seg_ptrs, num_segments),
+            opts)
+
+    def __dealloc__(self):
+        free(self._seg_ptrs)
         del self.thisptr
 
 
