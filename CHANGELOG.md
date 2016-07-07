@@ -1,3 +1,9 @@
+## v0.5.9 (2016-07-07)
+- Make the event loop be lazy initialized
+- Add support for segment (de)serialization (thanks to @gcv). See to_segments/from_segments methods.
+- Fix response objects not referencing parents correctly
+- Add test for large reads
+
 ## v0.5.8 (2016-05-27)
 - Fix build problem with Cython v0.24
 - Include the changelog in the manifest (should fix install problems if pandoc is present)
