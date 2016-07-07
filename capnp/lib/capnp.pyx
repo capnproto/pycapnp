@@ -1638,6 +1638,7 @@ _THREAD_LOCAL_EVENT_LOOPS = []
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
     'Optimization for not having to deal with threadlocal event loops unless we need to'
+    global C_DEFAULT_EVENT_LOOP
     if C_DEFAULT_EVENT_LOOP is not None:
         return C_DEFAULT_EVENT_LOOP
     elif _C_DEFAULT_EVENT_LOOP_LOCAL is not None:
@@ -1647,8 +1648,9 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
         else:
             _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
             return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
-
-    raise KjException("You don't have any EventLoops running. Please make sure to add one")
+    else:
+      C_DEFAULT_EVENT_LOOP = _EventLoop()
+      return C_DEFAULT_EVENT_LOOP
 
 cdef class _Timer:
     cdef capnp.Timer * thisptr
