@@ -205,7 +205,7 @@ class KjException(Exception):
 
     Type = _make_enum('Type', **{x : x for x in _Type.reverse_mapping.values()})
 
-    def __init__(self, message=None, nature=None, durability=None, wrapper=None):
+    def __init__(self, message=None, nature=None, durability=None, wrapper=None, type=None):
         if wrapper is not None:
             self.wrapper = wrapper
             self.message = str(wrapper)
@@ -214,6 +214,7 @@ class KjException(Exception):
             self.message = message
             self.nature = nature
             self.durability = durability
+            self._type = type
 
     @property
     def file(self):
@@ -226,7 +227,7 @@ class KjException(Exception):
         if self.wrapper is not None:
             return self.wrapper.type
         else:
-            return self.type
+            return self._type
     @property
     def description(self):
         if self.wrapper is not None:
