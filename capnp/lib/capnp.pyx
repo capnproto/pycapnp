@@ -1140,7 +1140,7 @@ cdef class _DynamicStructBuilder:
         if not self.is_root:
             raise KjException("You can only call write() on the message's root struct.")
         if self._is_written:
-            _warnings.warn("This message has already been written once. Be very careful that you're not setting Text/Struct/List fields more than once, since that will cause memory leaks (both in memory and in the serialized data). You can disable this warning by setting the `_is_written` field of this object to False after every write.")
+            _warnings.warn("This message has already been written once. Be very careful that you're not setting Text/Struct/List fields more than once, since that will cause memory leaks (both in memory and in the serialized data). You can disable this warning by calling the `clear_write_flag` method of this object after every write.")
 
     def write(self, file):
         """Writes the struct's containing message to the given file object in unpacked binary format.
@@ -1436,6 +1436,13 @@ cdef class _DynamicStructBuilder:
         def __get__(self):
             size = self.thisptr.totalSize()
             return _MessageSize(size.wordCount, size.capCount)
+
+    def clear_write_flag(self):
+        """A method used to clear the _is_written flag.
+
+        This allows you to write the struct more than once without seeing any warnings.
+        """
+        self._is_written = False
 
     def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.to_bytes())

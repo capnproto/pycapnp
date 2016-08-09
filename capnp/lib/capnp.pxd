@@ -46,7 +46,7 @@ cdef class _DynamicStructBuilder:
     cdef DynamicStruct_Builder thisptr
     cdef public object _parent
     cdef public bint is_root
-    cdef bint _is_written
+    cdef public bint _is_written
     cdef object _schema
 
     cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot=?, bint tryRegistry=?)
