@@ -35,7 +35,7 @@ def get_compiler(compiler, **compiler_attrs):
     """get and customize a compiler"""
     if compiler is None or isinstance(compiler, str):
         cc = ccompiler.new_compiler(compiler=compiler)
-        # customize_compiler(cc)
+        customize_compiler(cc)
         if cc.compiler_type == 'mingw32':
             customize_mingw(cc)
     else:
