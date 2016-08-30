@@ -32,10 +32,12 @@ cdef class _DynamicStructReader:
 
     cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=?, bint tryRegistry=?)
 
+    cdef __get(self, field)
     cpdef _get(self, field)
     cpdef _has(self, field)
     cpdef _DynamicEnumField _which(self)
     cpdef _which_str(self)
+    cdef __get_by_field(self, _StructSchemaField field)
     cpdef _get_by_field(self, _StructSchemaField field)
     cpdef _has_by_field(self, _StructSchemaField field)
 
@@ -57,11 +59,15 @@ cdef class _DynamicStructBuilder:
     cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count) except +reraise_kj_exception
     cpdef to_bytes_packed(_DynamicStructBuilder self) except +reraise_kj_exception
 
+    cdef __get(self, field)
     cpdef _get(self, field)
+    cdef __set(self, field, value)
     cpdef _set(self, field, value)
     cpdef _has(self, field)
     cpdef init(self, field, size=?)
+    cdef __get_by_field(self, _StructSchemaField field)
     cpdef _get_by_field(self, _StructSchemaField field)
+    cdef __set_by_field(self, _StructSchemaField field, value)
     cpdef _set_by_field(self, _StructSchemaField field, value)
     cpdef _has_by_field(self, _StructSchemaField field)
     cpdef _init_by_field(self, _StructSchemaField field, size=?)
@@ -105,12 +111,22 @@ cdef class _DynamicEnum:
     cdef _init(self, capnp.DynamicEnum other, object parent)
     cpdef _as_str(self) except +reraise_kj_exception
 
+cdef class _DynamicListReader:
+    cdef C_DynamicList.Reader thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicList.Reader other, object parent)
+
+    cdef __get(self, int64_t index)
+    cpdef _get(self, int64_t index)
+
 cdef class _DynamicListBuilder:
     cdef C_DynamicList.Builder thisptr
     cdef public object _parent
     cdef _init(self, C_DynamicList.Builder other, object parent)
 
+    cdef __get(self, int64_t index)
     cpdef _get(self, int64_t index)
+    cdef __set(self, index, value)
     cpdef _set(self, index, value)
 
     cpdef adopt(self, index, _DynamicOrphan orphan)
@@ -118,9 +134,17 @@ cdef class _DynamicListBuilder:
 
     cpdef init(self, index, size)
 
-cdef to_python_reader(C_DynamicValue.Reader self, object parent)
-cdef to_python_builder(C_DynamicValue.Builder self, object parent)
+cdef class _DynamicValueReader:
+    cdef C_DynamicValue.Reader thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicValue.Reader other, object parent)
+
+cdef class _DynamicValueBuilder:
+    cdef C_DynamicValue.Builder thisptr
+    cdef public object _parent
+    cdef _init(self, C_DynamicValue.Builder other, object parent)
+
+cpdef getDynamicField(self, field, getter, parent)
+cpdef setDynamicField(self, field, setter, value, parent)
 cdef _to_dict(msg, bint verbose, bint ordered)
 cdef _from_list(_DynamicListBuilder msg, list d)
-cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent)
-cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)

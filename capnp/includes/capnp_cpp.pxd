@@ -219,7 +219,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         FieldSubset getUnionFields()
         FieldSubset getNonUnionFields()
 
-        Field getFieldByName(char * name)
+        Field getFieldByName(char * name) except +reraise_kj_exception
 
         cbool operator == (StructSchema)
 
