@@ -76,6 +76,7 @@ cdef class _DynamicStructBuilder:
     cpdef _which_str(self)
     cpdef adopt(self, field, _DynamicOrphan orphan)
     cpdef disown(self, field)
+    cpdef disown_by_field(self, _StructSchemaField field)
 
     cpdef as_reader(self)
     cpdef copy(self, num_first_segment_words=?)

@@ -1352,6 +1352,18 @@ cdef class _DynamicStructBuilder:
         """
         return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
 
+    cpdef disown_by_field(self, _StructSchemaField field):
+        """A method for disowning Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing.
+
+        :type field: str
+        :param field: The field name in the struct
+
+        :rtype: :class:`_DynamicOrphan`
+        """
+        return _DynamicOrphan()._init(self.thisptr.disownByField(field.thisptr), self._parent)
+
     cpdef as_reader(self):
         """A method for casting this Builder to a Reader
 
@@ -2579,6 +2591,11 @@ cdef class _StructSchemaField:
         """The raw schema proto"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
+
+    property which:
+        """The type of this field, or None if it's a type without a schema"""
+        def __get__(self):
+            return self.thisptr.getType().which()
 
     property schema:
         """The schema of this field, or None if it's a type without a schema"""

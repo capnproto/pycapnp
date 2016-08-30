@@ -162,6 +162,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         cbool isEnum()
         cbool isStruct()
         cbool isInterface()
+        TypeWhich which()
 
         StructSchema asStruct() except +reraise_kj_exception
         EnumSchema asEnum() except +reraise_kj_exception
@@ -249,6 +250,13 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass ConstSchema:
         pass
 
+cdef extern from "capnp/any.h" namespace " ::capnp":
+    cdef cppclass AnyPointerForward" ::capnp::AnyPointer":
+        cppclass Reader:
+            pass
+        cppclass Builder:
+            pass
+
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicValueForward" ::capnp::DynamicValue":
         cppclass Reader:
@@ -307,6 +315,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         Maybe[StructSchema.Field] which()
         void adopt(char *, DynamicOrphan) except +reraise_kj_exception
         DynamicOrphan disown(char *)
+        DynamicOrphan disownByField"disown"(StructSchema.Field)
         DynamicStruct.Reader asReader()
         MessageSize totalSize()
 
@@ -369,6 +378,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicList:
         cppclass Reader:
             DynamicValueForward.Reader operator[](uint) except +reraise_kj_exception
+            StructSchema getStructElementType'getSchema().getStructElementType'() except +reraise_kj_exception
             uint size()
         cppclass Builder:
             Builder()
@@ -379,7 +389,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Builder init(uint index, uint size) except +reraise_kj_exception
             void adopt(uint, DynamicOrphan) except +reraise_kj_exception
             DynamicOrphan disown(uint)
-            StructSchema getStructElementType'getSchema().getStructElementType'()
+            StructSchema getStructElementType'getSchema().getStructElementType'() except +reraise_kj_exception
 
 cdef extern from "capnp/any.h" namespace " ::capnp":
     cdef cppclass AnyPointer:
