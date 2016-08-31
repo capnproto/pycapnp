@@ -6,10 +6,13 @@ import sys
 import os
 import json
 import argparse
+import time
+
+_this_dir = os.path.dirname(__file__)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', "--langs", help="Add languages to test, ie: -l capnproto -l protobuf", action='append', default=['pycapnp', 'pyproto', 'pyproto_cpp'])
+    parser.add_argument('-l', "--langs", help="Add languages to test, ie: -l pyproto -l pyproto_cpp", action='append', default=['pycapnp'])
     parser.add_argument("-r", "--reuse", help="If this flag is passed, re-use tests will be run", action='store_true')
     parser.add_argument("-c", "--compression", help="If this flag is passed, compression tests will be run", action='store_true')
     parser.add_argument("-i", "--scale_iters", help="Scaling factor to multiply the default iters by", type=float, default=1.0)
@@ -26,26 +29,24 @@ def run_one(prefix, name, mode, iters, faster, compression):
     if compression != 'none':
         res_type += '_' + compression
 
-    command = ["time", "-p", prefix+"-"+name, mode, reuse, compression, str(iters)]
+    command = [os.path.join(_this_dir, prefix+"-"+name), mode, reuse, compression, str(iters)]
+    start = time.time()
+    print('running: ' + ' '.join(command), file=sys.stderr)
     p = Popen(command, stdout=PIPE, stderr=PIPE)
-    res = p.communicate()[1]
+    res = p.wait()
+    end = time.time()
 
     data = {}
 
     if p.returncode != 0:
-        sys.stderr.write(' '.join(command) + ' failed to run with errors: \n' + res + '\n')
+        sys.stderr.write(' '.join(command) + ' failed to run with errors: \n' + p.stderr.read() + '\n')
         sys.stderr.flush()
-    else:
-        res = res.strip()
-
-        for line in res.split('\n'):
-            vals = line.split()
-            data[vals[0]] = float(vals[1])
 
     data['type'] = res_type
     data['mode'] = mode
     data['name'] = name
     data['iters'] = iters
+    data['time'] = end - start
 
     return data
 
