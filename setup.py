@@ -3,7 +3,7 @@ from __future__ import print_function
 
 use_cython = False
 
-from distutils.core import setup
+from setuptools import setup
 import os
 import sys
 from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
