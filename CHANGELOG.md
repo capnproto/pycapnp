@@ -1,3 +1,8 @@
+## v0.5.10 (2016-11-28)
+- Fix bug that prevented event loop from actually being lazy initialized
+- Fix possible recursive loop in KjException
+- Add `clear_write_flag` method to builder classes
+
 ## v0.5.9 (2016-07-07)
 - Make the event loop be lazy initialized
 - Add support for segment (de)serialization (thanks to @gcv). See to_segments/from_segments methods.
