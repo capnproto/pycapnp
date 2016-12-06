@@ -943,6 +943,10 @@ cdef class _DynamicEnum:
         elif op == 5: # >=
             return left >= right
 
+    def __hash__(_DynamicEnum self):
+        return hash(self._as_str())
+
+
 cdef class _DynamicEnumField:
     cdef _init(self, proto):
         self.thisptr = proto
