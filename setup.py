@@ -127,6 +127,8 @@ class build_libcapnp_ext(build_ext_c):
 if use_cython:
     from Cython.Build import cythonize
     import Cython
+    import Cython.Compiler.Options
+    Cython.Compiler.Options.lookup_module_cpdef = True
     extensions = cythonize('capnp/lib/*.pyx')
 else:
     extensions = [Extension("capnp.lib.capnp", ["capnp/lib/capnp.cpp"],

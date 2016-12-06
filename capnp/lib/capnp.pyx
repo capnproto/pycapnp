@@ -264,13 +264,19 @@ cdef public object get_exception_info(object exc_type, object exc_obj, object ex
     except:
         return (b'', 0, b"Couldn't determine python exception")
 
-ctypedef fused _DynamicStructReaderOrBuilder:
+ctypedef fused _DynamicReaderOrBuilder:
+    _DynamicListReader
     _DynamicStructReader
+    _DynamicListBuilder
     _DynamicStructBuilder
 
-ctypedef fused _DynamicSetterClasses:
-    C_DynamicList.Builder
-    DynamicStruct_Builder
+ctypedef fused _DynamicBuilderClasses:
+    _DynamicListBuilder
+    _DynamicStructBuilder
+
+ctypedef fused _DynamicReaderClasses:
+    _DynamicListReader
+    _DynamicStructReader
 
 ctypedef fused PromiseTypes:
     Promise
@@ -374,15 +380,16 @@ cdef class _DynamicListReader:
         for phone in phones:
             print phone.number
     """
-    cdef C_DynamicList.Reader thisptr
-    cdef public object _parent
     cdef _init(self, C_DynamicList.Reader other, object parent):
         self.thisptr = other
         self._parent = parent
         return self
 
+    cdef __get(self, int64_t index):
+        return getDynamicField(self, lambda:index, lambda:_DynamicValueReader()._init(self.thisptr[index], self._parent), self._parent)
+
     cpdef _get(self, int64_t index):
-        return to_python_reader(self.thisptr[index], self._parent)
+        return self.__get(index)
 
     def __getitem__(self, int64_t index):
         cdef uint size = self.thisptr.size()
@@ -468,6 +475,18 @@ cdef class _DynamicResizableListBuilder:
             new_list.adopt(i, orphan)
             i += 1
 
+cdef class _DynamicValueReader:
+    cdef _init(self, C_DynamicValue.Reader other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
+cdef class _DynamicValueBuilder:
+    cdef _init(self, C_DynamicValue.Builder other, object parent):
+        self.thisptr = other
+        self._parent = parent
+        return self
+
 cdef class _DynamicListBuilder:
     """Class for building Cap'n Proto Lists
 
@@ -491,8 +510,11 @@ cdef class _DynamicListBuilder:
         self._parent = parent
         return self
 
+    cdef __get(self, int64_t index):
+        return getDynamicField(self, lambda:index, lambda:_DynamicValueBuilder()._init(self.thisptr[index], self._parent), self._parent)
+
     cpdef _get(self, int64_t index):
-        return to_python_builder(self.thisptr[index], self._parent)
+        return self.__get(index)
 
     def __getitem__(self, int64_t index):
         cdef uint size = self.thisptr.size()
@@ -501,15 +523,23 @@ cdef class _DynamicListBuilder:
         index = index % size
         return self._get(index)
 
+    cdef __set(self, index, value):
+        def assign(value):
+            cdef _DynamicListBuilder s = self
+            cdef _DynamicValueReader reader = value
+            s.thisptr.set(index, reader.thisptr)
+            return None
+        setDynamicField(self, lambda:index, assign, value, self._parent)
+
     cpdef _set(self, index, value):
-        _setDynamicField(self.thisptr, index, value, self._parent)
+        self.__set(index, value)
 
     def __setitem__(self, index, value):
         size = self.thisptr.size()
         if index >= size:
             raise IndexError('Out of bounds')
         index = index % size
-        _setDynamicField(self.thisptr, index, value, self._parent)
+        self._set(index, value)
 
     def __len__(self):
         return self.thisptr.size()
@@ -550,7 +580,7 @@ cdef class _DynamicListBuilder:
         :type size: int
         :param size: Size of the element to be initialized.
         """
-        return to_python_builder(self.thisptr.init(index, size), self._parent)
+        return _to_python_builder(_DynamicValueBuilder()._init(self.thisptr.init(index, size), self._parent), self._parent)
 
     def __str__(self):
         return <char*>printListBuilder(self.thisptr).flatten().cStr()
@@ -586,71 +616,155 @@ cdef class _List_NestedNode_Reader:
 #     else:
 #         raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
-cdef to_python_reader(C_DynamicValue.Reader self, object parent):
-    cdef int type = self.getType()
+cdef _to_python_reader(_DynamicValueReader self, object parent):
+    cdef int type = self.thisptr.getType()
     if type == capnp.TYPE_BOOL:
-        return self.asBool()
+        return self.thisptr.asBool()
     elif type == capnp.TYPE_INT:
-        return self.asInt()
+        return self.thisptr.asInt()
     elif type == capnp.TYPE_UINT:
-        return self.asUint()
+        return self.thisptr.asUint()
     elif type == capnp.TYPE_FLOAT:
-        return self.asDouble()
+        return self.thisptr.asDouble()
     elif type == capnp.TYPE_TEXT:
-        temp_text = self.asText()
+        temp_text = self.thisptr.asText()
         return (<char*>temp_text.begin())[:temp_text.size()]
     elif type == capnp.TYPE_DATA:
-        temp_data = self.asData()
+        temp_data = self.thisptr.asData()
         return <bytes>((<char*>temp_data.begin())[:temp_data.size()])
     elif type == capnp.TYPE_LIST:
-        return _DynamicListReader()._init(self.asList(), parent)
+        return _DynamicListReader()._init(self.thisptr.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
-        return _DynamicStructReader()._init(self.asStruct(), parent)
+        return _DynamicStructReader()._init(self.thisptr.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return _DynamicEnum()._init(self.asEnum(), parent)
+        return _DynamicEnum()._init(self.thisptr.asEnum(), parent)
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_ANY_POINTER:
-        return _DynamicObjectReader()._init(self.asObject(), parent)
+        return _DynamicObjectReader()._init(self.thisptr.asObject(), parent)
     elif type == capnp.TYPE_CAPABILITY:
-        return _DynamicCapabilityClient()._init(self.asCapability(), parent)
+        return _DynamicCapabilityClient()._init(self.thisptr.asCapability(), parent)
     elif type == capnp.TYPE_UNKNOWN:
         raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
     else:
         raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
-cdef to_python_builder(C_DynamicValue.Builder self, object parent):
-    cdef int type = self.getType()
+cpdef getDynamicField(self, field, getter, parent):
+    value = getter()
+    if isinstance(value, _DynamicValueReader):
+        return _to_python_reader(value, parent)
+    else:
+        return _to_python_builder(value, parent)
+
+cdef _to_python_builder(_DynamicValueBuilder self, object parent):
+    cdef int type = self.thisptr.getType()
     if type == capnp.TYPE_BOOL:
-        return self.asBool()
+        return self.thisptr.asBool()
     elif type == capnp.TYPE_INT:
-        return self.asInt()
+        return self.thisptr.asInt()
     elif type == capnp.TYPE_UINT:
-        return self.asUint()
+        return self.thisptr.asUint()
     elif type == capnp.TYPE_FLOAT:
-        return self.asDouble()
+        return self.thisptr.asDouble()
     elif type == capnp.TYPE_TEXT:
-        temp_text = self.asText()
+        temp_text = self.thisptr.asText()
         return (<char*>temp_text.begin())[:temp_text.size()]
     elif type == capnp.TYPE_DATA:
-        temp_data = self.asData()
+        temp_data = self.thisptr.asData()
         return <bytes>((<char*>temp_data.begin())[:temp_data.size()])
     elif type == capnp.TYPE_LIST:
-        return _DynamicListBuilder()._init(self.asList(), parent)
+        return _DynamicListBuilder()._init(self.thisptr.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
-        return _DynamicStructBuilder()._init(self.asStruct(), parent)
+        return _DynamicStructBuilder()._init(self.thisptr.asStruct(), parent)
     elif type == capnp.TYPE_ENUM:
-        return _DynamicEnum()._init(self.asEnum(), parent)
+        return _DynamicEnum()._init(self.thisptr.asEnum(), parent)
     elif type == capnp.TYPE_VOID:
         return None
     elif type == capnp.TYPE_ANY_POINTER:
-        return _DynamicObjectBuilder()._init(self.asObject(), parent)
+        return _DynamicObjectBuilder()._init(self.thisptr.asObject(), parent)
     elif type == capnp.TYPE_CAPABILITY:
-        return _DynamicCapabilityClient()._init(self.asCapability(), parent)
+        return _DynamicCapabilityClient()._init(self.thisptr.asCapability(), parent)
     elif type == capnp.TYPE_UNKNOWN:
         raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
+
+cdef _setDynamicField(object self, object field, object value, object parent):
+    cdef C_DynamicValue.Reader temp
+    cdef capnp.StringPtr temp_string
+    cdef _DynamicListBuilder self_list
+    cdef _DynamicStructBuilder self_struct
+    cdef _StructSchemaField dyn_field
+    value_type = type(value)
+
+    if value_type is int or value_type is long:
+        if value < 0:
+           temp = C_DynamicValue.Reader(<long long>value)
+        else:
+           temp = C_DynamicValue.Reader(<unsigned long long>value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is float:
+        temp = C_DynamicValue.Reader(<double>value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is bool:
+        temp = C_DynamicValue.Reader(<cbool>value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is bytes:
+        temp_string = capnp.StringPtr(<char*>value, len(value))
+        temp = C_DynamicValue.Reader(temp_string)
+        return _DynamicValueReader()._init(temp, parent)
+    elif isinstance(value, basestring):
+        encoded_value = value.encode('utf-8')
+        temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
+        temp = C_DynamicValue.Reader(temp_string)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is list:
+        if isinstance(self, _DynamicStructBuilder):
+            self_struct = self
+            builder = _to_python_builder(_DynamicValueBuilder()._init(self_struct.thisptr.init(field().proto.name, len(value)), parent), parent)
+        else:
+            self_list = self
+            builder = _to_python_builder(_DynamicValueBuilder()._init(self_list.thisptr.init(field().proto.name, len(value)), parent), parent)
+        _from_list(builder, value)
+    elif value_type is dict:
+        if isinstance(self, _DynamicStructBuilder):
+            self_struct = self
+            dyn_field = field()
+            builder = _to_python_builder(_DynamicValueBuilder()._init(self_struct.thisptr.getByField(dyn_field.thisptr), parent), parent)
+        else:
+            self_list = self
+            builder = _to_python_builder(_DynamicValueBuilder()._init(self_list.thisptr[field()], parent), parent)
+        builder.from_dict(value)
+    elif value is None:
+        temp = C_DynamicValue.Reader(VOID)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is _DynamicStructBuilder:
+        temp = _extract_dynamic_struct_builder(value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is _DynamicStructReader:
+        temp = _extract_dynamic_struct_reader(value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is _DynamicCapabilityClient:
+        temp = _extract_dynamic_client(value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+        temp = _extract_dynamic_server(value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is _DynamicEnum:
+        temp = _extract_dynamic_enum(value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is _DynamicObjectReader:
+        temp = _extract_any_pointer(value)
+        return _DynamicValueReader()._init(temp, parent)
+    elif value_type is _DynamicObjectBuilder:
+        temp = _extract_any_pointer_builder(value)
+        return _DynamicValueReader()._init(temp, parent)
     else:
-        raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
+        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+    return None
+
+cpdef setDynamicField(self, field, setter, value, parent):
+    val = _setDynamicField(self, field, value, parent)
+    if val:
+        setter(val)
 
 cdef C_DynamicValue.Reader _extract_dynamic_struct_builder(_DynamicStructBuilder value):
     return C_DynamicValue.Reader(value.thisptr.asReader())
@@ -673,170 +787,6 @@ cdef C_DynamicValue.Reader _extract_any_pointer(_DynamicObjectReader value):
 
 cdef C_DynamicValue.Reader _extract_any_pointer_builder(_DynamicObjectBuilder value):
     return C_DynamicValue.Reader(value.thisptr.asReader())
-
-cdef _setBytes(_DynamicSetterClasses thisptr, field, value):
-    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>value, len(value))
-    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
-    thisptr.set(field, temp)
-
-cdef _setBaseString(_DynamicSetterClasses thisptr, field, value):
-    encoded_value = value.encode('utf-8')
-    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
-    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
-    thisptr.set(field, temp)
-
-cdef _setBytesField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
-    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>value, len(value))
-    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
-    thisptr.setByField(field.thisptr, temp)
-
-cdef _setBaseStringField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
-    encoded_value = value.encode('utf-8')
-    cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>encoded_value, len(encoded_value))
-    cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
-    thisptr.setByField(field.thisptr, temp)
-
-cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
-    cdef C_DynamicValue.Reader temp
-    value_type = type(value)
-
-    if value_type is int or value_type is long:
-        if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
-        else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
-        thisptr.set(field, temp)
-    elif value_type is float:
-        temp = C_DynamicValue.Reader(<double>value)
-        thisptr.set(field, temp)
-    elif value_type is bool:
-        temp = C_DynamicValue.Reader(<cbool>value)
-        thisptr.set(field, temp)
-    elif value_type is bytes:
-        _setBytes(thisptr, field, value)
-    elif isinstance(value, basestring):
-        _setBaseString(thisptr, field, value)
-    elif value_type is list:
-        builder = to_python_builder(thisptr.init(field, len(value)), parent)
-        _from_list(builder, value)
-    elif value_type is dict:
-        if _DynamicSetterClasses is DynamicStruct_Builder:
-            builder = to_python_builder(thisptr.get(field), parent)
-            builder.from_dict(value)
-        else:
-            builder = to_python_builder(thisptr[field], parent)
-            builder.from_dict(value)
-    elif value is None:
-        temp = C_DynamicValue.Reader(VOID)
-        thisptr.set(field, temp)
-    elif value_type is _DynamicStructBuilder:
-        thisptr.set(field, _extract_dynamic_struct_builder(value))
-    elif value_type is _DynamicStructReader:
-        thisptr.set(field, _extract_dynamic_struct_reader(value))
-    elif value_type is _DynamicCapabilityClient:
-        thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
-        thisptr.set(field, _extract_dynamic_server(value))
-    elif value_type is _DynamicEnum:
-        thisptr.set(field, _extract_dynamic_enum(value))
-    elif value_type is _DynamicObjectReader:
-        thisptr.set(field, _extract_any_pointer(value))
-    elif value_type is _DynamicObjectBuilder:
-        thisptr.set(field, _extract_any_pointer_builder(value))
-    else:
-        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
-
-cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent):
-    cdef C_DynamicValue.Reader temp
-    value_type = type(value)
-
-    if value_type is int or value_type is long:
-        if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
-        else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
-        thisptr.setByField(field.thisptr, temp)
-    elif value_type is float:
-        temp = C_DynamicValue.Reader(<double>value)
-        thisptr.setByField(field.thisptr, temp)
-    elif value_type is bool:
-        temp = C_DynamicValue.Reader(<cbool>value)
-        thisptr.setByField(field.thisptr, temp)
-    elif value_type is bytes:
-        _setBytesField(thisptr, field, value)
-    elif isinstance(value, basestring):
-        _setBaseStringField(thisptr, field, value)
-    elif value_type is list:
-        builder = to_python_builder(thisptr.init(field.proto.name, len(value)), parent)
-        _from_list(builder, value)
-    elif value_type is dict:
-        builder = to_python_builder(thisptr.getByField(field.thisptr), parent)
-        builder.from_dict(value)
-    elif value is None:
-        temp = C_DynamicValue.Reader(VOID)
-        thisptr.setByField(field.thisptr, temp)
-    elif value_type is _DynamicStructBuilder:
-        thisptr.setByField(field.thisptr, _extract_dynamic_struct_builder(value))
-    elif value_type is _DynamicStructReader:
-        thisptr.setByField(field.thisptr, _extract_dynamic_struct_reader(value))
-    elif value_type is _DynamicCapabilityClient:
-        thisptr.setByField(field.thisptr, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
-        thisptr.setByField(field.thisptr, _extract_dynamic_server(value))
-    elif value_type is _DynamicEnum:
-        thisptr.setByField(field.thisptr, _extract_dynamic_enum(value))
-    elif value_type is _DynamicObjectReader:
-        thisptr.set(field, _extract_any_pointer(value))
-    elif value_type is _DynamicObjectBuilder:
-        thisptr.set(field, _extract_any_pointer_builder(value))
-    else:
-        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
-
-cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent):
-    cdef C_DynamicValue.Reader temp
-    value_type = type(value)
-
-    if value_type is int or value_type is long:
-        if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
-        else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
-        thisptr.set(field, temp)
-    elif value_type is float:
-        temp = C_DynamicValue.Reader(<double>value)
-        thisptr.set(field, temp)
-    elif value_type is bool:
-        temp = C_DynamicValue.Reader(<cbool>value)
-        thisptr.set(field, temp)
-    elif value_type is bytes:
-        _setBytes(thisptr, field, value)
-    elif isinstance(value, basestring):
-        _setBaseString(thisptr, field, value)
-    elif value_type is list:
-        builder = to_python_builder(thisptr.init(field, len(value)), parent)
-        _from_list(builder, value)
-    elif value_type is dict:
-        builder = to_python_builder(thisptr.get(field), parent)
-        builder.from_dict(value)
-    elif value is None:
-        temp = C_DynamicValue.Reader(VOID)
-        thisptr.set(field, temp)
-    elif value_type is _DynamicStructBuilder:
-        thisptr.set(field, _extract_dynamic_struct_builder(value))
-    elif value_type is _DynamicStructReader:
-        thisptr.set(field, _extract_dynamic_struct_reader(value))
-    elif value_type is _DynamicCapabilityClient:
-        thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
-        thisptr.set(field, _extract_dynamic_server(value))
-    elif value_type is _DynamicEnum:
-        thisptr.set(field, _extract_dynamic_enum(value))
-    elif value_type is _DynamicObjectReader:
-        thisptr.set(field, _extract_any_pointer(value))
-    elif value_type is _DynamicObjectBuilder:
-        thisptr.set(field, _extract_any_pointer_builder(value))
-    else:
-        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
 
 cdef _DynamicListBuilder temp_list_b
 cdef _DynamicListReader temp_list_r
@@ -1023,8 +973,11 @@ cdef class _DynamicStructReader:
                 return registered_type[0](self)
         return self
 
+    cdef __get(self, field):
+        return getDynamicField(self, lambda:_StructSchemaField()._init(self.thisptr.getSchema().getFieldByName(field), self), lambda:_DynamicValueReader()._init(self.thisptr.get(field), self), self)
+
     cpdef _get(self, field):
-        return to_python_reader(self.thisptr.get(field), self)
+        return self.__get(field)
 
     def __getattr__(self, field):
         try:
@@ -1032,8 +985,11 @@ cdef class _DynamicStructReader:
         except KjException as e:
             raise e._to_python(), None, _sys.exc_info()[2]
 
+    cdef __get_by_field(self, _StructSchemaField field):
+        return getDynamicField(self, field, lambda:_DynamicValueReader()._init(self.thisptr.getByField(field.thisptr), self), self)
+
     cpdef _get_by_field(self, _StructSchemaField field):
-        return to_python_reader(self.thisptr.getByField(field.thisptr), self)
+        return self.__get_by_field(field)
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
@@ -1112,7 +1068,6 @@ cdef class _DynamicStructReader:
 
     def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.as_builder().to_bytes())
-
 
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
@@ -1234,11 +1189,17 @@ cdef class _DynamicStructBuilder:
         self._is_written = True
         return ret
 
+    cdef __get(self, field):
+        return getDynamicField(self, lambda:_StructSchemaField()._init(self.thisptr.getSchema().getFieldByName(field), self._parent), lambda:_DynamicValueBuilder()._init(self.thisptr.get(field), self._parent), self._parent)
+
     cpdef _get(self, field):
-        return to_python_builder(self.thisptr.get(field), self._parent)
+        return self.__get(field)
+
+    cdef __get_by_field(self, _StructSchemaField field):
+        return getDynamicField(self, field, lambda:_DynamicValueBuilder()._init(self.thisptr.getByField(field.thisptr), self._parent), self._parent)
 
     cpdef _get_by_field(self, _StructSchemaField field):
-        return to_python_builder(self.thisptr.getByField(field.thisptr), self._parent)
+        return self.__get_by_field(field)
 
     def __getattr__(self, field):
         try:
@@ -1246,11 +1207,27 @@ cdef class _DynamicStructBuilder:
         except KjException as e:
             raise e._to_python(), None, _sys.exc_info()[2]
 
+    cdef __set(self, field, value):
+        def assign(value):
+            cdef _DynamicStructBuilder s = self
+            cdef _DynamicValueReader reader = value
+            s.thisptr.set(field, reader.thisptr)
+            return None
+        setDynamicField(self, lambda:_StructSchemaField()._init(self.thisptr.getSchema().getFieldByName(field), self._parent), assign, value, self._parent)
+
     cpdef _set(self, field, value):
-        _setDynamicField(self.thisptr, field, value, self._parent)
+        self.__set(field, value)
+
+    cdef __set_by_field(self, _StructSchemaField field, value):
+        def assign(value):
+            cdef _DynamicStructBuilder s = self
+            cdef _DynamicValueReader reader = value
+            s.thisptr.setByField(field.thisptr, reader.thisptr)
+            return None
+        setDynamicField(self, lambda:field, assign, value, self._parent)
 
     cpdef _set_by_field(self, _StructSchemaField field, value):
-        _setDynamicFieldWithField(self.thisptr, field, value, self._parent)
+        self.__set_by_field(field, value)
 
     def __setattr__(self, field, value):
         try:
@@ -1280,9 +1257,9 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
         if size is None:
-            return to_python_builder(self.thisptr.init(field), self._parent)
+            return _to_python_builder(_DynamicValueBuilder()._init(self.thisptr.init(field), self._parent), self._parent)
         else:
-            return to_python_builder(self.thisptr.init(field, size), self._parent)
+            return _to_python_builder(_DynamicValueBuilder()._init(self.thisptr.init(field, size), self._parent), self._parent)
 
     cpdef _init_by_field(self, _StructSchemaField field, size=None):
         """Method for initializing fields that are of type union/struct/list
@@ -1300,9 +1277,9 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
         if size is None:
-            return to_python_builder(self.thisptr.initByField(field.thisptr), self._parent)
+            return _to_python_builder(_DynamicValueBuilder()._init(self.thisptr.initByField(field.thisptr), self._parent), self._parent)
         else:
-            return to_python_builder(self.thisptr.initByField(field.thisptr, size), self._parent)
+            return _to_python_builder(_DynamicValueBuilder()._init(self.thisptr.initByField(field.thisptr, size), self._parent), self._parent)
 
     cpdef init_resizable_list(self, field):
         """Method for initializing fields that are of type list (of structs)
@@ -1378,6 +1355,18 @@ cdef class _DynamicStructBuilder:
         :rtype: :class:`_DynamicOrphan`
         """
         return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
+
+    cpdef disown_by_field(self, _StructSchemaField field):
+        """A method for disowning Cap'n Proto orphans
+
+        Don't use this method unless you know what you're doing.
+
+        :type field: str
+        :param field: The field name in the struct
+
+        :rtype: :class:`_DynamicOrphan`
+        """
+        return _DynamicOrphan()._init(self.thisptr.disownByField(field.thisptr), self._parent)
 
     cpdef as_reader(self):
         """A method for casting this Builder to a Reader
@@ -1515,7 +1504,7 @@ cdef class _DynamicOrphan:
 
         Use this DynamicValue to set fields inside the orphan
         """
-        return to_python_builder(self.thisptr.get(), self._parent)
+        return _to_python_builder(_DynamicValueBuilder()._init(self.thisptr.get(), self._parent), self._parent)
 
     def __str__(self):
         return str(self.get())
@@ -2102,16 +2091,31 @@ cdef class _DynamicCapabilityClient:
         return _find_field_order(params.struct)
 
     cdef _set_fields(self, Request * request, name, args, kwargs):
+        cdef _DynamicStructBuilder ss
         if args is not None and len(args) > 0:
             arg_names = self._find_method_args(name)
             if len(args) > len(arg_names):
                 raise KjException('Too many arguments passed to `%s`. Expected %d and got %d' % (name, len(arg_names), len(args)))
             for arg_name, arg_val in zip(arg_names, args):
-                _setDynamicField(<DynamicStruct_Builder>deref(request), arg_name, arg_val, self)
+                s = <DynamicStruct_Builder>deref(request)
+                ss = _DynamicStructBuilder()._init(s, self._parent)
+                def assign(value):
+                    cdef _DynamicStructBuilder s = ss
+                    cdef _DynamicValueReader reader = value
+                    s.thisptr.set(arg_name, reader.thisptr)
+                    return None
+                setDynamicField(ss, lambda:_StructSchemaField()._init(s.getSchema().getFieldByName(arg_name), self._parent), assign, arg_val, self._parent)
 
         if kwargs is not None:
             for key, val in kwargs.items():
-                _setDynamicField(<DynamicStruct_Builder>deref(request), key, val, self)
+                s = <DynamicStruct_Builder>deref(request)
+                ss = _DynamicStructBuilder()._init(s, self._parent)
+                def assign(value):
+                    cdef _DynamicStructBuilder s = ss
+                    cdef _DynamicValueReader reader = value
+                    s.thisptr.set(key, reader.thisptr)
+                    return None
+                setDynamicField(ss, lambda:_StructSchemaField()._init(s.getSchema().getFieldByName(key), self._parent), assign, val, self._parent)
 
     cpdef _send_helper(self, name, word_count, args, kwargs) except +reraise_kj_exception:
         # if word_count is None:
@@ -2454,7 +2458,7 @@ cdef class _Schema:
         return self
 
     cpdef as_const_value(self):
-        return to_python_reader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
+        return _to_python_reader(_DynamicValueReader()._init(<C_DynamicValue.Reader>self.thisptr.asConst(), self), self)
 
     cpdef as_struct(self):
         return _StructSchema()._init(self.thisptr.asStruct())
@@ -2591,6 +2595,11 @@ cdef class _StructSchemaField:
         """The raw schema proto"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
+
+    property which:
+        """The type of this field, or None if it's a type without a schema"""
+        def __get__(self):
+            return self.thisptr.getType().which()
 
     property schema:
         """The schema of this field, or None if it's a type without a schema"""
