@@ -415,6 +415,12 @@ def check_all_types(reader):
     assert subSubReader.structField.textField == "really nested"
 
     assert subReader.enumField == "baz"
+    # Check that enums are hashable and can be used as keys in dicts
+    # interchangably with their string version.
+    assert hash(subReader.enumField) == hash('baz')
+    assert {subReader.enumField: 17}.get(subReader.enumField) == 17
+    assert {subReader.enumField: 17}.get('baz') == 17
+    assert {'baz': 17}.get(subReader.enumField) == 17
 
     check_list(subReader.voidList, [None, None, None])
     check_list(subReader.boolList, [False, True, False, True, True])
