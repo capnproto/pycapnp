@@ -98,17 +98,21 @@ class build_libcapnp_ext(build_ext_c):
         build_ext_c.build_extension(self, ext)
 
     def run(self):
-        build_failed = False
-        try:
-            test_build()
-        except CompileError:
-            build_failed = True
+        if force_bundled_libcapnp:
+            need_build = True
+        elif force_system_libcapnp:
+            need_build = False
+        else:
+            # Try to autodetect presence of library. Requires compile/run
+            # step so only works for host (non-cross) compliation
+            try:
+                test_build()
+                need_build = False
+            except CompileError:
+                need_build = True
 
-        if build_failed and force_system_libcapnp:
-            raise RuntimeError("libcapnp C++ library not detected and --force-system-libcapnp was used")
-        if build_failed or force_bundled_libcapnp:
-            if build_failed:
-                info("*WARNING* no libcapnp detected. Will download and build it from source now. If you have C++ Cap'n Proto installed, it may be out of date or is not being detected. Downloading and building libcapnp may take a while.")
+        if need_build:
+            info("*WARNING* no libcapnp detected or rebuild forced. Will download and build it from source now. If you have C++ Cap'n Proto installed, it may be out of date or is not being detected. Downloading and building libcapnp may take a while.")
             bundle_dir = os.path.join(_this_dir, "bundled")
             if not os.path.exists(bundle_dir):
                 os.mkdir(bundle_dir)
