@@ -264,6 +264,14 @@ cdef public object get_exception_info(object exc_type, object exc_obj, object ex
     except:
         return (b'', 0, b"Couldn't determine python exception")
 
+cdef schema_cpp.ReaderOptions make_reader_opts(traversal_limit_in_words, nesting_limit) with gil:
+    cdef schema_cpp.ReaderOptions opts
+    if traversal_limit_in_words is not None:
+        opts.traversalLimitInWords = traversal_limit_in_words
+    if nesting_limit is not None:
+        opts.nestingLimit = nesting_limit
+    return opts
+
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader
     _DynamicStructBuilder
@@ -2217,9 +2225,9 @@ cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
     cdef _AsyncIoStream stream
 
-    cdef _init(self, _AsyncIoStream stream, Side side):
+    cdef _init(self, _AsyncIoStream stream, Side side, schema_cpp.ReaderOptions opts):
         self.stream = stream
-        self.thisptr = makeTwoPartyVatNetwork(deref(stream.thisptr), side)
+        self.thisptr = makeTwoPartyVatNetwork(deref(stream.thisptr), side, opts)
         return self
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
@@ -2244,13 +2252,15 @@ cdef class TwoPartyClient:
     cdef public _Restorer _restorer
     cdef public _AsyncIoStream _stream
 
-    def __init__(self, socket, restorer=None):
+    def __init__(self, socket, restorer=None, traversal_limit_in_words=None, nesting_limit=None):
         if isinstance(socket, basestring):
             socket = self._connect(socket)
 
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
+
         self._orig_stream = socket
         self._stream = _FdAsyncIoStream(socket.fileno())
-        self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.CLIENT)
+        self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.CLIENT, opts)
         if restorer is None:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
             self._restorer = None
@@ -2340,11 +2350,13 @@ cdef class TwoPartyServer:
     cdef capnp.TaskSet * _task_set
     cdef capnp.ErrorHandler _error_handler
 
-    def __init__(self, socket, restorer=None, server_socket=None, bootstrap=None):
+    def __init__(self, socket, restorer=None, server_socket=None, bootstrap=None,
+                 traversal_limit_in_words=None, nesting_limit=None):
         if not restorer and not bootstrap:
             raise KjException("You must provide either a bootstrap interface or a restorer (deperecated) to a server constructor.")
 
         cdef _InterfaceSchema schema
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         self._restorer = None
         self._bootstrap = None
 
@@ -2355,7 +2367,7 @@ cdef class TwoPartyServer:
             self._stream = _FdAsyncIoStream(socket.fileno())
             self._server_socket = server_socket
             self._port = 0
-            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER)
+            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER, opts)
 
             if bootstrap:
                 self._bootstrap = bootstrap
@@ -3438,15 +3450,9 @@ cdef class _StreamFdMessageReader(_MessageReader):
     :Parameters: - fd (`int`) - A file descriptor
     """
     def __init__(self, file, traversal_limit_in_words = None, nesting_limit = None):
-        cdef schema_cpp.ReaderOptions opts
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
-
-        if traversal_limit_in_words is not None:
-            opts.traversalLimitInWords = traversal_limit_in_words
-        if nesting_limit is not None:
-            opts.nestingLimit = nesting_limit
-
         self.thisptr = new schema_cpp.StreamFdMessageReader(file.fileno(), opts)
 
     def __dealloc__(self):
@@ -3469,15 +3475,9 @@ cdef class _PackedMessageReader(_MessageReader):
         pass
 
     cdef _init(self, schema_cpp.BufferedInputStream & stream, traversal_limit_in_words = None, nesting_limit = None, parent = None):
-        cdef schema_cpp.ReaderOptions opts
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = parent
-
-        if traversal_limit_in_words is not None:
-            opts.traversalLimitInWords = traversal_limit_in_words
-        if nesting_limit is not None:
-            opts.nestingLimit = nesting_limit
-
         self.thisptr = new schema_cpp.PackedMessageReader(stream, opts)
         return self
 
@@ -3489,14 +3489,9 @@ cdef class _PackedMessageReaderBytes(_MessageReader):
     cdef schema_cpp.ArrayInputStream * stream
 
     def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
-        cdef schema_cpp.ReaderOptions opts
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = buf
-
-        if traversal_limit_in_words is not None:
-            opts.traversalLimitInWords = traversal_limit_in_words
-        if nesting_limit is not None:
-            opts.nestingLimit = nesting_limit
 
         cdef const void *ptr
         cdef Py_ssize_t sz
@@ -3526,15 +3521,9 @@ cdef class _InputMessageReader(_MessageReader):
         pass
 
     cdef _init(self, schema_cpp.BufferedInputStream & stream, traversal_limit_in_words = None, nesting_limit = None, parent = None):
-        cdef schema_cpp.ReaderOptions opts
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = parent
-
-        if traversal_limit_in_words is not None:
-            opts.traversalLimitInWords = traversal_limit_in_words
-        if nesting_limit is not None:
-            opts.nestingLimit = nesting_limit
-
         self.thisptr = new schema_cpp.InputStreamMessageReader(stream, opts)
         return self
 
@@ -3555,15 +3544,9 @@ cdef class _PackedFdMessageReader(_MessageReader):
     :Parameters: - fd (`int`) - A file descriptor
     """
     def __init__(self, file, traversal_limit_in_words = None, nesting_limit = None):
-        cdef schema_cpp.ReaderOptions opts
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
-
-        if traversal_limit_in_words is not None:
-            opts.traversalLimitInWords = traversal_limit_in_words
-        if nesting_limit is not None:
-            opts.nestingLimit = nesting_limit
-
         self.thisptr = new schema_cpp.PackedFdMessageReader(file.fileno(), opts)
 
     def __dealloc__(self):
@@ -3757,13 +3740,8 @@ cdef class _BufferView:
 cdef class _FlatArrayMessageReader(_MessageReader):
     cdef object _object_to_pin
     def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
-        cdef schema_cpp.ReaderOptions opts
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         cdef _AlignedBuffer aligned
-
-        if traversal_limit_in_words is not None:
-            opts.traversalLimitInWords = traversal_limit_in_words
-        if nesting_limit is not None:
-            opts.nestingLimit = nesting_limit
 
         sz = len(buf)
         if sz % 8 != 0:
@@ -3796,11 +3774,7 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
     cdef schema_cpp.ConstWordArrayPtr* _seg_ptrs
 
     def __init__(self, segments, traversal_limit_in_words = None, nesting_limit = None):
-        cdef schema_cpp.ReaderOptions opts
-        if traversal_limit_in_words is not None:
-            opts.traversalLimitInWords = traversal_limit_in_words
-        if nesting_limit is not None:
-            opts.nestingLimit = nesting_limit
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         # take a Python array of bytes and constructs a ConstWordArrayArrayPtr
         num_segments = len(segments)
         cdef const void* ptr
