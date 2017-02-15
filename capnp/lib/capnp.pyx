@@ -3783,7 +3783,9 @@ cdef class _FlatArrayMessageReader(_MessageReader):
             else:
                 self._object_to_pin = buf
 
-        self.thisptr = new schema_cpp.FlatArrayMessageReader(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
+        self.thisptr = new schema_cpp.FlatArrayMessageReader(
+            schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8),
+            opts)
 
     def __dealloc__(self):
         del self.thisptr
