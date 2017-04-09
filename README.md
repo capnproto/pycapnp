@@ -38,15 +38,13 @@ This project uses [git-flow](http://jeffkreeftmeijer.com/2010/why-arent-you-usin
 
 ### Binary Packages
 
-In order to build binary packages from this source code, you must specify the `--disable-cython` option:
-
 Building a dumb binary distribution:
 
-    python setup.py bdist_dumb --disable-cython
+    python setup.py bdist_dumb
 
 Building a Python wheel distributiion:
 
-    python setup.py bdist_wheel --disable-cython
+    python setup.py bdist_wheel
 
 If it fails with an error like `clang: error: no such file or directory: 'capnp/lib/capnp.cpp'`, then you need to cythonize fist. This can be done with:
 
