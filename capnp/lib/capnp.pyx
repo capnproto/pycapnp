@@ -1081,7 +1081,7 @@ cdef class _DynamicStructReader:
             return self._schema
 
     def __dir__(self):
-        return list(self.schema.fieldnames)
+        return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
 
     def __str__(self):
         return <char*>printStructReader(self.thisptr).flatten().cStr()
@@ -1413,7 +1413,7 @@ cdef class _DynamicStructBuilder:
             return self._schema
 
     def __dir__(self):
-        return list(self.schema.fieldnames)
+        return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
 
     def __str__(self):
         return <char*>printStructBuilder(self.thisptr).flatten().cStr()
@@ -1490,7 +1490,7 @@ cdef class _DynamicStructPipeline:
             return _StructSchema()._init(self.thisptr.getSchema())
 
     def __dir__(self):
-        return list(self.schema.fieldnames)
+        return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
 
     # def __str__(self):
     #     return printStructReader(self.thisptr).flatten().cStr()
@@ -1972,7 +1972,7 @@ cdef class _RemotePromise:
             return _StructSchema()._init(self.thisptr.getSchema())
 
     def __dir__(self):
-        return list(self.schema.fieldnames)
+        return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
 
     def to_dict(self, verbose=False, ordered=False):
         return _to_dict(self, verbose, ordered)
@@ -2176,7 +2176,7 @@ cdef class _DynamicCapabilityClient:
             return self._cached_schema
 
     def __dir__(self):
-        return list(self.schema.method_names_inherited)
+        return list(set(self.schema.method_names_inherited) + tuple(dir(self.__class__)))
 
 cdef class _CapabilityClient:
     cdef C_Capability.Client * thisptr
