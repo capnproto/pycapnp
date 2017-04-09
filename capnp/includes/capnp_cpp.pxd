@@ -4,7 +4,7 @@
 cdef extern from "capnp/helpers/checkCompiler.h":
     pass
 
-from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
+from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
 from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
 from capnp.includes.types cimport *
 
@@ -45,7 +45,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
 cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T]:
         T& operator*()
-    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side)
+    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side, ReaderOptions)
     Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(PromiseFulfillerPair&)
     Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
 
@@ -341,7 +341,7 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef Side SERVER" ::capnp::rpc::twoparty::Side::SERVER"
 
     cdef cppclass TwoPartyVatNetwork:
-        TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side)
+        TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side, ReaderOptions)
         VoidPromise onDisconnect()
         VoidPromise onDrained()
     RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&)
