@@ -175,6 +175,11 @@ def test_from_bytes_traversal_limit(all_types):
     bld.init("structList", size)
     data = bld.to_bytes()
 
+    msg = all_types.TestAllTypes.from_bytes(data)
+    with pytest.raises(capnp.KjException):
+        for i in range(0, size):
+            msg.structList[i].uInt8Field == 0
+
     msg = all_types.TestAllTypes.from_bytes(data,
         traversal_limit_in_words=2**62)
     for i in range(0, size):
@@ -186,6 +191,11 @@ def test_from_bytes_packed_traversal_limit(all_types):
     bld = all_types.TestAllTypes.new_message()
     bld.init("structList", size)
     data = bld.to_bytes_packed()
+
+    msg = all_types.TestAllTypes.from_bytes_packed(data)
+    with pytest.raises(capnp.KjException):
+        for i in range(0, size):
+            msg.structList[i].uInt8Field == 0
 
     msg = all_types.TestAllTypes.from_bytes_packed(data,
         traversal_limit_in_words=2**62)
