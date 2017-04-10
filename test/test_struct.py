@@ -115,6 +115,14 @@ def test_builder_set_from_list(all_types):
     assert list(msg.int32List) == [0, 1, 2]
 
 
+def test_builder_set_from_tuple(all_types):
+    msg = all_types.TestAllTypes.new_message()
+
+    msg.int32List = (0, 1, 2)
+
+    assert list(msg.int32List) == [0, 1, 2]
+
+
 def test_null_str(all_types):
     msg = all_types.TestAllTypes.new_message()
 
