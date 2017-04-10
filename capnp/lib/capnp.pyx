@@ -727,6 +727,9 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif value_type is list:
         builder = to_python_builder(thisptr.init(field, len(value)), parent)
         _from_list(builder, value)
+    elif value_type is tuple:
+        builder = to_python_builder(thisptr.init(field, len(value)), parent)
+        _from_tuple(builder, value)
     elif value_type is dict:
         if _DynamicSetterClasses is DynamicStruct_Builder:
             builder = to_python_builder(thisptr.get(field), parent)
@@ -908,6 +911,11 @@ cdef _to_dict(msg, bint verbose, bint ordered):
 
 
 cdef _from_list(_DynamicListBuilder msg, list d):
+    for i, x in enumerate(d):
+        msg._set(i, x)
+
+
+cdef _from_tuple(_DynamicListBuilder msg, tuple d):
     for i, x in enumerate(d):
         msg._set(i, x)
 
