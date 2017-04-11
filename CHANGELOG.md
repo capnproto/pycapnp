@@ -1,3 +1,11 @@
+## v0.5.11 (2017-04-10)
+- Make enums hashable (thanks to @madeleine-empirical)
+- Rework logic on when to build bundled libcapnp. Fixes cross-compilation (thanks to @benizl)
+- Add traversal_limit_in_words and nesting_limit to RPC classes (thanks to @asilversempirical)
+- Include class attributes in __dir__. This allows for code completion of class methods (thanks to @chaoflow )
+- Allow setting lists with python tuples (thanks to @chaoflow)
+- Fix traversal_limit_in_words and nesting_limit being ignored by `from_bytes` (thanks to @plesner)
+
 ## v0.5.10 (2016-11-28)
 - Fix bug that prevented event loop from actually being lazy initialized
 - Fix possible recursive loop in KjException
