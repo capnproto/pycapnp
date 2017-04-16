@@ -25,11 +25,8 @@ compiler: gcc
 
 before_install:
   - buildutils/setup_travis.sh
-  - travis_retry pip install -U setuptools
-  - travis_retry pip install cython==0.21.2
-  - travis_retry pip install pytest
 
 install:
-  - travis_retry pip install --editable .
+  - travis_retry pip install tox-travis
 
-script: py.test test;
+script: tox
