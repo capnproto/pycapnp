@@ -1,3 +1,6 @@
+## v0.5.12 (2017-04-18)
+- Bump bundled capnp version to v0.5.3.1
+
 ## v0.5.11 (2017-04-10)
 - Make enums hashable (thanks to @madeleine-empirical)
 - Rework logic on when to build bundled libcapnp. Fixes cross-compilation (thanks to @benizl)
