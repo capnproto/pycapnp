@@ -148,7 +148,7 @@ def detect_version(basedir, compiler=None, **compiler_attrs):
     return props
 
 
-def test_build():
+def test_build(**compiler_attrs):
     """do a test build of libcapnp"""
     tmp_dir = tempfile.mkdtemp()
 
@@ -156,7 +156,7 @@ def test_build():
     # info("Configure: Autodetecting Cap'n Proto settings...")
     # info("    Custom Cap'n Proto dir:       %s" % prefix)
     try:
-        detected = detect_version(tmp_dir)
+        detected = detect_version(tmp_dir, None, **compiler_attrs)
     finally:
         erase_dir(tmp_dir)
 
