@@ -13,8 +13,8 @@ from distutils.extension import Extension
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
-MINOR = 5
-MICRO = 12
+MINOR = 6
+MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
