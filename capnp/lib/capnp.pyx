@@ -1688,7 +1688,7 @@ cdef class _Timer:
         return self
 
     cpdef after_delay(self, time) except +reraise_kj_exception:
-        return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Duration(time)))
+        return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Nanoseconds(time)))
 
 def getTimer():
     return _Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().thisptr))

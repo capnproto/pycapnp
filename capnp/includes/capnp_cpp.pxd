@@ -101,13 +101,23 @@ ctypedef Promise[PyArray] PyPromiseArray
 
 cdef extern from "kj/time.h" namespace " ::kj":
     cdef cppclass Duration:
-        Duration(int64_t)
+        Duration operator*(int64_t)
+    Duration NANOSECONDS
+    Duration MICROSECONDS
+    Duration MILLISECONDS
+    Duration SECONDS
+    Duration MINUTES
+    Duration HOURS
+    Duration DAYS
     # cdef cppclass TimePoint:
     #     TimePoint(Duration)
     cdef cppclass Timer:
         # int64_t now()
         # VoidPromise atTime(TimePoint time)
         VoidPromise afterDelay(Duration delay)
+
+cdef inline Duration Nanoseconds(int64_t nanos):
+    return NANOSECONDS * nanos
 
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream:
