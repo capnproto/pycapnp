@@ -39,7 +39,7 @@ def run_one(prefix, name, mode, iters, faster, compression):
     data = {}
 
     if p.returncode != 0:
-        sys.stderr.write(' '.join(command) + ' failed to run with errors: \n' + p.stderr.read() + '\n')
+        sys.stderr.write(' '.join(command) + ' failed to run with errors: \n' + p.stderr.read().decode(sys.stdout.encoding) + '\n')
         sys.stderr.flush()
 
     data['type'] = res_type
