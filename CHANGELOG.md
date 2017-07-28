@@ -1,3 +1,6 @@
+## v0.6.1 (2017-07-27)
+- Fixed upload to PyPi (forgot to cythonize)
+
 ## v0.6.0 (2017-07-27)
 - Update bundled capnp version to v0.6.0 and fix related problems (thanks to @benmoran)
 - Fix memleak with KjException (thanks to @tsh56)
