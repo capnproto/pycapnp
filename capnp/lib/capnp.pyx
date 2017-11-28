@@ -31,7 +31,6 @@ import threading as _threading
 import socket as _socket
 import random as _random
 import collections as _collections
-import mmap as _mmap
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
