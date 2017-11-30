@@ -65,6 +65,20 @@ def test_roundtrip_bytes_mmap(all_types):
         msg = all_types.TestAllTypes.from_bytes(memory)
         test_regression.check_all_types(msg)
 
+@pytest.mark.skipif(sys.version_info[0] < 3, reason="memoryview is a builtin on Python 3")
+def test_roundtrip_bytes_buffer(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    b = msg.to_bytes()
+    v = memoryview(b)
+    msg = all_types.TestAllTypes.from_bytes(v)
+    test_regression.check_all_types(msg)
+
+def test_roundtrip_bytes_fail(all_types):
+    with pytest.raises(TypeError):
+        all_types.TestAllTypes.from_bytes(42)
+
 @pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="This works in PyPy 4.0.1 but travisci's version of PyPy has some bug that fails this test.")
 def test_roundtrip_bytes_packed(all_types):
     msg = all_types.TestAllTypes.new_message()
