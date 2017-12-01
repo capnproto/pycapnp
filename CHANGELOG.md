@@ -1,3 +1,6 @@
+## v0.6.2 (2017-11-30)
+- Add support for buffers/memoryviews in `from_bytes` (thanks to @aldanor)
+
 ## v0.6.1 (2017-07-27)
 - Fixed upload to PyPi (forgot to cythonize)
 
