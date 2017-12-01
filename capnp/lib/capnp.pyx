@@ -15,7 +15,7 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 from cython.operator cimport dereference as deref
 from cpython.exc cimport PyErr_Clear
-from cpython cimport Py_buffer
+from cpython cimport Py_buffer, PyObject_CheckBuffer
 from cpython.buffer cimport PyBUF_SIMPLE
 
 from types import ModuleType as _ModuleType
@@ -31,7 +31,6 @@ import threading as _threading
 import socket as _socket
 import random as _random
 import collections as _collections
-import mmap as _mmap
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -3756,11 +3755,7 @@ cdef class _FlatArrayMessageReader(_MessageReader):
             raise ValueError("input length must be a multiple of eight bytes")
 
         cdef char * ptr
-        if type(buf) == _mmap.mmap:
-            view = _BufferView(buf)
-            ptr = view.buf
-            self._object_to_pin = view
-        else:
+        if isinstance(buf, bytes):
             ptr = buf
             if (<uintptr_t>ptr) % 8 != 0:
                 aligned = _AlignedBuffer(buf)
@@ -3768,6 +3763,12 @@ cdef class _FlatArrayMessageReader(_MessageReader):
                 self._object_to_pin = aligned
             else:
                 self._object_to_pin = buf
+        elif PyObject_CheckBuffer(buf):
+            view = _BufferView(buf)
+            ptr = view.buf
+            self._object_to_pin = view
+        else:
+            raise TypeError('expected buffer-like object in FlatArrayMessageReader')
 
         self.thisptr = new schema_cpp.FlatArrayMessageReader(
             schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8),
