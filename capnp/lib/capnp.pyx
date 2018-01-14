@@ -1958,9 +1958,6 @@ cdef class _RemotePromise:
             if args_length - defaults_length != 1:
                 raise KjException('Function passed to `then` call must take exactly one argument')
 
-        Py_INCREF(func)
-        Py_INCREF(error_func)
-
         cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
         return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
