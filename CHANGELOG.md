@@ -1,3 +1,7 @@
+## v0.6.3 (2018-01-14)
+- Bump bundled capnp version to v0.6.1 (thanks to @E8Yuval)
+- Fix a memleak in RemotePromise (thanks to @E8Yuval)
+
 ## v0.6.2 (2017-11-30)
 - Add support for buffers/memoryviews in `from_bytes` (thanks to @aldanor)
 
