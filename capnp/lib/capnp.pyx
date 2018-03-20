@@ -60,6 +60,32 @@ cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except * 
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
 
+cdef public PyObject * bootstrap_to_instance(PyObject * _bootstrap) except * with gil:
+    bootstrap = <object>_bootstrap
+    bootstrap = bootstrap.__new__(bootstrap)
+    Py_INCREF(bootstrap);
+    return <PyObject *>bootstrap
+
+cdef public void call_client_connect(PyObject * _server, char * _addr, unsigned int _port) except * with gil:
+    server = <object>_server
+    addr = <object>_addr
+    port = <object>_port
+
+    try:
+        server.__init__(client=(addr, port))
+
+        method = getattr(server, '__connect_handler__', 'on_connect')
+        func = getattr(server, method, None)
+        if func:
+            func(client=(addr, port))
+    except Exception as e:
+        _warnings.warn(
+            'Unhandled exception while bootstrapping: %s: %s' % (
+                type(e).__name__,
+                e.message
+            ),
+        )
+
 cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except * with gil:
     server = <object>_server
     method_name = <object>_method_name
@@ -2401,7 +2427,16 @@ cdef class TwoPartyServer:
             self._bootstrap = bootstrap
             Py_INCREF(self._bootstrap)
             schema = bootstrap.schema
-            self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string))
+            self.port_promise = Promise()._init(
+                helpers.connectServer(
+                    deref(self._task_set),
+                    loop.thisptr,
+                    temp_string,
+                    schema.thisptr,
+                    <PyObject *>bootstrap,
+                )
+            )
+
 
     def _decref(self):
         Py_DECREF(self._bootstrap)

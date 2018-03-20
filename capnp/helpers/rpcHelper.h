@@ -5,9 +5,13 @@
 #include "capnp/rpc-twoparty.h"
 #include "Python.h"
 #include "capabilityHelper.h"
+#include <sys/socket.h>
+#include <netdb.h>
 
 extern "C" {
    capnp::Capability::Client * call_py_restorer(PyObject *, capnp::AnyPointer::Reader &);
+    PyObject * bootstrap_to_instance(PyObject *);
+    void call_client_connect(PyObject *, char *, unsigned int);
 }
 
 class PyRestorer final: public capnp::SturdyRefRestorer<capnp::AnyPointer> {
@@ -149,21 +153,53 @@ struct ServerContext {
   kj::Own<kj::AsyncIoStream> stream;
   capnp::TwoPartyVatNetwork network;
   capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId> rpcSystem;
+  PyObject * bootstrap;
 
-  ServerContext(kj::Own<kj::AsyncIoStream>&& stream, capnp::Capability::Client client)
+  ServerContext(
+    kj::Own<kj::AsyncIoStream>&& stream,
+    capnp::InterfaceSchema & schema,
+    PyObject * bootstrap
+  )
       : stream(kj::mv(stream)),
         network(*this->stream, capnp::rpc::twoparty::Side::SERVER),
-        rpcSystem(makeRpcServer(network, client)) {}
+        bootstrap(bootstrap_to_instance(bootstrap)),
+        rpcSystem(makeRpcServer(network, server_to_client(schema, bootstrap)))
+    {
+        sockaddr_storage addr;
+        socklen_t addr_size = sizeof(addr);
+        unsigned int port;
+        char address[INET6_ADDRSTRLEN];
+        this->stream->getpeername((sockaddr *)&addr, &addr_size);
+        port = ((sockaddr_in *) &addr)->sin_port;
+        getnameinfo(
+            (sockaddr *)&addr, addr_size,
+            address, INET6_ADDRSTRLEN,
+            NULL, 0,
+            NI_NUMERICHOST
+        );
+        call_client_connect(this->bootstrap, address, port);
+        check_py_error();
+    }
 };
 
-void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<kj::ConnectionReceiver>&& listener) {
+void acceptLoop(
+    kj::TaskSet & tasks,
+    kj::Own<kj::ConnectionReceiver>&& listener,
+    capnp::InterfaceSchema & schema,
+    PyObject * bootstrap
+) {
   auto ptr = listener.get();
-  tasks.add(ptr->accept().then(kj::mvCapture(kj::mv(listener),
-      [&, client](kj::Own<kj::ConnectionReceiver>&& listener,
-             kj::Own<kj::AsyncIoStream>&& connection) mutable {
-    acceptLoop(tasks, client, kj::mv(listener));
 
-    auto server = kj::heap<ServerContext>(kj::mv(connection), client);
+  tasks.add(ptr->accept().then(kj::mvCapture(kj::mv(listener),
+      [&, schema, bootstrap](kj::Own<kj::ConnectionReceiver>&& listener,
+             kj::Own<kj::AsyncIoStream>&& connection) mutable {
+    acceptLoop(tasks, kj::mv(listener), schema, bootstrap);
+
+    auto server = kj::heap<ServerContext>(
+        kj::mv(connection),
+        schema,
+        bootstrap
+    );
 
     // Arrange to destroy the server context when all references are gone, or when the
     // EzRpcServer is destroyed (which will destroy the TaskSet).
@@ -171,17 +207,23 @@ void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<k
   })));
 }
 
-kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Client client, kj::AsyncIoContext * context, kj::StringPtr bindAddress) {
+kj::Promise<PyObject *> connectServer(
+    kj::TaskSet & tasks,
+    kj::AsyncIoContext * context,
+    kj::StringPtr bindAddress,
+    capnp::InterfaceSchema & schema,
+    PyObject * bootstrap
+) {
     auto paf = kj::newPromiseAndFulfiller<unsigned int>();
     auto portPromise = paf.promise.fork();
 
     tasks.add(context->provider->getNetwork().parseAddress(bindAddress)
         .then(kj::mvCapture(paf.fulfiller,
-          [&, client](kj::Own<kj::PromiseFulfiller<unsigned int>>&& portFulfiller,
+          [&, bootstrap](kj::Own<kj::PromiseFulfiller<unsigned int>>&& portFulfiller,
                  kj::Own<kj::NetworkAddress>&& addr) mutable {
       auto listener = addr->listen();
       portFulfiller->fulfill(listener->getPort());
-      acceptLoop(tasks, client, kj::mv(listener));
+      acceptLoop(tasks, kj::mv(listener), schema, bootstrap);
     })));
 
     return portPromise.addBranch().then([&](unsigned int port) { return PyLong_FromUnsignedLong(port); });
