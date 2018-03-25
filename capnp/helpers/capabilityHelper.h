@@ -195,7 +195,7 @@ public:
   PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema, PyObject * _py_server)
       : capnp::DynamicCapability::Server(schema), py_server(_py_server) {
         GILAcquire gil;
-        Py_INCREF(_py_server);
+        Py_INCREF(py_server);
       }
 
   ~PythonInterfaceDynamicImpl() {

@@ -61,21 +61,20 @@ cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
 
 cdef public PyObject * bootstrap_to_instance(PyObject * _bootstrap) except * with gil:
-    bootstrap = <object>_bootstrap
-    bootstrap = bootstrap.__new__(bootstrap)
-    Py_INCREF(bootstrap);
+    bootstrap_cls = <object>_bootstrap
+    bootstrap = bootstrap_cls.__new__(bootstrap_cls)
+    Py_INCREF(bootstrap)
     return <PyObject *>bootstrap
 
-cdef public void call_client_connect(PyObject * _server, char * _addr, unsigned int _port) except * with gil:
-    server = <object>_server
+cdef public void call_client_connect(PyObject * _bootstrap, char * _addr, unsigned int _port) except * with gil:
+    bootstrap = <object>_bootstrap
     addr = <object>_addr
     port = <object>_port
 
     try:
-        server.__init__(client=(addr, port))
-
-        method = getattr(server, '__connect_handler__', 'on_connect')
-        func = getattr(server, method, None)
+        bootstrap.__init__()
+        method = getattr(bootstrap, '__connect_handler__', 'on_connect')
+        func = getattr(bootstrap, method, None)
         if func:
             func(client=(addr, port))
     except Exception as e:
@@ -2416,24 +2415,25 @@ cdef class TwoPartyServer:
             self._disconnect_promise = self.on_disconnect().then(self._decref)
 
     cpdef _connect(self, host_string, restorer, bootstrap):
-        cdef _InterfaceSchema schema
         cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>host_string, len(host_string))
+        cdef _InterfaceSchema schema
+
         self._task_set = new capnp.TaskSet(self._error_handler)
         if restorer:
             self._restorer = _convert_restorer(restorer)
             self.port_promise = Promise()._init(helpers.connectServerRestorer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
         else:
             self._bootstrap = bootstrap
-            Py_INCREF(self._bootstrap)
             schema = bootstrap.schema
+            Py_INCREF(self._bootstrap)
             self.port_promise = Promise()._init(
                 helpers.connectServer(
                     deref(self._task_set),
                     loop.thisptr,
                     temp_string,
-                    schema.thisptr,
                     <PyObject *>bootstrap,
+                    schema.thisptr,
                 )
             )
 
