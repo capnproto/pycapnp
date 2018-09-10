@@ -2979,7 +2979,7 @@ class _StructModule(object):
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultiplePackedMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit, skip_copy)
         return reader
-    def read_multiple_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+    def read_multiple_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type buf: buffer
@@ -2991,10 +2991,13 @@ class _StructModule(object):
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
+        :type skip_copy: bool
+        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you're doing.
+
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
-        reader = _MultipleBytesMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit)
+        reader = _MultipleBytesMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit, skip_copy)
         return reader
-    def read_multiple_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+    def read_multiple_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type buf: buffer
@@ -3006,8 +3009,11 @@ class _StructModule(object):
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
+        :type skip_copy: bool
+        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you're doing.
+
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
-        reader = _MultipleBytesPackedMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit)
+        reader = _MultipleBytesPackedMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit, skip_copy)
         return reader
     def from_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
         """Returns a Reader for the unpacked object in buf.
@@ -3580,6 +3586,9 @@ cdef class _MultipleMessageReader:
 
     def __next__(self):
         try:
+            # FIXME:  This raises the question of what happens if the message has an orphan at the
+            #         end of it. If we're using the read to advance it we might start the next msg
+            #         in the orphan region.
             reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
             ret = reader.get_root(self.schema)
             if not self.skip_copy:
@@ -3617,6 +3626,10 @@ cdef class _MultiplePackedMessageReader:
 
     def __next__(self):
         try:
+            # FIXME:  This might not be safe under almost all circumstances due to the packing
+            #         occuring after the capnproto encoding. We might not be able to use the segment
+            #         table to compute the packed message size without walking/decoding each
+            #         segment, including any orphans.
             reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
             ret = reader.get_root(self.schema)
             if not self.skip_copy:
@@ -3634,13 +3647,15 @@ cdef class _MultiplePackedMessageReader:
 cdef class _MultipleBytesMessageReader:
     cdef schema_cpp.ArrayInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
+    cdef cbool skip_copy
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, buf
 
-    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
+        self.skip_copy = skip_copy
 
         cdef const void *ptr
         cdef Py_ssize_t sz
@@ -3656,8 +3671,14 @@ cdef class _MultipleBytesMessageReader:
 
     def __next__(self):
         try:
+            # FIXME:  Instead of doing a copy of the reader to advance stream pointer
+            #         we should just use the segment table to compute the message length.
+            # FIXME:  This probably suffers from the same orphan problem as `_MultipleMessageReader`
             reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
-            return reader.get_root(self.schema)
+            ret = reader.get_root(self.schema)
+            if not self.skip_copy:
+              ret = ret.as_builder().as_reader()
+            return ret
         except KjException as e:
             if 'EOF' in str(e):
                 raise StopIteration
@@ -3670,13 +3691,15 @@ cdef class _MultipleBytesMessageReader:
 cdef class _MultipleBytesPackedMessageReader:
     cdef schema_cpp.ArrayInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
+    cdef cbool skip_copy
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, buf
 
-    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
+        self.skip_copy = skip_copy
 
         cdef const void *ptr
         cdef Py_ssize_t sz
@@ -3692,8 +3715,12 @@ cdef class _MultipleBytesPackedMessageReader:
 
     def __next__(self):
         try:
+            # FIXME: same problems as `_MultipleBytesMessageReader` & `_MultiplePackedMessageReader`
             reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
-            return reader.get_root(self.schema)
+            ret = reader.get_root(self.schema)
+            if not self.skip_copy:
+              ret = ret.as_builder().as_reader()
+            return ret
         except KjException as e:
             if 'EOF' in str(e):
                 raise StopIteration
