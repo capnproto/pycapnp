@@ -13,8 +13,8 @@ from distutils.extension import Extension
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
-MINOR = 6
-MICRO = 3
+MINOR = 7
+MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
@@ -136,7 +136,7 @@ else:
     extensions = [Extension("capnp.lib.capnp", ["capnp/lib/capnp.cpp"],
                             include_dirs=["."],
                             language='c++',
-                            extra_compile_args=['--std=c++11'],
+                            extra_compile_args=['--std=c++14'],
                             libraries=['capnpc', 'capnp-rpc', 'capnp', 'kj-async', 'kj'])]
 
 setup(

@@ -1,6 +1,6 @@
 # addressbook_fast.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++11
+# distutils: extra_compile_args = --std=c++14
 # distutils: include_dirs = {{include_dir}}
 # distutils: libraries = capnpc capnp capnp-rpc
 # distutils: sources = {{file.filename}}.cpp

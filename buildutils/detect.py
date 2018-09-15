@@ -58,7 +58,7 @@ def test_compilation(cfile, compiler=None, **compiler_attrs):
         else:
             lpreargs = ['-m64']
     extra = compiler_attrs.get('extra_compile_args', [])
-    extra += ['--std=c++11']
+    extra += ['--std=c++14']
 
     objs = cc.compile([cfile], extra_preargs=cpreargs, extra_postargs=extra)
     cc.link_executable(objs, efile, extra_preargs=lpreargs)
