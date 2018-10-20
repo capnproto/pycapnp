@@ -133,7 +133,7 @@ given address/port ADDRESS may be '*' to bind to all local addresses.\
 def main():
     address = parse_args().address
 
-    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())
+    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl)
     server.run_forever()
 
 if __name__ == '__main__':
