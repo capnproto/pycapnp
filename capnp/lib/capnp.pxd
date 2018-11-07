@@ -12,6 +12,18 @@ cdef class _StructSchemaField:
     cdef object _parent
     cdef _init(self, C_StructSchema.Field other, parent=?)
 
+cdef class _StringArrayPtr:
+    cdef StringPtr * thisptr
+    cdef object parent
+    cdef size_t size
+    cdef ArrayPtr[StringPtr] asArrayPtr(self) except +reraise_kj_exception
+
+cdef class SchemaParser:
+    cdef C_SchemaParser * thisptr
+    cdef public dict modules_by_id
+    cdef list _all_imports
+    cdef _StringArrayPtr _last_import_array
+    cpdef _parse_disk_file(self, displayName, diskPath, imports) except +reraise_kj_exception
 
 cdef class _DynamicOrphan:
     cdef C_DynamicOrphan thisptr
