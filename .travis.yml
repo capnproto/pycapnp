@@ -1,3 +1,6 @@
+# Travis CI support for Python 3.7 requires Xenial (https://github.com/travis-ci/travis-ci/issues/9815)
+dist: xenial
+
 # Use older, non-container infrastructure to allow sudo
 sudo: required
 
@@ -8,14 +11,8 @@ python:
   - 3.4
   - 3.5
   - 3.6
+  - 3.7
   - pypy
-
-# Travis CI support for Python 3.7 currently requires patch (https://github.com/travis-ci/travis-ci/issues/9815)
-matrix:
-  include:
-    - python: 3.7
-      dist: xenial
-      sudo: true
 
 env:
   - BUILD_CAPNP=
