@@ -28,7 +28,7 @@ If you wish to install using the latest upstream C++ Cap'n Proto:
 
 ## Python Versions
 
-Python 2.6/2.7 are supported as well as Python 3.2+. PyPy 2.1+ is also supported.
+Python 2.7, Python 3.4+, and PyPy 2.1+ are supported.
 
 One oddity to note is that `Text` type fields will be treated as byte strings under Python 2, and unicode strings under Python 3. `Data` fields will always be treated as byte strings.
 
