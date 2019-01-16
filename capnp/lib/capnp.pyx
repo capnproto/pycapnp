@@ -3101,10 +3101,6 @@ class _EnumModule(object):
             setattr(self, name, val)
 
 cdef class _StringArrayPtr:
-    cdef StringPtr * thisptr
-    cdef object parent
-    cdef size_t size
-
     def __cinit__(self, size_t size, parent):
         self.size = size
         self.thisptr = <StringPtr *>malloc(sizeof(StringPtr) * size)
@@ -3122,10 +3118,6 @@ cdef class SchemaParser:
 
     Do not use this class unless you're sure you know what you're doing. Use the convenience method :func:`load` instead.
     """
-    cdef C_SchemaParser * thisptr
-    cdef public dict modules_by_id
-    cdef list _all_imports
-    cdef _StringArrayPtr _last_import_array
 
     def __cinit__(self):
         self.thisptr = new C_SchemaParser()
