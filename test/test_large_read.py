@@ -53,8 +53,5 @@ def test_large_read_multiple_bytes(test_capnp):
     for m in test_capnp.Msg.read_multiple_bytes(data):
         pass
 
-    for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
-        pass
-
     for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
         pass
