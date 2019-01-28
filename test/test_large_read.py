@@ -40,3 +40,21 @@ def test_large_read_multiple(test_capnp):
 
     for m in test_capnp.Msg.read_multiple(f):
         pass
+
+
+def test_large_read_multiple_bytes(test_capnp):
+    msg1 = test_capnp.Msg.new_message()
+    msg1.data = [0x41] * 8192
+    m1 = msg1.to_bytes()
+    msg2 = test_capnp.Msg.new_message()
+    m2 = msg2.to_bytes()
+
+    data = m1 + m2
+    for m in test_capnp.Msg.read_multiple_bytes(data):
+        pass
+
+    for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
+        pass
+
+    for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
+        pass

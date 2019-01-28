@@ -786,6 +786,7 @@ cdef extern from "capnp/serialize.h" namespace " ::capnp":
     cdef cppclass FlatArrayMessageReader(MessageReader):
         FlatArrayMessageReader(WordArrayPtr array) except +reraise_kj_exception
         FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +reraise_kj_exception
+        const word* getEnd() const
 
     void writeMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
 

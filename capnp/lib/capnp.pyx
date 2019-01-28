@@ -3624,31 +3624,43 @@ cdef class _MultiplePackedMessageReader:
         return self
 
 cdef class _MultipleBytesMessageReader:
-    cdef schema_cpp.ArrayInputStream * stream
-    cdef schema_cpp.BufferedInputStream * buffered_stream
-
-    cdef public object traversal_limit_in_words, nesting_limit, schema, buf
+    cdef Py_ssize_t offset, sz
+    cdef const char *ptr
+    cdef object _object_to_pin
+    cdef public object traversal_limit_in_words, nesting_limit, schema
 
     def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None):
+        self.offset = 0
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
 
-        cdef const void *ptr
-        cdef Py_ssize_t sz
-        PyObject_AsReadBuffer(buf, &ptr, &sz)
+        self.sz = len(buf)
+        if isinstance(buf, bytes):
+            self.ptr = buf
+            if (<uintptr_t>self.ptr) % 8 != 0:
+                aligned = _AlignedBuffer(buf)
+                self.ptr = aligned.buf
+                self._object_to_pin = aligned
+            else:
+                self._object_to_pin = buf
+                self.ptr = buf
+        elif PyObject_CheckBuffer(buf):
+            view = _BufferView(buf)
+            self.ptr = view.buf
+            self._object_to_pin = view
+        else:
+            raise TypeError('expected buffer-like object in FlatArrayMessageReader')
 
-        self.buf = buf
-        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>ptr, sz))
-        self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
-
-    def __dealloc__(self):
-        del self.buffered_stream
-        del self.stream
 
     def __next__(self):
+        cdef _FlatArrayMessageReaderAligned reader
+        if self.offset == self.sz:
+            raise StopIteration
         try:
-            reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            reader = _FlatArrayMessageReaderAligned()
+            reader._init(self._object_to_pin, self.ptr + self.offset, self.sz - self.offset, self.traversal_limit_in_words, self.nesting_limit)
+            self.offset += reader.msg_size
             return reader.get_root(self.schema)
         except KjException as e:
             if 'EOF' in str(e):
@@ -3731,6 +3743,37 @@ cdef class _BufferView:
 
     def __dealloc__(self):
         PyBuffer_Release(&self.view)
+
+@cython.internal
+cdef class _FlatArrayMessageReaderAligned(_MessageReader):
+    """
+    Creates a reader based on a contiguous block of memory
+
+    For performance consideration it's assumed that the provided buffer is already aligned. This
+    allows us to align a set of adjacent messages with a single align operation.
+    """
+    cdef object _object_to_pin
+    cdef Py_ssize_t msg_size
+    def __init__(self):
+        self.msg_size = 0
+
+
+    cdef _init(self, buf, const char *ptr, Py_ssize_t sz, traversal_limit_in_words = None, nesting_limit = None):
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
+        cdef schema_cpp.FlatArrayMessageReader * flat_reader
+
+        self._object_to_pin = buf
+
+        flat_reader = new schema_cpp.FlatArrayMessageReader(
+            schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8),
+            opts)
+        self.thisptr = flat_reader
+        self.msg_size = <char *>flat_reader.getEnd() - ptr
+        return self
+
+    def __dealloc__(self):
+        del self.thisptr
+
 
 @cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
