@@ -56,14 +56,44 @@ def test_large_read_multiple_bytes(test_capnp):
     for m in test_capnp.Msg.read_multiple_bytes(data):
         pass
 
+    with pytest.raises(capnp.KjException):
+        data = get_two_adjacent_messages(test_capnp)[:-1]
+        for m in test_capnp.Msg.read_multiple_bytes(data):
+            pass
+
+    with pytest.raises(capnp.KjException):
+        data = get_two_adjacent_messages(test_capnp) + b' '
+        for m in test_capnp.Msg.read_multiple_bytes(data):
+            pass
+
 @pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="PyPy memoryview support is limited")
 def test_large_read_mutltiple_bytes_memoryview(test_capnp):
     data = get_two_adjacent_messages(test_capnp)
     for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
         pass
 
+    with pytest.raises(capnp.KjException):
+        data = get_two_adjacent_messages(test_capnp)[:-1]
+        for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
+            pass
+
+    with pytest.raises(capnp.KjException):
+        data = get_two_adjacent_messages(test_capnp) + b' '
+        for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
+            pass
+
 @pytest.mark.skipif(sys.version_info[0] == 3, reason="Legacy buffer support only for python 2.7")
 def test_large_read_mutltiple_bytes_buffer(test_capnp):
     data = get_two_adjacent_messages(test_capnp)
     for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
         pass
+
+    with pytest.raises(capnp.KjException):
+        data = get_two_adjacent_messages(test_capnp)[:-1]
+        for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
+            pass
+
+    with pytest.raises(capnp.KjException):
+        data = get_two_adjacent_messages(test_capnp) + b' '
+        for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
+            pass
