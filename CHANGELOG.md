@@ -1,4 +1,4 @@
-## v0.6.4 (2019-1-31)
+## v0.6.4 (2019-01-31)
 - Fix bugs in `read_multiple_bytes` (thanks to @tsh56)
 - Remove end-of-life Python versions 2.6, 3.2, and 3.3. Add CI tests for 3.6
 - Expose SchemaParser in Cython header
