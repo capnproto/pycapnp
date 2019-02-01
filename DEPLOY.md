@@ -36,3 +36,9 @@ I usually test the following configurations:
 - Python 3.6 with and without cython installed
 
 This step could probably benefit greatly from some automation. Perhaps even Travis could handle it, but I'm not sure how best to trigger Travis from a PyPI release.
+
+## Tag the github release
+
+Tag the release on the develop branch (not the master branch). Sadly, I've stopped using git-flow, and at this point it might be worth moving back to using just master, but that would take some amount of work and I worry that it would break open PRs. Definitely worth considering if development picks back up.
+
+Version numbers roughly follow semver, although I try to loosely follow upstream Cap'n Proto C++ versions as well. So when pycapnp officially starts using v0.7.0 of the C++ library, pycapnp's version should be bumped to v0.7.0 as well.
