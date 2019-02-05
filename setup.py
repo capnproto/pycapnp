@@ -14,7 +14,7 @@ _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
 MINOR = 6
-MICRO = 3
+MICRO = 4
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
@@ -49,6 +49,8 @@ try:
     changelog = '\nChangelog\n=============\n' + changelog
     long_description += changelog
 except (IOError, ImportError):
+    if sys.argv[2] == 'sdist':
+        raise
     long_description = ''
 
 # Clean command, invoked with `python setup.py clean`
@@ -171,11 +173,11 @@ setup(
         'Programming Language :: C++',
         'Programming Language :: Cython',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Communications'],
 )
