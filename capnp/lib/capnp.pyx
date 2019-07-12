@@ -3043,6 +3043,8 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`
         """
         return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(self.schema)
+    def __call__(self, num_first_segment_words=None, **kwargs):
+        return self.new_message(num_first_segment_words=num_first_segment_words, **kwargs)
     def new_message(self, num_first_segment_words=None, **kwargs):
         """Returns a newly allocated builder message.
 
