@@ -707,6 +707,10 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
 
+    if value_type is _StructModuleWhichValue:
+        value = {value.discriminant: value.value}
+        value_type = type(value)
+
     if value_type is int or value_type is long:
         if value < 0:
            temp = C_DynamicValue.Reader(<long long>value)
@@ -2889,6 +2893,20 @@ class _RestorerImpl(object):
 class _StructModuleWhich(object):
     pass
 
+class _StructModuleWhichValue(object):
+    def __init__(self, discriminant, value):
+        self.discriminant = discriminant
+        self.value = value
+
+class _StructModuleWhichItem(object):
+    def __init__(self, schema, name, value):
+        self.schema = schema
+        self.name = name
+        self.value = value
+
+    def __call__(self, value=None, num_first_segment_words=None):
+        return _StructModuleWhichValue(self.name, value)
+
 class _StructModule(object):
     def __init__(self, schema, name):
         def _restore(self, obj):
@@ -2910,7 +2928,14 @@ class _StructModule(object):
                     sub_module = _StructModuleWhich()
                     setattr(sub_module, 'schema', raw_schema)
                     for union_field in field_schema.fields:
-                        setattr(sub_module, union_field.name, union_field.discriminantValue)
+                        setattr(
+                            sub_module, union_field.name,
+                            _StructModuleWhichItem(
+                                union_field.schema,
+                                union_field.name,
+                                union_field.discriminantValue,
+                            )
+                        )
                 setattr(self, name, sub_module)
 
     def read(self, file, traversal_limit_in_words = None, nesting_limit = None):
