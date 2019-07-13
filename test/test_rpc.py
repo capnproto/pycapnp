@@ -1,3 +1,6 @@
+import warnings
+from contextlib import contextmanager
+
 import pytest
 import capnp
 import os
@@ -26,15 +29,28 @@ class SimpleRestorer(test_capability_capnp.TestSturdyRefObjectId.Restorer):
         return Server(100)
 
 
+@contextmanager
+def _warnings(expected_count=1, expected_text='Restorers are deprecated.'):
+    with warnings.catch_warnings(record=True) as w:
+        yield
+
+        assert len(w) == expected_count
+        assert all(issubclass(x.category, UserWarning) for x in w), w
+        assert all(expected_text in str(x.message) for x in w), w
+
+
 def test_simple_rpc():
     read, write = socket.socketpair(socket.AF_UNIX)
 
     restorer = SimpleRestorer()
-    server = capnp.TwoPartyServer(write, restorer)
+
+    with _warnings(1):
+        server = capnp.TwoPartyServer(write, restorer)
     client = capnp.TwoPartyClient(read)
 
     ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
-    cap = client.restore(ref)
+    with _warnings(1):
+        cap = client.restore(ref)
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
@@ -47,13 +63,15 @@ def test_simple_rpc_with_options():
     read, write = socket.socketpair(socket.AF_UNIX)
 
     restorer = SimpleRestorer()
-    server = capnp.TwoPartyServer(write, restorer)
+    with _warnings(1):
+        server = capnp.TwoPartyServer(write, restorer)
     # This traversal limit is too low to receive the response in, so we expect
     # an exception during the call.
     client = capnp.TwoPartyClient(read, traversal_limit_in_words=1)
 
     ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
-    cap = client.restore(ref)
+    with _warnings(1):
+        cap = client.restore(ref)
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
@@ -64,11 +82,13 @@ def test_simple_rpc_with_options():
 def test_simple_rpc_restore_func():
     read, write = socket.socketpair(socket.AF_UNIX)
 
-    server = capnp.TwoPartyServer(write, restore_func)
+    with _warnings(1):
+        server = capnp.TwoPartyServer(write, restore_func)
     client = capnp.TwoPartyClient(read)
 
     ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
-    cap = client.restore(ref)
+    with _warnings(1):
+        cap = client.restore(ref)
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
@@ -86,10 +106,12 @@ def text_restore_func(objectId):
 def test_ez_rpc():
     read, write = socket.socketpair(socket.AF_UNIX)
 
-    server = capnp.TwoPartyServer(write, text_restore_func)
+    with _warnings(1):
+        server = capnp.TwoPartyServer(write, text_restore_func)
     client = capnp.TwoPartyClient(read)
 
-    cap = client.ez_restore('testInterface')
+    with _warnings(1):
+        cap = client.ez_restore('testInterface')
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
@@ -97,7 +119,8 @@ def test_ez_rpc():
 
     assert response.x == '125'
 
-    cap = client.restore(test_capability_capnp.TestSturdyRefObjectId.new_message())
+    with _warnings(1):
+        cap = client.restore(test_capability_capnp.TestSturdyRefObjectId.new_message())
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
