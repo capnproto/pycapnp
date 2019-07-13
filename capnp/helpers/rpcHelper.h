@@ -101,9 +101,12 @@ struct ServerContextRestorer {
   capnp::TwoPartyVatNetwork network;
   capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId> rpcSystem;
 
-  ServerContextRestorer(kj::Own<kj::AsyncIoStream>&& stream, capnp::SturdyRefRestorer<capnp::AnyPointer>& restorer)
-      : stream(kj::mv(stream)),
-        network(*this->stream, capnp::rpc::twoparty::Side::SERVER),
+  ServerContextRestorer(
+    kj::Own<kj::AsyncIoStream>&& stream,
+    capnp::SturdyRefRestorer<capnp::AnyPointer>& restorer,
+    capnp::ReaderOptions & opts
+    ) : stream(kj::mv(stream)),
+        network(*this->stream, capnp::rpc::twoparty::Side::SERVER, opts),
         rpcSystem(makeRpcServer(network, restorer)) {}
 };
 
@@ -113,14 +116,14 @@ class ErrorHandler : public kj::TaskSet::ErrorHandler {
   }
 };
 
-void acceptLoopRestorer(kj::TaskSet & tasks, PyRestorer & restorer, kj::Own<kj::ConnectionReceiver>&& listener) {
+void acceptLoopRestorer(kj::TaskSet & tasks, PyRestorer & restorer, kj::Own<kj::ConnectionReceiver>&& listener, capnp::ReaderOptions & opts) {
   auto ptr = listener.get();
   tasks.add(ptr->accept().then(kj::mvCapture(kj::mv(listener),
       [&](kj::Own<kj::ConnectionReceiver>&& listener,
              kj::Own<kj::AsyncIoStream>&& connection) {
-    acceptLoopRestorer(tasks, restorer, kj::mv(listener));
+    acceptLoopRestorer(tasks, restorer, kj::mv(listener), opts);
 
-    auto server = kj::heap<ServerContextRestorer>(kj::mv(connection), restorer);
+    auto server = kj::heap<ServerContextRestorer>(kj::mv(connection), restorer, opts);
 
     // Arrange to destroy the server context when all references are gone, or when the
     // EzRpcServer is destroyed (which will destroy the TaskSet).
@@ -128,7 +131,7 @@ void acceptLoopRestorer(kj::TaskSet & tasks, PyRestorer & restorer, kj::Own<kj::
   })));
 }
 
-kj::Promise<PyObject *> connectServerRestorer(kj::TaskSet & tasks, PyRestorer & restorer, kj::AsyncIoContext * context, kj::StringPtr bindAddress) {
+kj::Promise<PyObject *> connectServerRestorer(kj::TaskSet & tasks, PyRestorer & restorer, kj::AsyncIoContext * context, kj::StringPtr bindAddress, capnp::ReaderOptions & opts) {
     auto paf = kj::newPromiseAndFulfiller<unsigned int>();
     auto portPromise = paf.promise.fork();
 
@@ -138,7 +141,7 @@ kj::Promise<PyObject *> connectServerRestorer(kj::TaskSet & tasks, PyRestorer & 
                  kj::Own<kj::NetworkAddress>&& addr) {
       auto listener = addr->listen();
       portFulfiller->fulfill(listener->getPort());
-      acceptLoopRestorer(tasks, restorer, kj::mv(listener));
+      acceptLoopRestorer(tasks, restorer, kj::mv(listener), opts);
     })));
 
     return portPromise.addBranch().then([&](unsigned int port) { return PyLong_FromUnsignedLong(port); });
@@ -150,20 +153,20 @@ struct ServerContext {
   capnp::TwoPartyVatNetwork network;
   capnp::RpcSystem<capnp::rpc::twoparty::SturdyRefHostId> rpcSystem;
 
-  ServerContext(kj::Own<kj::AsyncIoStream>&& stream, capnp::Capability::Client client)
+  ServerContext(kj::Own<kj::AsyncIoStream>&& stream, capnp::Capability::Client client, capnp::ReaderOptions & opts)
       : stream(kj::mv(stream)),
-        network(*this->stream, capnp::rpc::twoparty::Side::SERVER),
+        network(*this->stream, capnp::rpc::twoparty::Side::SERVER, opts),
         rpcSystem(makeRpcServer(network, client)) {}
 };
 
-void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<kj::ConnectionReceiver>&& listener) {
+void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<kj::ConnectionReceiver>&& listener, capnp::ReaderOptions & opts) {
   auto ptr = listener.get();
   tasks.add(ptr->accept().then(kj::mvCapture(kj::mv(listener),
       [&, client](kj::Own<kj::ConnectionReceiver>&& listener,
              kj::Own<kj::AsyncIoStream>&& connection) mutable {
-    acceptLoop(tasks, client, kj::mv(listener));
+    acceptLoop(tasks, client, kj::mv(listener), opts);
 
-    auto server = kj::heap<ServerContext>(kj::mv(connection), client);
+    auto server = kj::heap<ServerContext>(kj::mv(connection), client, opts);
 
     // Arrange to destroy the server context when all references are gone, or when the
     // EzRpcServer is destroyed (which will destroy the TaskSet).
@@ -171,7 +174,7 @@ void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<k
   })));
 }
 
-kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Client client, kj::AsyncIoContext * context, kj::StringPtr bindAddress) {
+kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Client client, kj::AsyncIoContext * context, kj::StringPtr bindAddress, capnp::ReaderOptions & opts) {
     auto paf = kj::newPromiseAndFulfiller<unsigned int>();
     auto portPromise = paf.promise.fork();
 
@@ -181,7 +184,7 @@ kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Cl
                  kj::Own<kj::NetworkAddress>&& addr) mutable {
       auto listener = addr->listen();
       portFulfiller->fulfill(listener->getPort());
-      acceptLoop(tasks, client, kj::mv(listener));
+      acceptLoop(tasks, client, kj::mv(listener), opts);
     })));
 
     return portPromise.addBranch().then([&](unsigned int port) { return PyLong_FromUnsignedLong(port); });

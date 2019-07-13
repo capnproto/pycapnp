@@ -2360,18 +2360,18 @@ cdef class TwoPartyServer:
             raise KjException("You must provide either a bootstrap interface or a restorer (deperecated) to a server constructor.")
 
         cdef _InterfaceSchema schema
-        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
+
         self._restorer = None
         self._bootstrap = None
 
         if isinstance(socket, basestring):
-            self._connect(socket, restorer, bootstrap)
+            self._connect(socket, restorer, bootstrap, traversal_limit_in_words, nesting_limit)
         else:
             self._orig_stream = socket
             self._stream = _FdAsyncIoStream(socket.fileno())
             self._server_socket = server_socket
             self._port = 0
-            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER, opts)
+            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
 
             if bootstrap:
                 self._bootstrap = bootstrap
@@ -2389,19 +2389,20 @@ cdef class TwoPartyServer:
             Py_INCREF(self._network)
             self._disconnect_promise = self.on_disconnect().then(self._decref)
 
-    cpdef _connect(self, host_string, restorer, bootstrap):
+    cpdef _connect(self, host_string, restorer, bootstrap, traversal_limit_in_words, nesting_limit):
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         cdef _InterfaceSchema schema
         cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>host_string, len(host_string))
         self._task_set = new capnp.TaskSet(self._error_handler)
         if restorer:
             self._restorer = _convert_restorer(restorer)
-            self.port_promise = Promise()._init(helpers.connectServerRestorer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
+            self.port_promise = Promise()._init(helpers.connectServerRestorer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string, opts))
         else:
             self._bootstrap = bootstrap
             Py_INCREF(self._bootstrap)
             schema = bootstrap.schema
-            self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string))
+            self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string, opts))
 
     def _decref(self):
         Py_DECREF(self._bootstrap)
