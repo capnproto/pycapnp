@@ -1814,7 +1814,7 @@ cdef class Promise:
 
         argspec = None
         try:
-            argspec = _inspect.getargspec(func)
+            argspec = _inspect.getfullargspec(func)
         except:
             pass
         if argspec:
@@ -1877,7 +1877,7 @@ cdef class _VoidPromise:
 
         argspec = None
         try:
-            argspec = _inspect.getargspec(func)
+            argspec = _inspect.getfullargspec(func)
         except:
             pass
         if argspec:
@@ -1950,7 +1950,7 @@ cdef class _RemotePromise:
 
         argspec = None
         try:
-            argspec = _inspect.getargspec(func)
+            argspec = _inspect.getfullargspec(func)
         except:
             pass
         if argspec:
