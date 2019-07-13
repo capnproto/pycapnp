@@ -44,8 +44,8 @@ write_version_py()
 # Try to convert README using pandoc
 try:
     import pypandoc
-    long_description = pypandoc.convert('README.md', 'rst')
-    changelog = pypandoc.convert('CHANGELOG.md', 'rst')
+    long_description = pypandoc.convert_file('README.md', 'rst')
+    changelog = pypandoc.convert_file('CHANGELOG.md', 'rst')
     changelog = '\nChangelog\n=============\n' + changelog
     long_description += changelog
 except (IOError, ImportError):
