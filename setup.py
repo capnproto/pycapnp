@@ -49,7 +49,7 @@ try:
     changelog = '\nChangelog\n=============\n' + changelog
     long_description += changelog
 except (IOError, ImportError):
-    if sys.argv[2] == 'sdist':
+    if len(sys.argv) and sys.argv[-1] == 'sdist':
         raise
     long_description = ''
 
