@@ -20,9 +20,9 @@ def test_calculator():
 
 
 def run_subprocesses(address):
-    server = subprocess.Popen([examples_dir + '/calculator_server.py', address])
+    server = subprocess.Popen([sys.executable, examples_dir + '/calculator_server.py', address])
     time.sleep(2)  # Give the server some small amount of time to start listening
-    client = subprocess.Popen([examples_dir + '/calculator_client.py', address])
+    client = subprocess.Popen([sys.executable, examples_dir + '/calculator_client.py', address])
 
     ret = client.wait()
     server.kill()
