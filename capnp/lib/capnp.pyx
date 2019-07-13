@@ -2328,21 +2328,20 @@ cdef class TwoPartyServer:
             raise KjException("You must provide a bootstrap interface to a server constructor.")
 
         cdef _InterfaceSchema schema
-        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         self._bootstrap = None
 
         if isinstance(socket, basestring):
-            self._connect(socket, bootstrap)
+            self._connect(socket, bootstrap, traversal_limit_in_words, nesting_limit)
             return
 
         self._orig_stream = socket
         if self._orig_stream:
             self._stream = _FdAsyncIoStream(socket.fileno())
-            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER, opts)
+            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
         else:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
-            self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.SERVER, opts)
+            self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
 
         self._server_socket = server_socket
         self._port = 0
@@ -2381,7 +2380,8 @@ cdef class TwoPartyServer:
             len(data)
         ).wait(self._pipe._event_loop.thisptr.waitScope)
 
-    cpdef _connect(self, host_string, bootstrap):
+    cpdef _connect(self, host_string, bootstrap, traversal_limit_in_words, nesting_limit):
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         cdef _InterfaceSchema schema
         cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>host_string, len(host_string))
@@ -2390,7 +2390,7 @@ cdef class TwoPartyServer:
         self._bootstrap = bootstrap
         Py_INCREF(self._bootstrap)
         schema = bootstrap.schema
-        self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string))
+        self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string, opts))
 
     def _decref(self):
         Py_DECREF(self._bootstrap)
