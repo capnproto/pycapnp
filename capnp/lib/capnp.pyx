@@ -21,7 +21,6 @@ from cpython.buffer cimport PyBUF_SIMPLE
 from types import ModuleType as _ModuleType
 import os as _os
 import sys as _sys
-import imp as _imp
 import traceback as _traceback
 from functools import partial as _partial
 import warnings as _warnings

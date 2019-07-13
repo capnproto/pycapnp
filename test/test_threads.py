@@ -1,3 +1,6 @@
+import warnings
+from contextlib import contextmanager
+
 import capnp
 import pytest
 import test_capability_capnp
@@ -38,6 +41,16 @@ class SimpleRestorer(test_capability_capnp.TestSturdyRefObjectId.Restorer):
         return Server(100)
 
 
+@contextmanager
+def _warnings(expected_count=1, expected_text='Restorers are deprecated.'):
+    with warnings.catch_warnings(record=True) as w:
+        yield
+
+        assert len(w) == expected_count
+        assert all(issubclass(x.category, UserWarning) for x in w), w
+        assert all(expected_text in str(x.message) for x in w), w
+
+
 @pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="pycapnp's GIL handling isn't working properly at the moment for PyPy")
 def test_using_threads():
     capnp.remove_event_loop(True)
@@ -47,7 +60,8 @@ def test_using_threads():
 
     def run_server():
         restorer = SimpleRestorer()
-        server = capnp.TwoPartyServer(write, restorer)
+        with _warnings():
+            server = capnp.TwoPartyServer(write, restorer)
         capnp.wait_forever()
 
     server_thread = threading.Thread(target=run_server)
@@ -57,7 +71,9 @@ def test_using_threads():
     client = capnp.TwoPartyClient(read)
 
     ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
-    cap = client.restore(ref)
+
+    with _warnings():
+        cap = client.restore(ref)
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
