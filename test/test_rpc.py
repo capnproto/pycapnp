@@ -32,7 +32,6 @@ def test_simple_rpc_with_options():
         remote = cap.foo(i=5)
         _ = remote.wait()
 
-
 def test_simple_rpc_bootstrap():
     read, write = socket.socketpair()
 

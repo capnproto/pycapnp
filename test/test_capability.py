@@ -359,7 +359,7 @@ def test_inheritance():
     assert response.x == '26'
 
 
-class TestPassedCap(capability.TestPassedCap.Server):
+class PassedCapTest(capability.TestPassedCap.Server):
     def foo(self, cap, _context, **kwargs):
         def set_result(res):
             _context.results.x = res.x
@@ -367,32 +367,32 @@ class TestPassedCap(capability.TestPassedCap.Server):
 
 
 def test_null_cap():
-    client = capability.TestPassedCap._new_client(TestPassedCap())
+    client = capability.TestPassedCap._new_client(PassedCapTest())
     assert client.foo(Server()).wait().x == '26'
 
     with pytest.raises(capnp.KjException):
         client.foo().wait()
 
 
-class TestStructArg(capability.TestStructArg.Server):
+class StructArgTest(capability.TestStructArg.Server):
     def bar(self, a, b, **kwargs):
         return a + str(b)
 
 
 def test_struct_args():
-    client = capability.TestStructArg._new_client(TestStructArg())
+    client = capability.TestStructArg._new_client(StructArgTest())
     assert client.bar(a='test', b=1).wait().c == 'test1'
     with pytest.raises(capnp.KjException):
         assert client.bar('test', 1).wait().c == 'test1'
 
 
-class TestGeneric(capability.TestGeneric.Server):
+class GenericTest(capability.TestGeneric.Server):
     def foo(self, a, **kwargs):
         return a.as_text() + 'test'
 
 
 def test_generic():
-    client = capability.TestGeneric._new_client(TestGeneric())
+    client = capability.TestGeneric._new_client(GenericTest())
 
     obj = capnp._MallocMessageBuilder().get_root_as_any()
     obj.set_as_text("anypointer_")

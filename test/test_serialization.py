@@ -1,3 +1,6 @@
+import warnings
+from contextlib import contextmanager
+
 import pytest
 import capnp
 import os
@@ -103,14 +106,23 @@ def test_roundtrip_bytes_packed(all_types):
     msg = all_types.TestAllTypes.from_bytes_packed(message_bytes)
     test_regression.check_all_types(msg)
 
+@contextmanager
+def _warnings(expected_count=2, expected_text='This message has already been written once.'):
+    with warnings.catch_warnings(record=True) as w:
+        yield
+
+        assert len(w) == expected_count
+        assert all(issubclass(x.category, UserWarning) for x in w), w
+        assert all(expected_text in str(x.message) for x in w), w
 
 def test_roundtrip_file_multiple(all_types):
     f = tempfile.TemporaryFile()
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
     msg.write(f)
-    msg.write(f)
-    msg.write(f)
+    with _warnings(2):
+        msg.write(f)
+        msg.write(f)
 
     f.seek(0)
     i = 0
@@ -125,8 +137,9 @@ def test_roundtrip_bytes_multiple(all_types):
     test_regression.init_all_types(msg)
 
     msgs = msg.to_bytes()
-    msgs += msg.to_bytes()
-    msgs += msg.to_bytes()
+    with _warnings(2):
+        msgs += msg.to_bytes()
+        msgs += msg.to_bytes()
 
     i = 0
     for msg in all_types.TestAllTypes.read_multiple_bytes(msgs):
@@ -140,8 +153,9 @@ def test_roundtrip_file_multiple_packed(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
     msg.write_packed(f)
-    msg.write_packed(f)
-    msg.write_packed(f)
+    with _warnings(2):
+        msg.write_packed(f)
+        msg.write_packed(f)
 
     f.seek(0)
     i = 0
@@ -156,8 +170,9 @@ def test_roundtrip_bytes_multiple_packed(all_types):
     test_regression.init_all_types(msg)
 
     msgs = msg.to_bytes_packed()
-    msgs += msg.to_bytes_packed()
-    msgs += msg.to_bytes_packed()
+    with _warnings(2):
+        msgs += msg.to_bytes_packed()
+        msgs += msg.to_bytes_packed()
 
     i = 0
     for msg in all_types.TestAllTypes.read_multiple_bytes_packed(msgs):
@@ -175,7 +190,8 @@ def test_roundtrip_dict(all_types):
     test_regression.init_all_types(msg)
     d = msg.to_dict()
 
-    msg = all_types.TestAllTypes.from_dict(d)
+    with _warnings(1, expected_text="This method is deprecated and will be removed"):
+        msg = all_types.TestAllTypes.from_dict(d)
     test_regression.check_all_types(msg)
 
 
@@ -187,7 +203,8 @@ def test_file_and_bytes(all_types):
 
     f.seek(0)
 
-    assert f.read() == msg.to_bytes()
+    with _warnings(1):
+        assert f.read() == msg.to_bytes()
 
 
 def test_file_and_bytes_packed(all_types):
@@ -198,7 +215,8 @@ def test_file_and_bytes_packed(all_types):
 
     f.seek(0)
 
-    assert f.read() == msg.to_bytes_packed()
+    with _warnings(1):
+        assert f.read() == msg.to_bytes_packed()
 
 
 def test_pickle(all_types):
