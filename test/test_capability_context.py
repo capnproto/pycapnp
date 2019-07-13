@@ -4,9 +4,12 @@ import os
 
 this_dir = os.path.dirname(__file__)
 
-@pytest.fixture
 def capability():
      return capnp.load(os.path.join(this_dir, 'test_capability.capnp'))
+
+@pytest.fixture(name="capability")
+def capability_fixture():
+    return capability()
 
 class Server:
     def __init__(self, val=1):
