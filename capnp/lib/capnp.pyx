@@ -16,8 +16,8 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 from cython.operator cimport dereference as deref
 from cpython.exc cimport PyErr_Clear
-from cpython cimport Py_buffer, PyObject_CheckBuffer
-from cpython.buffer cimport PyBUF_SIMPLE
+from cpython cimport array, Py_buffer, PyObject_CheckBuffer
+from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
 
 from types import ModuleType as _ModuleType
 import os as _os
@@ -32,6 +32,7 @@ import threading as _threading
 import socket as _socket
 import random as _random
 import collections as _collections
+import array
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -287,8 +288,6 @@ ctypedef fused PromiseTypes:
     PromiseFulfillerPair
 
 cdef extern from "Python.h":
-    cdef int PyObject_AsReadBuffer(object, void** b, Py_ssize_t* c)
-    cdef int PyObject_AsWriteBuffer(object, void** b, Py_ssize_t* c)
     cdef int PyObject_GetBuffer(object, Py_buffer *view, int flags)
     cdef void PyBuffer_Release(Py_buffer *view)
 
@@ -3484,23 +3483,24 @@ cdef class _PackedMessageReader(_MessageReader):
 
 cdef class _PackedMessageReaderBytes(_MessageReader):
     cdef schema_cpp.ArrayInputStream * stream
+    cdef Py_buffer view
 
     def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = buf
 
-        cdef const void *ptr
-        cdef Py_ssize_t sz
-        PyObject_AsReadBuffer(buf, &ptr, &sz)
+        if PyObject_GetBuffer(buf, &self.view, PyBUF_SIMPLE) != 0:
+            raise KjException("could not get read buffer")
 
-        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>ptr, sz))
+        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>self.view.buf, self.view.len))
 
         self.thisptr = new schema_cpp.PackedMessageReader(deref(self.stream), opts)
 
     def __dealloc__(self):
         del self.thisptr
         del self.stream
+        PyBuffer_Release(&self.view)
 
 cdef class _InputMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
@@ -3675,6 +3675,7 @@ cdef class _MultipleBytesMessageReader:
 cdef class _MultipleBytesPackedMessageReader:
     cdef schema_cpp.ArrayInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
+    cdef Py_buffer view
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, buf
 
@@ -3683,15 +3684,15 @@ cdef class _MultipleBytesPackedMessageReader:
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
 
-        cdef const void *ptr
-        cdef Py_ssize_t sz
-        PyObject_AsReadBuffer(buf, &ptr, &sz)
+        if PyObject_GetBuffer(buf, &self.view, PyBUF_SIMPLE) != 0:
+            raise KjException("could not get read buffer")
 
         self.buf = buf
-        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>ptr, sz))
+        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>self.view.buf, self.view.len))
         self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
 
     def __dealloc__(self):
+        PyBuffer_Release(&self.view)
         del self.buffered_stream
         del self.stream
 
@@ -3712,23 +3713,24 @@ cdef class _MultipleBytesPackedMessageReader:
 cdef class _AlignedBuffer:
     cdef char * buf
     cdef bint allocated
+    cdef Py_buffer view
 
     # other should also have a length that's a multiple of 8
     def __init__(self, other):
-        cdef const void *ptr
-        cdef Py_ssize_t sz
-        PyObject_AsReadBuffer(other, &ptr, &sz)
+        if PyObject_GetBuffer(other, &self.view, PyBUF_SIMPLE) != 0:
+            raise KjException("could not get read buffer")
         other_len = len(other)
 
         # malloc is defined as being word aligned
         # we don't care about adding NULL terminating character
         self.buf = <char *>malloc(other_len)
-        memcpy(self.buf, ptr, other_len)
+        memcpy(self.buf, self.view.buf, other_len)
         self.allocated = True
 
     def __dealloc__(self):
         if self.allocated:
             free(self.buf)
+        PyBuffer_Release(&self.view)
 
 
 @cython.internal
@@ -3816,25 +3818,27 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
 
     cdef object _objects_to_pin
     cdef schema_cpp.ConstWordArrayPtr* _seg_ptrs
+    cdef Py_buffer* views
 
     def __init__(self, segments, traversal_limit_in_words = None, nesting_limit = None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         # take a Python array of bytes and constructs a ConstWordArrayArrayPtr
         num_segments = len(segments)
-        cdef const void* ptr
-        cdef Py_ssize_t segment_size
         cdef schema_cpp.ConstWordArrayPtr seg_ptr
         self._seg_ptrs = <schema_cpp.ConstWordArrayPtr*>malloc(num_segments * sizeof(schema_cpp.ConstWordArrayPtr))
+        self.views = <Py_buffer*>malloc(num_segments * sizeof(Py_buffer))
         self._objects_to_pin = []
         for i in range(0, num_segments):
-            PyObject_AsReadBuffer(segments[i], &ptr, &segment_size)
-            if (<uintptr_t>ptr) % 8 != 0:
+            if PyObject_GetBuffer(segments[i], &self.views[i], PyBUF_SIMPLE) != 0:
+                raise KjException("could not get read buffer")
+
+            if (<uintptr_t>self.views[i].buf) % 8 != 0:
                 aligned = _AlignedBuffer(segments[i])
-                ptr = aligned.buf
+                self.views[i].buf = aligned.buf
                 self._objects_to_pin.append(aligned)
             else:
                 self._objects_to_pin.append(segments[i])
-            seg_ptr = schema_cpp.ConstWordArrayPtr(<schema_cpp.word*>ptr, segment_size//8)
+            seg_ptr = schema_cpp.ConstWordArrayPtr(<schema_cpp.word*>self.views[i].buf, self.views[i].len//8)
             self._seg_ptrs[i] = seg_ptr
         self.thisptr = new schema_cpp.SegmentArrayMessageReader(
             schema_cpp.ConstWordArrayArrayPtr(self._seg_ptrs, num_segments),
@@ -3842,20 +3846,24 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
 
     def __dealloc__(self):
         free(self._seg_ptrs)
+        free(self.views)
         del self.thisptr
 
 
 @cython.internal
 cdef class _FlatMessageBuilder(_MessageBuilder):
     cdef object _object_to_pin
+    cdef Py_buffer view
     def __init__(self, buf):
-        cdef void *ptr
-        cdef Py_ssize_t sz
-        PyObject_AsWriteBuffer(buf, &ptr, &sz)
-        if sz % 8 != 0:
+        if PyObject_GetBuffer(buf, &self.view, PyBUF_WRITABLE) != 0:
+            raise KjException("expected variable length string object")
+        if self.view.len % 8 != 0:
             raise KjException("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
-        self.thisptr = new schema_cpp.FlatMessageBuilder(schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8))
+        self.thisptr = new schema_cpp.FlatMessageBuilder(schema_cpp.WordArrayPtr(<schema_cpp.word*>self.view.buf, self.view.len//8))
+
+    def __dealloc__(self):
+        PyBuffer_Release(&self.view)
 
 def _message_to_packed_bytes(_MessageBuilder message):
     r, w = _os.pipe()
