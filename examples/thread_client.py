@@ -31,7 +31,7 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
 
 def start_status_thread(host):
   client = capnp.TwoPartyClient(host)
-  cap = client.ez_restore('example').cast_as(thread_capnp.Example)
+  cap = client.bootstrap().cast_as(thread_capnp.Example)
 
   subscriber = StatusSubscriber()
   promise = cap.subscribeStatus(subscriber)
@@ -40,7 +40,7 @@ def start_status_thread(host):
 
 def main(host):
   client = capnp.TwoPartyClient(host)
-  cap = client.ez_restore('example').cast_as(thread_capnp.Example)
+  cap = client.bootstrap().cast_as(thread_capnp.Example)
 
   status_thread = threading.Thread(target=start_status_thread, args=(host,))
   status_thread.daemon = True

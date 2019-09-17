@@ -4,6 +4,7 @@
 cdef extern from "capnp/helpers/checkCompiler.h":
     pass
 
+from libcpp cimport bool
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
 from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
 from capnp.includes.types cimport *
@@ -45,6 +46,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
 cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T]:
         T& operator*()
+        T* get()
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side, ReaderOptions)
     Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(PromiseFulfillerPair&)
     Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
@@ -55,6 +57,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Promise(Promise)
         Promise(T)
         T wait(WaitScope)
+        bool poll(WaitScope)
         # ForkedPromise<T> fork()
         # Promise<T> exclusiveJoin(Promise<T>&& other)
         # Promise[T] eagerlyEvaluate()
@@ -121,16 +124,21 @@ cdef inline Duration Nanoseconds(int64_t nanos):
 
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream:
-        pass
+        Promise[size_t] read(void*, size_t, size_t)
+        Promise[void] write(const void*, size_t)
+
     cdef cppclass LowLevelAsyncIoProvider:
         # Own[AsyncInputStream] wrapInputFd(int)
         # Own[AsyncOutputStream] wrapOutputFd(int)
         Own[AsyncIoStream] wrapSocketFd(int)
         Timer& getTimer() except +reraise_kj_exception
+
     cdef cppclass AsyncIoProvider:
-        pass
+        TwoWayPipe newTwoWayPipe()
+
     cdef cppclass WaitScope:
         pass
+
     cdef cppclass AsyncIoContext:
         AsyncIoContext(AsyncIoContext&)
         Own[LowLevelAsyncIoProvider] lowLevelProvider
@@ -139,6 +147,9 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
 
     cdef cppclass TaskSet:
         TaskSet(ErrorHandler &)
+
+    cdef cppclass TwoWayPipe:
+        Own[AsyncIoStream] ends[2]
 
     AsyncIoContext setupAsyncIo()
 

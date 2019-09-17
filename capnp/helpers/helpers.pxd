@@ -2,9 +2,11 @@ from capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, Response, P
 
 from capnp.includes.schema_cpp cimport ByteArray
 
-from non_circular cimport reraise_kj_exception
+from non_circular cimport reraise_kj_exception, AsyncIoStreamReadHelper
 
 from cpython.ref cimport PyObject
+
+from libcpp cimport bool
 
 cdef extern from "capnp/helpers/fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
@@ -41,7 +43,9 @@ cdef extern from "capnp/helpers/serialize.h":
 
 cdef extern from "capnp/helpers/asyncHelper.h":
     void waitNeverDone(WaitScope&)
+    void pollWaitScope(WaitScope&)
     Response * waitRemote(RemotePromise *, WaitScope&)
+    bool pollRemote(RemotePromise *, WaitScope&)
     PyObject * waitPyPromise(PyPromise *, WaitScope&)
     void waitVoidPromise(VoidPromise *, WaitScope&)
     Timer * getTimer(AsyncIoContext *) except +reraise_kj_exception

@@ -11,6 +11,8 @@
 cimport cython
 
 from capnp.helpers.helpers cimport makeRpcClientWithRestorer
+from capnp.helpers.helpers cimport AsyncIoStreamReadHelper
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
@@ -33,6 +35,7 @@ import socket as _socket
 import random as _random
 import collections as _collections
 import array
+import asyncio
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -1655,6 +1658,9 @@ cdef class _EventLoop:
         del self.thisptr
         self.thisptr = NULL
 
+    cdef TwoWayPipe makeTwoWayPipe(self):
+        return deref(deref(self.thisptr).provider).newTwoWayPipe()
+
     cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
         return deref(deref(self.thisptr).lowLevelProvider).wrapSocketFd(fd)
 
@@ -1737,6 +1743,10 @@ cpdef reset_event_loop():
 def wait_forever():
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
     helpers.waitNeverDone(deref(loop.thisptr).waitScope)
+
+def poll_once():
+    cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+    helpers.pollWaitScope(deref(loop.thisptr).waitScope)
 
 cdef class _CallContext:
     cdef CallContext * thisptr
@@ -1929,11 +1939,24 @@ cdef class _RemotePromise:
     def __dealloc__(self):
         del self.thisptr
 
-    cpdef wait(self) except +reraise_kj_exception:
+    cpdef _wait(self) except +reraise_kj_exception:
+        return _Response()._init_childptr(helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
+
+    def wait(self):
         if self.is_consumed:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = _Response()._init_childptr(helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
+        ret = self._wait()
+        self.is_consumed = True
+        return ret
+
+    async def a_wait(self):
+        if self.is_consumed:
+            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+
+        while not helpers.pollRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope):
+            await asyncio.sleep(0)
+        ret = self._wait()
         self.is_consumed = True
 
         return ret
@@ -2234,6 +2257,10 @@ cdef class _TwoPartyVatNetwork:
         self.thisptr = makeTwoPartyVatNetwork(deref(stream.thisptr), side, opts)
         return self
 
+    cdef _init_pipe(self, _TwoWayPipe pipe, Side side, schema_cpp.ReaderOptions opts):
+        self.thisptr = makeTwoPartyVatNetwork(deref(pipe._pipe.ends[0]), side, opts)
+        return self
+
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
 
@@ -2255,16 +2282,23 @@ cdef class TwoPartyClient:
     cdef public object _orig_stream
     cdef public _Restorer _restorer
     cdef public _AsyncIoStream _stream
+    cdef public _TwoWayPipe _pipe
 
-    def __init__(self, socket, restorer=None, traversal_limit_in_words=None, nesting_limit=None):
+    def __init__(self, socket=None, restorer=None, traversal_limit_in_words=None, nesting_limit=None):
         if isinstance(socket, basestring):
             socket = self._connect(socket)
 
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._orig_stream = socket
-        self._stream = _FdAsyncIoStream(socket.fileno())
-        self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.CLIENT, opts)
+        if self._orig_stream:
+            self._stream = _FdAsyncIoStream(socket.fileno())
+            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.CLIENT, opts)
+        else:
+            # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
+            self._pipe = _TwoWayPipe()
+            self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.CLIENT, opts)
+
         if restorer is None:
             self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
             self._restorer = None
@@ -2274,9 +2308,34 @@ cdef class TwoPartyClient:
             self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
         Py_INCREF(self._restorer)
-        Py_INCREF(self._orig_stream)
-        Py_INCREF(self._stream)
+        if self._orig_stream:
+            Py_INCREF(self._orig_stream)
+            Py_INCREF(self._stream)
+        else:
+            Py_INCREF(self._pipe)
         Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
+
+    async def read(self, bufsize):
+        cdef AsyncIoStreamReadHelper *reader = new AsyncIoStreamReadHelper(
+            self._pipe._pipe.ends[1].get(),
+            &self._pipe._event_loop.thisptr.waitScope,
+            bufsize
+        )
+        while not reader.poll():
+            await asyncio.sleep(0)
+
+        cdef array.array read_buffer = array.array('b', [])
+        array.resize(read_buffer, reader.read_size())
+        memcpy(read_buffer.data.as_voidptr, reader.read_buffer(), reader.read_size())
+        del reader
+        return read_buffer
+
+    def write(self, data):
+        cdef array.array write_buffer = array.array('b', data)
+        deref(self._pipe._pipe.ends[1]).write(
+            write_buffer.data.as_voidptr,
+            len(data)
+        ).wait(self._pipe._event_loop.thisptr.waitScope)
 
     def __dealloc__(self):
         del self.thisptr
@@ -2349,12 +2408,13 @@ cdef class TwoPartyServer:
     cdef public object _orig_stream, _server_socket, _disconnect_promise
     cdef public _Restorer _restorer
     cdef public _AsyncIoStream _stream
+    cdef public _TwoWayPipe _pipe
     cdef object _port
     cdef public object port_promise, _bootstrap
     cdef capnp.TaskSet * _task_set
     cdef capnp.ErrorHandler _error_handler
 
-    def __init__(self, socket, restorer=None, server_socket=None, bootstrap=None,
+    def __init__(self, socket=None, restorer=None, server_socket=None, bootstrap=None,
                  traversal_limit_in_words=None, nesting_limit=None):
         if not restorer and not bootstrap:
             raise KjException("You must provide either a bootstrap interface or a restorer (deperecated) to a server constructor.")
@@ -2366,28 +2426,58 @@ cdef class TwoPartyServer:
 
         if isinstance(socket, basestring):
             self._connect(socket, restorer, bootstrap)
-        else:
-            self._orig_stream = socket
+            return
+
+        self._orig_stream = socket
+        if self._orig_stream:
             self._stream = _FdAsyncIoStream(socket.fileno())
-            self._server_socket = server_socket
-            self._port = 0
             self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER, opts)
+        else:
+            # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
+            self._pipe = _TwoWayPipe()
+            self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.SERVER, opts)
 
-            if bootstrap:
-                self._bootstrap = bootstrap
-                schema = bootstrap.schema
-                self.thisptr = new RpcSystem(makeRpcServerBootstrap(deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
-            elif restorer:
-                _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
-                self._restorer = _convert_restorer(restorer)
-                self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
+        self._server_socket = server_socket
+        self._port = 0
 
-            Py_INCREF(self._orig_stream)
-            Py_INCREF(self._stream)
-            Py_INCREF(self._restorer)
-            Py_INCREF(self._bootstrap)
-            Py_INCREF(self._network)
-            self._disconnect_promise = self.on_disconnect().then(self._decref)
+        if bootstrap:
+            self._bootstrap = bootstrap
+            schema = bootstrap.schema
+            self.thisptr = new RpcSystem(makeRpcServerBootstrap(deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
+        elif restorer:
+            _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
+            self._restorer = _convert_restorer(restorer)
+            self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
+
+        Py_INCREF(self._restorer)
+        Py_INCREF(self._orig_stream)
+        Py_INCREF(self._stream)
+        Py_INCREF(self._pipe)
+        Py_INCREF(self._bootstrap)
+        Py_INCREF(self._network)
+        self._disconnect_promise = self.on_disconnect().then(self._decref)
+
+    async def read(self, bufsize):
+        cdef AsyncIoStreamReadHelper *reader = new AsyncIoStreamReadHelper(
+            self._pipe._pipe.ends[1].get(),
+            &self._pipe._event_loop.thisptr.waitScope,
+            bufsize
+        )
+        while not reader.poll():
+            await asyncio.sleep(0)
+
+        cdef array.array read_buffer = array.array('b', [])
+        array.resize(read_buffer, reader.read_size())
+        memcpy(read_buffer.data.as_voidptr, reader.read_buffer(), reader.read_size())
+        del reader
+        return read_buffer
+
+    async def write(self, data):
+        cdef array.array write_buffer = array.array('b', data)
+        deref(self._pipe._pipe.ends[1]).write(
+            write_buffer.data.as_voidptr,
+            len(data)
+        ).wait(self._pipe._event_loop.thisptr.waitScope)
 
     cpdef _connect(self, host_string, restorer, bootstrap):
         cdef _InterfaceSchema schema
@@ -2406,6 +2496,7 @@ cdef class TwoPartyServer:
     def _decref(self):
         Py_DECREF(self._bootstrap)
         Py_DECREF(self._restorer)
+        Py_INCREF(self._pipe)
         Py_DECREF(self._orig_stream)
         Py_DECREF(self._stream)
         Py_DECREF(self._network)
@@ -2416,6 +2507,11 @@ cdef class TwoPartyServer:
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
+
+    async def poll_forever(self):
+        while True:
+            poll_once()
+            await asyncio.sleep(0)
 
     cpdef run_forever(self):
         if self.port_promise is None:
@@ -2436,6 +2532,18 @@ cdef class TwoPartyServer:
 
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
+
+cdef class _TwoWayPipe:
+    cdef _EventLoop _event_loop
+    cdef TwoWayPipe _pipe
+
+    def __init__(self):
+        self._init()
+
+    cpdef _init(self) except +reraise_kj_exception:
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        # Create two way pipe using AsyncIoContext
+        self._pipe = self._event_loop.makeTwoWayPipe()
 
 cdef class _FdAsyncIoStream(_AsyncIoStream):
     cdef _EventLoop _event_loop
