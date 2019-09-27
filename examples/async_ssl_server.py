@@ -1,14 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
 import argparse
+import os
 import capnp
 
 import thread_capnp
 import asyncio
 import socket
 import ssl
+
+
+this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class ExampleImpl(thread_capnp.Example.Server):
@@ -21,7 +25,7 @@ class ExampleImpl(thread_capnp.Example.Server):
             .then(lambda _: self.subscribeStatus(subscriber))
 
     def longRunning(self, **kwargs):
-        return capnp.getTimer().after_delay(3 * 10**9)
+        return capnp.getTimer().after_delay(1 * 10**9)
 
 
 async def myreader(server, reader):
@@ -68,7 +72,7 @@ async def main():
 
     # Setup SSL context
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ctx.load_cert_chain('selfsigned.cert', 'selfsigned.key')
+    ctx.load_cert_chain(os.path.join(this_dir, 'selfsigned.cert'), os.path.join(this_dir, 'selfsigned.key'))
 
     # Handle both IPv4 and IPv6 cases
     try:

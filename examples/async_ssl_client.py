@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
 import asyncio
 import argparse
+import os
 import time
 import capnp
 import socket
@@ -11,6 +12,7 @@ import ssl
 
 import thread_capnp
 
+this_dir = os.path.dirname(os.path.abspath(__file__))
 capnp.remove_event_loop()
 capnp.create_event_loop(threaded=True)
 
@@ -55,7 +57,7 @@ async def main(host):
     port = host[1]
 
     # Setup SSL context
-    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile='selfsigned.cert')
+    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=os.path.join(this_dir, 'selfsigned.cert'))
 
     # Handle both IPv4 and IPv6 cases
     try:

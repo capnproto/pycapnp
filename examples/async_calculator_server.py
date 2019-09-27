@@ -2,9 +2,25 @@
 
 from __future__ import print_function
 import argparse
+import asyncio
+import socket
+import random
 import capnp
 
 import calculator_capnp
+
+
+async def myreader(client, reader):
+  while True:
+    data = await reader.read(4096)
+    await client.write(data)
+
+
+async def mywriter(client, writer):
+  while True:
+    data = await client.read(4096)
+    writer.write(data.tobytes())
+    await writer.drain()
 
 
 def read_value(value):
@@ -120,20 +136,47 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
 
 def parse_args():
     parser = argparse.ArgumentParser(usage='''Runs the server bound to the\
-given address/port ADDRESS may be '*' to bind to all local addresses.\
-:PORT may be omitted to choose a port automatically. ''')
+given address/port ADDRESS. ''')
 
-    parser.add_argument("address", help="ADDRESS[:PORT]")
+    parser.add_argument("address", help="ADDRESS:PORT")
 
     return parser.parse_args()
 
 
-def main():
+async def myserver(reader, writer):
+    # Start TwoPartyServer using TwoWayPipe (only requires bootstrap)
+    server = capnp.TwoPartyServer(bootstrap=CalculatorImpl())
+
+    # Assemble reader and writer tasks, run in the background
+    coroutines = [myreader(server, reader), mywriter(server, writer)]
+    asyncio.gather(*coroutines, return_exceptions=True)
+
+    await server.poll_forever()
+
+
+async def main():
     address = parse_args().address
+    host = address.split(':')
+    addr = host[0]
+    port = host[1]
 
-    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())
-    server.run_forever()
+    # Handle both IPv4 and IPv6 cases
+    try:
+        print("Try IPv4")
+        server = await asyncio.start_server(
+            myserver,
+            addr, port,
+        )
+    except:
+        print("Try IPv6")
+        server = await asyncio.start_server(
+            myserver,
+            addr, port,
+            family=socket.AF_INET6
+        )
 
+    async with server:
+        await server.serve_forever()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

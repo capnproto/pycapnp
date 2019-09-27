@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 import argparse
+import asyncio
+import socket
 import capnp
 
 import calculator_capnp
@@ -23,6 +25,19 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
         return pow(params[0], params[1])
 
 
+async def myreader(client, reader):
+  while True:
+    data = await reader.read(4096)
+    client.write(data)
+
+
+async def mywriter(client, writer):
+  while True:
+    data = await client.read(4096)
+    writer.write(data.tobytes())
+    await writer.drain()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(usage='Connects to the Calculator server \
 at the given address and does some RPCs')
@@ -31,8 +46,29 @@ at the given address and does some RPCs')
     return parser.parse_args()
 
 
-def main(host):
-    client = capnp.TwoPartyClient(host)
+async def main(host):
+    host = host.split(':')
+    addr = host[0]
+    port = host[1]
+    # Handle both IPv4 and IPv6 cases
+    try:
+      print("Try IPv4")
+      reader, writer = await asyncio.open_connection(
+        addr, port,
+      )
+    except:
+      print("Try IPv6")
+      reader, writer = await asyncio.open_connection(
+        addr, port,
+        family=socket.AF_INET6
+      )
+
+    # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
+    client = capnp.TwoPartyClient()
+
+    # Assemble reader and writer tasks, run in the background
+    coroutines = [myreader(client, reader), mywriter(client, writer)]
+    asyncio.gather(*coroutines, return_exceptions=True)
 
     # Pass "calculator" to ez_restore (there's also a `restore` function that
     # takes a struct or AnyPointer as an argument), and then cast the returned
@@ -73,7 +109,7 @@ def main(host):
 
     # Now that we've sent all the requests, wait for the response.  Until this
     # point, we haven't waited at all!
-    response = read_promise.wait()
+    response = await read_promise.a_wait()
     assert response.value == 123
 
     print("PASS")
@@ -111,7 +147,7 @@ def main(host):
     eval_promise = request.send()
     read_promise = eval_promise.value.read()
 
-    response = read_promise.wait()
+    response = await read_promise.a_wait()
     assert response.value == 101
 
     print("PASS")
@@ -175,8 +211,8 @@ def main(host):
     add_5_promise = add_5_request.send().value.read()
 
     # Now wait for the results.
-    assert add_3_promise.wait().value == 27
-    assert add_5_promise.wait().value == 29
+    assert (await add_3_promise.a_wait()).value == 27
+    assert (await add_5_promise.a_wait()).value == 29
 
     print("PASS")
 
@@ -257,8 +293,8 @@ def main(host):
     g_eval_promise = g_eval_request.send().value.read()
 
     # Wait for the results.
-    assert f_eval_promise.wait().value == 1234
-    assert g_eval_promise.wait().value == 4244
+    assert (await f_eval_promise.a_wait()).value == 1234
+    assert (await g_eval_promise.a_wait()).value == 4244
 
     print("PASS")
 
@@ -296,11 +332,10 @@ def main(host):
     add_params[1].literal = 5
 
     # Send the request and wait.
-    response = request.send().value.read().wait()
+    response = await request.send().value.read().a_wait()
     assert response.value == 512
 
     print("PASS")
 
-
 if __name__ == '__main__':
-    main(parse_args().host)
+    asyncio.run(main(parse_args().host))

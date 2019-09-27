@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -20,7 +20,7 @@ class ExampleImpl(thread_capnp.Example.Server):
             .then(lambda _: self.subscribeStatus(subscriber))
 
     def longRunning(self, **kwargs):
-        return capnp.getTimer().after_delay(3 * 10**9)
+        return capnp.getTimer().after_delay(1 * 10**9)
 
 
 async def myreader(server, reader):
