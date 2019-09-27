@@ -16,8 +16,6 @@ from setuptools import setup
 
 from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
 
-use_cython = False
-
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
@@ -80,11 +78,6 @@ class clean(_clean):
                 pass
 
 
-# set use_cython if lib/capnp.cpp is not detected
-capnp_compiled_file = os.path.join(os.path.dirname(__file__), 'capnp', 'lib', 'capnp.cpp')
-if not os.path.isfile(capnp_compiled_file):
-    use_cython = True
-
 # hack to parse commandline arguments
 force_bundled_libcapnp = "--force-bundled-libcapnp" in sys.argv
 if force_bundled_libcapnp:
@@ -95,7 +88,7 @@ if force_system_libcapnp:
 force_cython = "--force-cython" in sys.argv
 if force_cython:
     sys.argv.remove("--force-cython")
-    use_cython = True
+    # Always use cython, ignoring option
 libcapnp_url = None
 try:
     libcapnp_url_index = sys.argv.index("--libcapnp-url")
@@ -105,10 +98,7 @@ try:
 except Exception:
     pass
 
-if use_cython:
-    from Cython.Distutils import build_ext as build_ext_c
-else:
-    from distutils.command.build_ext import build_ext as build_ext_c
+from Cython.Distutils import build_ext as build_ext_c
 
 class build_libcapnp_ext(build_ext_c):
     '''
@@ -154,16 +144,9 @@ class build_libcapnp_ext(build_ext_c):
         return build_ext_c.run(self)
 
 
-if use_cython:
-    from Cython.Build import cythonize
-    import Cython # noqa: F401
-    extensions = cythonize('capnp/lib/*.pyx')
-else:
-    extensions = [Extension("capnp.lib.capnp", ["capnp/lib/capnp.cpp"],
-                            include_dirs=["."],
-                            language='c++',
-                            extra_compile_args=['--std=c++14'],
-                            libraries=['capnpc', 'capnp-rpc', 'capnp', 'kj-async', 'kj'])]
+from Cython.Build import cythonize
+import Cython # noqa: F401
+extensions = cythonize('capnp/lib/*.pyx')
 
 setup(
     name="pycapnp",
