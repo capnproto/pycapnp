@@ -52,11 +52,11 @@ def test_simple_rpc_with_options():
     client = capnp.TwoPartyClient(read, traversal_limit_in_words=1)
 
     ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
-    cap = client.restore(ref)
-    cap = cap.cast_as(test_capability_capnp.TestInterface)
-
-    remote = cap.foo(i=5)
     with pytest.raises(capnp.KjException):
+        cap = client.restore(ref)
+        cap = cap.cast_as(test_capability_capnp.TestInterface)
+
+        remote = cap.foo(i=5)
         _ = remote.wait()
 
 

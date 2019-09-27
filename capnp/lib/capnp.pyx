@@ -4041,6 +4041,13 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
 
 _global_schema_parser = None
 
+def cleanup_global_schema_parser():
+    """Unloads all of the schema from the current context"""
+    global _global_schema_parser
+    if _global_schema_parser:
+        del _global_schema_parser
+        _global_schema_parser = None
+
 def load(file_name, display_name=None, imports=[]):
     """Load a Cap'n Proto schema from a file
 

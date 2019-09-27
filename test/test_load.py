@@ -56,6 +56,9 @@ def test_failed_import():
         bar.foo = foo
 
 def test_defualt_import_hook():
+    # Make sure any previous imports of addressbook_capnp are gone
+    capnp.cleanup_global_schema_parser()
+
     import addressbook_capnp # noqa: F401
 
 def test_dash_import():
@@ -67,6 +70,9 @@ def test_spaces_import():
 def test_add_import_hook():
     capnp.add_import_hook([this_dir])
 
+    # Make sure any previous imports of addressbook_capnp are gone
+    capnp.cleanup_global_schema_parser()
+
     import addressbook_capnp
     addressbook_capnp.AddressBook.new_message()
 
@@ -74,6 +80,9 @@ def test_multiple_add_import_hook():
     capnp.add_import_hook()
     capnp.add_import_hook()
     capnp.add_import_hook([this_dir])
+
+    # Make sure any previous imports of addressbook_capnp are gone
+    capnp.cleanup_global_schema_parser()
 
     import addressbook_capnp
     addressbook_capnp.AddressBook.new_message()
