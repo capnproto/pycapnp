@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import pytest
 import capnp
@@ -16,7 +16,7 @@ else:
 
 @pytest.fixture
 def addressbook():
-     return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
 def test_addressbook_message_classes(addressbook):
     def writeAddressBook(fd):
@@ -71,7 +71,7 @@ def test_addressbook_message_classes(addressbook):
         assert bobPhones[0].type == 'home'
         assert bobPhones[1].number == "555-7654"
         assert bobPhones[1].type == 'work'
-        assert bob.employment.unemployed == None
+        assert bob.employment.unemployed is None
 
     f = open('example', 'w')
     writeAddressBook(f.fileno())
@@ -130,7 +130,7 @@ def test_addressbook(addressbook):
         assert bobPhones[0].type == 'home'
         assert bobPhones[1].number == "555-7654"
         assert bobPhones[1].type == 'work'
-        assert bob.employment.unemployed == None
+        assert bob.employment.unemployed is None
 
 
     f = open('example', 'w')
@@ -192,7 +192,7 @@ def test_addressbook_resizable(addressbook):
         assert bobPhones[0].type == 'home'
         assert bobPhones[1].number == "555-7654"
         assert bobPhones[1].type == 'work'
-        assert bob.employment.unemployed == None
+        assert bob.employment.unemployed is None
 
 
     f = open('example', 'w')
@@ -262,7 +262,7 @@ def test_addressbook_explicit_fields(addressbook):
         assert bobPhones[1]._get_by_field(phone_fields['number']) == "555-7654"
         assert bobPhones[1]._get_by_field(phone_fields['type']) == 'work'
         employment = bob._get_by_field(person_fields['employment'])
-        employment._get_by_field(addressbook.Person.Employment.schema.fields['unemployed']) == None
+        employment._get_by_field(addressbook.Person.Employment.schema.fields['unemployed']) is None
 
 
     f = open('example', 'w')
@@ -371,8 +371,8 @@ def check_list(reader, expected):
             assert reader[i] == v
 
 def check_all_types(reader):
-    assert reader.voidField == None
-    assert reader.boolField == True
+    assert reader.voidField is None
+    assert reader.boolField
     assert reader.int8Field == -123
     assert reader.int16Field == -12345
     assert reader.int32Field == -12345678
@@ -387,8 +387,8 @@ def check_all_types(reader):
     assert reader.dataField == b"bar"
 
     subReader = reader.structField
-    assert subReader.voidField == None
-    assert subReader.boolField == True
+    assert subReader.voidField is None
+    assert subReader.boolField
     assert subReader.int8Field == -12
     assert subReader.int16Field == 3456
     assert subReader.int32Field == -78901234
@@ -495,7 +495,7 @@ def test_build_first_segment_size(all_types):
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText
 
-    root = all_types.TestAllTypes.new_message(1024*1024)
+    root = all_types.TestAllTypes.new_message(1024 * 1024)
     init_all_types(root)
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
     assert str(root) + '\n' == expectedText

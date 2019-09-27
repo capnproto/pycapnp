@@ -1,12 +1,11 @@
 """utilities for fetching build dependencies."""
 
-#-----------------------------------------------------------------------------
+#
 #  Copyright (C) PyZMQ Developers
 #  Distributed under the terms of the Modified BSD License.
 #
 #  This bundling code is largely adapted from pyzmq-static's get.sh by
 #  Brandon Craig-Rhodes, which is itself BSD licensed.
-#-----------------------------------------------------------------------------
 #
 # Adapted for use in pycapnp from pyzmq. See https://github.com/zeromq/pyzmq
 # for original project.
@@ -17,7 +16,6 @@ import shutil
 import stat
 import sys
 import tarfile
-from glob import glob
 from subprocess import Popen, PIPE
 
 try:
@@ -27,27 +25,28 @@ except ImportError:
     # py3
     from urllib.request import urlopen
 
-from .msg import fatal, debug, info, warn
+from .msg import fatal, info, warn
 
 pjoin = os.path.join
 
-#-----------------------------------------------------------------------------
+#
 # Constants
-#-----------------------------------------------------------------------------
+#
 
-bundled_version = (0,7,0)
-libcapnp = "capnproto-c++-%i.%i.%i.tar.gz" % (bundled_version)
-libcapnp_url = "https://capnproto.org/" + libcapnp
+bundled_version = (0, 7, 4)
+libcapnp_name = "capnproto-c++-%i.%i.%i.tar.gz" % (bundled_version)
+libcapnp_url = "https://capnproto.org/" + libcapnp_name
 
 HERE = os.path.dirname(__file__)
 ROOT = os.path.dirname(HERE)
 
-#-----------------------------------------------------------------------------
+#
 # Utilities
-#-----------------------------------------------------------------------------
+#
 
 
 def untgz(archive):
+    """Remove .tar.gz"""
     return archive.replace('.tar.gz', '')
 
 def localpath(*args):
@@ -69,9 +68,9 @@ def fetch_archive(savedir, url, fname, force=False):
         f.write(req.read())
     return dest
 
-#-----------------------------------------------------------------------------
+#
 # libcapnp
-#-----------------------------------------------------------------------------
+#
 
 def fetch_libcapnp(savedir, url=None):
     """download and extract libcapnp"""
@@ -83,7 +82,7 @@ def fetch_libcapnp(savedir, url=None):
     if os.path.exists(dest):
         info("already have %s" % dest)
         return
-    fname = fetch_archive(savedir, url, libcapnp)
+    fname = fetch_archive(savedir, url, libcapnp_name)
     tf = tarfile.open(fname)
     with_version = pjoin(savedir, tf.firstmember.path)
     tf.extractall(savedir)
@@ -96,7 +95,7 @@ def fetch_libcapnp(savedir, url=None):
         conf = Popen(['autoreconf', '-i'], cwd=cpp_dir)
         returncode = conf.wait()
         if returncode != 0:
-          raise RuntimeError('Autoreconf failed. Make sure autotools are installed on your system.')
+            raise RuntimeError('Autoreconf failed. Make sure autotools are installed on your system.')
         shutil.move(cpp_dir, dest)
 
 
@@ -120,7 +119,7 @@ def stage_platform_hpp(capnproot):
         p = Popen('./configure', cwd=capnproot, shell=True,
             stdout=PIPE, stderr=PIPE,
         )
-        o,e = p.communicate()
+        _, e = p.communicate()
         if p.returncode:
             warn("failed to configure libcapnp:\n%s" % e)
             if sys.platform == 'darwin':
@@ -146,14 +145,14 @@ def copy_and_patch_libcapnp(capnp, libcapnp):
     if sys.platform.startswith('win'):
         return
     # copy libcapnp into capnp for bdist
-    local = localpath('capnp',libcapnp)
+    local = localpath('capnp', libcapnp)
     if not capnp and not os.path.exists(local):
         fatal("Please specify capnp prefix via `setup.py configure --capnp=/path/to/capnp` "
         "or copy libcapnp into capnp/ manually prior to running bdist.")
     try:
         # resolve real file through symlinks
         lib = os.path.realpath(pjoin(capnp, 'lib', libcapnp))
-        print ("copying %s -> %s"%(lib, local))
+        print ("copying %s -> %s" % (lib, local))
         shutil.copy(lib, local)
     except Exception:
         if not os.path.exists(local):
@@ -167,11 +166,11 @@ def copy_and_patch_libcapnp(capnp, libcapnp):
         mode = os.stat(local).st_mode
         os.chmod(local, mode | stat.S_IWUSR)
         # patch install_name on darwin, instead of using rpath
-        cmd = ['install_name_tool', '-id', '@loader_path/../%s'%libcapnp, local]
+        cmd = ['install_name_tool', '-id', '@loader_path/../%s' % libcapnp, local]
         try:
-            p = Popen(cmd, stdout=PIPE,stderr=PIPE)
+            p = Popen(cmd, stdout=PIPE, stderr=PIPE)
         except OSError:
             fatal("install_name_tool not found, cannot patch libcapnp for bundling.")
-        out,err = p.communicate()
+        _, err = p.communicate()
         if p.returncode:
-            fatal("Could not patch bundled libcapnp install_name: %s"%err, p.returncode)
+            fatal("Could not patch bundled libcapnp install_name: %s" % err, p.returncode)

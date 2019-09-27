@@ -1,6 +1,5 @@
 from __future__ import print_function
-import os
-import capnp
+import capnp # noqa: F401
 
 import addressbook_capnp
 

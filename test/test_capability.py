@@ -1,8 +1,7 @@
 import pytest
-import capnp
-import os
 import time
 
+import capnp
 import test_capability_capnp as capability
 
 class Server(capability.TestInterface.Server):
@@ -160,6 +159,7 @@ class BadPipelineServer(capability.TestPipeline.Server):
             _results = _context.results
             _results.s = response.x + '_foo'
             _results.outBox.cap = Server(100)
+
         def _error(error):
             raise Exception('test was a success')
 
@@ -186,7 +186,7 @@ def test_pipeline_exception():
     pipelinePromise = outCap.foo(i=10)
 
     with pytest.raises(Exception):
-        loop.wait(pipelinePromise)
+        pipelinePromise.wait()
 
     with pytest.raises(Exception):
         remote.wait()
@@ -194,7 +194,7 @@ def test_pipeline_exception():
 def test_casting():
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
-    client3 = client2.cast_as(capability.TestInterface)
+    _ = client2.cast_as(capability.TestInterface)
 
     with pytest.raises(Exception):
         client.upcast(capability.TestPipeline)

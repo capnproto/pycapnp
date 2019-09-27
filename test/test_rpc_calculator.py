@@ -1,21 +1,23 @@
-import capnp
+import gc
 import os
 import socket
-import gc
 import subprocess
+import sys  # add examples dir to sys.path
 import time
 
-import sys  # add examples dir to sys.path
+import capnp
+
 examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
 sys.path.append(examples_dir)
-import calculator_client
-import calculator_server
+
+import calculator_client # noqa: E402
+import calculator_server # noqa: E402
 
 
 def test_calculator():
     read, write = socket.socketpair(socket.AF_UNIX)
 
-    server = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
+    _ = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
     calculator_client.main(read)
 
 
@@ -57,7 +59,7 @@ def test_calculator_gc():
     evaluate_impl_orig = calculator_server.evaluate_impl
     calculator_server.evaluate_impl = new_evaluate_impl(evaluate_impl_orig)
 
-    server = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
+    _ = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
     calculator_client.main(read)
 
     calculator_server.evaluate_impl = evaluate_impl_orig

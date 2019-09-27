@@ -1,14 +1,22 @@
 #!/usr/bin/env python
+'''
+pycapnp distutils setup.py
+'''
+
 from __future__ import print_function
 
-use_cython = False
-
-from setuptools import setup
 import os
 import sys
-from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
+
+from distutils.command.clean import clean as _clean
 from distutils.errors import CompileError
 from distutils.extension import Extension
+
+from setuptools import setup
+
+from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
+
+use_cython = False
 
 _this_dir = os.path.dirname(__file__)
 
@@ -20,10 +28,14 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 # Write version info
 def write_version_py(filename=None):
+    '''
+    Generate pycapnp version
+    '''
     cnt = """\
 version = '%s'
 short_version = '%s'
 
+# flake8: noqa E402 F401
 from .lib.capnp import _CAPNP_VERSION_MAJOR as LIBCAPNP_VERSION_MAJOR
 from .lib.capnp import _CAPNP_VERSION_MINOR as LIBCAPNP_VERSION_MINOR
 from .lib.capnp import _CAPNP_VERSION_MICRO as LIBCAPNP_VERSION_MICRO
@@ -39,6 +51,7 @@ from .lib.capnp import _CAPNP_VERSION as LIBCAPNP_VERSION
     finally:
         a.close()
 
+
 write_version_py()
 
 # Try to convert README using pandoc
@@ -49,13 +62,14 @@ try:
     changelog = '\nChangelog\n=============\n' + changelog
     long_description += changelog
 except (IOError, ImportError):
-    if len(sys.argv) and sys.argv[-1] == 'sdist':
+    if sys.argv and sys.argv[-1] == 'sdist':
         raise
     long_description = ''
 
-# Clean command, invoked with `python setup.py clean`
-from distutils.command.clean import clean as _clean
 class clean(_clean):
+    '''
+    Clean command, invoked with `python setup.py clean`
+    '''
     def run(self):
         _clean.run(self)
         for x in [ 'capnp/lib/capnp.cpp', 'capnp/lib/capnp.h', 'capnp/version.py' ]:
@@ -64,6 +78,7 @@ class clean(_clean):
                 os.remove(x)
             except OSError:
                 pass
+
 
 # set use_cython if lib/capnp.cpp is not detected
 capnp_compiled_file = os.path.join(os.path.dirname(__file__), 'capnp', 'lib', 'capnp.cpp')
@@ -87,7 +102,7 @@ try:
     libcapnp_url = sys.argv[libcapnp_url_index + 1]
     sys.argv.remove("--libcapnp-url")
     sys.argv.remove(libcapnp_url)
-except:
+except Exception:
     pass
 
 if use_cython:
@@ -96,6 +111,9 @@ else:
     from distutils.command.build_ext import build_ext as build_ext_c
 
 class build_libcapnp_ext(build_ext_c):
+    '''
+    Build capnproto library
+    '''
     def build_extension(self, ext):
         build_ext_c.build_extension(self, ext)
 
@@ -114,7 +132,12 @@ class build_libcapnp_ext(build_ext_c):
                 need_build = True
 
         if need_build:
-            info("*WARNING* no libcapnp detected or rebuild forced. Will download and build it from source now. If you have C++ Cap'n Proto installed, it may be out of date or is not being detected. Downloading and building libcapnp may take a while.")
+            info(
+                "*WARNING* no libcapnp detected or rebuild forced. "
+                "Will download and build it from source now. "
+                "If you have C++ Cap'n Proto installed, it may be out of date or is not being detected. "
+                "Downloading and building libcapnp may take a while."
+            )
             bundle_dir = os.path.join(_this_dir, "bundled")
             if not os.path.exists(bundle_dir):
                 os.mkdir(bundle_dir)
@@ -130,9 +153,10 @@ class build_libcapnp_ext(build_ext_c):
 
         return build_ext_c.run(self)
 
+
 if use_cython:
     from Cython.Build import cythonize
-    import Cython
+    import Cython # noqa: F401
     extensions = cythonize('capnp/lib/*.pyx')
 else:
     extensions = [Extension("capnp.lib.capnp", ["capnp/lib/capnp.cpp"],
@@ -145,9 +169,14 @@ setup(
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
-    package_data={'capnp': ['*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h', 'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx', 'templates/*']},
+    package_data={
+        'capnp': [
+            '*.pxd', '*.h', '*.capnp', 'helpers/*.pxd', 'helpers/*.h',
+            'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx', 'templates/*'
+        ]
+    },
     ext_modules=extensions,
-    cmdclass = {
+    cmdclass={
         'clean': clean,
         'build_ext': build_libcapnp_ext
     },
@@ -161,10 +190,10 @@ setup(
     license='BSD',
     author="Jason Paryani",
     author_email="pypi-contact@jparyani.com",
-    url = 'https://github.com/jparyani/pycapnp',
-    download_url = 'https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
-    keywords = ['capnp', 'capnproto', "Cap'n Proto"],
-    classifiers = [
+    url='https://github.com/jparyani/pycapnp',
+    download_url='https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
+    keywords=['capnp', 'capnproto', "Cap'n Proto"],
+    classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
@@ -172,12 +201,9 @@ setup(
         'Operating System :: POSIX',
         'Programming Language :: C++',
         'Programming Language :: Cython',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Communications'],
 )

@@ -1,8 +1,3 @@
-import pytest
-import capnp
-import os
-import time
-
 import test_response_capnp
 
 class FooServer(test_response_capnp.Foo.Server):

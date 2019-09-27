@@ -1,12 +1,13 @@
-import pytest
-import capnp
 import os
+import pytest
+
+import capnp
 
 this_dir = os.path.dirname(__file__)
 
 @pytest.fixture
 def capability():
-     return capnp.load(os.path.join(this_dir, 'test_capability.capnp'))
+    return capnp.load(os.path.join(this_dir, 'test_capability.capnp'))
 
 class Server:
     def __init__(self, val=1):
@@ -150,6 +151,7 @@ class BadPipelineServer:
         def _then(response):
             context.results.s = response.x + '_foo'
             context.results.outBox.cap = capability().TestInterface._new_server(Server(100))
+
         def _error(error):
             raise Exception('test was a success')
 
@@ -176,7 +178,7 @@ def test_pipeline_exception_context(capability):
     pipelinePromise = outCap.foo(i=10)
 
     with pytest.raises(Exception):
-        loop.wait(pipelinePromise)
+        pipelinePromise.wait()
 
     with pytest.raises(Exception):
         remote.wait()
@@ -184,7 +186,7 @@ def test_pipeline_exception_context(capability):
 def test_casting_context(capability):
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
-    client3 = client2.cast_as(capability.TestInterface)
+    _ = client2.cast_as(capability.TestInterface)
 
     with pytest.raises(Exception):
         client.upcast(capability.TestPipeline)

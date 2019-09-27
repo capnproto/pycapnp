@@ -42,7 +42,10 @@ def test_roundtrip_bytes(all_types):
     msg = all_types.TestAllTypes.from_bytes(message_bytes)
     test_regression.check_all_types(msg)
 
-@pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="TODO: Investigate why this works on CPython but fails on PyPy.")
+@pytest.mark.skipif(
+    platform.python_implementation() == 'PyPy',
+    reason="TODO: Investigate why this works on CPython but fails on PyPy."
+)
 def test_roundtrip_segments(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -79,7 +82,10 @@ def test_roundtrip_bytes_fail(all_types):
     with pytest.raises(TypeError):
         all_types.TestAllTypes.from_bytes(42)
 
-@pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="This works in PyPy 4.0.1 but travisci's version of PyPy has some bug that fails this test.")
+@pytest.mark.skipif(
+    platform.python_implementation() == 'PyPy',
+    reason="This works in PyPy 4.0.1 but travisci's version of PyPy has some bug that fails this test."
+)
 def test_roundtrip_bytes_packed(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -146,7 +152,10 @@ def test_roundtrip_bytes_multiple_packed(all_types):
         i += 1
     assert i == 3
 
-@pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="This works on my local PyPy v2.5.0, but is for some reason broken on TravisCI. Skip for now.")
+@pytest.mark.skipif(
+    platform.python_implementation() == 'PyPy',
+    reason="This works on my local PyPy v2.5.0, but is for some reason broken on TravisCI. Skip for now."
+)
 def test_roundtrip_dict(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)

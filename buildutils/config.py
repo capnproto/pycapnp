@@ -1,5 +1,5 @@
 """Config functions"""
-#-----------------------------------------------------------------------------
+#
 #  Copyright (C) PyZMQ Developers
 #
 #  This file is part of pyzmq, copied and adapted from h5py.
@@ -9,23 +9,24 @@
 #
 #  Distributed under the terms of the New BSD License.  The full license is in
 #  the file COPYING.BSD, distributed as part of this software.
-#-----------------------------------------------------------------------------
+#
 
 import sys
 import os
 import json
 
+from .msg import debug, warn
+
 try:
     from configparser import ConfigParser
-except:
+except Exception:
     from ConfigParser import ConfigParser
 
 pjoin = os.path.join
-from .msg import debug, fatal, warn
 
-#-----------------------------------------------------------------------------
+#
 # Utility functions (adapted from h5py: http://h5py.googlecode.com)
-#-----------------------------------------------------------------------------
+#
 
 
 def load_config(name, base='conf'):
@@ -46,7 +47,7 @@ def save_config(name, data, base='conf'):
     """Save config dict to JSON"""
     if not os.path.exists(base):
         os.mkdir(base)
-    fname = pjoin(base, name+'.json')
+    fname = pjoin(base, name + '.json')
     with open(fname, 'w') as f:
         json.dump(data, f, indent=2)
 
@@ -69,7 +70,7 @@ def get_eargs():
 
 def cfg2dict(cfg):
     """turn a ConfigParser into a nested dict
-    
+
     because ConfigParser objects are dumb.
     """
     d = {}
@@ -120,7 +121,7 @@ def config_from_prefix(prefix):
 
 def merge(into, d):
     """merge two containers
-    
+
     into is updated, d has priority
     """
     if isinstance(into, dict):
@@ -130,10 +131,9 @@ def merge(into, d):
             else:
                 into[key] = merge(into[key], d[key])
         return into
-    elif isinstance(into, list):
+    if isinstance(into, list):
         return into + d
-    else:
-        return d
+    return d
 
 def discover_settings(conf_base=None):
     """ Discover custom settings for ZMQ path"""
@@ -147,11 +147,11 @@ def discover_settings(conf_base=None):
     }
     if sys.platform.startswith('win'):
         settings['have_sys_un_h'] = False
-    
+
     if conf_base:
         # lowest priority
         merge(settings, load_config('config', conf_base))
     merge(settings, get_cfg_args())
     merge(settings, get_eargs())
-    
+
     return settings

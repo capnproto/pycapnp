@@ -1,5 +1,5 @@
 """Detect zmq version"""
-#-----------------------------------------------------------------------------
+#
 #  Copyright (C) PyZMQ Developers
 #
 #  This file is part of pyzmq, copied and adapted from h5py.
@@ -9,7 +9,7 @@
 #
 #  Distributed under the terms of the New BSD License.  The full license is in
 #  the file COPYING.BSD, distributed as part of this software.
-#-----------------------------------------------------------------------------
+#
 #
 # Adapted for use in pycapnp from pyzmq. See https://github.com/zeromq/pyzmq
 # for original project.
@@ -29,20 +29,20 @@ from .patch import patch_lib_paths
 
 pjoin = os.path.join
 
-#-----------------------------------------------------------------------------
+#
 # Utility functions (adapted from h5py: http://h5py.googlecode.com)
-#-----------------------------------------------------------------------------
+#
 
 def test_compilation(cfile, compiler=None, **compiler_attrs):
     """Test simple compilation with given settings"""
     cc = get_compiler(compiler, **compiler_attrs)
 
-    efile, ext = os.path.splitext(cfile)
+    efile, _ = os.path.splitext(cfile)
 
     cpreargs = lpreargs = []
     if sys.platform == 'darwin':
         # use appropriate arch for compiler
-        if platform.architecture()[0]=='32bit':
+        if platform.architecture()[0] == '32bit':
             if platform.processor() == 'powerpc':
                 cpu = 'ppc'
             else:
@@ -53,7 +53,7 @@ def test_compilation(cfile, compiler=None, **compiler_attrs):
             # allow for missing UB arch, since it will still work:
             lpreargs = ['-undefined', 'dynamic_lookup']
     if sys.platform == 'sunos5':
-        if platform.architecture()[0]=='32bit':
+        if platform.architecture()[0] == '32bit':
             lpreargs = ['-m32']
         else:
             lpreargs = ['-m64']
@@ -65,6 +65,7 @@ def test_compilation(cfile, compiler=None, **compiler_attrs):
     return efile
 
 def compile_and_run(basedir, src, compiler=None, **compiler_attrs):
+    """Compile and run"""
     if not os.path.exists(basedir):
         os.makedirs(basedir)
     cfile = pjoin(basedir, os.path.basename(src))
@@ -130,11 +131,11 @@ def detect_version(basedir, compiler=None, **compiler_attrs):
 
     rc, so, se = get_output_error([efile])
     if rc:
-        msg = "Error running version detection script:\n%s\n%s" % (so,se)
+        msg = "Error running version detection script:\n%s\n%s" % (so, se)
         logging.error(msg)
         raise IOError(msg)
 
-    handlers = {'vers':  lambda val: tuple(int(v) for v in val.split('.'))}
+    handlers = {'vers': lambda val: tuple(int(v) for v in val.split('.'))}
 
     props = {}
     for line in (x for x in so.split('\n') if x):
@@ -161,8 +162,9 @@ def test_build():
     return detected
 
 
-def erase_dir(dir):
+def erase_dir(path):
+    """Erase directory"""
     try:
-        shutil.rmtree(dir)
+        shutil.rmtree(path)
     except Exception:
         pass

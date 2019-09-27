@@ -23,7 +23,7 @@ pjoin = os.path.join
 root = os.path.abspath(pjoin(os.path.dirname(__file__), os.path.pardir))
 
 sys.path.insert(0, pjoin(root, 'zmq', 'utils'))
-from constant_names import all_names, no_prefix
+from constant_names import all_names, no_prefix # noqa: E402
 
 ifndef_t = """#ifndef {0}
     #define {0} (_PYZMQ_UNDEFINED)
@@ -38,7 +38,7 @@ def cython_enums():
             lines.append('enum: ZMQ_{0} "{0}"'.format(name))
         else:
             lines.append('enum: ZMQ_{0}'.format(name))
-            
+
     return dict(ZMQ_ENUMS='\n    '.join(lines))
 
 def ifndefs():
@@ -78,6 +78,7 @@ def render_constants():
     generate_file("constant_enums.pxi", cython_enums, pjoin(root, 'zmq', 'backend', 'cython'))
     generate_file("constants.pxi", constants_pyx, pjoin(root, 'zmq', 'backend', 'cython'))
     generate_file("zmq_constants.h", ifndefs, pjoin(root, 'zmq', 'utils'))
+
 
 if __name__ == '__main__':
     render_constants()

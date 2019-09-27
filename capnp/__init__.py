@@ -31,8 +31,26 @@ Example Usage::
         for phone in person.phones:
             print(phone.type, ':', phone.number)
 """
+# flake8: noqa F401 F403 F405
 from .version import version as __version__
 from .lib.capnp import *
-from .lib.capnp import _DynamicStructReader, _DynamicStructBuilder, _DynamicResizableListBuilder, _DynamicListReader, _DynamicListBuilder, _DynamicOrphan, _DynamicResizableListBuilder, _MallocMessageBuilder, _PackedFdMessageReader, _StreamFdMessageReader, _write_message_to_fd, _write_packed_message_to_fd, _StructModule, _InterfaceModule, _DynamicCapabilityClient, _CapabilityClient, _EventLoop
+from .lib.capnp import (
+    _CapabilityClient,
+    _DynamicCapabilityClient,
+    _DynamicListBuilder,
+    _DynamicListReader,
+    _DynamicOrphan,
+    _DynamicResizableListBuilder,
+    _DynamicStructBuilder,
+    _DynamicStructReader,
+    _EventLoop,
+    _InterfaceModule,
+    _MallocMessageBuilder,
+    _PackedFdMessageReader,
+    _StreamFdMessageReader,
+    _StructModule,
+    _write_message_to_fd,
+    _write_packed_message_to_fd,
+)
 
 add_import_hook() # enable import hook by default

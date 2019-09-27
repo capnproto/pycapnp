@@ -78,7 +78,7 @@ async def main():
             addr, port,
             ssl=ctx,
         )
-    except:
+    except Exception:
         print("Try IPv6")
         server = await asyncio.start_server(
             myserver,

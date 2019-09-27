@@ -1,9 +1,10 @@
-import pytest
-import platform
-import capnp
 import os
+import platform
 import tempfile
-import sys
+
+import pytest
+
+import capnp
 
 this_dir = os.path.dirname(__file__)
 
@@ -49,7 +50,7 @@ def get_two_adjacent_messages(test_capnp):
     msg2 = test_capnp.Msg.new_message()
     m2 = msg2.to_bytes()
 
-    return  m1 + m2
+    return m1 + m2
 
 def test_large_read_multiple_bytes(test_capnp):
     data = get_two_adjacent_messages(test_capnp)
@@ -80,20 +81,4 @@ def test_large_read_mutltiple_bytes_memoryview(test_capnp):
     with pytest.raises(capnp.KjException):
         data = get_two_adjacent_messages(test_capnp) + b' '
         for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
-            pass
-
-@pytest.mark.skipif(sys.version_info[0] == 3, reason="Legacy buffer support only for python 2.7")
-def test_large_read_mutltiple_bytes_buffer(test_capnp):
-    data = get_two_adjacent_messages(test_capnp)
-    for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
-        pass
-
-    with pytest.raises(capnp.KjException):
-        data = get_two_adjacent_messages(test_capnp)[:-1]
-        for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
-            pass
-
-    with pytest.raises(capnp.KjException):
-        data = get_two_adjacent_messages(test_capnp) + b' '
-        for m in test_capnp.Msg.read_multiple_bytes(buffer(data)):
             pass

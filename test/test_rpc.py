@@ -1,6 +1,5 @@
 import pytest
 import capnp
-import os
 import socket
 
 import test_capability_capnp
@@ -30,7 +29,7 @@ def test_simple_rpc():
     read, write = socket.socketpair(socket.AF_UNIX)
 
     restorer = SimpleRestorer()
-    server = capnp.TwoPartyServer(write, restorer)
+    _ = capnp.TwoPartyServer(write, restorer)
     client = capnp.TwoPartyClient(read)
 
     ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
@@ -47,7 +46,7 @@ def test_simple_rpc_with_options():
     read, write = socket.socketpair(socket.AF_UNIX)
 
     restorer = SimpleRestorer()
-    server = capnp.TwoPartyServer(write, restorer)
+    _ = capnp.TwoPartyServer(write, restorer)
     # This traversal limit is too low to receive the response in, so we expect
     # an exception during the call.
     client = capnp.TwoPartyClient(read, traversal_limit_in_words=1)
@@ -58,13 +57,13 @@ def test_simple_rpc_with_options():
 
     remote = cap.foo(i=5)
     with pytest.raises(capnp.KjException):
-        response = remote.wait()
+        _ = remote.wait()
 
 
 def test_simple_rpc_restore_func():
     read, write = socket.socketpair(socket.AF_UNIX)
 
-    server = capnp.TwoPartyServer(write, restore_func)
+    _ = capnp.TwoPartyServer(write, restore_func)
     client = capnp.TwoPartyClient(read)
 
     ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
@@ -86,7 +85,7 @@ def text_restore_func(objectId):
 def test_ez_rpc():
     read, write = socket.socketpair(socket.AF_UNIX)
 
-    server = capnp.TwoPartyServer(write, text_restore_func)
+    _ = capnp.TwoPartyServer(write, text_restore_func)
     client = capnp.TwoPartyClient(read)
 
     cap = client.ez_restore('testInterface')
@@ -108,7 +107,7 @@ def test_ez_rpc():
 def test_simple_rpc_bootstrap():
     read, write = socket.socketpair(socket.AF_UNIX)
 
-    server = capnp.TwoPartyServer(write, bootstrap=Server(100))
+    _ = capnp.TwoPartyServer(write, bootstrap=Server(100))
     client = capnp.TwoPartyClient(read)
 
     cap = client.bootstrap()

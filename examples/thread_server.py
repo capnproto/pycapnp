@@ -37,5 +37,6 @@ def main():
     server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl())
     server.run_forever()
 
+
 if __name__ == '__main__':
     main()
