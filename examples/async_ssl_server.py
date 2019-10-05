@@ -27,6 +27,9 @@ class ExampleImpl(thread_capnp.Example.Server):
     def longRunning(self, **kwargs):
         return capnp.getTimer().after_delay(1 * 10**9)
 
+    def alive(self, **kwargs):
+        return True
+
 
 async def myreader(server, reader):
     while True:

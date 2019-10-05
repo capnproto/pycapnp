@@ -8,4 +8,5 @@ interface Example {
 
   longRunning @0 () -> (value: Bool);
   subscribeStatus @1 (subscriber: StatusSubscriber);
+  alive @2 () -> (value: Bool);
 }
