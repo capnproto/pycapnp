@@ -1955,7 +1955,7 @@ cdef class _RemotePromise:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
         while not helpers.pollRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope):
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.01)
         ret = self._wait()
         self.is_consumed = True
 
@@ -2322,7 +2322,7 @@ cdef class TwoPartyClient:
             bufsize
         )
         while not reader.poll():
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.01)
 
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, reader.read_size())
@@ -2464,7 +2464,7 @@ cdef class TwoPartyServer:
             bufsize
         )
         while not reader.poll():
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.01)
 
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, reader.read_size())
@@ -2511,7 +2511,7 @@ cdef class TwoPartyServer:
     async def poll_forever(self):
         while True:
             poll_once()
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.01)
 
     cpdef run_forever(self):
         if self.port_promise is None:
