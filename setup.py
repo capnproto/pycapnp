@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-pycapnp distutils setup.py
+pycapnp-async distutils setup.py
 '''
 
 from __future__ import print_function
@@ -20,15 +20,15 @@ from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 0
-MINOR = 6
-MICRO = 4
+MINOR = 7
+MICRO = 0
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
 # Write version info
 def write_version_py(filename=None):
     '''
-    Generate pycapnp version
+    Generate pycapnp-async version
     '''
     cnt = """\
 version = '%s'
@@ -156,7 +156,7 @@ import Cython # noqa: F401
 extensions = cythonize('capnp/lib/*.pyx')
 
 setup(
-    name="pycapnp",
+    name="pycapnp-async",
     packages=["capnp"],
     version=VERSION,
     package_data={
@@ -178,10 +178,10 @@ setup(
     description="A cython wrapping of the C++ Cap'n Proto library",
     long_description=long_description,
     license='BSD',
-    author="Jason Paryani",
-    author_email="pypi-contact@jparyani.com",
-    url='https://github.com/jparyani/pycapnp',
-    download_url='https://github.com/jparyani/pycapnp/archive/v%s.zip' % VERSION,
+    author="Jacob Alexander",
+    author_email="haata@kiibohd.com",
+    url='https://github.com/haata/pycapnp-async',
+    download_url='https://github.com/haata/pycapnp-async/archive/v%s.zip' % VERSION,
     keywords=['capnp', 'capnproto', "Cap'n Proto"],
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -191,8 +191,6 @@ setup(
         'Operating System :: POSIX',
         'Programming Language :: C++',
         'Programming Language :: Cython',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Communications'],
