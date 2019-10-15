@@ -1477,7 +1477,7 @@ cdef class _DynamicStructPipeline:
         if type == capnp.TYPE_CAPABILITY:
             return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
         elif type == capnp.TYPE_STRUCT:
-            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
+            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
             raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
@@ -1636,7 +1636,7 @@ cdef class _EventLoop:
         self._init()
 
     cdef _init(self) except +reraise_kj_exception:
-        self.thisptr = new capnp.AsyncIoContext(moveAsyncContext(capnp.setupAsyncIo()))
+        self.thisptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
 
     def __dealloc__(self):
         del self.thisptr #TODO:MEMORY: fix problems with Promises still being around
@@ -1976,7 +1976,7 @@ cdef class _RemotePromise:
         if type == capnp.TYPE_CAPABILITY:
             return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
         elif type == capnp.TYPE_STRUCT:
-            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline(moveStructPipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct())), self._parent)
+            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
             raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
@@ -3128,6 +3128,7 @@ cdef class SchemaParser:
             self._last_import_array = importArray
 
         ret = _ParsedSchema()
+        # TODO (HaaTa): Convert to parseFromDirectory() as per deprecation note
         ret._init_child(self.thisptr.parseDiskFile(displayName, diskPath, importArray.asArrayPtr()))
 
         return ret
