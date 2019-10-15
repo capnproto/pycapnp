@@ -68,7 +68,7 @@ def test_ssl_async_example():
 
 
 def test_ssl_reconnecting_async_example():
-    address = 'localhost:36435'
+    address = 'localhost:36436'
     server = 'async_ssl_server.py'
     client = 'async_reconnecting_ssl_client.py'
     run_subprocesses(address, server, client)

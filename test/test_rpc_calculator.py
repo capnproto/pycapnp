@@ -60,7 +60,7 @@ def run_subprocesses(address):
 
 
 def test_calculator_tcp():
-    address = '127.0.0.1:36431'
+    address = 'localhost:36431'
     run_subprocesses(address)
 
 
