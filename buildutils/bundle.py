@@ -33,7 +33,7 @@ pjoin = os.path.join
 # Constants
 #
 
-bundled_version = (0, 7, 4)
+bundled_version = (0, 7, 0)
 libcapnp_name = "capnproto-c++-%i.%i.%i.tar.gz" % (bundled_version)
 libcapnp_url = "https://capnproto.org/" + libcapnp_name
 
@@ -92,10 +92,6 @@ def fetch_libcapnp(savedir, url=None):
         shutil.move(with_version, dest)
     else:
         cpp_dir = os.path.join(with_version, 'c++')
-        conf = Popen(['autoreconf', '-i'], cwd=cpp_dir)
-        returncode = conf.wait()
-        if returncode != 0:
-            raise RuntimeError('Autoreconf failed. Make sure autotools are installed on your system.')
         shutil.move(cpp_dir, dest)
 
 
