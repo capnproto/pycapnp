@@ -2,7 +2,7 @@
 
 from capnp.includes cimport capnp_cpp as capnp
 from capnp.includes cimport schema_cpp
-from capnp.includes.capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, EnumSchema as C_EnumSchema, ListSchema as C_ListSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, PyPromise, VoidPromise, CallContext, PyRestorer, RpcSystem, makeRpcServer, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, PyArray, DynamicStruct_Builder, TwoWayPipe
+from capnp.includes.capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, EnumSchema as C_EnumSchema, ListSchema as C_ListSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, PyPromise, VoidPromise, CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, PyArray, DynamicStruct_Builder, TwoWayPipe
 from capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from capnp.includes.types cimport *
 from capnp.helpers.non_circular cimport reraise_kj_exception
@@ -103,14 +103,12 @@ cdef class _Schema:
     cpdef as_struct(self)
     cpdef as_interface(self)
     cpdef as_enum(self)
-    cpdef get_dependency(self, id)
     cpdef get_proto(self)
 
 cdef class _InterfaceSchema:
     cdef C_InterfaceSchema thisptr
     cdef object __method_names, __method_names_inherited, __methods, __methods_inherited
     cdef _init(self, C_InterfaceSchema other)
-    cpdef get_dependency(self, id)
 
 cdef class _DynamicEnum:
     cdef capnp.DynamicEnum thisptr

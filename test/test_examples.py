@@ -10,7 +10,22 @@ examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
 
 def run_subprocesses(address, server, client):
     server = subprocess.Popen([os.path.join(examples_dir, server), address])
-    time.sleep(1)  # Give the server some small amount of time to start listening
+    retries = 30
+    addr, port = address.split(':')
+    while True:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex((addr, int(port)))
+        if result == 0:
+            break
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        result = sock.connect_ex((addr, int(port)))
+        if result == 0:
+            break
+        # Give the server some small amount of time to start listening
+        time.sleep(0.1)
+        retries -= 1
+        if retries == 0:
+            assert False, "Timed out waiting for server to start"
     client = subprocess.Popen([os.path.join(examples_dir, client), address])
 
     ret = client.wait()

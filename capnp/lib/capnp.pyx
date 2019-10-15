@@ -10,7 +10,6 @@
 
 cimport cython
 
-from capnp.helpers.helpers cimport makeRpcClientWithRestorer
 from capnp.helpers.helpers cimport AsyncIoStreamReadHelper
 from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope
 
@@ -24,7 +23,6 @@ from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
 from types import ModuleType as _ModuleType
 import os as _os
 import sys as _sys
-import imp as _imp
 import traceback as _traceback
 from functools import partial as _partial
 import warnings as _warnings
@@ -119,17 +117,6 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
                 setattr(results, arg_name, arg_val)
 
     return NULL
-
-cdef public C_Capability.Client * call_py_restorer(PyObject * _restorer, C_DynamicObject.Reader & _reader) except * with gil:
-    restorer = <object>_restorer
-    reader = _DynamicObjectReader()._init(_reader, None)
-
-    ret = restorer._restore(reader)
-    cdef _DynamicCapabilityServer server = ret
-    cdef _InterfaceSchema schema = ret.schema
-
-    return new C_Capability.Client(helpers.server_to_client(schema.thisptr, <PyObject *>server))
-
 
 cdef public convert_array_pyobject(PyArray & arr) with gil:
     return [<object>arr[i] for i in range(arr.size())]
@@ -2233,21 +2220,6 @@ cdef class _CapabilityClient:
             s = schema
         return _DynamicCapabilityClient()._init(self.thisptr.castAs(s.thisptr), self._parent)
 
-cdef class _Restorer:
-    cdef PyRestorer * thisptr
-    cdef public object restore, _parent
-
-    def __init__(self, restore, parent=None):
-        self.thisptr = new PyRestorer(<PyObject*>self)
-        self.restore = restore
-        self._parent = parent
-
-    def __dealloc__(self):
-        del self.thisptr
-
-    def _restore(self, obj):
-        return self.restore(obj)
-
 cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
     cdef _AsyncIoStream stream
@@ -2264,27 +2236,14 @@ cdef class _TwoPartyVatNetwork:
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
 
-cdef _Restorer _convert_restorer(restorer):
-    if isinstance(restorer, _RestorerImpl):
-        return _Restorer(restorer._restore, restorer)
-    elif type(restorer) is _Restorer:
-        return restorer
-    elif hasattr(restorer, 'restore'):
-        return _Restorer(restorer.restore, restorer)
-    elif callable(restorer):
-        return _Restorer(restorer)
-    else:
-        raise KjException("Restorer object ({}) isn't able to be used as a restore".format(str(restorer)))
-
 cdef class TwoPartyClient:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
     cdef public object _orig_stream
-    cdef public _Restorer _restorer
     cdef public _AsyncIoStream _stream
     cdef public _TwoWayPipe _pipe
 
-    def __init__(self, socket=None, restorer=None, traversal_limit_in_words=None, nesting_limit=None):
+    def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
         if isinstance(socket, basestring):
             socket = self._connect(socket)
 
@@ -2299,15 +2258,7 @@ cdef class TwoPartyClient:
             self._pipe = _TwoWayPipe()
             self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.CLIENT, opts)
 
-        if restorer is None:
-            self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
-            self._restorer = None
-        else:
-            _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
-            self._restorer = _convert_restorer(restorer)
-            self.thisptr = new RpcSystem(makeRpcClientWithRestorer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
-
-        Py_INCREF(self._restorer)
+        self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
         if self._orig_stream:
             Py_INCREF(self._orig_stream)
             Py_INCREF(self._stream)
@@ -2355,47 +2306,6 @@ cdef class TwoPartyClient:
             sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         return sock
 
-    cpdef restore(self, objectId) except +reraise_kj_exception:
-        _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
-        cdef _MessageBuilder builder
-        cdef _MessageReader reader
-        cdef _DynamicObjectBuilder object_builder
-        cdef _DynamicObjectReader object_reader
-
-        if objectId is None:
-            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr)), self)
-        elif type(objectId) is _DynamicObjectBuilder:
-            object_builder = objectId
-            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(object_builder.thisptr)), self)
-        elif type(objectId) is _DynamicObjectReader:
-            object_reader = objectId
-            return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), object_reader.thisptr), self)
-        else:
-            if not hasattr(objectId, 'is_root'):
-                raise KjException("objectId was not a valid Cap'n Proto struct")
-            if not objectId.is_root:
-                raise KjException("objectId must be the root of a Cap'n Proto message, ie. addressbook_capnp.Person.new_message()")
-
-            try:
-                builder = objectId._parent
-            except:
-                reader = objectId._parent
-
-            if builder is not None:
-                return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(builder.thisptr)), self)
-            elif reader is not None:
-                return _CapabilityClient()._init(helpers.restoreHelper(deref(self.thisptr), deref(reader.thisptr)), self)
-            else:
-                raise KjException("objectId unexpectedly was not convertible to the proper type")
-
-    cpdef ez_restore(self, textId) except +reraise_kj_exception:
-        # ez-rpc from the C++ API uses Text under the hood
-        ref = _MallocMessageBuilder().get_root_as_any()
-        # objectId is an AnyPointer, so we have a special method for setting it to text
-        ref.set_as_text(textId)
-
-        return self.restore(ref)
-
     cpdef bootstrap(self) except +reraise_kj_exception:
         return _CapabilityClient()._init(helpers.bootstrapHelper(deref(self.thisptr)), self)
 
@@ -2406,7 +2316,6 @@ cdef class TwoPartyServer:
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
     cdef public object _orig_stream, _server_socket, _disconnect_promise
-    cdef public _Restorer _restorer
     cdef public _AsyncIoStream _stream
     cdef public _TwoWayPipe _pipe
     cdef object _port
@@ -2414,18 +2323,17 @@ cdef class TwoPartyServer:
     cdef capnp.TaskSet * _task_set
     cdef capnp.ErrorHandler _error_handler
 
-    def __init__(self, socket=None, restorer=None, server_socket=None, bootstrap=None,
+    def __init__(self, socket=None, server_socket=None, bootstrap=None,
                  traversal_limit_in_words=None, nesting_limit=None):
-        if not restorer and not bootstrap:
-            raise KjException("You must provide either a bootstrap interface or a restorer (deperecated) to a server constructor.")
+        if not bootstrap:
+            raise KjException("You must provide a bootstrap interface to a server constructor.")
 
         cdef _InterfaceSchema schema
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
-        self._restorer = None
         self._bootstrap = None
 
         if isinstance(socket, basestring):
-            self._connect(socket, restorer, bootstrap)
+            self._connect(socket, bootstrap)
             return
 
         self._orig_stream = socket
@@ -2444,12 +2352,7 @@ cdef class TwoPartyServer:
             self._bootstrap = bootstrap
             schema = bootstrap.schema
             self.thisptr = new RpcSystem(makeRpcServerBootstrap(deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
-        elif restorer:
-            _warnings.warn('Restorers are deprecated. Please use the new bootstrap methods.', UserWarning)
-            self._restorer = _convert_restorer(restorer)
-            self.thisptr = new RpcSystem(makeRpcServer(deref(self._network.thisptr), deref(self._restorer.thisptr)))
 
-        Py_INCREF(self._restorer)
         Py_INCREF(self._orig_stream)
         Py_INCREF(self._stream)
         Py_INCREF(self._pipe)
@@ -2479,23 +2382,19 @@ cdef class TwoPartyServer:
             len(data)
         ).wait(self._pipe._event_loop.thisptr.waitScope)
 
-    cpdef _connect(self, host_string, restorer, bootstrap):
+    cpdef _connect(self, host_string, bootstrap):
         cdef _InterfaceSchema schema
         cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>host_string, len(host_string))
         self._task_set = new capnp.TaskSet(self._error_handler)
-        if restorer:
-            self._restorer = _convert_restorer(restorer)
-            self.port_promise = Promise()._init(helpers.connectServerRestorer(deref(self._task_set), deref(self._restorer.thisptr), loop.thisptr, temp_string))
-        else:
-            self._bootstrap = bootstrap
-            Py_INCREF(self._bootstrap)
-            schema = bootstrap.schema
-            self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string))
+
+        self._bootstrap = bootstrap
+        Py_INCREF(self._bootstrap)
+        schema = bootstrap.schema
+        self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string))
 
     def _decref(self):
         Py_DECREF(self._bootstrap)
-        Py_DECREF(self._restorer)
         Py_INCREF(self._pipe)
         Py_DECREF(self._orig_stream)
         Py_DECREF(self._stream)
@@ -2589,11 +2488,6 @@ cdef class _Schema:
     cpdef as_enum(self):
         return _EnumSchema()._init(self.thisptr.asEnum())
 
-    cpdef get_dependency(self, id):
-        '.. warning:: This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream'
-        _warnings.warn('This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream', UserWarning)
-        return _Schema()._init(self.thisptr.getDependency(id))
-
     cpdef get_proto(self):
         return _NodeReader().init(self.thisptr.getProto())
 
@@ -2675,11 +2569,6 @@ cdef class _StructSchema:
         """The raw schema node"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
-
-    cpdef get_dependency(self, id):
-        '.. warning:: This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream'
-        _warnings.warn('This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream', UserWarning)
-        return _Schema()._init(self.thisptr.getDependency(id))
 
     def __richcmp__(_StructSchema self, _StructSchema other, mode):
         if mode == 2:
@@ -2813,11 +2702,6 @@ cdef class _InterfaceSchema:
         """The raw schema node"""
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
-
-    cpdef get_dependency(self, id):
-        '.. warning:: This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream'
-        _warnings.warn('This method is deprecated and will be removed in the 0.6 release. You can access the fields directly from the schema now, so this method is superfluous and deprecated upstream', UserWarning)
-        return _Schema()._init(self.thisptr.getDependency(id))
 
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
@@ -2991,19 +2875,12 @@ cdef _new_message(self, kwargs, num_first_segment_words):
         msg.from_dict(kwargs)
     return msg
 
-class _RestorerImpl(object):
-    pass
-
 class _StructModuleWhich(object):
     pass
 
 class _StructModule(object):
     def __init__(self, schema, name):
-        def _restore(self, obj):
-            return self.restore(obj.as_struct(self.schema))
         self.schema = schema
-
-        self.Restorer = type(name + '.Restorer', (_RestorerImpl,), {'schema':schema, '_restore':_restore})
 
         # Add enums for union fields
         for field, raw_field in zip(schema.node.struct.fields, schema.fields_list):

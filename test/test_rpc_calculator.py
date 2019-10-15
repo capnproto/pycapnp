@@ -23,7 +23,35 @@ def test_calculator():
 
 def run_subprocesses(address):
     server = subprocess.Popen([examples_dir + '/calculator_server.py', address])
-    time.sleep(2)  # Give the server some small amount of time to start listening
+    retries = 30
+    if 'unix' in address:
+        addr = address.split(':')[1]
+        while True:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            result = sock.connect_ex(addr)
+            if result == 0:
+                break
+            # Give the server some small amount of time to start listening
+            time.sleep(0.1)
+            retries -= 1
+            if retries == 0:
+                assert False, "Timed out waiting for server to start"
+    else:
+        addr, port = address.split(':')
+        while True:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex((addr, int(port)))
+            if result == 0:
+                break
+            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            result = sock.connect_ex((addr, int(port)))
+            if result == 0:
+                break
+            # Give the server some small amount of time to start listening
+            time.sleep(0.1)
+            retries -= 1
+            if retries == 0:
+                assert False, "Timed out waiting for server to start"
     client = subprocess.Popen([examples_dir + '/calculator_client.py', address])
 
     ret = client.wait()

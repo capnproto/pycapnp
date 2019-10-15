@@ -1,4 +1,4 @@
-from capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, Response, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer, DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer
+from capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, Response, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, AnyPointer, DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer
 
 from capnp.includes.schema_cpp cimport ByteArray
 
@@ -27,15 +27,8 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     VoidPromise convert_to_voidpromise(PyPromise&)
 
 cdef extern from "capnp/helpers/rpcHelper.h":
-    Capability.Client restoreHelper(RpcSystem&)
-    Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
-    Capability.Client restoreHelper(RpcSystem&, MessageReader&)
-    Capability.Client restoreHelper(RpcSystem&, AnyPointer.Reader&)
-    Capability.Client restoreHelper(RpcSystem&, AnyPointer.Builder&)
     Capability.Client bootstrapHelper(RpcSystem&)
     Capability.Client bootstrapHelperServer(RpcSystem&)
-    RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
-    PyPromise connectServerRestorer(TaskSet &, PyRestorer &, AsyncIoContext *, StringPtr)
     PyPromise connectServer(TaskSet &, Capability.Client, AsyncIoContext *, StringPtr)
 
 cdef extern from "capnp/helpers/serialize.h":

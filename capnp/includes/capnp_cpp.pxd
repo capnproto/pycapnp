@@ -6,7 +6,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
 
 from libcpp cimport bool
 from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
-from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
+from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler
 from capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
@@ -365,7 +365,6 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
         TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side, ReaderOptions)
         VoidPromise onDisconnect()
         VoidPromise onDrained()
-    RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&)
     RpcSystem makeRpcServerBootstrap"makeRpcServer"(TwoPartyVatNetwork&, Capability.Client)
     RpcSystem makeRpcClient(TwoPartyVatNetwork&)
 

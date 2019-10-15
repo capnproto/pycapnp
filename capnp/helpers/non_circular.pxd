@@ -12,8 +12,6 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
         PyRefCounter(PyObject *)
 
 cdef extern from "capnp/helpers/rpcHelper.h":
-    cdef cppclass PyRestorer:
-        PyRestorer(PyObject *)
     cdef cppclass ErrorHandler:
         pass
 
