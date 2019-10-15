@@ -4,7 +4,6 @@ import subprocess
 import os
 import shutil
 import sys
-import tempfile
 
 def build_libcapnp(bundle_dir, build_dir, verbose=False):
     '''

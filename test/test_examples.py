@@ -1,8 +1,6 @@
-import gc
 import os
 import socket
 import subprocess
-import sys  # add examples dir to sys.path
 import time
 
 examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')

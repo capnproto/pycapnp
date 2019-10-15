@@ -4,23 +4,22 @@ from __future__ import print_function
 import argparse
 import asyncio
 import socket
-import random
 import capnp
 
 import calculator_capnp
 
 
 async def myreader(client, reader):
-  while True:
-    data = await reader.read(4096)
-    await client.write(data)
+    while True:
+        data = await reader.read(4096)
+        await client.write(data)
 
 
 async def mywriter(client, writer):
-  while True:
-    data = await client.read(4096)
-    writer.write(data.tobytes())
-    await writer.drain()
+    while True:
+        data = await client.read(4096)
+        writer.write(data.tobytes())
+        await writer.drain()
 
 
 def read_value(value):
@@ -167,7 +166,7 @@ async def main():
             myserver,
             addr, port,
         )
-    except:
+    except Exception:
         print("Try IPv6")
         server = await asyncio.start_server(
             myserver,

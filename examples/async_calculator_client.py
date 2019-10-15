@@ -26,16 +26,16 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
 
 
 async def myreader(client, reader):
-  while True:
-    data = await reader.read(4096)
-    client.write(data)
+    while True:
+        data = await reader.read(4096)
+        client.write(data)
 
 
 async def mywriter(client, writer):
-  while True:
-    data = await client.read(4096)
-    writer.write(data.tobytes())
-    await writer.drain()
+    while True:
+        data = await client.read(4096)
+        writer.write(data.tobytes())
+        await writer.drain()
 
 
 def parse_args():
@@ -52,16 +52,16 @@ async def main(host):
     port = host[1]
     # Handle both IPv4 and IPv6 cases
     try:
-      print("Try IPv4")
-      reader, writer = await asyncio.open_connection(
-        addr, port,
-      )
-    except:
-      print("Try IPv6")
-      reader, writer = await asyncio.open_connection(
-        addr, port,
-        family=socket.AF_INET6
-      )
+        print("Try IPv4")
+        reader, writer = await asyncio.open_connection(
+            addr, port,
+        )
+    except Exception:
+        print("Try IPv6")
+        reader, writer = await asyncio.open_connection(
+            addr, port,
+            family=socket.AF_INET6
+        )
 
     # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
     client = capnp.TwoPartyClient()

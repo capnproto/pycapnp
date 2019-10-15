@@ -6,10 +6,10 @@ import asyncio
 import argparse
 import os
 import time
-import capnp
 import socket
 import ssl
-import time
+
+import capnp
 
 import thread_capnp
 
@@ -51,7 +51,6 @@ async def mywriter(client, writer):
             # to try again
             data = await asyncio.wait_for(client.read(4096), timeout=1.0)
             writer.write(data.tobytes())
-            #await writer.drain()
         except asyncio.TimeoutError:
             continue
 
