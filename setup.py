@@ -141,9 +141,18 @@ class build_libcapnp_ext(build_ext_c):
             build_dir = os.path.join(_this_dir, "build")
             if not os.path.exists(build_dir):
                 os.mkdir(build_dir)
-            fetch_libcapnp(bundle_dir, libcapnp_url)
 
-            build_libcapnp(bundle_dir, build_dir)
+            # Check if we've already built capnproto
+            capnp_bin = os.path.join(build_dir, 'bin', 'capnp')
+            if os.name == 'nt':
+                capnp_bin = os.path.join(build_dir, 'bin', 'capnp.exe')
+
+            if not os.path.exists(capnp_bin):
+                # Not built, fetch and build
+                fetch_libcapnp(bundle_dir, libcapnp_url)
+                build_libcapnp(bundle_dir, build_dir)
+            else:
+                info("capnproto already built at {}".format(build_dir))
 
             self.include_dirs += [os.path.join(build_dir, 'include')]
             self.library_dirs += [os.path.join(build_dir, 'lib')]

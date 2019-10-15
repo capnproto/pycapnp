@@ -13,8 +13,11 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
     capnp_dir = os.path.join(bundle_dir, 'capnproto-c++')
     build_dir = os.path.abspath(build_dir)
     tmp_dir = os.path.join(capnp_dir, 'build')
-    if not os.path.exists(tmp_dir):
-        os.mkdir(tmp_dir)
+
+    # Clean the tmp build directory every time
+    if os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir)
+    os.mkdir(tmp_dir)
 
     cxxflags = os.environ.get('CXXFLAGS', None)
     os.environ['CXXFLAGS'] = (cxxflags or '') + ' -O2 -DNDEBUG'
@@ -38,7 +41,7 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
     conf = subprocess.Popen(args, cwd=tmp_dir, stdout=sys.stdout)
     returncode = conf.wait()
     if returncode != 0:
-        raise RuntimeError('CMake failed')
+        raise RuntimeError('CMake failed {}'.format(returncode))
 
     # Run build through cmake
     build = subprocess.Popen([
@@ -54,4 +57,4 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
     else:
         os.environ['CXXFLAGS'] = cxxflags
     if returncode != 0:
-        raise RuntimeError('capnproto compilation failed')
+        raise RuntimeError('capnproto compilation failed: {}'.format(returncode))

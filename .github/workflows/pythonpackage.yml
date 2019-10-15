@@ -25,15 +25,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        # Install capnproto
-        curl -O https://capnproto.org/capnproto-c++-0.7.0.tar.gz
-        tar zxf capnproto-c++-0.7.0.tar.gz
-        cd capnproto-c++-0.7.0
-        ./configure
-        make -j check
-        sudo make install
     - name: Build pycapnp and install
       run: |
+        python setup.py build # Not necessary, but shows output on stdout
         pip install .
     - name: Lint with flake8
       run: |
