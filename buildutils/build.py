@@ -3,9 +3,10 @@
 import subprocess
 import os
 import shutil
+import struct
 import sys
 
-def build_libcapnp(bundle_dir, build_dir, verbose=False):
+def build_libcapnp(bundle_dir, build_dir):
     '''
     Build capnproto
     '''
@@ -27,7 +28,18 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
     if shutil.which('ninja'):
         build_type = ['-G', 'Ninja']
 
-    # TODO Determine VS version
+    # Determine python shell architecture
+    python_arch = 8 * struct.calcsize("P")
+    build_arch = []
+    if os.name == 'nt':
+        if python_arch == 64:
+            build_arch_flag = "x64"
+        elif python_arch == 32:
+            build_arch_flag = "Win32"
+        else:
+            raise RuntimeError('Unknown windows build arch')
+        build_arch = ['-A', build_arch_flag]
+        print('Building module for {}'.format(python_arch))
 
     args = [
         'cmake',
@@ -38,6 +50,7 @@ def build_libcapnp(bundle_dir, build_dir, verbose=False):
         capnp_dir,
     ]
     args.extend(build_type)
+    args.extend(build_arch)
     conf = subprocess.Popen(args, cwd=tmp_dir, stdout=sys.stdout)
     returncode = conf.wait()
     if returncode != 0:
