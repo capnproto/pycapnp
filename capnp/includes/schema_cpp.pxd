@@ -1,6 +1,5 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++14
 
 from libc.stdint cimport *
 from capnp_cpp cimport DynamicOrphan

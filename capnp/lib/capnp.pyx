@@ -1,6 +1,5 @@
 # capnp.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++14
 # distutils: libraries = capnpc capnp-rpc capnp kj-async kj
 # distutils: include_dirs = .
 # cython: c_string_type = str

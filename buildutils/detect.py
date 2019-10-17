@@ -58,7 +58,8 @@ def test_compilation(cfile, compiler=None, **compiler_attrs):
         else:
             lpreargs = ['-m64']
     extra_compile_args = compiler_attrs.get('extra_compile_args', [])
-    extra_compile_args += ['--std=c++14']
+    if os.name != 'nt':
+        extra_compile_args += ['--std=c++14']
     extra_link_args = compiler_attrs.get('extra_link_args', [])
     if cc.compiler_type == 'msvc':
         extra_link_args += ['/MANIFEST']

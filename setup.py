@@ -6,6 +6,7 @@ pycapnp-async distutils setup.py
 from __future__ import print_function
 
 import os
+import struct
 import sys
 
 from distutils.command.clean import clean as _clean
@@ -13,7 +14,7 @@ from distutils.errors import CompileError
 from distutils.extension import Extension
 from distutils.spawn import find_executable
 
-from setuptools import setup
+from setuptools import setup, find_packages, Extension
 
 from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
 
@@ -138,7 +139,7 @@ class build_libcapnp_ext(build_ext_c):
             bundle_dir = os.path.join(_this_dir, "bundled")
             if not os.path.exists(bundle_dir):
                 os.mkdir(bundle_dir)
-            build_dir = os.path.join(_this_dir, "build")
+            build_dir = os.path.join(_this_dir, "build{}".format(8 * struct.calcsize("P")))
             if not os.path.exists(build_dir):
                 os.mkdir(build_dir)
 
@@ -159,10 +160,20 @@ class build_libcapnp_ext(build_ext_c):
 
         return build_ext_c.run(self)
 
+extra_compile_args = ['--std=c++14']
+extra_link_args = []
+if os.name == 'nt':
+    extra_compile_args = ['/std:c++14', '/MD']
+    extra_link_args = ['/MANIFEST']
 
-from Cython.Build import cythonize
+import Cython.Build
 import Cython # noqa: F401
-extensions = cythonize('capnp/lib/*.pyx')
+extensions = [Extension(
+    '*', ['capnp/lib/*.pyx'],
+    extra_compile_args=extra_compile_args,
+    extra_link_args=extra_link_args,
+    language='c++',
+)]
 
 setup(
     name="pycapnp-async",
@@ -174,7 +185,7 @@ setup(
             'includes/*.pxd', 'lib/*.pxd', 'lib/*.py', 'lib/*.pyx', 'templates/*'
         ]
     },
-    ext_modules=extensions,
+    ext_modules=Cython.Build.cythonize(extensions),
     cmdclass={
         'clean': clean,
         'build_ext': build_libcapnp_ext
