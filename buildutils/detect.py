@@ -21,7 +21,6 @@ import logging
 import platform
 from distutils import ccompiler
 from distutils.ccompiler import get_default_compiler
-from subprocess import Popen, PIPE
 import tempfile
 
 from .misc import get_compiler, get_output_error
@@ -67,26 +66,6 @@ def test_compilation(cfile, compiler=None, **compiler_attrs):
     objs = cc.compile([cfile], extra_preargs=cpreargs, extra_postargs=extra_compile_args)
     cc.link_executable(objs, efile, extra_preargs=lpreargs, extra_postargs=extra_link_args)
     return efile
-
-def compile_and_run(basedir, src, compiler=None, **compiler_attrs):
-    """Compile and run"""
-    if not os.path.exists(basedir):
-        os.makedirs(basedir)
-    cfile = pjoin(basedir, os.path.basename(src))
-    shutil.copy(src, cfile)
-    try:
-        cc = get_compiler(compiler, **compiler_attrs)
-        efile = test_compilation(cfile, compiler=cc)
-        patch_lib_paths(efile, cc.library_dirs)
-        result = Popen(efile, stdout=PIPE, stderr=PIPE)
-        so, se = result.communicate()
-        # for py3k:
-        so = so.decode()
-        se = se.decode()
-    finally:
-        shutil.rmtree(basedir)
-
-    return result.returncode, so, se
 
 
 def detect_version(basedir, compiler=None, **compiler_attrs):

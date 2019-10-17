@@ -28,7 +28,7 @@ def build_libcapnp(bundle_dir, build_dir):
     if shutil.which('ninja'):
         build_type = ['-G', 'Ninja']
 
-    # Determine python shell architecture
+    # Determine python shell architecture for Windows
     python_arch = 8 * struct.calcsize("P")
     build_arch = []
     build_flags = []
