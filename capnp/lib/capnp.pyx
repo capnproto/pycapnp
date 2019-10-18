@@ -3213,6 +3213,9 @@ cdef class SchemaParser:
         if not _os.path.isfile(file_name):
             raise IOError("File not found: " + file_name)
 
+        if not file_name.endswith('.capnp'):
+            raise ValueError("File does not end with .capnp, {}".format(file_name))
+
         if display_name is None:
             display_name = _os.path.basename(file_name)
 
