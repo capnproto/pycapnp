@@ -65,7 +65,7 @@ def test_using_threads():
     capnp.remove_event_loop(True)
     capnp.create_event_loop(True)
 
-    read, write = socket.socketpair(socket.AF_UNIX)
+    read, write = socket.socketpair()
 
     def run_server():
         _ = capnp.TwoPartyServer(write, bootstrap=Server())

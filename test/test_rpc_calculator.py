@@ -1,5 +1,6 @@
 import gc
 import os
+import pytest
 import socket
 import subprocess
 import sys  # add examples dir to sys.path
@@ -15,14 +16,15 @@ import calculator_server # noqa: E402
 
 
 def test_calculator():
-    read, write = socket.socketpair(socket.AF_UNIX)
+    read, write = socket.socketpair()
 
     _ = capnp.TwoPartyServer(write, bootstrap=calculator_server.CalculatorImpl())
     calculator_client.main(read)
 
 
 def run_subprocesses(address):
-    server = subprocess.Popen([examples_dir + '/calculator_server.py', address])
+    cmd = [sys.executable, os.path.join(examples_dir, 'calculator_server.py'), address]
+    server = subprocess.Popen(cmd)
     retries = 30
     if 'unix' in address:
         addr = address.split(':')[1]
@@ -52,7 +54,8 @@ def run_subprocesses(address):
             retries -= 1
             if retries == 0:
                 assert False, "Timed out waiting for server to start"
-    client = subprocess.Popen([examples_dir + '/calculator_client.py', address])
+    cmd = [sys.executable, os.path.join(examples_dir, 'calculator_client.py'), address]
+    client = subprocess.Popen(cmd)
 
     ret = client.wait()
     server.kill()
@@ -64,6 +67,7 @@ def test_calculator_tcp():
     run_subprocesses(address)
 
 
+@pytest.mark.skipif(os.name == 'nt', reason="socket.AF_UNIX not supported on Windows")
 def test_calculator_unix():
     path = '/tmp/pycapnp-test'
     try:
@@ -81,7 +85,7 @@ def test_calculator_gc():
             return old_evaluate_impl(*args, **kwargs)
         return call
 
-    read, write = socket.socketpair(socket.AF_UNIX)
+    read, write = socket.socketpair()
 
     # inject a gc.collect to the beginning of every evaluate_impl call
     evaluate_impl_orig = calculator_server.evaluate_impl

@@ -309,7 +309,7 @@ def init_all_types(builder):
     subBuilder.uInt64Field = 345678901234567890
     subBuilder.float32Field = -1.25e-10
     subBuilder.float64Field = 345
-    subBuilder.textField = b"\xe2\x98\x83".decode('utf-8') # This is u"☃", but py3.2 doesn't support u
+    subBuilder.textField = "☃"
     subBuilder.dataField = b"qux"
     subSubBuilder = subBuilder.structField
     subSubBuilder.textField = "nested"
@@ -486,26 +486,26 @@ def check_all_types(reader):
 def test_build(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
 def test_build_first_segment_size(all_types):
     root = all_types.TestAllTypes.new_message(1)
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
     root = all_types.TestAllTypes.new_message(1024 * 1024)
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
 def test_binary_read(all_types):
-    f = open(os.path.join(this_dir, 'all-types.binary'), 'r')
+    f = open(os.path.join(this_dir, 'all-types.binary'), 'r', encoding='utf8')
     root = all_types.TestAllTypes.read(f)
     check_all_types(root)
 
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
     # Test set_root().
@@ -518,11 +518,11 @@ def test_binary_read(all_types):
     check_all_types(builder2.get_root(all_types.TestAllTypes))
 
 def test_packed_read(all_types):
-    f = open(os.path.join(this_dir, 'all-types.packed'), 'r')
+    f = open(os.path.join(this_dir, 'all-types.packed'), 'r', encoding='utf8')
     root = all_types.TestAllTypes.read_packed(f)
     check_all_types(root)
 
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
 def test_binary_write(all_types):

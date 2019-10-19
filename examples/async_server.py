@@ -36,7 +36,6 @@ async def mywriter(server, writer):
     while True:
         data = await server.read(4096)
         writer.write(data.tobytes())
-        await writer.drain()
 
 
 async def myserver(reader, writer):

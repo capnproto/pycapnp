@@ -1,13 +1,15 @@
 import os
 import socket
 import subprocess
+import sys
 import time
 
 examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
 
 
 def run_subprocesses(address, server, client):
-    server = subprocess.Popen([os.path.join(examples_dir, server), address])
+    cmd = [sys.executable, os.path.join(examples_dir, server), address]
+    server = subprocess.Popen(cmd)
     retries = 30
     addr, port = address.split(':')
     while True:
@@ -24,9 +26,10 @@ def run_subprocesses(address, server, client):
         retries -= 1
         if retries == 0:
             assert False, "Timed out waiting for server to start"
-    client = subprocess.Popen([os.path.join(examples_dir, client), address])
+    cmd = [sys.executable, os.path.join(examples_dir, client), address]
+    client = subprocess.Popen(cmd)
 
-    ret = client.wait()
+    ret = client.wait(timeout=30)
     server.kill()
     assert ret == 0
 
@@ -46,7 +49,7 @@ def test_thread_example():
 
 
 def test_addressbook_example():
-    proc = subprocess.Popen([os.path.join(examples_dir, 'addressbook.py')])
+    proc = subprocess.Popen([sys.executable, os.path.join(examples_dir, 'addressbook.py')])
     ret = proc.wait()
     assert ret == 0
 

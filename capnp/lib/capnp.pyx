@@ -3224,7 +3224,13 @@ cdef class SchemaParser:
 
         module._parser = parser
 
-        fileSchema = parser._parse_disk_file(display_name, file_name, imports)
+        # Some systems (Windows running pytest) add non-directories to the sys.path used for imports
+        # Filter these out so kj doesn't implode when searching paths
+        filtered_imports = []
+        for imp in imports:
+            if _os.path.isdir(imp):
+                filtered_imports.append(imp)
+        fileSchema = parser._parse_disk_file(display_name, file_name, filtered_imports)
         _load(fileSchema, module)
 
         abs_path = _os.path.abspath(file_name)

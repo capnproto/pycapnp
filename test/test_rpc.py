@@ -19,7 +19,7 @@ class Server(test_capability_capnp.TestInterface.Server):
 
 
 def test_simple_rpc_with_options():
-    read, write = socket.socketpair(socket.AF_UNIX)
+    read, write = socket.socketpair()
 
     _ = capnp.TwoPartyServer(write, bootstrap=Server())
     # This traversal limit is too low to receive the response in, so we expect
@@ -34,7 +34,7 @@ def test_simple_rpc_with_options():
 
 
 def test_simple_rpc_bootstrap():
-    read, write = socket.socketpair(socket.AF_UNIX)
+    read, write = socket.socketpair()
 
     _ = capnp.TwoPartyServer(write, bootstrap=Server(100))
     client = capnp.TwoPartyClient(read)
