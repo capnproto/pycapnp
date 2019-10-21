@@ -195,19 +195,20 @@ setup(
         'console_scripts' : ['capnpc-cython = capnp._gen:main']
     },
     # PyPi info
-    description="A cython wrapping of the C++ Cap'n Proto library",
+    description="A cython wrapping of the C++ Cap'n Proto library with support for asyncio",
     long_description=long_description,
     license='BSD',
     author="Jacob Alexander",
     author_email="haata@kiibohd.com",
     url='https://github.com/haata/pycapnp-async',
     download_url='https://github.com/haata/pycapnp-async/archive/v%s.zip' % VERSION,
-    keywords=['capnp', 'capnproto', "Cap'n Proto"],
+    keywords=['capnp', 'capnproto', "Cap'n Proto", 'pycapnp', 'pycapnp-async'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows :: Windows 10',
         'Operating System :: POSIX',
         'Programming Language :: C++',
         'Programming Language :: Cython',
