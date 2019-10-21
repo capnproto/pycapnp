@@ -7,15 +7,15 @@ this_dir = os.path.dirname(__file__)
 
 @pytest.fixture
 def addressbook():
-     return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
 @pytest.fixture
 def foo():
-     return capnp.load(os.path.join(this_dir, 'foo.capnp'))
+    return capnp.load(os.path.join(this_dir, 'foo.capnp'))
 
 @pytest.fixture
 def bar():
-     return capnp.load(os.path.join(this_dir, 'bar.capnp'))
+    return capnp.load(os.path.join(this_dir, 'bar.capnp'))
 
 def test_basic_load():
     capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
@@ -56,16 +56,22 @@ def test_failed_import():
         bar.foo = foo
 
 def test_defualt_import_hook():
-    import addressbook_capnp
+    # Make sure any previous imports of addressbook_capnp are gone
+    capnp.cleanup_global_schema_parser()
+
+    import addressbook_capnp # noqa: F401
 
 def test_dash_import():
-    import addressbook_with_dashes_capnp
+    import addressbook_with_dashes_capnp # noqa: F401
 
 def test_spaces_import():
-    import addressbook_with_spaces_capnp
+    import addressbook_with_spaces_capnp # noqa: F401
 
 def test_add_import_hook():
     capnp.add_import_hook([this_dir])
+
+    # Make sure any previous imports of addressbook_capnp are gone
+    capnp.cleanup_global_schema_parser()
 
     import addressbook_capnp
     addressbook_capnp.AddressBook.new_message()
@@ -74,6 +80,9 @@ def test_multiple_add_import_hook():
     capnp.add_import_hook()
     capnp.add_import_hook()
     capnp.add_import_hook([this_dir])
+
+    # Make sure any previous imports of addressbook_capnp are gone
+    capnp.cleanup_global_schema_parser()
 
     import addressbook_capnp
     addressbook_capnp.AddressBook.new_message()
@@ -86,4 +95,4 @@ def test_remove_import_hook():
         del sys.modules['addressbook_capnp'] # hack to deal with it being imported already
 
     with pytest.raises(ImportError):
-        import addressbook_capnp
+        import addressbook_capnp # noqa: F401

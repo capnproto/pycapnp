@@ -20,7 +20,7 @@ LIB_PAT = re.compile(r"\s*(.*) \(compatibility version (\d+\.\d+\.\d+), "
 def _get_libs(fname):
     rc, so, se = get_output_error(['otool', '-L', fname])
     if rc:
-        logging.error("otool -L %s failed: %r" % (fname, se))
+        logging.error("otool -L %s failed: %r", fname, se)
         return
     for line in so.splitlines()[1:]:
         m = LIB_PAT.match(line)
@@ -33,6 +33,7 @@ def _find_library(lib, path):
         real_lib = os.path.join(d, lib)
         if os.path.exists(real_lib):
             return real_lib
+    return None
 
 def _install_name_change(fname, lib, real_lib):
     rc, so, se = get_output_error(['install_name_tool', '-change', lib, real_lib, fname])
@@ -41,15 +42,15 @@ def _install_name_change(fname, lib, real_lib):
 
 def patch_lib_paths(fname, library_dirs):
     """Load any weakly-defined libraries from their real location
-    
+
     (only on OS X)
-    
+
     - Find libraries with `otool -L`
     - Update with `install_name_tool -change`
     """
     if sys.platform != 'darwin':
         return
-    
+
     libs = _get_libs(fname)
     for lib in libs:
         if not lib.startswith(('@', '/')):

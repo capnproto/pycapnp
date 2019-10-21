@@ -1,6 +1,9 @@
+'''
+rpc test
+'''
+
 import pytest
 import capnp
-import os
 import socket
 
 import test_capability_capnp
@@ -8,89 +11,32 @@ import test_capability_capnp
 
 class Server(test_capability_capnp.TestInterface.Server):
 
-    def __init__(self, val=1):
+    def __init__(self, val=100):
         self.val = val
 
     def foo(self, i, j, **kwargs):
         return str(i * 5 + self.val)
 
 
-def restore_func(ref_id):
-    return Server(100)
+def test_simple_rpc_with_options():
+    read, write = socket.socketpair()
 
-
-class SimpleRestorer(test_capability_capnp.TestSturdyRefObjectId.Restorer):
-
-    def restore(self, ref_id):
-        assert ref_id.tag == 'testInterface'
-        return Server(100)
-
-
-def test_simple_rpc():
-    read, write = socket.socketpair(socket.AF_UNIX)
-
-    restorer = SimpleRestorer()
-    server = capnp.TwoPartyServer(write, restorer)
-    client = capnp.TwoPartyClient(read)
-
-    ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
-    cap = client.restore(ref)
-    cap = cap.cast_as(test_capability_capnp.TestInterface)
-
-    remote = cap.foo(i=5)
-    response = remote.wait()
-
-    assert response.x == '125'
-
-
-def test_simple_rpc_restore_func():
-    read, write = socket.socketpair(socket.AF_UNIX)
-
-    server = capnp.TwoPartyServer(write, restore_func)
-    client = capnp.TwoPartyClient(read)
-
-    ref = test_capability_capnp.TestSturdyRefObjectId.new_message(tag='testInterface')
-    cap = client.restore(ref)
-    cap = cap.cast_as(test_capability_capnp.TestInterface)
-
-    remote = cap.foo(i=5)
-    response = remote.wait()
-
-    assert response.x == '125'
-
-
-def text_restore_func(objectId):
-    text = objectId.as_text()
-    assert text == 'testInterface'
-    return Server(100)
-
-
-def test_ez_rpc():
-    read, write = socket.socketpair(socket.AF_UNIX)
-
-    server = capnp.TwoPartyServer(write, text_restore_func)
-    client = capnp.TwoPartyClient(read)
-
-    cap = client.ez_restore('testInterface')
-    cap = cap.cast_as(test_capability_capnp.TestInterface)
-
-    remote = cap.foo(i=5)
-    response = remote.wait()
-
-    assert response.x == '125'
-
-    cap = client.restore(test_capability_capnp.TestSturdyRefObjectId.new_message())
-    cap = cap.cast_as(test_capability_capnp.TestInterface)
-
-    remote = cap.foo(i=5)
+    _ = capnp.TwoPartyServer(write, bootstrap=Server())
+    # This traversal limit is too low to receive the response in, so we expect
+    # an exception during the call.
+    client = capnp.TwoPartyClient(read, traversal_limit_in_words=1)
 
     with pytest.raises(capnp.KjException):
-        response = remote.wait()
+        cap = client.bootstrap().cast_as(test_capability_capnp.TestInterface)
+
+        remote = cap.foo(i=5)
+        _ = remote.wait()
+
 
 def test_simple_rpc_bootstrap():
-    read, write = socket.socketpair(socket.AF_UNIX)
+    read, write = socket.socketpair()
 
-    server = capnp.TwoPartyServer(write, bootstrap=Server(100))
+    _ = capnp.TwoPartyServer(write, bootstrap=Server(100))
     client = capnp.TwoPartyClient(read)
 
     cap = client.bootstrap()

@@ -77,7 +77,10 @@ def test_which_reader(addressbook):
         addresses.which
 
 
-@pytest.mark.skipif(capnp.version.LIBCAPNP_VERSION < 5000, reason="Using ints as enums requires v0.5.0+ of the C++ capnp library")
+@pytest.mark.skipif(
+    capnp.version.LIBCAPNP_VERSION < 5000,
+    reason="Using ints as enums requires v0.5.0+ of the C++ capnp library"
+)
 def test_enum(addressbook):
     addresses = addressbook.AddressBook.new_message()
     people = addresses.init('people', 2)
@@ -105,6 +108,22 @@ def test_builder_set(addressbook):
 
     with pytest.raises(AttributeError):
         person.foo = 'test'
+
+
+def test_builder_set_from_list(all_types):
+    msg = all_types.TestAllTypes.new_message()
+
+    msg.int32List = [0, 1, 2]
+
+    assert list(msg.int32List) == [0, 1, 2]
+
+
+def test_builder_set_from_tuple(all_types):
+    msg = all_types.TestAllTypes.new_message()
+
+    msg.int32List = (0, 1, 2)
+
+    assert list(msg.int32List) == [0, 1, 2]
 
 
 def test_null_str(all_types):
@@ -172,13 +191,8 @@ def test_set_dict_union(addressbook):
 
     assert person.employment.employer.name == 'foo'
 
-try:
-    basestring  # attempt to evaluate basestring
-    def isstr(s):
-        return isinstance(s, basestring)
-except NameError:
-    def isstr(s):
-        return isinstance(s, str)
+def isstr(s):
+    return isinstance(s, str)
 
 
 def test_to_dict_enum(addressbook):
@@ -211,10 +225,28 @@ def test_to_dict_verbose(addressbook):
 
 
 def test_to_dict_ordered(addressbook):
-    person = addressbook.Person.new_message(**{'name': 'Alice', 'phones': [{'type': 'mobile', 'number': '555-1212'}], 'id': 123, 'employment': {'school': 'MIT'}, 'email': 'alice@example.com'})
+    person = addressbook.Person.new_message(**{
+        'name': 'Alice',
+        'phones': [{'type': 'mobile', 'number': '555-1212'}],
+        'id': 123,
+        'employment': {'school': 'MIT'}, 'email': 'alice@example.com'
+    })
 
     if sys.version_info >= (2, 7):
         assert list(person.to_dict(ordered=True).keys()) == ['id', 'name', 'email', 'phones', 'employment']
     else:
         with pytest.raises(Exception):
             person.to_dict(ordered=True)
+
+def test_nested_list(addressbook):
+    struct = addressbook.NestedList.new_message()
+    struct.init('list', 2)
+
+    struct.list.init(0, 1)
+    struct.list.init(1, 2)
+
+    struct.list[0][0] = 1
+    struct.list[1][0] = 2
+    struct.list[1][1] = 3
+
+    assert struct.to_dict()["list"] == [[1], [2, 3]]

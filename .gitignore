@@ -41,3 +41,9 @@ capnp/*.cpp
 capnp/version.py
 MANIFEST
 docs/_build
+
+capnp/lib/capnp.cpp
+capnp/lib/capnp.h
+bundled/
+example
+*.iml

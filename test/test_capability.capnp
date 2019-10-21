@@ -77,3 +77,19 @@ interface TestTailCallee {
 interface TestTailCaller {
   foo @0 (i :Int32, callee :TestTailCallee) -> TestTailCallee.TailResult;
 }
+
+interface TestPassedCap {
+  foo @0 (cap :TestInterface) -> (x: Text);
+}
+
+interface TestStructArg {
+  bar @0 BarParams -> (c: Text);
+}
+struct BarParams {
+  a @0 :Text;
+  b @1 :Int32;
+}
+
+interface TestGeneric(MyObject)  {
+  foo @0 (a :MyObject) -> (b: Text);
+}

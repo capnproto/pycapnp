@@ -1,13 +1,22 @@
+# -*- coding: utf-8 -*-
+
 import pytest
 import capnp
 import os
 import math
+import sys
 
 this_dir = os.path.dirname(__file__)
 
+if sys.version_info[0] < 3:
+    EXPECT_BYTES = True
+else:
+    EXPECT_BYTES = False
+
+
 @pytest.fixture
 def addressbook():
-     return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
 def test_addressbook_message_classes(addressbook):
     def writeAddressBook(fd):
@@ -39,7 +48,7 @@ def test_addressbook_message_classes(addressbook):
 
 
     def printAddressBook(fd):
-        message = capnp._PackedFdMessageReader(f.fileno())
+        message = capnp._PackedFdMessageReader(f)
         addressBook = message.get_root(addressbook.AddressBook)
 
         people = addressBook.people
@@ -62,7 +71,7 @@ def test_addressbook_message_classes(addressbook):
         assert bobPhones[0].type == 'home'
         assert bobPhones[1].number == "555-7654"
         assert bobPhones[1].type == 'work'
-        assert bob.employment.unemployed == None
+        assert bob.employment.unemployed is None
 
     f = open('example', 'w')
     writeAddressBook(f.fileno())
@@ -121,7 +130,7 @@ def test_addressbook(addressbook):
         assert bobPhones[0].type == 'home'
         assert bobPhones[1].number == "555-7654"
         assert bobPhones[1].type == 'work'
-        assert bob.employment.unemployed == None
+        assert bob.employment.unemployed is None
 
 
     f = open('example', 'w')
@@ -183,7 +192,7 @@ def test_addressbook_resizable(addressbook):
         assert bobPhones[0].type == 'home'
         assert bobPhones[1].number == "555-7654"
         assert bobPhones[1].type == 'work'
-        assert bob.employment.unemployed == None
+        assert bob.employment.unemployed is None
 
 
     f = open('example', 'w')
@@ -253,7 +262,7 @@ def test_addressbook_explicit_fields(addressbook):
         assert bobPhones[1]._get_by_field(phone_fields['number']) == "555-7654"
         assert bobPhones[1]._get_by_field(phone_fields['type']) == 'work'
         employment = bob._get_by_field(person_fields['employment'])
-        employment._get_by_field(addressbook.Person.Employment.schema.fields['unemployed']) == None
+        employment._get_by_field(addressbook.Person.Employment.schema.fields['unemployed']) is None
 
 
     f = open('example', 'w')
@@ -300,7 +309,7 @@ def init_all_types(builder):
     subBuilder.uInt64Field = 345678901234567890
     subBuilder.float32Field = -1.25e-10
     subBuilder.float64Field = 345
-    subBuilder.textField = "baz"
+    subBuilder.textField = "☃"
     subBuilder.dataField = b"qux"
     subSubBuilder = subBuilder.structField
     subSubBuilder.textField = "nested"
@@ -362,8 +371,8 @@ def check_list(reader, expected):
             assert reader[i] == v
 
 def check_all_types(reader):
-    assert reader.voidField == None
-    assert reader.boolField == True
+    assert reader.voidField is None
+    assert reader.boolField
     assert reader.int8Field == -123
     assert reader.int16Field == -12345
     assert reader.int32Field == -12345678
@@ -378,8 +387,8 @@ def check_all_types(reader):
     assert reader.dataField == b"bar"
 
     subReader = reader.structField
-    assert subReader.voidField == None
-    assert subReader.boolField == True
+    assert subReader.voidField is None
+    assert subReader.boolField
     assert subReader.int8Field == -12
     assert subReader.int16Field == 3456
     assert subReader.int32Field == -78901234
@@ -390,7 +399,15 @@ def check_all_types(reader):
     assert subReader.uInt64Field == 345678901234567890
     assert_almost(subReader.float32Field, -1.25e-10)
     assert subReader.float64Field == 345
-    assert subReader.textField == "baz"
+
+    assert subReader.textField == "☃"
+    # This assertion highlights the encoding we expect to see here, since
+    # otherwise this appears a bit magical...
+    if EXPECT_BYTES:
+        assert len(subReader.textField) == 3
+    else:
+        assert len(subReader.textField) == 1
+
     assert subReader.dataField == b"qux"
 
     subSubReader = subReader.structField
@@ -398,6 +415,12 @@ def check_all_types(reader):
     assert subSubReader.structField.textField == "really nested"
 
     assert subReader.enumField == "baz"
+    # Check that enums are hashable and can be used as keys in dicts
+    # interchangably with their string version.
+    assert hash(subReader.enumField) == hash('baz')
+    assert {subReader.enumField: 17}.get(subReader.enumField) == 17
+    assert {subReader.enumField: 17}.get('baz') == 17
+    assert {'baz': 17}.get(subReader.enumField) == 17
 
     check_list(subReader.voidList, [None, None, None])
     check_list(subReader.boolList, [False, True, False, True, True])
@@ -463,26 +486,26 @@ def check_all_types(reader):
 def test_build(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
 def test_build_first_segment_size(all_types):
     root = all_types.TestAllTypes.new_message(1)
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
-    root = all_types.TestAllTypes.new_message(1024*1024)
+    root = all_types.TestAllTypes.new_message(1024 * 1024)
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
 def test_binary_read(all_types):
-    f = open(os.path.join(this_dir, 'all-types.binary'), 'r')
+    f = open(os.path.join(this_dir, 'all-types.binary'), 'r', encoding='utf8')
     root = all_types.TestAllTypes.read(f)
     check_all_types(root)
 
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
     # Test set_root().
@@ -495,11 +518,11 @@ def test_binary_read(all_types):
     check_all_types(builder2.get_root(all_types.TestAllTypes))
 
 def test_packed_read(all_types):
-    f = open(os.path.join(this_dir, 'all-types.packed'), 'r')
+    f = open(os.path.join(this_dir, 'all-types.packed'), 'r', encoding='utf8')
     root = all_types.TestAllTypes.read_packed(f)
     check_all_types(root)
 
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r').read()
+    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
 def test_binary_write(all_types):

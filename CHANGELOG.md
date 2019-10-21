@@ -1,3 +1,68 @@
+## v0.6.4 (2019-01-31)
+- Fix bugs in `read_multiple_bytes` (thanks to @tsh56)
+- Remove end-of-life Python versions 2.6, 3.2, and 3.3. Add CI tests for 3.6
+- Expose SchemaParser in Cython header
+
+## v0.6.3 (2018-01-14)
+- Bump bundled capnp version to v0.6.1 (thanks to @E8Yuval)
+- Fix a memleak in RemotePromise (thanks to @E8Yuval)
+
+## v0.6.2 (2017-11-30)
+- Add support for buffers/memoryviews in `from_bytes` (thanks to @aldanor)
+
+## v0.6.1 (2017-07-27)
+- Fixed upload to PyPi (forgot to cythonize)
+
+## v0.6.0 (2017-07-27)
+- Update bundled capnp version to v0.6.0 and fix related problems (thanks to @benmoran)
+- Fix memleak with KjException (thanks to @tsh56)
+
+## v0.5.12 (2017-04-18)
+- Bump bundled capnp version to v0.5.3.1
+
+## v0.5.11 (2017-04-10)
+- Make enums hashable (thanks to @madeleine-empirical)
+- Rework logic on when to build bundled libcapnp. Fixes cross-compilation (thanks to @benizl)
+- Add traversal_limit_in_words and nesting_limit to RPC classes (thanks to @asilversempirical)
+- Include class attributes in __dir__. This allows for code completion of class methods (thanks to @chaoflow )
+- Allow setting lists with python tuples (thanks to @chaoflow)
+- Fix traversal_limit_in_words and nesting_limit being ignored by `from_bytes` (thanks to @plesner)
+
+## v0.5.10 (2016-11-28)
+- Fix bug that prevented event loop from actually being lazy initialized
+- Fix possible recursive loop in KjException
+- Add `clear_write_flag` method to builder classes
+
+## v0.5.9 (2016-07-07)
+- Make the event loop be lazy initialized
+- Add support for segment (de)serialization (thanks to @gcv). See to_segments/from_segments methods.
+- Fix response objects not referencing parents correctly
+- Add test for large reads
+
+## v0.5.8 (2016-05-27)
+- Fix build problem with Cython v0.24
+- Include the changelog in the manifest (should fix install problems if pandoc is present)
+- Include the traceback in exceptions
+- Make sure to encode to utf-8, not the default encoding (thanks to @novas0x2a)
+- Add --libcapnp-url option in installer to allow installing arbitrary libcapnp versions
+- Support mmap objects for reading with from_bytes (thanks to @bpiwowar)
+- Change read_multiple and read_multiple_packed to copy by default
+- Fix mistakenly discarding the file parameter on reads
+- Add reraise_kj_exception to the prettyPrint functions. (thanks to @kdienes)
+- Fix KjException init (missing wrapper). (thanks to @E8-Storage)
+- Add `result_type` to InterfaceMethodSchema
+
+
+## v0.5.7 (2015-06-16)
+- Update bundled libcapnp to v0.5.2
+- Add warnings for using old restorer methods. You should use `bootstrap` instead
+- Fix warning from PyEventPort
+- Handle AnyPointers better as arguments to RPC functions
+- Add support for using keyword arguments with a named struct in an RPC
+- Add bootstrap method to TwoPartyServer
+- Add `init` method to lists
+- Add support for unix sockets in RPC
+
 ## v0.5.6 (2015-04-13)
 - Fix a serious bug in TwoPartyServer that was preventing it from working when passed a string address.
 - Fix bugs that were exposed by defining KJDEBUG (thanks @davidcarne for finding this)

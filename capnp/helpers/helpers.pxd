@@ -1,10 +1,12 @@
-from capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, Response, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, PyRestorer, AnyPointer, DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer
+from capnp.includes.capnp_cpp cimport Maybe, DynamicStruct, Request, Response, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, AnyPointer, DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer
 
 from capnp.includes.schema_cpp cimport ByteArray
 
-from non_circular cimport reraise_kj_exception
+from non_circular cimport reraise_kj_exception, AsyncIoStreamReadHelper
 
 from cpython.ref cimport PyObject
+
+from libcpp cimport bool
 
 cdef extern from "capnp/helpers/fixMaybe.h":
     EnumSchema.Enumerant fixMaybe(Maybe[EnumSchema.Enumerant]) except +reraise_kj_exception
@@ -25,14 +27,8 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     VoidPromise convert_to_voidpromise(PyPromise&)
 
 cdef extern from "capnp/helpers/rpcHelper.h":
-    Capability.Client restoreHelper(RpcSystem&)
-    Capability.Client restoreHelper(RpcSystem&, MessageBuilder&)
-    Capability.Client restoreHelper(RpcSystem&, MessageReader&)
-    Capability.Client restoreHelper(RpcSystem&, AnyPointer.Reader&)
-    Capability.Client restoreHelper(RpcSystem&, AnyPointer.Builder&)
     Capability.Client bootstrapHelper(RpcSystem&)
-    RpcSystem makeRpcClientWithRestorer(TwoPartyVatNetwork&, PyRestorer&)
-    PyPromise connectServerRestorer(TaskSet &, PyRestorer &, AsyncIoContext *, StringPtr)
+    Capability.Client bootstrapHelperServer(RpcSystem&)
     PyPromise connectServer(TaskSet &, Capability.Client, AsyncIoContext *, StringPtr)
 
 cdef extern from "capnp/helpers/serialize.h":
@@ -40,7 +36,9 @@ cdef extern from "capnp/helpers/serialize.h":
 
 cdef extern from "capnp/helpers/asyncHelper.h":
     void waitNeverDone(WaitScope&)
+    void pollWaitScope(WaitScope&)
     Response * waitRemote(RemotePromise *, WaitScope&)
+    bool pollRemote(RemotePromise *, WaitScope&)
     PyObject * waitPyPromise(PyPromise *, WaitScope&)
     void waitVoidPromise(VoidPromise *, WaitScope&)
     Timer * getTimer(AsyncIoContext *) except +reraise_kj_exception

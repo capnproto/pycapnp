@@ -1,9 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 import argparse
-import socket
-import random
 import capnp
 
 import calculator_capnp
@@ -135,6 +133,7 @@ def main():
 
     server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())
     server.run_forever()
+
 
 if __name__ == '__main__':
     main()

@@ -25,7 +25,7 @@
     uInt64Field = 345678901234567890,
     float32Field = -1.25e-10,
     float64Field = 345,
-    textField = "baz",
+    textField = "☃",
     dataField = "qux",
     structField = (
       voidField = void,

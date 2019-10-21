@@ -1,8 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 import argparse
-import socket
 import capnp
 
 import calculator_capnp
@@ -301,6 +300,7 @@ def main(host):
     assert response.value == 512
 
     print("PASS")
+
 
 if __name__ == '__main__':
     main(parse_args().host)

@@ -18,7 +18,7 @@ def encode(schema_file, struct_name, **kwargs):
     schema = capnp.load(schema_file)
 
     struct_schema = getattr(schema, struct_name)
-    
+
     struct_dict = json.load(sys.stdin)
     struct = struct_schema.from_dict(struct_dict)
 
@@ -29,7 +29,7 @@ def decode(schema_file, struct_name, defaults):
 
     struct_schema = getattr(schema, struct_name)
     struct = struct_schema.read(sys.stdin)
-    
+
     json.dump(struct.to_dict(defaults), sys.stdout)
 
 def main():
@@ -40,5 +40,6 @@ def main():
     del kwargs['command']
 
     globals()[command](**kwargs) # hacky way to get defined functions, and call function with name=command
+
 
 main()

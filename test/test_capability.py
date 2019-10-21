@@ -1,8 +1,7 @@
 import pytest
-import capnp
-import os
 import time
 
+import capnp
 import test_capability_capnp as capability
 
 class Server(capability.TestInterface.Server):
@@ -160,6 +159,7 @@ class BadPipelineServer(capability.TestPipeline.Server):
             _results = _context.results
             _results.s = response.x + '_foo'
             _results.outBox.cap = Server(100)
+
         def _error(error):
             raise Exception('test was a success')
 
@@ -186,7 +186,7 @@ def test_pipeline_exception():
     pipelinePromise = outCap.foo(i=10)
 
     with pytest.raises(Exception):
-        loop.wait(pipelinePromise)
+        pipelinePromise.wait()
 
     with pytest.raises(Exception):
         remote.wait()
@@ -194,7 +194,7 @@ def test_pipeline_exception():
 def test_casting():
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
-    client3 = client2.cast_as(capability.TestInterface)
+    _ = client2.cast_as(capability.TestInterface)
 
     with pytest.raises(Exception):
         client.upcast(capability.TestPipeline)
@@ -343,3 +343,43 @@ def test_inheritance():
     response = remote.wait()
 
     assert response.x == '26'
+
+
+class TestPassedCap(capability.TestPassedCap.Server):
+    def foo(self, cap, _context, **kwargs):
+        def set_result(res):
+            _context.results.x = res.x
+        return cap.foo(5).then(set_result)
+
+
+def test_null_cap():
+    client = capability.TestPassedCap._new_client(TestPassedCap())
+    assert client.foo(Server()).wait().x == '26'
+
+    with pytest.raises(capnp.KjException):
+        client.foo().wait()
+
+
+class TestStructArg(capability.TestStructArg.Server):
+    def bar(self, a, b, **kwargs):
+        return a + str(b)
+
+
+def test_struct_args():
+    client = capability.TestStructArg._new_client(TestStructArg())
+    assert client.bar(a='test', b=1).wait().c == 'test1'
+    with pytest.raises(capnp.KjException):
+        assert client.bar('test', 1).wait().c == 'test1'
+
+
+class TestGeneric(capability.TestGeneric.Server):
+    def foo(self, a, **kwargs):
+        return a.as_text() + 'test'
+
+
+def test_generic():
+    client = capability.TestGeneric._new_client(TestGeneric())
+
+    obj = capnp._MallocMessageBuilder().get_root_as_any()
+    obj.set_as_text("anypointer_")
+    assert client.foo(obj).wait().b == 'anypointer_test'

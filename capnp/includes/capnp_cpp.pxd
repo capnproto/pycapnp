@@ -1,11 +1,11 @@
 # schema.capnp.cpp.pyx
 # distutils: language = c++
-# distutils: extra_compile_args = --std=c++11
 cdef extern from "capnp/helpers/checkCompiler.h":
     pass
 
-from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader
-from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyRestorer, PyEventPort, ErrorHandler
+from libcpp cimport bool
+from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
+from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler
 from capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
@@ -45,7 +45,8 @@ cdef extern from "kj/exception.h" namespace " ::kj":
 cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T]:
         T& operator*()
-    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side)
+        T* get()
+    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side, ReaderOptions)
     Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(PromiseFulfillerPair&)
     Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
 
@@ -55,6 +56,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Promise(Promise)
         Promise(T)
         T wait(WaitScope)
+        bool poll(WaitScope)
         # ForkedPromise<T> fork()
         # Promise<T> exclusiveJoin(Promise<T>&& other)
         # Promise[T] eagerlyEvaluate()
@@ -101,7 +103,14 @@ ctypedef Promise[PyArray] PyPromiseArray
 
 cdef extern from "kj/time.h" namespace " ::kj":
     cdef cppclass Duration:
-        Duration(int64_t)
+        Duration operator*(int64_t)
+    Duration NANOSECONDS
+    Duration MICROSECONDS
+    Duration MILLISECONDS
+    Duration SECONDS
+    Duration MINUTES
+    Duration HOURS
+    Duration DAYS
     # cdef cppclass TimePoint:
     #     TimePoint(Duration)
     cdef cppclass Timer:
@@ -109,18 +118,26 @@ cdef extern from "kj/time.h" namespace " ::kj":
         # VoidPromise atTime(TimePoint time)
         VoidPromise afterDelay(Duration delay)
 
+cdef inline Duration Nanoseconds(int64_t nanos):
+    return NANOSECONDS * nanos
+
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream:
-        pass
+        Promise[size_t] read(void*, size_t, size_t)
+        Promise[void] write(const void*, size_t)
+
     cdef cppclass LowLevelAsyncIoProvider:
         # Own[AsyncInputStream] wrapInputFd(int)
         # Own[AsyncOutputStream] wrapOutputFd(int)
         Own[AsyncIoStream] wrapSocketFd(int)
         Timer& getTimer() except +reraise_kj_exception
+
     cdef cppclass AsyncIoProvider:
-        pass
+        TwoWayPipe newTwoWayPipe()
+
     cdef cppclass WaitScope:
         pass
+
     cdef cppclass AsyncIoContext:
         AsyncIoContext(AsyncIoContext&)
         Own[LowLevelAsyncIoProvider] lowLevelProvider
@@ -129,6 +146,9 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
 
     cdef cppclass TaskSet:
         TaskSet(ErrorHandler &)
+
+    cdef cppclass TwoWayPipe:
+        Own[AsyncIoStream] ends[2]
 
     AsyncIoContext setupAsyncIo()
 
@@ -341,10 +361,9 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
     cdef Side SERVER" ::capnp::rpc::twoparty::Side::SERVER"
 
     cdef cppclass TwoPartyVatNetwork:
-        TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side)
+        TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side, ReaderOptions)
         VoidPromise onDisconnect()
         VoidPromise onDrained()
-    RpcSystem makeRpcServer(TwoPartyVatNetwork&, PyRestorer&)
     RpcSystem makeRpcServerBootstrap"makeRpcServer"(TwoPartyVatNetwork&, Capability.Client)
     RpcSystem makeRpcClient(TwoPartyVatNetwork&)
 
@@ -427,6 +446,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Reader(DynamicStruct.Reader& value)
             Reader(DynamicCapability.Client& value)
             Reader(PythonInterfaceDynamicImpl& value)
+            Reader(AnyPointer.Reader& value)
             Type getType()
             int64_t asInt"as<int64_t>"()
             uint64_t asUint"as<uint64_t>"()

@@ -13,11 +13,13 @@ public:
   virtual bool wait() {
     GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("wait"), NULL);
+    return true;  // TODO: get the bool result from python
   }
 
   virtual bool poll() {
     GILAcquire gil;
     PyObject_CallMethod(py_event_port, const_cast<char *>("poll"), NULL);
+    return true;  // TODO: get the bool result from python
   }
 
   virtual void setRunnable(bool runnable) {
@@ -37,6 +39,11 @@ void waitNeverDone(kj::WaitScope & scope) {
   kj::NEVER_DONE.wait(scope);
 }
 
+void pollWaitScope(kj::WaitScope & scope) {
+  GILRelease gil;
+  scope.poll();
+}
+
 kj::Timer * getTimer(kj::AsyncIoContext * context) {
   return &context->lowLevelProvider->getTimer();
 }
@@ -54,4 +61,9 @@ PyObject * waitPyPromise(kj::Promise<PyObject *> * promise, kj::WaitScope & scop
 capnp::Response< ::capnp::DynamicStruct> * waitRemote(capnp::RemotePromise< ::capnp::DynamicStruct> * promise, kj::WaitScope & scope) {
   GILRelease gil;
   return new capnp::Response< ::capnp::DynamicStruct>(promise->wait(scope));
+}
+
+bool pollRemote(capnp::RemotePromise< ::capnp::DynamicStruct> * promise, kj::WaitScope & scope) {
+  GILRelease gil;
+  return promise->poll(scope);
 }

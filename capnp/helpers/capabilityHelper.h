@@ -66,6 +66,7 @@ void reraise_kj_exception() {
   catch (kj::Exception& exn) {
     auto obj = wrap_kj_exception_for_reraise(exn);
     PyErr_SetObject((PyObject*)obj->ob_type, obj);
+    Py_DECREF(obj);
   }
   catch (const std::exception& exn) {
     PyErr_SetString(PyExc_RuntimeError, exn.what());

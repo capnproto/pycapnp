@@ -7,7 +7,7 @@ this_dir = os.path.dirname(__file__)
 
 @pytest.fixture
 def addressbook():
-     return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
 
 def test_object_basic(addressbook):

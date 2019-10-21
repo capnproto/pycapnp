@@ -1,0 +1,40 @@
+name: Python Test Packaging
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 4
+      fail-fast: false
+      matrix:
+        # Some asyncio commands require 3.7+
+        # It may be possible to use 3.6 and maybe 3.5; however, this will take some patching to get examples to work
+        python-version: [3.7]
+        os: [ubuntu-latest, macOS-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Build pycapnp and install
+      run: |
+        python setup.py build
+        pip install .
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude benchmark
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude benchmark
+    - name: Test with pytest
+      run: |
+        pip install pytest
+        pytest

@@ -1,5 +1,5 @@
 """Detect zmq version"""
-#-----------------------------------------------------------------------------
+#
 #  Copyright (C) PyZMQ Developers
 #
 #  This file is part of pyzmq, copied and adapted from h5py.
@@ -9,7 +9,7 @@
 #
 #  Distributed under the terms of the New BSD License.  The full license is in
 #  the file COPYING.BSD, distributed as part of this software.
-#-----------------------------------------------------------------------------
+#
 #
 # Adapted for use in pycapnp from pyzmq. See https://github.com/zeromq/pyzmq
 # for original project.
@@ -21,7 +21,6 @@ import logging
 import platform
 from distutils import ccompiler
 from distutils.ccompiler import get_default_compiler
-from subprocess import Popen, PIPE
 import tempfile
 
 from .misc import get_compiler, get_output_error
@@ -29,20 +28,20 @@ from .patch import patch_lib_paths
 
 pjoin = os.path.join
 
-#-----------------------------------------------------------------------------
+#
 # Utility functions (adapted from h5py: http://h5py.googlecode.com)
-#-----------------------------------------------------------------------------
+#
 
 def test_compilation(cfile, compiler=None, **compiler_attrs):
     """Test simple compilation with given settings"""
     cc = get_compiler(compiler, **compiler_attrs)
 
-    efile, ext = os.path.splitext(cfile)
+    efile, _ = os.path.splitext(cfile)
 
     cpreargs = lpreargs = []
     if sys.platform == 'darwin':
         # use appropriate arch for compiler
-        if platform.architecture()[0]=='32bit':
+        if platform.architecture()[0] == '32bit':
             if platform.processor() == 'powerpc':
                 cpu = 'ppc'
             else:
@@ -53,35 +52,20 @@ def test_compilation(cfile, compiler=None, **compiler_attrs):
             # allow for missing UB arch, since it will still work:
             lpreargs = ['-undefined', 'dynamic_lookup']
     if sys.platform == 'sunos5':
-        if platform.architecture()[0]=='32bit':
+        if platform.architecture()[0] == '32bit':
             lpreargs = ['-m32']
         else:
             lpreargs = ['-m64']
-    extra = compiler_attrs.get('extra_compile_args', [])
-    extra += ['--std=c++11']
+    extra_compile_args = compiler_attrs.get('extra_compile_args', [])
+    if os.name != 'nt':
+        extra_compile_args += ['--std=c++14']
+    extra_link_args = compiler_attrs.get('extra_link_args', [])
+    if cc.compiler_type == 'msvc':
+        extra_link_args += ['/MANIFEST']
 
-    objs = cc.compile([cfile], extra_preargs=cpreargs, extra_postargs=extra)
-    cc.link_executable(objs, efile, extra_preargs=lpreargs)
+    objs = cc.compile([cfile], extra_preargs=cpreargs, extra_postargs=extra_compile_args)
+    cc.link_executable(objs, efile, extra_preargs=lpreargs, extra_postargs=extra_link_args)
     return efile
-
-def compile_and_run(basedir, src, compiler=None, **compiler_attrs):
-    if not os.path.exists(basedir):
-        os.makedirs(basedir)
-    cfile = pjoin(basedir, os.path.basename(src))
-    shutil.copy(src, cfile)
-    try:
-        cc = get_compiler(compiler, **compiler_attrs)
-        efile = test_compilation(cfile, compiler=cc)
-        patch_lib_paths(efile, cc.library_dirs)
-        result = Popen(efile, stdout=PIPE, stderr=PIPE)
-        so, se = result.communicate()
-        # for py3k:
-        so = so.decode()
-        se = se.decode()
-    finally:
-        shutil.rmtree(basedir)
-
-    return result.returncode, so, se
 
 
 def detect_version(basedir, compiler=None, **compiler_attrs):
@@ -130,11 +114,11 @@ def detect_version(basedir, compiler=None, **compiler_attrs):
 
     rc, so, se = get_output_error([efile])
     if rc:
-        msg = "Error running version detection script:\n%s\n%s" % (so,se)
+        msg = "Error running version detection script:\n%s\n%s" % (so, se)
         logging.error(msg)
         raise IOError(msg)
 
-    handlers = {'vers':  lambda val: tuple(int(v) for v in val.split('.'))}
+    handlers = {'vers': lambda val: tuple(int(v) for v in val.split('.'))}
 
     props = {}
     for line in (x for x in so.split('\n') if x):
@@ -144,7 +128,7 @@ def detect_version(basedir, compiler=None, **compiler_attrs):
     return props
 
 
-def test_build():
+def test_build(**compiler_attrs):
     """do a test build of libcapnp"""
     tmp_dir = tempfile.mkdtemp()
 
@@ -152,7 +136,7 @@ def test_build():
     # info("Configure: Autodetecting Cap'n Proto settings...")
     # info("    Custom Cap'n Proto dir:       %s" % prefix)
     try:
-        detected = detect_version(tmp_dir)
+        detected = detect_version(tmp_dir, None, **compiler_attrs)
     finally:
         erase_dir(tmp_dir)
 
@@ -161,8 +145,9 @@ def test_build():
     return detected
 
 
-def erase_dir(dir):
+def erase_dir(path):
+    """Erase directory"""
     try:
-        shutil.rmtree(dir)
+        shutil.rmtree(path)
     except Exception:
         pass
