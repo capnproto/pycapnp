@@ -1,3 +1,8 @@
+## v0.7.0 (2019-10-21)
+- Python 3.7+ required (asyncio support)
+- TLS/SSL support using asyncio
+- Windows support
+
 ## v0.6.4 (2019-01-31)
 - Fix bugs in `read_multiple_bytes` (thanks to @tsh56)
 - Remove end-of-life Python versions 2.6, 3.2, and 3.3. Add CI tests for 3.6
