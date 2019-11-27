@@ -23,7 +23,7 @@ pycapnp has additional development dependencies, including cython and pytest. Se
 
 ## Building and installation
 
-Install with `pip install pycapnp`. You can set the CC environment variable to control which compiler is used, ie `CC=gcc-8.2 pip install pycapnp`.
+Install with `pip install pycapnp-async`. You can set the CC environment variable to control which compiler is used, ie `CC=gcc-8.2 pip install pycapnp-async`.
 
 Or you can clone the repo like so:
 
