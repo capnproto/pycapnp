@@ -93,6 +93,8 @@ TODO
 
 There is some basic documentation [here](http://jparyani.github.io/pycapnp/).
 
+Make sure to look at the [examples](examples). The examples are generally kept up to date with the recommended usage of the library.
+
 The examples directory has one example that shows off pycapnp quite nicely. Here it is, reproduced:
 
 ```python
