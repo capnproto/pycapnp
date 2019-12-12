@@ -1,6 +1,8 @@
-# pycapnp-async
+# pycapnp
 
-[![Actions Status](https://github.com/haata/pycapnp-async/workflows/Python%20Test%20Packaging/badge.svg)](https://github.com/haata/pycapnp-async/actions)
+[![Actions Status](https://github.com/capnproto/pycapnp/workflows/Python%20Test%20Packaging/badge.svg)](https://github.com/capnproto/pycapnp/actions)
+
+[Cap'n'proto Mailing List](https://groups.google.com/forum/#!forum/capnproto)
 
 
 ## Requirements
@@ -23,13 +25,13 @@ pycapnp has additional development dependencies, including cython and pytest. Se
 
 ## Building and installation
 
-Install with `pip install pycapnp-async`. You can set the CC environment variable to control which compiler is used, ie `CC=gcc-8.2 pip install pycapnp-async`.
+Install with `pip install pycapnp`. You can set the CC environment variable to control which compiler is used, ie `CC=gcc-8.2 pip install pycapnp`.
 
 Or you can clone the repo like so:
 
 ```bash
-git clone https://github.com/haata/pycapnp-async.git
-cd pycapnp-async
+git clone https://github.com/capnproto/pycapnp.git
+cd pycapnp
 pip install .
 ```
 
@@ -80,13 +82,6 @@ Building a Python wheel distributiion:
 ```bash
 python setup.py bdist_wheel
 ```
-
-
-### Pypi Upload Instructions
-
-Only necessary if uploading release to pypi.org.
-
-TODO
 
 
 ## Documentation/Example

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-pycapnp-async distutils setup.py
+pycapnp distutils setup.py
 '''
 
 from __future__ import print_function
@@ -29,7 +29,7 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 # Write version info
 def write_version_py(filename=None):
     '''
-    Generate pycapnp-async version
+    Generate pycapnp version
     '''
     cnt = """\
 version = '%s'
@@ -176,7 +176,7 @@ extensions = [Extension(
 )]
 
 setup(
-    name="pycapnp-async",
+    name="pycapnp",
     packages=["capnp"],
     version=VERSION,
     package_data={
@@ -195,14 +195,14 @@ setup(
         'console_scripts' : ['capnpc-cython = capnp._gen:main']
     },
     # PyPi info
-    description="A cython wrapping of the C++ Cap'n Proto library with support for asyncio",
+    description="A cython wrapping of the C++ Cap'n Proto library",
     long_description=long_description,
     license='BSD',
-    author="Jacob Alexander",
+    author="Jacob Alexander", # <- Current maintainer; Original author -> Jason Paryani (setup.py only supports 1 author...)
     author_email="haata@kiibohd.com",
-    url='https://github.com/haata/pycapnp-async',
-    download_url='https://github.com/haata/pycapnp-async/archive/v%s.zip' % VERSION,
-    keywords=['capnp', 'capnproto', "Cap'n Proto", 'pycapnp', 'pycapnp-async'],
+    url='https://github.com/capnproto/pycapnp',
+    download_url='https://github.com/haata/pycapnp/archive/v%s.zip' % VERSION,
+    keywords=['capnp', 'capnproto', "Cap'n Proto", 'pycapnp'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -213,6 +213,7 @@ setup(
         'Programming Language :: C++',
         'Programming Language :: Cython',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Communications'],
 )
