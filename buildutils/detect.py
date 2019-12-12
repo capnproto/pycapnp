@@ -32,6 +32,7 @@ pjoin = os.path.join
 # Utility functions (adapted from h5py: http://h5py.googlecode.com)
 #
 
+
 def test_compilation(cfile, compiler=None, **compiler_attrs):
     """Test simple compilation with given settings"""
     cc = get_compiler(compiler, **compiler_attrs)

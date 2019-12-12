@@ -15,6 +15,7 @@
 # Utility functions (adapted from h5py: http://h5py.googlecode.com)
 #
 
+
 def v_str(v_tuple):
     """turn (2,0,1) into '2.0.1'."""
     return ".".join(str(x) for x in v_tuple)

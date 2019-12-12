@@ -191,6 +191,7 @@ def test_set_dict_union(addressbook):
 
     assert person.employment.employer.name == 'foo'
 
+
 def isstr(s):
     return isinstance(s, str)
 
@@ -237,6 +238,7 @@ def test_to_dict_ordered(addressbook):
     else:
         with pytest.raises(Exception):
             person.to_dict(ordered=True)
+
 
 def test_nested_list(addressbook):
     struct = addressbook.NestedList.new_message()

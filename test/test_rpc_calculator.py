@@ -11,8 +11,8 @@ import capnp
 examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
 sys.path.append(examples_dir)
 
-import calculator_client # noqa: E402
-import calculator_server # noqa: E402
+import calculator_client  # noqa: E402
+import calculator_server  # noqa: E402
 
 
 def test_calculator():
@@ -77,6 +77,7 @@ def test_calculator_unix():
 
     address = 'unix:' + path
     run_subprocesses(address)
+
 
 def test_calculator_gc():
     def new_evaluate_impl(old_evaluate_impl):

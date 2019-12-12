@@ -20,9 +20,11 @@ from .msg import info
 
 pjoin = os.path.join
 
+
 #
 # Constants
 #
+
 
 bundled_version = (0, 7, 0)
 libcapnp_name = "capnproto-c++-%i.%i.%i.tar.gz" % (bundled_version)
@@ -30,6 +32,7 @@ libcapnp_url = "https://capnproto.org/" + libcapnp_name
 
 HERE = os.path.dirname(__file__)
 ROOT = os.path.dirname(HERE)
+
 
 #
 # Utilities
@@ -40,10 +43,12 @@ def untgz(archive):
     """Remove .tar.gz"""
     return archive.replace('.tar.gz', '')
 
+
 def localpath(*args):
     """construct an absolute path from a list relative to the root pycapnp directory"""
     plist = [ROOT] + list(args)
     return os.path.abspath(pjoin(*plist))
+
 
 def fetch_archive(savedir, url, fname, force=False):
     """download an archive to a specific location"""
@@ -59,9 +64,11 @@ def fetch_archive(savedir, url, fname, force=False):
         f.write(req.read())
     return dest
 
+
 #
 # libcapnp
 #
+
 
 def fetch_libcapnp(savedir, url=None):
     """download and extract libcapnp"""
@@ -84,4 +91,3 @@ def fetch_libcapnp(savedir, url=None):
     else:
         cpp_dir = os.path.join(with_version, 'c++')
         shutil.move(cpp_dir, dest)
-

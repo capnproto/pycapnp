@@ -1,5 +1,6 @@
 import test_response_capnp
 
+
 class FooServer(test_response_capnp.Foo.Server):
     def __init__(self, val=1):
         self.val = val
@@ -7,12 +8,14 @@ class FooServer(test_response_capnp.Foo.Server):
     def foo(self, **kwargs):
         return 1
 
+
 class BazServer(test_response_capnp.Baz.Server):
     def __init__(self, val=1):
         self.val = val
 
     def grault(self, **kwargs):
         return {"foo": FooServer()}
+
 
 def test_response_reference():
     baz = test_response_capnp.Baz._new_client(BazServer())
@@ -22,6 +25,7 @@ def test_response_reference():
     foo = bar.foo
     # This used to cause an exception about invalid pointers because the response got garbage collected
     assert foo.foo().wait().val == 1
+
 
 def test_response_reference2():
     baz = test_response_capnp.Baz._new_client(BazServer())

@@ -18,6 +18,7 @@ else:
 def addressbook():
     return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
 
+
 def test_addressbook_message_classes(addressbook):
     def writeAddressBook(fd):
         message = capnp._MallocMessageBuilder()
@@ -45,7 +46,6 @@ def test_addressbook_message_classes(addressbook):
         bob.employment.unemployed = None
 
         capnp._write_packed_message_to_fd(fd, message)
-
 
     def printAddressBook(fd):
         message = capnp._PackedFdMessageReader(f)
@@ -79,6 +79,7 @@ def test_addressbook_message_classes(addressbook):
     f = open('example', 'r')
     printAddressBook(f.fileno())
 
+
 def test_addressbook(addressbook):
     def writeAddressBook(file):
         addresses = addressbook.AddressBook.new_message()
@@ -106,7 +107,6 @@ def test_addressbook(addressbook):
 
         addresses.write(file)
 
-
     def printAddressBook(file):
         addresses = addressbook.AddressBook.read(file)
 
@@ -132,12 +132,12 @@ def test_addressbook(addressbook):
         assert bobPhones[1].type == 'work'
         assert bob.employment.unemployed is None
 
-
     f = open('example', 'w')
     writeAddressBook(f)
 
     f = open('example', 'r')
     printAddressBook(f)
+
 
 def test_addressbook_resizable(addressbook):
     def writeAddressBook(file):
@@ -168,7 +168,6 @@ def test_addressbook_resizable(addressbook):
 
         addresses.write(file)
 
-
     def printAddressBook(file):
         addresses = addressbook.AddressBook.read(file)
 
@@ -194,12 +193,12 @@ def test_addressbook_resizable(addressbook):
         assert bobPhones[1].type == 'work'
         assert bob.employment.unemployed is None
 
-
     f = open('example', 'w')
     writeAddressBook(f)
 
     f = open('example', 'r')
     printAddressBook(f)
+
 
 def test_addressbook_explicit_fields(addressbook):
     def writeAddressBook(file):
@@ -233,7 +232,6 @@ def test_addressbook_explicit_fields(addressbook):
 
         addresses.write(file)
 
-
     def printAddressBook(file):
         addresses = addressbook.AddressBook.read(file)
         address_fields = addressbook.AddressBook.schema.fields
@@ -264,12 +262,12 @@ def test_addressbook_explicit_fields(addressbook):
         employment = bob._get_by_field(person_fields['employment'])
         employment._get_by_field(addressbook.Person.Employment.schema.fields['unemployed']) is None
 
-
     f = open('example', 'w')
     writeAddressBook(f)
 
     f = open('example', 'r')
     printAddressBook(f)
+
 
 @pytest.fixture
 def all_types():
@@ -279,6 +277,7 @@ def all_types():
 # - Read each field in Python and assert that it is equal to the expected value.
 # - Build an identical message using Python code and compare it to the golden.
 #
+
 
 def init_all_types(builder):
     builder.voidField = None
@@ -358,9 +357,11 @@ def init_all_types(builder):
     listBuilder[2].textField = "structlist 3"
     builder.enumList = ["foo", "garply"]
 
+
 def assert_almost(float1, float2):
     if float1 != float2:
         assert abs((float1 - float2) / float1) < 0.00001
+
 
 def check_list(reader, expected):
     assert len(reader) == len(expected)
@@ -369,6 +370,7 @@ def check_list(reader, expected):
             assert_almost(reader[i], v)
         else:
             assert reader[i] == v
+
 
 def check_all_types(reader):
     assert reader.voidField is None
@@ -483,11 +485,13 @@ def check_all_types(reader):
 
     check_list(reader.enumList, ["foo", "garply"])
 
+
 def test_build(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
+
 
 def test_build_first_segment_size(all_types):
     root = all_types.TestAllTypes.new_message(1)
@@ -499,6 +503,7 @@ def test_build_first_segment_size(all_types):
     init_all_types(root)
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
+
 
 def test_binary_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.binary'), 'r', encoding='utf8')
@@ -517,6 +522,7 @@ def test_binary_read(all_types):
     builder2.set_root(builder.get_root(all_types.TestAllTypes))
     check_all_types(builder2.get_root(all_types.TestAllTypes))
 
+
 def test_packed_read(all_types):
     f = open(os.path.join(this_dir, 'all-types.packed'), 'r', encoding='utf8')
     root = all_types.TestAllTypes.read_packed(f)
@@ -525,12 +531,14 @@ def test_packed_read(all_types):
     expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
     assert str(root) + '\n' == expectedText
 
+
 def test_binary_write(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
     root.write(open('example', 'w'))
 
     check_all_types(all_types.TestAllTypes.read(open('example', 'r')))
+
 
 def test_packed_write(all_types):
     root = all_types.TestAllTypes.new_message()

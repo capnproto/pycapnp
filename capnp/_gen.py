@@ -6,12 +6,14 @@ import sys
 from jinja2 import Environment, PackageLoader
 import os
 
+
 def find_type(code, id):
     for node in code['nodes']:
         if node['id'] == id:
             return node
 
     return None
+
 
 def main():
     env = Environment(loader=PackageLoader('capnp', 'templates'))

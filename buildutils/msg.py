@@ -21,22 +21,27 @@ else:
     logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stderr))
 
+
 def debug(msg):
     """Debug"""
     logger.debug(msg)
 
+
 def info(msg):
     """Info"""
     logger.info(msg)
+
 
 def fatal(msg, code=1):
     """Fatal"""
     logger.error("Fatal: %s", msg)
     exit(code)
 
+
 def warn(msg):
     """Warning"""
     logger.error("Warning: %s", msg)
+
 
 def line(c='*', width=48):
     """Horizontal rule"""

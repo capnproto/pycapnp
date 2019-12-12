@@ -4,6 +4,7 @@ import time
 import capnp
 import test_capability_capnp as capability
 
+
 class Server(capability.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
@@ -20,6 +21,7 @@ class Server(capability.TestInterface.Server):
     def bam(self, i, **kwargs):
         return str(i) + '_test', i
 
+
 class PipelineServer(capability.TestPipeline.Server):
     def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
@@ -28,6 +30,7 @@ class PipelineServer(capability.TestPipeline.Server):
             _results.outBox.cap = Server(100)
 
         return inCap.foo(i=n).then(_then)
+
 
 def test_client():
     client = capability.TestInterface._new_client(Server())
@@ -61,6 +64,7 @@ def test_client():
     with pytest.raises(AttributeError):
         req.baz = 1
 
+
 def test_simple_client():
     client = capability.TestInterface._new_client(Server())
 
@@ -68,7 +72,6 @@ def test_simple_client():
     response = remote.wait()
 
     assert response.x == '26'
-
 
     remote = client.foo(i=5)
     response = remote.wait()
@@ -121,6 +124,7 @@ def test_simple_client():
     with pytest.raises(Exception):
         remote = client.foo(baz=5)
 
+
 def test_pipeline():
     client = capability.TestPipeline._new_client(PipelineServer())
     foo_client = capability.TestInterface._new_client(Server())
@@ -136,6 +140,7 @@ def test_pipeline():
     response = remote.wait()
     assert response.s == '26_foo'
 
+
 class BadServer(capability.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
@@ -144,7 +149,8 @@ class BadServer(capability.TestInterface.Server):
         extra = 0
         if j:
             extra = 1
-        return str(i * 5 + extra + self.val), 10 # returning too many args
+        return str(i * 5 + extra + self.val), 10  # returning too many args
+
 
 def test_exception_client():
     client = capability.TestInterface._new_client(BadServer())
@@ -152,6 +158,7 @@ def test_exception_client():
     remote = client._send('foo', i=5)
     with pytest.raises(capnp.KjException):
         remote.wait()
+
 
 class BadPipelineServer(capability.TestPipeline.Server):
     def getCap(self, n, inCap, _context, **kwargs):
@@ -165,6 +172,7 @@ class BadPipelineServer(capability.TestPipeline.Server):
 
         return inCap.foo(i=n).then(_then, _error)
 
+
 def test_exception_chain():
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
@@ -175,6 +183,7 @@ def test_exception_chain():
         remote.wait()
     except Exception as e:
         assert 'test was a success' in str(e)
+
 
 def test_pipeline_exception():
     client = capability.TestPipeline._new_client(BadPipelineServer())
@@ -191,6 +200,7 @@ def test_pipeline_exception():
     with pytest.raises(Exception):
         remote.wait()
 
+
 def test_casting():
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
@@ -199,6 +209,7 @@ def test_casting():
     with pytest.raises(Exception):
         client.upcast(capability.TestPipeline)
 
+
 class TailCallOrder(capability.TestCallOrder.Server):
     def __init__(self):
         self.count = -1
@@ -206,6 +217,7 @@ class TailCallOrder(capability.TestCallOrder.Server):
     def getCallSequence(self, expected, **kwargs):
         self.count += 1
         return self.count
+
 
 class TailCaller(capability.TestTailCaller.Server):
     def __init__(self):
@@ -216,6 +228,7 @@ class TailCaller(capability.TestTailCaller.Server):
 
         tail = callee.foo_request(i=i, t='from TailCaller')
         return _context.tail_call(tail)
+
 
 class TailCallee(capability.TestTailCallee.Server):
     def __init__(self):
@@ -228,6 +241,7 @@ class TailCallee(capability.TestTailCallee.Server):
         results.i = i
         results.t = t
         results.c = TailCallOrder()
+
 
 def test_tail_call():
     callee_server = TailCallee()

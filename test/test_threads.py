@@ -11,6 +11,7 @@ import pytest
 import capnp
 import test_capability_capnp
 
+
 @pytest.mark.skipif(
     platform.python_implementation() == 'PyPy',
     reason="pycapnp's GIL handling isn't working properly at the moment for PyPy"
@@ -24,6 +25,7 @@ def test_making_event_loop():
 
     capnp.remove_event_loop()
     capnp.create_event_loop()
+
 
 @pytest.mark.skipif(
     platform.python_implementation() == 'PyPy',

@@ -5,27 +5,34 @@ import sys
 
 this_dir = os.path.dirname(__file__)
 
+
 @pytest.fixture
 def addressbook():
     return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+
 
 @pytest.fixture
 def foo():
     return capnp.load(os.path.join(this_dir, 'foo.capnp'))
 
+
 @pytest.fixture
 def bar():
     return capnp.load(os.path.join(this_dir, 'bar.capnp'))
 
+
 def test_basic_load():
     capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+
 
 def test_constants(addressbook):
     assert addressbook.qux == 123
 
+
 def test_classes(addressbook):
     assert addressbook.AddressBook
     assert addressbook.Person
+
 
 def test_import(foo, bar):
     m = capnp._MallocMessageBuilder()
@@ -37,6 +44,7 @@ def test_import(foo, bar):
     bar.foo = foo
 
     assert bar.foo.name == 'foo'
+
 
 def test_failed_import():
     s = capnp.SchemaParser()
@@ -55,17 +63,21 @@ def test_failed_import():
     with pytest.raises(Exception):
         bar.foo = foo
 
+
 def test_defualt_import_hook():
     # Make sure any previous imports of addressbook_capnp are gone
     capnp.cleanup_global_schema_parser()
 
-    import addressbook_capnp # noqa: F401
+    import addressbook_capnp  # noqa: F401
+
 
 def test_dash_import():
-    import addressbook_with_dashes_capnp # noqa: F401
+    import addressbook_with_dashes_capnp  # noqa: F401
+
 
 def test_spaces_import():
-    import addressbook_with_spaces_capnp # noqa: F401
+    import addressbook_with_spaces_capnp  # noqa: F401
+
 
 def test_add_import_hook():
     capnp.add_import_hook([this_dir])
@@ -75,6 +87,7 @@ def test_add_import_hook():
 
     import addressbook_capnp
     addressbook_capnp.AddressBook.new_message()
+
 
 def test_multiple_add_import_hook():
     capnp.add_import_hook()
@@ -87,12 +100,14 @@ def test_multiple_add_import_hook():
     import addressbook_capnp
     addressbook_capnp.AddressBook.new_message()
 
+
 def test_remove_import_hook():
     capnp.add_import_hook([this_dir])
     capnp.remove_import_hook()
 
     if 'addressbook_capnp' in sys.modules:
-        del sys.modules['addressbook_capnp'] # hack to deal with it being imported already
+        # hack to deal with it being imported already
+        del sys.modules['addressbook_capnp']
 
     with pytest.raises(ImportError):
-        import addressbook_capnp # noqa: F401
+        import addressbook_capnp  # noqa: F401

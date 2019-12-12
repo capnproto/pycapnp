@@ -14,8 +14,10 @@ from .misc import get_output_error
 pjoin = os.path.join
 
 # LIB_PAT from delocate
-LIB_PAT = re.compile(r"\s*(.*) \(compatibility version (\d+\.\d+\.\d+), "
-                   r"current version (\d+\.\d+\.\d+)\)")
+LIB_PAT = re.compile(
+    r"\s*(.*) \(compatibility version (\d+\.\d+\.\d+), current version (\d+\.\d+\.\d+)\)"
+)
+
 
 def _get_libs(fname):
     rc, so, se = get_output_error(['otool', '-L', fname])
@@ -27,6 +29,7 @@ def _get_libs(fname):
         if m:
             yield m.group(1)
 
+
 def _find_library(lib, path):
     """Find a library"""
     for d in path[::-1]:
@@ -35,10 +38,12 @@ def _find_library(lib, path):
             return real_lib
     return None
 
+
 def _install_name_change(fname, lib, real_lib):
     rc, so, se = get_output_error(['install_name_tool', '-change', lib, real_lib, fname])
     if rc:
         logging.error("Couldn't update load path: %s", se)
+
 
 def patch_lib_paths(fname, library_dirs):
     """Load any weakly-defined libraries from their real location

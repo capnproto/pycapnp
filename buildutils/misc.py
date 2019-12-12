@@ -24,8 +24,10 @@ def customize_mingw(cc):
     if 'msvcr90' in cc.dll_libraries:
         cc.dll_libraries.remove('msvcr90')
 
+
 def customize_msvc(cc):
     pass
+
 
 def get_compiler(compiler, **compiler_attrs):
     """get and customize a compiler"""

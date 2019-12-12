@@ -11,6 +11,3 @@ pytest = "*"
 tox = "*"
 Jinja2 = "*"
 Cython = "*"
-
-[requires]
-python_version = "3.7"

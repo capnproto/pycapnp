@@ -10,9 +10,11 @@ import sys
 
 this_dir = os.path.dirname(__file__)
 
+
 @pytest.fixture
 def all_types():
     return capnp.load(os.path.join(this_dir, 'all_types.capnp'))
+
 
 def test_roundtrip_file(all_types):
     f = tempfile.TemporaryFile()
@@ -24,6 +26,7 @@ def test_roundtrip_file(all_types):
     msg = all_types.TestAllTypes.read(f)
     test_regression.check_all_types(msg)
 
+
 def test_roundtrip_file_packed(all_types):
     f = tempfile.TemporaryFile()
     msg = all_types.TestAllTypes.new_message()
@@ -34,6 +37,7 @@ def test_roundtrip_file_packed(all_types):
     msg = all_types.TestAllTypes.read_packed(f)
     test_regression.check_all_types(msg)
 
+
 def test_roundtrip_bytes(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -41,6 +45,7 @@ def test_roundtrip_bytes(all_types):
 
     msg = all_types.TestAllTypes.from_bytes(message_bytes)
     test_regression.check_all_types(msg)
+
 
 @pytest.mark.skipif(
     platform.python_implementation() == 'PyPy',
@@ -52,6 +57,7 @@ def test_roundtrip_segments(all_types):
     segments = msg.to_segments()
     msg = all_types.TestAllTypes.from_segments(segments)
     test_regression.check_all_types(msg)
+
 
 @pytest.mark.skipif(sys.version_info[0] < 3, reason="mmap doesn't implement the buffer interface under python 2.")
 def test_roundtrip_bytes_mmap(all_types):
@@ -68,6 +74,7 @@ def test_roundtrip_bytes_mmap(all_types):
         msg = all_types.TestAllTypes.from_bytes(memory)
         test_regression.check_all_types(msg)
 
+
 @pytest.mark.skipif(sys.version_info[0] < 3, reason="memoryview is a builtin on Python 3")
 def test_roundtrip_bytes_buffer(all_types):
     msg = all_types.TestAllTypes.new_message()
@@ -78,9 +85,11 @@ def test_roundtrip_bytes_buffer(all_types):
     msg = all_types.TestAllTypes.from_bytes(v)
     test_regression.check_all_types(msg)
 
+
 def test_roundtrip_bytes_fail(all_types):
     with pytest.raises(TypeError):
         all_types.TestAllTypes.from_bytes(42)
+
 
 @pytest.mark.skipif(
     platform.python_implementation() == 'PyPy',
@@ -93,6 +102,7 @@ def test_roundtrip_bytes_packed(all_types):
 
     msg = all_types.TestAllTypes.from_bytes_packed(message_bytes)
     test_regression.check_all_types(msg)
+
 
 def test_roundtrip_file_multiple(all_types):
     f = tempfile.TemporaryFile()
@@ -109,6 +119,7 @@ def test_roundtrip_file_multiple(all_types):
         i += 1
     assert i == 3
 
+
 def test_roundtrip_bytes_multiple(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -122,6 +133,7 @@ def test_roundtrip_bytes_multiple(all_types):
         test_regression.check_all_types(msg)
         i += 1
     assert i == 3
+
 
 def test_roundtrip_file_multiple_packed(all_types):
     f = tempfile.TemporaryFile()
@@ -138,6 +150,7 @@ def test_roundtrip_file_multiple_packed(all_types):
         i += 1
     assert i == 3
 
+
 def test_roundtrip_bytes_multiple_packed(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -152,6 +165,7 @@ def test_roundtrip_bytes_multiple_packed(all_types):
         i += 1
     assert i == 3
 
+
 @pytest.mark.skipif(
     platform.python_implementation() == 'PyPy',
     reason="This works on my local PyPy v2.5.0, but is for some reason broken on TravisCI. Skip for now."
@@ -164,6 +178,7 @@ def test_roundtrip_dict(all_types):
     msg = all_types.TestAllTypes.from_dict(d)
     test_regression.check_all_types(msg)
 
+
 def test_file_and_bytes(all_types):
     f = tempfile.TemporaryFile()
     msg = all_types.TestAllTypes.new_message()
@@ -173,6 +188,7 @@ def test_file_and_bytes(all_types):
     f.seek(0)
 
     assert f.read() == msg.to_bytes()
+
 
 def test_file_and_bytes_packed(all_types):
     f = tempfile.TemporaryFile()
@@ -184,6 +200,7 @@ def test_file_and_bytes_packed(all_types):
 
     assert f.read() == msg.to_bytes_packed()
 
+
 def test_pickle(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -191,6 +208,7 @@ def test_pickle(all_types):
     msg2 = pickle.loads(data)
 
     test_regression.check_all_types(msg2)
+
 
 def test_from_bytes_traversal_limit(all_types):
     size = 1024
@@ -203,8 +221,10 @@ def test_from_bytes_traversal_limit(all_types):
         for i in range(0, size):
             msg.structList[i].uInt8Field == 0
 
-    msg = all_types.TestAllTypes.from_bytes(data,
-        traversal_limit_in_words=2**62)
+    msg = all_types.TestAllTypes.from_bytes(
+        data,
+        traversal_limit_in_words=2**62
+    )
     for i in range(0, size):
         assert msg.structList[i].uInt8Field == 0
 
@@ -220,7 +240,9 @@ def test_from_bytes_packed_traversal_limit(all_types):
         for i in range(0, size):
             msg.structList[i].uInt8Field == 0
 
-    msg = all_types.TestAllTypes.from_bytes_packed(data,
-        traversal_limit_in_words=2**62)
+    msg = all_types.TestAllTypes.from_bytes_packed(
+        data,
+        traversal_limit_in_words=2**62
+    )
     for i in range(0, size):
         assert msg.structList[i].uInt8Field == 0
