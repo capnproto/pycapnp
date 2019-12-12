@@ -1,4 +1,4 @@
-name: Python Test Packaging
+name: Packaging Test
 
 on: [push, pull_request]
 
