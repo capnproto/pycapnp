@@ -1,0 +1,26 @@
+name: manylinux2010
+
+on: [push, pull_request]
+
+jobs:
+  manylinux2010:
+
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container-image }}
+    strategy:
+      matrix:
+          python-version: ['cp37-cp37m', 'cp38-cp38']
+          container-image: ['quay.io/pypa/manylinux2010_x86_64', 'quay.io/pypa/manylinux2010_i686']
+
+    steps:
+    - uses: actions/checkout@v1
+    # capnproto build requires cmake 3+, CentOS 6 (manylinux2010) defaults to cmake 2.8
+    - name: Install dependencies
+      run: |
+        yum install -y cmake3 ninja-build
+        ln -sf /usr/bin/cmake3 /usr/local/bin/cmake
+        ln -s /usr/bin/ninja-build /usr/local/bin/ninja
+        /opt/python/${{ matrix.python-version }}/bin/python -m pip install -r requirements.txt
+    - name: Build pycapnp and install
+      run: |
+        /opt/python/${{ matrix.python-version }}/bin/python setup.py build

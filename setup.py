@@ -119,6 +119,7 @@ class build_libcapnp_ext(build_ext_c):
             capnp_executable = find_executable("capnp")
             if capnp_executable:
                 self.include_dirs += [os.path.join(os.path.dirname(capnp_executable), '..', 'include')]
+                self.library_dirs += [os.path.join(os.path.dirname(capnp_executable), '..', 'lib{}'.format(8 * struct.calcsize("P")))]
                 self.library_dirs += [os.path.join(os.path.dirname(capnp_executable), '..', 'lib')]
 
             # Try to autodetect presence of library. Requires compile/run
@@ -156,6 +157,7 @@ class build_libcapnp_ext(build_ext_c):
                 info("capnproto already built at {}".format(build_dir))
 
             self.include_dirs += [os.path.join(build_dir, 'include')]
+            self.library_dirs += [os.path.join(build_dir, 'lib{}'.format(8 * struct.calcsize("P")))]
             self.library_dirs += [os.path.join(build_dir, 'lib')]
 
         return build_ext_c.run(self)
