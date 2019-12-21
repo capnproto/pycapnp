@@ -1,6 +1,7 @@
 # pycapnp
 
 [![Actions Status](https://github.com/capnproto/pycapnp/workflows/Packaging%20Test/badge.svg)](https://github.com/capnproto/pycapnp/actions)
+[![Actions Status](https://github.com/capnproto/pycapnp/workflows/manylinux2010/badge.svg)](https://github.com/capnproto/pycapnp/actions)
 
 [Cap'n'proto Mailing List](https://groups.google.com/forum/#!forum/capnproto)
 
