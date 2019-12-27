@@ -3,3 +3,4 @@ cython
 setuptools
 pytest
 tox
+wheel
