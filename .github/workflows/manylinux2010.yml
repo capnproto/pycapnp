@@ -21,6 +21,7 @@ jobs:
         ln -sf /usr/bin/cmake3 /usr/local/bin/cmake
         ln -s /usr/bin/ninja-build /usr/local/bin/ninja
         /opt/python/${{ matrix.python-version }}/bin/python -m pip install -r requirements.txt
+        /opt/python/${{ matrix.python-version }}/bin/python -m pip install auditwheel
     - name: Build pycapnp and install
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python setup.py build
@@ -28,6 +29,7 @@ jobs:
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python setup.py bdist_wheel
         /opt/python/${{ matrix.python-version }}/bin/python setup.py sdist
+        /opt/python/${{ matrix.python-version }}/bin/auditwheel repair dist/*linux_*.whl
     - uses: actions/upload-artifact@v1.0.0
       with:
         name: manylinux2010_dist
