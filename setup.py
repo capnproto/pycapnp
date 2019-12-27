@@ -20,10 +20,11 @@ from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
 
 _this_dir = os.path.dirname(__file__)
 
-MAJOR = 0
-MINOR = 7
+MAJOR = 1
+MINOR = 0
 MICRO = 0
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+TAG = 'b1'
+VERSION = '%d.%d.%d%s' % (MAJOR, MINOR, MICRO, TAG)
 
 
 # Write version info

@@ -1,7 +1,9 @@
-## v0.7.0 (2019-10-21)
+## v1.0.0b1 (2019-12-26)
 - Python 3.7+ required (asyncio support)
 - TLS/SSL support using asyncio
 - Windows support
+- General cleanup
+- May be incompatible with code written for pycapnp 0.6.4 and lower
 
 ## v0.6.4 (2019-01-31)
 - Fix bugs in `read_multiple_bytes` (thanks to @tsh56)
