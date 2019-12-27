@@ -1,6 +1,5 @@
 jinja2
 cython
 setuptools
-pypandoc
 pytest
 tox

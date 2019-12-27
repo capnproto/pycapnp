@@ -17,7 +17,7 @@ jobs:
     # capnproto build requires cmake 3+, CentOS 6 (manylinux2010) defaults to cmake 2.8
     - name: Install dependencies
       run: |
-        yum install -y cmake3 ninja-build pandoc
+        yum install -y cmake3 ninja-build
         ln -sf /usr/bin/cmake3 /usr/local/bin/cmake
         ln -s /usr/bin/ninja-build /usr/local/bin/ninja
         /opt/python/${{ matrix.python-version }}/bin/python -m pip install -r requirements.txt

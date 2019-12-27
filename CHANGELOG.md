@@ -4,6 +4,7 @@
 - Windows support
 - General cleanup
 - May be incompatible with code written for pycapnp 0.6.4 and lower
+- Removing pypandoc/pandoc packaging requirement
 
 ## v0.6.4 (2019-01-31)
 - Fix bugs in `read_multiple_bytes` (thanks to @tsh56)
