@@ -28,7 +28,7 @@ def div(a, b):
     if a == MIN_INT and b == -1:
         return MAX_INT
 
-    return a / b
+    return a // b
 
 def mod(a, b):
     if b == 0:

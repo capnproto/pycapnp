@@ -25,7 +25,7 @@ def random_car(car):
     car.length = 170 + rand_int(150)
     car.width = 48 + rand_int(36)
     car.height = 54 + rand_int(48)
-    car.weight = car.length * car.width * car.height / 200
+    car.weight = car.length * car.width * car.height // 200
 
     engine = car.engine
     engine.horsepower = 100 * rand_int(400)
@@ -51,7 +51,7 @@ def calc_value(car):
         result += wheel.diameter * wheel.diameter
         result += 100 if wheel.snow_tires else 0
 
-    result += car.length * car.width * car.height / 50
+    result += car.length * car.width * car.height // 50
 
     engine = car.engine
     result += engine.horsepower * 40

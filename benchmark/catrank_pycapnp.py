@@ -4,8 +4,12 @@ import capnp
 import catrank_capnp
 from common import rand_int, rand_double, rand_bool, WORDS
 from random import choice
-from string import letters
-from itertools import izip
+from string import ascii_letters
+try:
+  # Python 2
+  from itertools import izip
+except ImportError:
+  izip = zip
 
 class Benchmark:
     def __init__(self, compression):
@@ -29,7 +33,7 @@ class Benchmark:
         for i, result in enumerate(results):
             result.score = 1000 - i
             url_size = rand_int(100)
-            result.url = "http://example.com/" + ''.join([choice(letters) for _ in range(url_size)])
+            result.url = "http://example.com/" + ''.join([choice(ascii_letters) for _ in range(url_size)])
 
             isCat = rand_bool()
             isDog = rand_bool()
