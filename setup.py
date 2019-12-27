@@ -200,6 +200,7 @@ setup(
     # PyPi info
     description="A cython wrapping of the C++ Cap'n Proto library",
     long_description=long_description,
+    long_description_content_type = 'text/x-rst',
     license='BSD',
     author="Jacob Alexander", # <- Current maintainer; Original author -> Jason Paryani (setup.py only supports 1 author...)
     author_email="haata@kiibohd.com",
