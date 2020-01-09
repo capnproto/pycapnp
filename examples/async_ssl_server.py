@@ -3,14 +3,18 @@
 from __future__ import print_function
 
 import argparse
-import os
-import capnp
-
-import thread_capnp
 import asyncio
+import logging
+import os
 import socket
 import ssl
 
+import capnp
+import thread_capnp
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,31 +35,71 @@ class ExampleImpl(thread_capnp.Example.Server):
         return True
 
 
-async def myreader(server, reader):
-    while True:
-        data = await reader.read(4096)
-        # Close connection if 0 bytes read
-        if len(data) == 0:
-            server.close()
-        await server.write(data)
+class Server:
+    async def myreader(self):
+        while self.retry:
+            try:
+                # Must be a wait_for so we don't block on read()
+                data = await asyncio.wait_for(
+                    self.reader.read(4096),
+                    timeout=0.1
+                )
+            except asyncio.TimeoutError:
+                logger.debug("myreader timeout.")
+                continue
+            except Exception as err:
+                logger.error("Unknown myreader err: %s", err)
+                return False
+            await self.server.write(data)
+        logger.debug("myreader done.")
+        return True
 
 
-async def mywriter(server, writer):
-    while True:
-        data = await server.read(4096)
-        writer.write(data.tobytes())
-        await writer.drain()
+    async def mywriter(self):
+        while self.retry:
+            try:
+                # Must be a wait_for so we don't block on read()
+                data = await asyncio.wait_for(
+                    self.server.read(4096),
+                    timeout=0.1
+                )
+                self.writer.write(data.tobytes())
+            except asyncio.TimeoutError:
+                logger.debug("mywriter timeout.")
+                continue
+            except Exception as err:
+                logger.error("Unknown mywriter err: %s", err)
+                return False
+        logger.debug("mywriter done.")
+        return True
 
 
-async def myserver(reader, writer):
-    # Start TwoPartyServer using TwoWayPipe (only requires bootstrap)
-    server = capnp.TwoPartyServer(bootstrap=ExampleImpl())
+    async def myserver(self, reader, writer):
+        # Start TwoPartyServer using TwoWayPipe (only requires bootstrap)
+        self.server = capnp.TwoPartyServer(bootstrap=ExampleImpl())
+        self.reader = reader
+        self.writer = writer
+        self.retry = True
 
-    # Assemble reader and writer tasks, run in the background
-    coroutines = [myreader(server, reader), mywriter(server, writer)]
-    asyncio.gather(*coroutines, return_exceptions=True)
+        # Assemble reader and writer tasks, run in the background
+        coroutines = [self.myreader(), self.mywriter()]
+        tasks = asyncio.gather(*coroutines, return_exceptions=True)
 
-    await server.poll_forever()
+        while True:
+            self.server.poll_once()
+            # Check to see if reader has been sent an eof (disconnect)
+            if self.reader.at_eof():
+                self.retry = False
+                break
+            await asyncio.sleep(0.01)
+
+        # Make wait for reader/writer to finish (prevent possible resource leaks)
+        await tasks
+
+
+async def new_connection(reader, writer):
+    server = Server()
+    await server.myserver(reader, writer)
 
 
 def parse_args():
@@ -81,14 +125,14 @@ async def main():
     try:
         print("Try IPv4")
         server = await asyncio.start_server(
-            myserver,
+            new_connection,
             addr, port,
             ssl=ctx,
         )
     except Exception:
         print("Try IPv6")
         server = await asyncio.start_server(
-            myserver,
+            new_connection,
             addr, port,
             ssl=ctx,
             family=socket.AF_INET6,

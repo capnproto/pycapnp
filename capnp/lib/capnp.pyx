@@ -2406,6 +2406,9 @@ cdef class TwoPartyServer:
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
+    def poll_once(self):
+        return poll_once()
+
     async def poll_forever(self):
         while True:
             poll_once()
