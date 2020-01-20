@@ -4026,7 +4026,7 @@ class _Importer:
             has_underscores = True
 
         if package_path:
-            paths = package_path
+            paths = list(package_path)
         else:
             paths = _sys.path
         join_path = _os.path.join
