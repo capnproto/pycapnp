@@ -98,7 +98,7 @@ For now, let's grab the first element out of this list and assign it to a variab
 
     alice = people[0]
 
-.. note:: It is a very bad idea to call `init` more than once on a single field. Every call to `init` allocates new memory inside your Cap'n Proto message, and if you call it more than once, the previous memory is leaked.
+.. note:: It is a very bad idea to call `init` more than once on a single field. Every call to `init` allocates new memory inside your Cap'n Proto message, and if you call it more than once, the previous memory is left as dead space in the message. See `https://capnproto.org/cxx.html#tips-and-best-practices <Chapter about Tips and Best Practices> for more details`_.
 
 Primitive Types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
