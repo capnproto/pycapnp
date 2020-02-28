@@ -4,7 +4,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
     pass
 
 from libcpp cimport bool
-from schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
+from capnp.includes.schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
 from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler
 from capnp.includes.types cimport *
 
