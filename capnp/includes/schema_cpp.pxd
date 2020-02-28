@@ -2,7 +2,7 @@
 # distutils: language = c++
 
 from libc.stdint cimport *
-from capnp_cpp cimport DynamicOrphan
+from capnp.includes.capnp_cpp cimport DynamicOrphan
 from capnp.helpers.non_circular cimport reraise_kj_exception
 
 from capnp.includes.types cimport *
