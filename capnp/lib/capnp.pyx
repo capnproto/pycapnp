@@ -73,8 +73,8 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
         if ret is not None:
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
-            elif type(ret) is Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
+            elif type(ret) is _Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
             else:
                 try:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise: return = %s' % (method_name, str(ret))
@@ -83,10 +83,10 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
                 _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
 
         if ret is not None:
-            if type(ret) is Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
-            elif type(ret) is Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
+            if type(ret) is _Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+            elif type(ret) is _Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
             else:
                 try:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise: return = %s' % (method_name, str(ret))
@@ -103,8 +103,8 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
         if ret is not None:
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
-            elif type(ret) is Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<Promise>ret).thisptr)))
+            elif type(ret) is _Promise:
+                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
             if not isinstance(ret, tuple):
                 ret = (ret,)
             names = _find_field_order(context.results.schema.node.struct)
@@ -121,8 +121,8 @@ cdef public convert_array_pyobject(PyArray & arr) with gil:
     return [<object>arr[i] for i in range(arr.size())]
 
 cdef public PyPromise * extract_promise(object obj) with gil:
-    if type(obj) is Promise:
-        promise = <Promise>obj
+    if type(obj) is _Promise:
+        promise = <_Promise>obj
 
         ret = new PyPromise(promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>promise)))
         Py_DECREF(obj)
@@ -271,7 +271,7 @@ ctypedef fused _DynamicSetterClasses:
     DynamicStruct_Builder
 
 ctypedef fused PromiseTypes:
-    Promise
+    _Promise
     _RemotePromise
     _VoidPromise
     PromiseFulfillerPair
@@ -1766,7 +1766,7 @@ cdef class _CallContext:
         promise.is_consumed = True
         return promise
 
-cdef class Promise:
+cdef class _Promise:
     cdef PyPromise * thisptr
     cdef public bint is_consumed
     cdef public object _parent, _obj
@@ -1818,14 +1818,14 @@ cdef class Promise:
             if args_length - defaults_length != 1:
                 raise KjException('Function passed to `then` call must take exactly one argument')
 
-        cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        cdef _Promise new_promise = _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return _Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     def attach(self, *args):
         if self.is_consumed:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
-        ret = Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
+        ret = _Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
         self.is_consumed = True
 
         return ret
@@ -1881,13 +1881,13 @@ cdef class _VoidPromise:
             if args_length - defaults_length != 0:
                 raise KjException('Function passed to `then` call must take no arguments')
 
-        cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        cdef _Promise new_promise = _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return _Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
-        return Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
+        return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     def attach(self, *args):
         if self.is_consumed:
@@ -1950,7 +1950,7 @@ cdef class _RemotePromise:
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
-        return Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
+        return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
@@ -1967,8 +1967,8 @@ cdef class _RemotePromise:
             if args_length - defaults_length != 1:
                 raise KjException('Function passed to `then` call must take exactly one argument')
 
-        cdef Promise new_promise = Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        cdef _Promise new_promise = _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return _Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
@@ -2023,17 +2023,17 @@ cpdef join_promises(promises) except +reraise_kj_exception:
 
     for promise in promises:
         promise_type = type(promise)
-        if promise_type is Promise:
-            pyPromise = <Promise>promise
+        if promise_type is _Promise:
+            pyPromise = <_Promise>promise
         elif promise_type is _RemotePromise or promise_type is _VoidPromise:
-            pyPromise = <Promise>promise.as_pypromise()
+            pyPromise = <_Promise>promise.as_pypromise()
             new_promises_append(pyPromise)
         else:
             raise KjException('One of the promises passed to `join_promises` had a non promise value of: ' + str(promise))
         heap.add(movePromise(deref(pyPromise.thisptr)))
         pyPromise.is_consumed = True
 
-    return Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
+    return _Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
 
 cdef class _Request(_DynamicStructBuilder):
     cdef Request * thisptr_child
@@ -2390,7 +2390,7 @@ cdef class TwoPartyServer:
         self._bootstrap = bootstrap
         Py_INCREF(self._bootstrap)
         schema = bootstrap.schema
-        self.port_promise = Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string, opts))
+        self.port_promise = _Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string, opts))
 
     def _decref(self):
         Py_DECREF(self._bootstrap)

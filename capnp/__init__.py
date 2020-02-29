@@ -51,6 +51,7 @@ from .lib.capnp import (
     _StructModule,
     _write_message_to_fd,
     _write_packed_message_to_fd,
+    _Promise as Promise,
 )
 
 add_import_hook() # enable import hook by default
