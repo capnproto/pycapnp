@@ -168,7 +168,7 @@ if os.name == 'nt':
 import Cython.Build
 import Cython # noqa: F401
 extensions = [Extension(
-    '*', ['capnp/lib/*.pyx'],
+    '*', ['capnp/helpers/capabilityHelper.cpp', 'capnp/lib/*.pyx'],
     extra_compile_args=extra_compile_args,
     extra_link_args=extra_link_args,
     language='c++',

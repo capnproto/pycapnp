@@ -2,7 +2,7 @@
 
 from capnp.includes cimport capnp_cpp as capnp
 from capnp.includes cimport schema_cpp
-from capnp.includes.capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, EnumSchema as C_EnumSchema, ListSchema as C_ListSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, PyPromise, VoidPromise, CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, PyArray, DynamicStruct_Builder, TwoWayPipe
+from capnp.includes.capnp_cpp cimport Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema, EnumSchema as C_EnumSchema, ListSchema as C_ListSchema, DynamicStruct as C_DynamicStruct, DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr, String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject, DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, Promise, CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability, TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork, PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller, PyArray, DynamicStruct_Builder, TwoWayPipe
 from capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from capnp.includes.types cimport *
 from capnp.helpers.non_circular cimport reraise_kj_exception
@@ -130,6 +130,15 @@ cdef class _DynamicListBuilder:
 
     cpdef init(self, index, size)
 
+cdef class _MessageBuilder:
+    cdef schema_cpp.MessageBuilder * thisptr
+    cpdef init_root(self, schema)
+    cpdef get_root(self, schema) except +reraise_kj_exception
+    cpdef get_root_as_any(self) except +reraise_kj_exception
+    cpdef set_root(self, value) except +reraise_kj_exception
+    cpdef get_segments_for_output(self) except +reraise_kj_exception
+    cpdef new_orphan(self, schema) except +reraise_kj_exception
+
 cdef to_python_reader(C_DynamicValue.Reader self, object parent)
 cdef to_python_builder(C_DynamicValue.Builder self, object parent)
 cdef _to_dict(msg, bint verbose, bint ordered)
@@ -137,3 +146,13 @@ cdef _from_list(_DynamicListBuilder msg, list d)
 cdef _from_tuple(_DynamicListBuilder msg, tuple d)
 cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent)
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
+
+cdef api object wrap_dynamic_struct_reader(Response & r) with gil
+cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil
+cdef api Promise[void] * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except * with gil
+cdef api convert_array_pyobject(PyArray & arr) with gil
+cdef api Promise[PyObject*] * extract_promise(object obj) with gil
+cdef api RemotePromise * extract_remote_promise(object obj) with gil
+cdef api object wrap_kj_exception(capnp.Exception & exception) with gil
+cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil
+cdef api object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil

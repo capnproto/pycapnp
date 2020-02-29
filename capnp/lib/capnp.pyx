@@ -9,8 +9,8 @@
 
 cimport cython
 
-from capnp.helpers.helpers cimport AsyncIoStreamReadHelper
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope
+from capnp.helpers.helpers cimport AsyncIoStreamReadHelper, init_capnp_api
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
@@ -48,10 +48,10 @@ def deregister_all_types():
     _type_registry = {}
 
 # By making it public, we'll be able to call it from capabilityHelper.h
-cdef public object wrap_dynamic_struct_reader(Response & r) with gil:
+cdef api object wrap_dynamic_struct_reader(Response & r) with gil:
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
 
-cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil:
+cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
 
     func_obj = <object>func
@@ -62,7 +62,7 @@ cdef public PyObject * wrap_remote_call(PyObject * func, Response & r) except * 
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
 
-cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except * with gil:
+cdef api VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except * with gil:
     server = <object>_server
     method_name = <object>_method_name
 
@@ -117,10 +117,10 @@ cdef public VoidPromise * call_server_method(PyObject * _server, char * _method_
 
     return NULL
 
-cdef public convert_array_pyobject(PyArray & arr) with gil:
+cdef api convert_array_pyobject(PyArray & arr) with gil:
     return [<object>arr[i] for i in range(arr.size())]
 
-cdef public PyPromise * extract_promise(object obj) with gil:
+cdef api PyPromise * extract_promise(object obj) with gil:
     if type(obj) is _Promise:
         promise = <_Promise>obj
 
@@ -131,7 +131,7 @@ cdef public PyPromise * extract_promise(object obj) with gil:
 
     return NULL
 
-cdef public RemotePromise * extract_remote_promise(object obj) with gil:
+cdef api RemotePromise * extract_remote_promise(object obj) with gil:
     if type(obj) is _RemotePromise:
         promise = <_RemotePromise>obj
         promise.is_consumed = True
@@ -235,20 +235,20 @@ class KjException(Exception):
                 return AttributeError(message)
         return self
 
-cdef public object wrap_kj_exception(capnp.Exception & exception) with gil:
+cdef api object wrap_kj_exception(capnp.Exception & exception) with gil:
     PyErr_Clear()
     wrapper = _KjExceptionWrapper()._init(exception)
     ret = KjException(wrapper=wrapper)
 
     return ret
 
-cdef public object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil:
+cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil:
     wrapper = _KjExceptionWrapper()._init(exception)
 
     ret = KjException(wrapper=wrapper)
     return ret
 
-cdef public object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil:
+cdef api object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil:
     try:
         return (exc_tb.tb_frame.f_code.co_filename.encode(), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode())
     except:
@@ -3250,7 +3250,6 @@ cdef class _MessageBuilder:
 
     .. warning:: Don't ever instantiate this class directly. It is only used for inheritance.
     """
-    cdef schema_cpp.MessageBuilder * thisptr
     def __dealloc__(self):
         del self.thisptr
 
@@ -4080,3 +4079,7 @@ def remove_import_hook():
     if _importer is not None:
         _sys.meta_path.remove(_importer)
     _importer = None
+
+def _init_capnp_api():
+    """ Initialize static function pointers for cdef api functions. """
+    init_capnp_api()
