@@ -2,7 +2,6 @@
 # distutils: language = c++
 
 from libc.stdint cimport *
-from capnp.includes.capnp_cpp cimport DynamicOrphan
 from capnp.helpers.non_circular cimport reraise_kj_exception
 
 from capnp.includes.types cimport *
@@ -19,6 +18,11 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
 
     cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder":
         pass
+
+cdef extern from "capnp/orphan.h" namespace " ::capnp":
+    cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>":
+        DynamicValue.Builder get()
+        DynamicValue.Reader getReader()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
     cdef cppclass Schema:
