@@ -4,8 +4,8 @@ cdef extern from "capnp/helpers/checkCompiler.h":
     pass
 
 from libcpp cimport bool
-from capnp.includes.schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
 from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler
+from capnp.includes.schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
 from capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
@@ -517,3 +517,10 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Own[PromiseFulfiller] fulfiller
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"()
     PyPromiseArray joinPromises(Array[PyPromise])
+
+cdef extern from "capnp/helpers/asyncIoHelper.h":
+    cdef cppclass AsyncIoStreamReadHelper:
+        AsyncIoStreamReadHelper(AsyncIoStream *, WaitScope *, size_t)
+        bool poll()
+        size_t read_size()
+        void* read_buffer()
