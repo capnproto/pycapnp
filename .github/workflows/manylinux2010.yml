@@ -13,6 +13,7 @@ jobs:
           container-image: ['quay.io/pypa/manylinux2010_x86_64', 'quay.io/pypa/manylinux2010_i686']
 
     steps:
+    # NOTE: Cannot use checkout@v2 as it requires a newer version glibc, but that's not possible with manylinux without a secondary sysroot
     - uses: actions/checkout@v1
     # capnproto build requires cmake 3+, CentOS 6 (manylinux2010) defaults to cmake 2.8
     - name: Install dependencies
