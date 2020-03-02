@@ -25,6 +25,7 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     PyPromise convert_to_pypromise(RemotePromise&)
     PyPromise convert_to_pypromise(VoidPromise&)
     VoidPromise convert_to_voidpromise(PyPromise&)
+    void init_capnp_api()
 
 cdef extern from "capnp/helpers/rpcHelper.h":
     Capability.Client bootstrapHelper(RpcSystem&)
