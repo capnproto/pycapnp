@@ -854,7 +854,7 @@ cdef _to_dict(msg, bint verbose, bint ordered):
         temp_list_rb = msg
         return [_to_dict(temp_list_rb._get(i), verbose, ordered) for i in range(len(msg))]
 
-    if msg_type is _DynamicStructBuilder:
+    if msg_type is _DynamicStructBuilder or isinstance(msg, _Request):
         temp_msg_b = msg
         if ordered:
             ret = _collections.OrderedDict()
@@ -871,7 +871,7 @@ cdef _to_dict(msg, bint verbose, bint ordered):
                 ret[field] = _to_dict(temp_msg_b._get(field), verbose, ordered)
 
         return ret
-    elif msg_type is _DynamicStructReader:
+    elif msg_type is _DynamicStructReader or isinstance(msg, _Response):
         temp_msg_r = msg
         if ordered:
             ret = _collections.OrderedDict()
