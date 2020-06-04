@@ -30,7 +30,7 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
 
 
 def start_status_thread(host):
-    client = capnp.TwoPartyClient(host)
+    client = capnp.TwoPartyClient(host, nesting_limit=64)
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     subscriber = StatusSubscriber()
@@ -39,7 +39,7 @@ def start_status_thread(host):
 
 
 def main(host):
-    client = capnp.TwoPartyClient(host)
+    client = capnp.TwoPartyClient(host, nesting_limit=64)
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     status_thread = threading.Thread(target=start_status_thread, args=(host,))

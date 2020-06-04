@@ -5,18 +5,19 @@ pycapnp distutils setup.py
 
 from __future__ import print_function
 
+import glob
 import os
+import shutil
 import struct
 import sys
 
+import pkgconfig
+
 from distutils.command.clean import clean as _clean
-from distutils.errors import CompileError
-from distutils.extension import Extension
-from distutils.spawn import find_executable
 
 from setuptools import setup, find_packages, Extension
 
-from buildutils import test_build, fetch_libcapnp, build_libcapnp, info
+from buildutils import fetch_libcapnp, build_libcapnp, info
 
 _this_dir = os.path.dirname(__file__)
 
@@ -69,12 +70,20 @@ class clean(_clean):
     '''
     def run(self):
         _clean.run(self)
-        for x in [ 'capnp/lib/capnp.cpp', 'capnp/lib/capnp.h', 'capnp/version.py' ]:
+        for x in [
+            os.path.join('capnp', 'lib', 'capnp.cpp'),
+            os.path.join('capnp', 'lib', 'capnp.h'),
+            os.path.join('capnp', 'version.py'),
+            'build',
+            'build32',
+            'build64',
+            'bundled'
+        ] + glob.glob(os.path.join('capnp', '*.capnp')):
             print('removing %s' % x)
             try:
                 os.remove(x)
             except OSError:
-                pass
+                shutil.rmtree(x, ignore_errors=True)
 
 
 # hack to parse commandline arguments
@@ -113,18 +122,20 @@ class build_libcapnp_ext(build_ext_c):
             need_build = False
         else:
             # Try to use capnp executable to find include and lib path
-            capnp_executable = find_executable("capnp")
+            capnp_executable = shutil.which("capnp")
             if capnp_executable:
                 self.include_dirs += [os.path.join(os.path.dirname(capnp_executable), '..', 'include')]
                 self.library_dirs += [os.path.join(os.path.dirname(capnp_executable), '..', 'lib{}'.format(8 * struct.calcsize("P")))]
                 self.library_dirs += [os.path.join(os.path.dirname(capnp_executable), '..', 'lib')]
 
-            # Try to autodetect presence of library. Requires compile/run
-            # step so only works for host (non-cross) compliation
+            # Look for capnproto using pkg-config (and minimum version)
             try:
-                test_build(include_dirs=self.include_dirs, library_dirs=self.library_dirs)
-                need_build = False
-            except CompileError:
+                if pkgconfig.installed('capnp', '>= 0.8.0'):
+                    need_build = False
+                else:
+                    need_build = True
+            except EnvironmentError:
+                # pkg-config not available in path
                 need_build = True
 
         if need_build:
@@ -156,6 +167,13 @@ class build_libcapnp_ext(build_ext_c):
             self.include_dirs += [os.path.join(build_dir, 'include')]
             self.library_dirs += [os.path.join(build_dir, 'lib{}'.format(8 * struct.calcsize("P")))]
             self.library_dirs += [os.path.join(build_dir, 'lib')]
+
+            # Copy .capnp files from source
+            src_glob = glob.glob(os.path.join(build_dir, 'include', 'capnp', '*.capnp'))
+            dst_dir = os.path.join(self.build_lib, "capnp")
+            for file in src_glob:
+                info("copying {} -> {}".format(file, dst_dir))
+                shutil.copy(file, dst_dir)
 
         return build_ext_c.run(self)
 

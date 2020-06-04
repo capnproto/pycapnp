@@ -56,6 +56,7 @@ async def main(host):
         print("Try IPv4")
         reader, writer = await asyncio.open_connection(
             addr, port,
+            family=socket.AF_INET
         )
     except Exception:
         print("Try IPv6")

@@ -24,6 +24,8 @@ jobs:
         /opt/python/${{ matrix.python-version }}/bin/python -m pip install -r requirements.txt
         /opt/python/${{ matrix.python-version }}/bin/python -m pip install auditwheel
     - name: Build pycapnp and install
+      env:
+        LDFLAGS: -Wl,--no-as-needed -lrt
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python setup.py build
     - name: Packaging

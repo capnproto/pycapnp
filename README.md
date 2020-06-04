@@ -20,7 +20,7 @@
   - ninja (macOS + Linux)
   - Visual Studio 2017+
 
-* capnproto-0.7.0
+* capnproto-0.8.0
   - Not necessary if using bundled capnproto
 
 32-bit Linux requires that capnproto be compiled with `-fPIC`. This is usually set correctly unless you are compiling canproto yourself. This is also called `-DCMAKE_POSITION_INDEPENDENT_CODE=1` for cmake.
@@ -53,6 +53,18 @@ To force bundled python:
 
 ```bash
 pip install --install-option "--force-bundled-libcapnp" .
+```
+
+Slightly more prompt error messages using distutils rather than pip.
+
+```bash
+python setup.py install --force-bundled-libcapnp
+```
+
+The bundling system isn't that smart so it might be necessary to clean up the bundled build when changing versions:
+
+```bash
+python setup.py clean
 ```
 
 

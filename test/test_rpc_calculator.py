@@ -14,6 +14,17 @@ sys.path.append(examples_dir)
 import calculator_client  # noqa: E402
 import calculator_server  # noqa: E402
 
+# Uses run_subprocesses function
+import test_examples
+
+processes = []
+
+@pytest.fixture
+def cleanup():
+    yield
+    for p in processes:
+        p.kill()
+
 
 def test_calculator():
     read, write = socket.socketpair()
@@ -22,53 +33,13 @@ def test_calculator():
     calculator_client.main(read)
 
 
-def run_subprocesses(address):
-    cmd = [sys.executable, os.path.join(examples_dir, 'calculator_server.py'), address]
-    server = subprocess.Popen(cmd)
-    retries = 30
-    if 'unix' in address:
-        addr = address.split(':')[1]
-        while True:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            result = sock.connect_ex(addr)
-            if result == 0:
-                break
-            # Give the server some small amount of time to start listening
-            time.sleep(0.1)
-            retries -= 1
-            if retries == 0:
-                assert False, "Timed out waiting for server to start"
-    else:
-        addr, port = address.split(':')
-        while True:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex((addr, int(port)))
-            if result == 0:
-                break
-            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-            result = sock.connect_ex((addr, int(port)))
-            if result == 0:
-                break
-            # Give the server some small amount of time to start listening
-            time.sleep(0.1)
-            retries -= 1
-            if retries == 0:
-                assert False, "Timed out waiting for server to start"
-    cmd = [sys.executable, os.path.join(examples_dir, 'calculator_client.py'), address]
-    client = subprocess.Popen(cmd)
-
-    ret = client.wait()
-    server.kill()
-    assert ret == 0
-
-
-def test_calculator_tcp():
+def test_calculator_tcp(cleanup):
     address = 'localhost:36431'
-    run_subprocesses(address)
+    test_examples.run_subprocesses(address, 'calculator_server.py', 'calculator_client.py')
 
 
 @pytest.mark.skipif(os.name == 'nt', reason="socket.AF_UNIX not supported on Windows")
-def test_calculator_unix():
+def test_calculator_unix(cleanup):
     path = '/tmp/pycapnp-test'
     try:
         os.unlink(path)
@@ -76,7 +47,7 @@ def test_calculator_unix():
         pass
 
     address = 'unix:' + path
-    run_subprocesses(address)
+    test_examples.run_subprocesses(address, 'calculator_server.py', 'calculator_client.py')
 
 
 def test_calculator_gc():

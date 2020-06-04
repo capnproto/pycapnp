@@ -4070,6 +4070,17 @@ def add_import_hook(additional_paths=[]):
     if _importer is not None:
         remove_import_hook()
 
+    # Automatically include the system and built-in capnp paths
+    # Highest priority at position 0
+    extra_paths = [
+        _os.path.join(_os.path.dirname(__file__), '..'), # Built-in (only used if bundled)
+        '/usr/local/include/capnp', # Common macOS brew location
+        '/usr/include/capnp', # Common posix location
+    ]
+    for path in extra_paths:
+        if _os.path.isdir(path):
+            additional_paths.append(path)
+
     _importer = _Importer(additional_paths)
     _sys.meta_path.append(_importer)
 

@@ -22,7 +22,9 @@ def build_libcapnp(bundle_dir, build_dir):
     os.mkdir(tmp_dir)
 
     cxxflags = os.environ.get('CXXFLAGS', None)
+    ldflags = os.environ.get('LDFLAGS', None)
     os.environ['CXXFLAGS'] = (cxxflags or '') + ' -O2 -DNDEBUG'
+    os.environ['LDFLAGS'] = (ldflags or '')
 
     # Enable ninja for compilation if available
     build_type = []
@@ -77,5 +79,9 @@ def build_libcapnp(bundle_dir, build_dir):
         del os.environ['CXXFLAGS']
     else:
         os.environ['CXXFLAGS'] = cxxflags
+    if ldflags is None:
+        del os.environ['LDFLAGS']
+    else:
+        os.environ['LDFLAGS'] = ldflags
     if returncode != 0:
         raise RuntimeError('capnproto compilation failed: {}'.format(returncode))

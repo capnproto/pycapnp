@@ -214,6 +214,7 @@ async def main():
         server = await asyncio.start_server(
             new_connection,
             addr, port,
+            family=socket.AF_INET
         )
     except Exception:
         print("Try IPv6")

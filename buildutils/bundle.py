@@ -27,7 +27,7 @@ pjoin = os.path.join
 #
 
 
-bundled_version = (0, 7, 0)
+bundled_version = (0, 8, 0)
 libcapnp_name = "capnproto-c++-%i.%i.%i.tar.gz" % (bundled_version)
 libcapnp_url = "https://capnproto.org/" + libcapnp_name
 
@@ -92,14 +92,3 @@ def fetch_libcapnp(savedir, url=None):
     else:
         cpp_dir = os.path.join(with_version, 'c++')
         shutil.move(cpp_dir, dest)
-
-    # XXX (HaaTa): There's a bug in capnproto-0.7.0 on CentOS 6 (or any glibc older than 2.16)
-    #              This patches the issue
-    with fileinput.FileInput(os.path.join(dest, 'src', 'kj', 'table.c++'), inplace=True, backup='.bak') as f:
-        for line in f:
-            print(
-                line.replace(
-                    '__APPLE__ || __BIONIC__', '__APPLE__ || __BIONIC__ || (defined(__GLIBC__) && (__GLIBC__ == 2) && (__GLIBC_MINOR__ < 16))'
-                ),
-                end=''
-            )

@@ -128,6 +128,7 @@ async def main():
             new_connection,
             addr, port,
             ssl=ctx,
+            family=socket.AF_INET,
         )
     except Exception:
         print("Try IPv6")

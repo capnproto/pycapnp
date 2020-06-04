@@ -8,6 +8,8 @@
 *.egg-info
 dist
 build
+build32
+build64
 eggs
 parts
 bin
@@ -32,7 +34,7 @@ nosetests.xml
 .project
 .pydevproject
 
-# IntelliJ 
+# IntelliJ
 .idea/
 
 # Cpp files
@@ -47,3 +49,6 @@ capnp/lib/capnp.h
 bundled/
 example
 *.iml
+
+# capnp files
+*.capnp

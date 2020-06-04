@@ -111,3 +111,9 @@ def test_remove_import_hook():
 
     with pytest.raises(ImportError):
         import addressbook_capnp  # noqa: F401
+
+
+def test_bundled_import_hook():
+    # stream.capnp should be bundled, or provided by the system capnproto
+    capnp.add_import_hook()
+    import stream_capnp

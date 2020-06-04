@@ -1,6 +1,7 @@
 jinja2
 cython
 setuptools
+pkgconfig
 pytest
 tox
 wheel
