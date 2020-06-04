@@ -3,18 +3,6 @@
 Installation
 ===================
 
-C++ Cap'n Proto Library
-------------------------
-
-You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at `http://kentonv.github.io/capnproto/install.html <http://kentonv.github.io/capnproto/install.html>`_, or if you're feeling lazy, you can run the commands below::
-
-    curl -O http://capnproto.org/capnproto-c++-0.5.0.tar.gz
-    tar zxf capnproto-c++-0.5.0.tar.gz
-    cd capnproto-c++-0.5.0
-    ./configure
-    make -j6 check
-    sudo make install
-
 Pip
 ---------------------
 
@@ -33,6 +21,20 @@ You can control what compiler is used with the environment variable CC, ie. `CC=
 From Source
 ---------------------
 
+C++ Cap'n Proto Library
+~~~~~~~~~~~~~~~~~~~~~~~
+
+You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at `http://kentonv.github.io/capnproto/install.html <http://kentonv.github.io/capnproto/install.html>`_, or if you're feeling lazy, you can run the commands below::
+
+    curl -O http://capnproto.org/capnproto-c++-0.5.0.tar.gz
+    tar zxf capnproto-c++-0.5.0.tar.gz
+    cd capnproto-c++-0.5.0
+    ./configure
+    make -j6 check
+    sudo make install
+
+pycapnp from git
+~~~~~~~~~~~~~~~~
 If you want the latest development version, you can clone the github repo and install like so::
 
     git clone https://github.com/jparyani/pycapnp.git
