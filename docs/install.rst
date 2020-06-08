@@ -1,61 +1,97 @@
 .. _install:
 
 Installation
-===================
+============
 
 Pip
----------------------
+---
+The pip installation will using the binary versions of the package (if possible). These contain a bundled version of capnproto (on Linux compiled with `manylinux <https://github.com/pypa/manylinux>`_). Starting from v1.0.0b1 binary releases are available for Windows, macOS and Linux from `pypi <https://pypi.org/project/pycapnp/#history>`_::
 
-Using pip is by far the easiest way to install the library. After you've installed the C++ library, all you need to run is::
-
-    [sudo] pip install -U cython
-    [sudo] pip install -U setuptools
     [sudo] pip install pycapnp
 
-On some systems you will have to install Python's headers before doing any of this. For Debian/Ubuntu, this is::
+To force rebuilding the pip package from source (you'll need requirments.txt or pipenv)::
 
-    sudo apt-get install python-dev
+    pip install --no-binary :all: pycapnp
 
-You can control what compiler is used with the environment variable CC, ie. `CC=gcc-4.8 pip install pycapnp`, and flags with CFLAGS. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.
+To force bundling libcapnp (or force system libcapnp), just in case setup.py isn't doing the right thing::
+
+    pip install --no-binary :all: --install-option "--force-bundled-libcapnp"
+    pip install --no-binary :all: --install-option "--force-system-libcapnp"
+
+If you're using an older Linux distro (e.g. CentOS 6) you many need to set `LDFLAGS="-Wl,--no-as-needed -lrt"`::
+
+    LDFLAGS="-Wl,--no-as-needed -lrt" pip install --no-binary :all: pycapnp
+
+It's also possible to specify the libcapnp url when bundling (this may not work, there be dragons)::
+
+    pip install --no-binary :all: --install-option "--force-bundled-libcapnp" --install-option "--libcapnp-url" --install-option "https://github.com/capnproto/capnproto/archive/master.tar.gz"
 
 From Source
----------------------
+-----------
+Source installation is generally not needed unless you're looking into an issue with capnproto or pycapnp itself.
 
 C++ Cap'n Proto Library
 ~~~~~~~~~~~~~~~~~~~~~~~
-
-You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at `http://kentonv.github.io/capnproto/install.html <http://kentonv.github.io/capnproto/install.html>`_, or if you're feeling lazy, you can run the commands below::
-
-    curl -O http://capnproto.org/capnproto-c++-0.5.0.tar.gz
-    tar zxf capnproto-c++-0.5.0.tar.gz
-    cd capnproto-c++-0.5.0
-    ./configure
-    make -j6 check
-    sudo make install
+You need to install the C++ Cap'n Proto library first. It requires a C++ compiler with C++14 support, such as GCC 5+ or Clang 5+. Follow installation docs at `https://capnproto.org/install.html <https://capnproto.org/install.html>`_.
 
 pycapnp from git
 ~~~~~~~~~~~~~~~~
-If you want the latest development version, you can clone the github repo and install like so::
+If you want the latest development version, you can clone the github repo::
 
-    git clone https://github.com/jparyani/pycapnp.git
-    pip install ./pycapnp
+    git clone https://github.com/capnproto/pycapnp.git
+
+For development packages use one of the following to install the python dependencies::
+
+    pipenv install
+    pip install -r requirements.txt
+
+And install pycapnp with::
+
+    cd pycapnp
+    pip install .
 
 or::
 
     cd pycapnp
     python setup.py install
 
+
 Development
--------------------
+-----------
+Clone the repo from https://github.com/capnproto/pycapnp.git::
 
-Clone the repo from https://github.com/jparyani/pycapnp.git and use the `develop` branch. I'll probably ask you to redo pull requests that target `master` and aren't easily mergable to `develop`::
+    git clone https://github.com/capnproto/pycapnp.git
 
-    git clone https://github.com/jparyani/pycapnp.git
-    git checkout develop
+For development packages use one of the following to install the python dependencies::
 
-Testing is done through pytest, like so::
+    pipenv install
+    pip install -r requirements.txt
 
-    pip install pytest
-    py.test
+Building::
+
+    cd pycapnp
+    pip install .
+
+or::
+
+    cd pycapnp
+    python setup.py install
+
+Useful targets for setup.py::
+
+    python setup.py build
+    python setup.py clean
+
+Useful command-line arguments are available for setup.py::
+
+    --force-bundled-libcapnp
+    --force-system-libcapnp
+    --libcapnp-url
+
+Testing is done through pytest::
+
+    cd pycapnp
+    pytest
+    pytest test/test_rpc_calculator.py
 
 Once you're done installing, take a look at the :ref:`quickstart`

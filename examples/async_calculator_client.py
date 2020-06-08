@@ -70,10 +70,7 @@ async def main(host):
     coroutines = [myreader(client, reader), mywriter(client, writer)]
     asyncio.gather(*coroutines, return_exceptions=True)
 
-    # Pass "calculator" to ez_restore (there's also a `restore` function that
-    # takes a struct or AnyPointer as an argument), and then cast the returned
-    # capability to it's proper type. This casting is due to capabilities not
-    # having a reference to their schema
+    # Bootstrap the Calculator interface
     calculator = client.bootstrap().cast_as(calculator_capnp.Calculator)
 
     '''Make a request that just evaluates the literal value 123.

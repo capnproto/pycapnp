@@ -181,20 +181,6 @@ def test_roundtrip_bytes_multiple_packed(all_types):
     assert i == 3
 
 
-@pytest.mark.skipif(
-    platform.python_implementation() == 'PyPy',
-    reason="This works on my local PyPy v2.5.0, but is for some reason broken on TravisCI. Skip for now."
-)
-def test_roundtrip_dict(all_types):
-    msg = all_types.TestAllTypes.new_message()
-    test_regression.init_all_types(msg)
-    d = msg.to_dict()
-
-    with _warnings(1, expected_text="This method is deprecated and will be removed"):
-        msg = all_types.TestAllTypes.from_dict(d)
-    test_regression.check_all_types(msg)
-
-
 def test_file_and_bytes(all_types):
     f = tempfile.TemporaryFile()
     msg = all_types.TestAllTypes.new_message()

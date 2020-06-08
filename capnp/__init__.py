@@ -45,6 +45,7 @@ from .lib.capnp import (
     _DynamicStructReader,
     _EventLoop,
     _InterfaceModule,
+    _ListSchema,
     _MallocMessageBuilder,
     _PackedFdMessageReader,
     _StreamFdMessageReader,

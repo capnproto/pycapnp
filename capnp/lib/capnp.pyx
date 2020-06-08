@@ -12,27 +12,28 @@ cimport cython
 from capnp.helpers.helpers cimport AsyncIoStreamReadHelper, init_capnp_api
 from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise
 
-from libc.stdlib cimport malloc, free
-from libc.string cimport memcpy
-from cython.operator cimport dereference as deref
-from cpython.exc cimport PyErr_Clear
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
+from cpython.exc cimport PyErr_Clear
+from cython.operator cimport dereference as deref
+from libc.stdlib cimport malloc, free
+from libc.string cimport memcpy
 
-from types import ModuleType as _ModuleType
-import os as _os
-import sys as _sys
-import traceback as _traceback
-from functools import partial as _partial
-import warnings as _warnings
-import inspect as _inspect
-from operator import attrgetter as _attrgetter
-import threading as _threading
-import socket as _socket
-import random as _random
-import collections as _collections
 import array
 import asyncio
+import collections as _collections
+import inspect as _inspect
+import os as _os
+import random as _random
+import socket as _socket
+import sys as _sys
+import threading as _threading
+import traceback as _traceback
+import warnings as _warnings
+
+from types import ModuleType as _ModuleType
+from operator import attrgetter as _attrgetter
+from functools import partial as _partial
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -1555,7 +1556,7 @@ cdef class _DynamicObjectReader:
         return _DynamicCapabilityClient()._init(self.thisptr.getAsCapability(s.thisptr), self._parent)
 
     cpdef as_list(self, schema) except +reraise_kj_exception:
-        cdef ListSchema s
+        cdef _ListSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
         else:
@@ -1597,7 +1598,7 @@ cdef class _DynamicObjectBuilder:
         return _DynamicCapabilityClient()._init(self.thisptr.getAsCapability(s.thisptr), self._parent)
 
     cpdef as_list(self, schema) except +reraise_kj_exception:
-        cdef ListSchema s
+        cdef _ListSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
         else:
@@ -1614,7 +1615,7 @@ cdef class _DynamicObjectBuilder:
         self.thisptr.setAsText(text)
 
     cpdef init_as_list(self, schema, size):
-        cdef ListSchema s
+        cdef _ListSchema s
         if hasattr(schema, 'schema'):
             s = schema.schema
         else:
@@ -1682,10 +1683,13 @@ cdef class _Timer:
         return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Nanoseconds(time)))
 
 def getTimer():
+    """
+    Get libcapnp event loop timer
+    """
     return _Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().thisptr))
 
 cpdef remove_event_loop(ignore_errors=False):
-    'Remove the global event loop'
+    '''Remove the global event loop'''
     global C_DEFAULT_EVENT_LOOP
     global _THREAD_LOCAL_EVENT_LOOPS
     global _C_DEFAULT_EVENT_LOOP_LOCAL
@@ -1721,16 +1725,22 @@ cpdef create_event_loop(threaded=True):
     else:
         C_DEFAULT_EVENT_LOOP = _EventLoop()
 
-cpdef reset_event_loop():
-    global C_DEFAULT_EVENT_LOOP
-    C_DEFAULT_EVENT_LOOP._remove()
-    C_DEFAULT_EVENT_LOOP = _EventLoop()
+cpdef reset_event_loop(ignore_errors=False, threaded=True):
+    '''Removes event loop, then creates a new one. See remove_event_loop and create_event_loop for more details.'''
+    remove_event_loop(ignore_errors)
+    create_event_loop(threaded)
 
 def wait_forever():
+    """
+    Use libcapnp event loop to poll/wait forever
+    """
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
     helpers.waitNeverDone(deref(loop.thisptr).waitScope)
 
 def poll_once():
+    """
+    Poll libcapnp event loop once
+    """
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
     helpers.pollWaitScope(deref(loop.thisptr).waitScope)
 
@@ -1929,6 +1939,7 @@ cdef class _RemotePromise:
         return _Response()._init_childptr(helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
 
     def wait(self):
+        """Wait on the promise. This will block until the promise has completed."""
         if self.is_consumed:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
@@ -1937,6 +1948,12 @@ cdef class _RemotePromise:
         return ret
 
     async def a_wait(self):
+        """
+        Asyncio version of wait().
+        Required when using asyncio for socket communication.
+
+        Will still work with non-asyncio socket communication, but requires async handling of the function call.
+        """
         if self.is_consumed:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
@@ -1953,6 +1970,7 @@ cdef class _RemotePromise:
         return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        """Promise pipelining, use to queue up operations on a promise before executing the promise."""
         if self.is_consumed:
             raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
 
@@ -2236,6 +2254,16 @@ cdef class _TwoPartyVatNetwork:
         return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
 
 cdef class TwoPartyClient:
+    """
+    TwoPartyClient for RPC Communication
+
+    Can be initialized using a socket wrapper (libcapnp) or using asyncio controlled sockets.
+
+    :param socket: Can be a string defining a socket (e.g. localhost:12345) or a file descriptor for a socket.
+                   Passes socket directly to libcapnp. Do not use with asyncio.
+    :param traversal_limit_in_words: Pointer derefence limit (see https://capnproto.org/cxx.html).
+    :param nesting_limit: Recursive limit when reading types (see https://capnproto.org/cxx.html).
+    """
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
     cdef public object _orig_stream
@@ -2266,6 +2294,11 @@ cdef class TwoPartyClient:
         Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
     async def read(self, bufsize):
+        """
+        libcapnp reader (asyncio sockets only)
+
+        :param bufsize: Buffer size to read from the libcapnp library
+        """
         cdef AsyncIoStreamReadHelper *reader = new AsyncIoStreamReadHelper(
             self._pipe._pipe.ends[1].get(),
             &self._pipe._event_loop.thisptr.waitScope,
@@ -2281,6 +2314,11 @@ cdef class TwoPartyClient:
         return read_buffer
 
     def write(self, data):
+        """
+        libcapnp writer (asyncio sockets only)
+
+        :param data: Buffer to write to the libcapnp library
+        """
         cdef array.array write_buffer = array.array('b', data)
         deref(self._pipe._pipe.ends[1]).write(
             write_buffer.data.as_voidptr,
@@ -2312,9 +2350,21 @@ cdef class TwoPartyClient:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
 cdef class TwoPartyServer:
+    """
+    TwoPartyServer for RPC Communication
+
+    Can be initialized using a socket wrapper (libcapnp) or using asyncio controlled sockets.
+
+    :param socket: Can be a string defining a socket (e.g. localhost:12345, also supports \*:12345)
+                   or a file descriptor for a socket.
+                   Passes socket directly to libcapnp. Do not use with asyncio.
+    :param bootstrap: Class object defining the implementation of the Cap'n'proto interface.
+    :param traversal_limit_in_words: Pointer derefence limit (see https://capnproto.org/cxx.html).
+    :param nesting_limit: Recursive limit when reading types (see https://capnproto.org/cxx.html).
+    """
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
-    cdef public object _orig_stream, _server_socket, _disconnect_promise
+    cdef public object _orig_stream, _disconnect_promise
     cdef public _AsyncIoStream _stream
     cdef public _TwoWayPipe _pipe
     cdef object _port
@@ -2322,8 +2372,7 @@ cdef class TwoPartyServer:
     cdef capnp.TaskSet * _task_set
     cdef capnp.ErrorHandler _error_handler
 
-    def __init__(self, socket=None, server_socket=None, bootstrap=None,
-                 traversal_limit_in_words=None, nesting_limit=None):
+    def __init__(self, socket=None, bootstrap=None, traversal_limit_in_words=None, nesting_limit=None):
         if not bootstrap:
             raise KjException("You must provide a bootstrap interface to a server constructor.")
 
@@ -2343,7 +2392,6 @@ cdef class TwoPartyServer:
             self._pipe = _TwoWayPipe()
             self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
 
-        self._server_socket = server_socket
         self._port = 0
 
         if bootstrap:
@@ -2359,6 +2407,11 @@ cdef class TwoPartyServer:
         self._disconnect_promise = self.on_disconnect().then(self._decref)
 
     async def read(self, bufsize):
+        """
+        libcapnp reader (asyncio sockets only)
+
+        :param bufsize: Buffer size to read from the libcapnp library
+        """
         cdef AsyncIoStreamReadHelper *reader = new AsyncIoStreamReadHelper(
             self._pipe._pipe.ends[1].get(),
             &self._pipe._event_loop.thisptr.waitScope,
@@ -2374,6 +2427,11 @@ cdef class TwoPartyServer:
         return read_buffer
 
     async def write(self, data):
+        """
+        libcapnp writer (asyncio sockets only)
+
+        :param data: Buffer to write to the libcapnp library
+        """
         cdef array.array write_buffer = array.array('b', data)
         deref(self._pipe._pipe.ends[1]).write(
             write_buffer.data.as_voidptr,
@@ -2407,9 +2465,15 @@ cdef class TwoPartyServer:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
     def poll_once(self):
+        """
+        Poll libcapnp library one cycle.
+        """
         return poll_once()
 
     async def poll_forever(self):
+        """
+        Poll libcapnp library forever (asyncio)
+        """
         while True:
             poll_once()
             await asyncio.sleep(0.01)
@@ -2592,7 +2656,7 @@ cdef typeAsSchema(capnp.SchemaType fieldType):
     elif fieldType.isEnum():
         return _EnumSchema()._init(fieldType.asEnum())
     elif fieldType.isList():
-        return ListSchema()._init(fieldType.asList())
+        return _ListSchema()._init(fieldType.asList())
     else:
         raise KjException("Schema type is unknown")
 
@@ -2811,14 +2875,14 @@ cdef _SchemaType _any_pointer = _SchemaType()
 _any_pointer.thisptr = capnp.SchemaType(capnp.TypeWhichANY_POINTER)
 types.AnyPointer = _any_pointer
 
-cdef class ListSchema:
+cdef class _ListSchema:
     cdef C_ListSchema thisptr
 
     def __init__(self, schema=None):
         cdef _StructSchema ss
         cdef _EnumSchema es
         cdef _InterfaceSchema iis
-        cdef ListSchema ls
+        cdef _ListSchema ls
         cdef _SchemaType st
 
         if schema is not None:
@@ -2837,7 +2901,7 @@ cdef class ListSchema:
             elif typeSchema is _InterfaceSchema:
                 iis = s
                 self.thisptr = capnp.listSchemaOfInterface(iis.thisptr)
-            elif typeSchema is ListSchema:
+            elif typeSchema is _ListSchema:
                 ls = s
                 self.thisptr = capnp.listSchemaOfList(ls.thisptr)
             elif typeSchema is _SchemaType:
@@ -3060,15 +3124,6 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructBuilder`
         """
         return _new_message(self, kwargs, num_first_segment_words)
-    def from_dict(self, kwargs):
-        '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs'
-        _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`new_message` function instead with **kwargs', UserWarning)
-        return _new_message(self, kwargs, None)
-    def from_object(self, obj):
-        '.. warning:: This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead'
-        _warnings.warn('This method is deprecated and will be removed in the 0.5 release. Use the :meth:`_DynamicStructReader.as_builder` or :meth:`_DynamicStructBuilder.copy` functions instead', UserWarning)
-        builder = _MallocMessageBuilder()
-        return builder.set_root(obj)
 
 class _InterfaceModule(object):
     def __init__(self, schema, name):
@@ -4074,12 +4129,17 @@ def add_import_hook(additional_paths=[]):
     # Highest priority at position 0
     extra_paths = [
         _os.path.join(_os.path.dirname(__file__), '..'), # Built-in (only used if bundled)
-        '/usr/local/include/capnp', # Common macOS brew location
-        '/usr/include/capnp', # Common posix location
+        # Common macOS brew location
+        '/usr/local/include/capnp',
+        '/usr/local/include',
+        # Common posix location
+        '/usr/include/capnp',
+        '/usr/include',
     ]
     for path in extra_paths:
         if _os.path.isdir(path):
-            additional_paths.append(path)
+            if path not in additional_paths:
+                additional_paths.append(path)
 
     _importer = _Importer(additional_paths)
     _sys.meta_path.append(_importer)

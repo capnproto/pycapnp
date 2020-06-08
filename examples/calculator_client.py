@@ -33,10 +33,7 @@ at the given address and does some RPCs')
 def main(host):
     client = capnp.TwoPartyClient(host)
 
-    # Pass "calculator" to ez_restore (there's also a `restore` function that
-    # takes a struct or AnyPointer as an argument), and then cast the returned
-    # capability to it's proper type. This casting is due to capabilities not
-    # having a reference to their schema
+    # Bootstrap the server capability and cast it to the Calculator interface
     calculator = client.bootstrap().cast_as(calculator_capnp.Calculator)
 
     '''Make a request that just evaluates the literal value 123.

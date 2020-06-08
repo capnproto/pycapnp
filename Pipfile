@@ -4,8 +4,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-pytest = "*"
-tox = "*"
-Jinja2 = "*"
 Cython = "*"
+Jinja2 = "*"
+pkgconfig = "*"
+pytest = "*"
+sphinx = "*"
+sphinx-multiversion = "*"
+tox = "*"
 wheel = "*"

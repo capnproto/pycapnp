@@ -7,7 +7,7 @@
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/capnproto/pycapnp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/capnproto/pycapnp/context:python)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/capnproto/pycapnp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/capnproto/pycapnp/context:cpp)
 
-[Cap'n'proto Mailing List](https://groups.google.com/forum/#!forum/capnproto)
+[Cap'n'proto Mailing List](https://groups.google.com/forum/#!forum/capnproto) [Documentation](https://capnproto.github.io/pycapnp)
 
 
 ## Requirements
@@ -103,7 +103,7 @@ python setup.py bdist_wheel
 
 ## Documentation/Example
 
-There is some basic documentation [here](http://jparyani.github.io/pycapnp/).
+There is some basic documentation [here](http://capnproto.github.io/pycapnp/).
 
 Make sure to look at the [examples](examples). The examples are generally kept up to date with the recommended usage of the library.
 

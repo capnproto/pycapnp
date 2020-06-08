@@ -28,7 +28,7 @@ def test_object_basic(addressbook):
 
 def test_object_list(addressbook):
     obj = capnp._MallocMessageBuilder().get_root_as_any()
-    listSchema = capnp.ListSchema(addressbook.Person)
+    listSchema = capnp._ListSchema(addressbook.Person)
     people = obj.init_as_list(listSchema, 2)
     person = people[0]
     person.name = 'test'

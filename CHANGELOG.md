@@ -1,3 +1,14 @@
+## v1.0.0b2 (2020-06-xx)
+- Minimum capnproto version is now 0.8.0
+- Added asyncio ssl calculator test
+- Added poll_once to TwoPartyServer API
+- More cleanup
+- Fix absolute and circular imports
+- Fix Promise aliasing issue (Promise to \_Promise)
+- Documentation update
+- Updated installation instructions
+- Added RPC documentation for asyncio
+
 ## v1.0.0b1 (2019-12-26)
 - Python 3.7+ required (asyncio support)
 - TLS/SSL support using asyncio
@@ -5,6 +16,7 @@
 - General cleanup
 - May be incompatible with code written for pycapnp 0.6.4 and lower
 - Removing pypandoc/pandoc packaging requirement
+- Minimum capnproto version is now 0.7.0
 
 ## v0.6.4 (2019-01-31)
 - Fix bugs in `read_multiple_bytes` (thanks to @tsh56)

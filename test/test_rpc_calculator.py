@@ -35,7 +35,7 @@ def test_calculator():
 
 def test_calculator_tcp(cleanup):
     address = 'localhost:36431'
-    test_examples.run_subprocesses(address, 'calculator_server.py', 'calculator_client.py')
+    test_examples.run_subprocesses(address, 'calculator_server.py', 'calculator_client.py', wildcard_server=True)
 
 
 @pytest.mark.skipif(os.name == 'nt', reason="socket.AF_UNIX not supported on Windows")

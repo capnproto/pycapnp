@@ -3,5 +3,7 @@ cython
 setuptools
 pkgconfig
 pytest
+sphinx
+sphinx-multiversion
 tox
 wheel

@@ -18,17 +18,28 @@ def cleanup():
         p.kill()
 
 
-def run_subprocesses(address, server, client):
+def run_subprocesses(address, server, client, wildcard_server=False, ipv4_force=True):
     server_attempt = 0
     server_attempts = 2
     done = False
     addr, port = address.split(':')
+    c_address = address
+    s_address = address
     while not done:
         assert server_attempt < server_attempts, "Failed {} server attempts".format(server_attempts)
         server_attempt += 1
 
+        # Force ipv4 for tests (known issues on GitHub Actions with IPv6 for some targets)
+        if 'unix' not in addr and ipv4_force:
+            addr = socket.gethostbyname(addr)
+            c_address = '{}:{}'.format(addr, port)
+            s_address = c_address
+            if wildcard_server:
+                s_address = '*:{}'.format(port) # Use wildcard address for server
+            print("Forcing ipv4 -> {} => {} {}".format(address, c_address, s_address))
+
         # Start server
-        cmd = [sys.executable, os.path.join(examples_dir, server), address]
+        cmd = [sys.executable, os.path.join(examples_dir, server), s_address]
         serverp = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
         print("Server started (Attempt #{})".format(server_attempt))
         processes.append(serverp)
@@ -74,7 +85,7 @@ def run_subprocesses(address, server, client):
             client_attempt += 1
 
             # Start client
-            cmd = [sys.executable, os.path.join(examples_dir, client), address]
+            cmd = [sys.executable, os.path.join(examples_dir, client), c_address]
             clientp = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
             print("Client started (Attempt #{})".format(client_attempt))
             processes.append(clientp)
@@ -96,11 +107,6 @@ def run_subprocesses(address, server, client):
                     clientp.kill()
                     break
 
-        # Retrying with different address (ipv4)
-        if 'unix' not in addr:
-            addr = socket.gethostbyname(addr)
-            address = '{}:{}'.format(addr, port)
-            print("Forcing ipv4 -> {}".format(address))
         serverp.kill()
 
     serverp.kill()
@@ -117,7 +123,7 @@ def test_thread_example(cleanup):
     address = '{}:36433'.format(hostname)
     server = 'thread_server.py'
     client = 'thread_client.py'
-    run_subprocesses(address, server, client)
+    run_subprocesses(address, server, client, wildcard_server=True)
 
 
 def test_addressbook_example(cleanup):
@@ -139,7 +145,7 @@ def test_ssl_async_example(cleanup):
     address = '{}:36435'.format(hostname)
     server = 'async_ssl_server.py'
     client = 'async_ssl_client.py'
-    run_subprocesses(address, server, client)
+    run_subprocesses(address, server, client, ipv4_force=False)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop. See https://github.com/capnproto/pycapnp/issues/196")
@@ -147,11 +153,11 @@ def test_ssl_reconnecting_async_example(cleanup):
     address = '{}:36436'.format(hostname)
     server = 'async_ssl_server.py'
     client = 'async_reconnecting_ssl_client.py'
-    run_subprocesses(address, server, client)
+    run_subprocesses(address, server, client, ipv4_force=False)
 
 
 def test_async_ssl_calculator_example(cleanup):
     address = '{}:36437'.format(hostname)
     server = 'async_ssl_calculator_server.py'
     client = 'async_ssl_calculator_client.py'
-    run_subprocesses(address, server, client)
+    run_subprocesses(address, server, client, ipv4_force=False)

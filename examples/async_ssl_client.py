@@ -11,8 +11,6 @@ import capnp
 import thread_capnp
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
-capnp.remove_event_loop()
-capnp.create_event_loop(threaded=True)
 
 
 def parse_args():

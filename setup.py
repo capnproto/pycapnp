@@ -23,7 +23,7 @@ _this_dir = os.path.dirname(__file__)
 MAJOR = 1
 MINOR = 0
 MICRO = 0
-TAG = 'b1'
+TAG = 'b2'
 VERSION = '%d.%d.%d%s' % (MAJOR, MINOR, MICRO, TAG)
 
 
