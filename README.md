@@ -45,7 +45,7 @@ If you wish to install using the latest upstream C++ Cap'n Proto:
 ```bash
 pip install \
     --install-option "--libcapnp-url" \
-    --install-option "https://github.com/sandstorm-io/capnproto/archive/master.tar.gz" \
+    --install-option "https://github.com/capnproto/capnproto/archive/master.tar.gz" \
     --install-option "--force-bundled-libcapnp" .
 ```
 
