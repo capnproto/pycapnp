@@ -1,4 +1,3 @@
-from __future__ import print_function
 import addressbook_pb2 as addressbook
 import os
 

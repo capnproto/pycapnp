@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-
 import argparse
 import asyncio
 import logging
@@ -13,7 +11,7 @@ import capnp
 import thread_capnp
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__)
 logger.setLevel(logging.DEBUG)
 
 this_dir = os.path.dirname(os.path.abspath(__file__))

@@ -110,7 +110,6 @@ Make sure to look at the [examples](examples). The examples are generally kept u
 The examples directory has one example that shows off pycapnp quite nicely. Here it is, reproduced:
 
 ```python
-from __future__ import print_function
 import os
 import capnp
 

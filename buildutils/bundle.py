@@ -17,7 +17,6 @@ import shutil
 import tarfile
 
 from urllib.request import urlopen
-from .msg import info
 
 pjoin = os.path.join
 
@@ -55,9 +54,9 @@ def fetch_archive(savedir, url, fname, force=False):
     """download an archive to a specific location"""
     dest = pjoin(savedir, fname)
     if os.path.exists(dest) and not force:
-        info("already have %s" % fname)
+        print("already have %s" % fname)
         return dest
-    info("fetching %s into %s" % (url, savedir))
+    print("fetching %s into %s" % (url, savedir))
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     req = urlopen(url)
@@ -79,7 +78,7 @@ def fetch_libcapnp(savedir, url=None):
         is_preconfigured = True
     dest = pjoin(savedir, 'capnproto-c++')
     if os.path.exists(dest):
-        info("already have %s" % dest)
+        print("already have %s" % dest)
         return
     fname = fetch_archive(savedir, url, libcapnp_name)
     tf = tarfile.open(fname)

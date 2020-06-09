@@ -3,8 +3,6 @@
 pycapnp distutils setup.py
 '''
 
-from __future__ import print_function
-
 import glob
 import os
 import shutil
@@ -15,9 +13,10 @@ import pkgconfig
 
 from distutils.command.clean import clean as _clean
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, Extension
 
-from buildutils import fetch_libcapnp, build_libcapnp, info
+from buildutils.build import build_libcapnp
+from buildutils.bundle import fetch_libcapnp
 
 _this_dir = os.path.dirname(__file__)
 
@@ -139,11 +138,11 @@ class build_libcapnp_ext(build_ext_c):
                 need_build = True
 
         if need_build:
-            info(
+            print(
                 "*WARNING* no libcapnp detected or rebuild forced. "
-                "Will download and build it from source now. "
+                "Attempting to build it from source now. "
                 "If you have C++ Cap'n Proto installed, it may be out of date or is not being detected. "
-                "Downloading and building libcapnp may take a while."
+                "This may take a while..."
             )
             bundle_dir = os.path.join(_this_dir, "bundled")
             if not os.path.exists(bundle_dir):
@@ -162,7 +161,7 @@ class build_libcapnp_ext(build_ext_c):
                 fetch_libcapnp(bundle_dir, libcapnp_url)
                 build_libcapnp(bundle_dir, build_dir)
             else:
-                info("capnproto already built at {}".format(build_dir))
+                print("capnproto already built at {}".format(build_dir))
 
             self.include_dirs += [os.path.join(build_dir, 'include')]
             self.library_dirs += [os.path.join(build_dir, 'lib{}'.format(8 * struct.calcsize("P")))]
@@ -172,7 +171,7 @@ class build_libcapnp_ext(build_ext_c):
             src_glob = glob.glob(os.path.join(build_dir, 'include', 'capnp', '*.capnp'))
             dst_dir = os.path.join(self.build_lib, "capnp")
             for file in src_glob:
-                info("copying {} -> {}".format(file, dst_dir))
+                print("copying {} -> {}".format(file, dst_dir))
                 shutil.copy(file, dst_dir)
 
         return build_ext_c.run(self)

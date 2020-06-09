@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
 import capnp  # noqa: F401
 
 import addressbook_capnp

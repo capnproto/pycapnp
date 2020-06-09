@@ -1,11 +1,10 @@
-from __future__ import print_function
+import os
+import sys
+
+from jinja2 import Environment, PackageLoader
 
 import capnp
 import schema_capnp
-import sys
-from jinja2 import Environment, PackageLoader
-import os
-
 
 def find_type(code, id):
     for node in code['nodes']:
