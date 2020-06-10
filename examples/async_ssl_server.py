@@ -11,7 +11,7 @@ import capnp
 import thread_capnp
 
 
-logger = logging.getLogger(__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 this_dir = os.path.dirname(os.path.abspath(__file__))

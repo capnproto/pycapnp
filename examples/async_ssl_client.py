@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-import asyncio
 import argparse
+import asyncio
 import os
-import time
-import capnp
 import socket
 import ssl
+import time
 
+import capnp
 import thread_capnp
 
 this_dir = os.path.dirname(os.path.abspath(__file__))

@@ -126,6 +126,7 @@ def test_addressbook_example(cleanup):
     assert ret == 0
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop. See https://github.com/capnproto/pycapnp/issues/196")
 def test_async_example(cleanup):
     address = '{}:36434'.format(hostname)
     server = 'async_server.py'
@@ -133,6 +134,7 @@ def test_async_example(cleanup):
     run_subprocesses(address, server, client)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop. See https://github.com/capnproto/pycapnp/issues/196")
 def test_ssl_async_example(cleanup):
     address = '{}:36435'.format(hostname)
     server = 'async_ssl_server.py'
@@ -140,8 +142,16 @@ def test_ssl_async_example(cleanup):
     run_subprocesses(address, server, client)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop. See https://github.com/capnproto/pycapnp/issues/196")
 def test_ssl_reconnecting_async_example(cleanup):
     address = '{}:36436'.format(hostname)
     server = 'async_ssl_server.py'
     client = 'async_reconnecting_ssl_client.py'
+    run_subprocesses(address, server, client)
+
+
+def test_async_ssl_calculator_example(cleanup):
+    address = '{}:36437'.format(hostname)
+    server = 'async_ssl_calculator_server.py'
+    client = 'async_ssl_calculator_client.py'
     run_subprocesses(address, server, client)
