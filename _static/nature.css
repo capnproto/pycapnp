@@ -4,7 +4,7 @@
  *
  * Sphinx stylesheet -- nature theme.
  *
- * :copyright: Copyright 2007-2014 by the Sphinx team, see AUTHORS.
+ * :copyright: Copyright 2007-2020 by the Sphinx team, see AUTHORS.
  * :license: BSD, see LICENSE for details.
  *
  */
@@ -16,7 +16,7 @@
 body {
     font-family: Arial, sans-serif;
     font-size: 100%;
-    background-color: #111;
+    background-color: #fff;
     color: #555;
     margin: 0;
     padding: 0;
@@ -125,10 +125,11 @@ div.sphinxsidebar input {
     font-size: 1em;
 }
 
-div.sphinxsidebar input[type=text]{
+div.sphinxsidebar .searchformwrapper {
     margin-left: 20px;
+    margin-right: 20px;
 }
- 
+
 /* -- body styles ----------------------------------------------------------- */
  
 a {
@@ -183,10 +184,6 @@ div.admonition p.admonition-title + p {
     display: inline;
 }
 
-div.highlight{
-    background-color: white;
-}
-
 div.note {
     background-color: #eee;
     border: 1px solid #ccc;
@@ -216,8 +213,6 @@ p.admonition-title:after {
  
 pre {
     padding: 10px;
-    background-color: White;
-    color: #222;
     line-height: 1.2em;
     border: 1px solid #C6C9CB;
     font-size: 1.1em;
@@ -226,7 +221,7 @@ pre {
     -moz-box-shadow: 1px 1px 1px #d8d8d8;
 }
  
-tt {
+code {
     background-color: #ecf0f3;
     color: #222;
     /* padding: 1px 2px; */
@@ -242,4 +237,10 @@ div.viewcode-block:target {
     background-color: #f4debf;
     border-top: 1px solid #ac9;
     border-bottom: 1px solid #ac9;
+}
+
+div.code-block-caption {
+    background-color: #ddd;
+    color: #222;
+    border: 1px solid #C6C9CB;
 }

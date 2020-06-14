@@ -1,34 +1,24 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Quickstart &mdash; capnp 0.5.4 documentation</title>
-    
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quickstart &#8212; capnp 1.0.0b2 documentation</title>
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.5.4',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.5.4 documentation" href="index.html" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="API Reference" href="capnp.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
-  </head>
-  <body>
-    <div class="related">
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -43,76 +33,77 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.5.4 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0b2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Quickstart</a></li> 
       </ul>
     </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="quickstart">
 <span id="id1"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
-<p>This assumes you already have the capnp library installed. If you don&#8217;t, please follow the instructions at <a class="reference internal" href="install.html#install"><em>Installation</em></a> first.</p>
-<p>In general, this library is a very light wrapping of the <a class="reference external" href="http://kentonv.github.io/capnproto/cxx.html">Cap&#8217;n Proto C++ library</a>. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.</p>
+<p>This assumes you already have the capnp library installed. If you don’t, please follow the instructions at <a class="reference internal" href="install.html#install"><span class="std std-ref">Installation</span></a> first.</p>
+<p>In general, this library is a very light wrapping of the <a class="reference external" href="https://capnproto.org/cxx.html">Cap’n Proto C++ library</a>. You can refer to its docs for more advanced concepts, or just to get a basic idea of how the python library is structured.</p>
 <div class="section" id="load-a-cap-n-proto-schema">
-<h2>Load a Cap&#8217;n Proto Schema<a class="headerlink" href="#load-a-cap-n-proto-schema" title="Permalink to this headline">¶</a></h2>
+<h2>Load a Cap’n Proto Schema<a class="headerlink" href="#load-a-cap-n-proto-schema" title="Permalink to this headline">¶</a></h2>
 <p>First you need to import the library:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">capnp</span>
 </pre></div>
 </div>
-<p>Then you can load the Cap&#8217;n Proto schema with:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">addressbook_capnp</span>
+<p>Then you can load the Cap’n Proto schema with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">addressbook_capnp</span>
 </pre></div>
 </div>
-<p>This will look all through all the directories in your sys.path/PYTHONPATH, and try to find a file of the form &#8216;addressbook.capnp&#8217;. If you want to disable the import hook magic that <cite>import capnp</cite> adds, and load manually, here&#8217;s how:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">capnp</span><span class="o">.</span><span class="n">remove_import_hook</span><span class="p">()</span>
-<span class="n">addressbook_capnp</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
+<p>This will look all through all the directories in your sys.path/PYTHONPATH, and try to find a file of the form ‘addressbook.capnp’. If you want to disable the import hook magic that <cite>import capnp</cite> adds, and load manually, here’s how:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">capnp</span><span class="o">.</span><span class="n">remove_import_hook</span><span class="p">()</span>
+<span class="n">addressbook_capnp</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;addressbook.capnp&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>For future reference, here is the Cap&#8217;n Proto schema. Also available in the github repository under <a class="reference external" href="https://github.com/jparyani/pycapnp/tree/master/examples">examples/addressbook.capnp</a>:</p>
-<div class="highlight-python"><div class="highlight"><pre># addressbook.capnp
-@0x934efea7f017fff0;
+<p>For future reference, here is the Cap’n Proto schema. Also available in the github repository under <a class="reference external" href="https://github.com/capnproto/pycapnp/tree/master/examples">examples/addressbook.capnp</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># addressbook.capnp</span>
+<span class="o">@</span><span class="mh">0x934efea7f017fff0</span><span class="p">;</span>
 
-const qux :UInt32 = 123;
+<span class="n">const</span> <span class="n">qux</span> <span class="p">:</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">123</span><span class="p">;</span>
 
-struct Person {
-  id @0 :UInt32;
-  name @1 :Text;
-  email @2 :Text;
-  phones @3 :List(PhoneNumber);
+<span class="n">struct</span> <span class="n">Person</span> <span class="p">{</span>
+  <span class="nb">id</span> <span class="o">@</span><span class="mi">0</span> <span class="p">:</span><span class="n">UInt32</span><span class="p">;</span>
+  <span class="n">name</span> <span class="o">@</span><span class="mi">1</span> <span class="p">:</span><span class="n">Text</span><span class="p">;</span>
+  <span class="n">email</span> <span class="o">@</span><span class="mi">2</span> <span class="p">:</span><span class="n">Text</span><span class="p">;</span>
+  <span class="n">phones</span> <span class="o">@</span><span class="mi">3</span> <span class="p">:</span><span class="n">List</span><span class="p">(</span><span class="n">PhoneNumber</span><span class="p">);</span>
 
-  struct PhoneNumber {
-    number @0 :Text;
-    type @1 :Type;
+  <span class="n">struct</span> <span class="n">PhoneNumber</span> <span class="p">{</span>
+    <span class="n">number</span> <span class="o">@</span><span class="mi">0</span> <span class="p">:</span><span class="n">Text</span><span class="p">;</span>
+    <span class="nb">type</span> <span class="o">@</span><span class="mi">1</span> <span class="p">:</span><span class="n">Type</span><span class="p">;</span>
 
-    enum Type {
-      mobile @0;
-      home @1;
-      work @2;
-    }
-  }
+    <span class="n">enum</span> <span class="n">Type</span> <span class="p">{</span>
+      <span class="n">mobile</span> <span class="o">@</span><span class="mi">0</span><span class="p">;</span>
+      <span class="n">home</span> <span class="o">@</span><span class="mi">1</span><span class="p">;</span>
+      <span class="n">work</span> <span class="o">@</span><span class="mi">2</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
 
-  employment :union {
-    unemployed @4 :Void;
-    employer @5 :Text;
-    school @6 :Text;
-    selfEmployed @7 :Void;
-    # We assume that a person is only one of these.
-  }
-}
+  <span class="n">employment</span> <span class="p">:</span><span class="n">union</span> <span class="p">{</span>
+    <span class="n">unemployed</span> <span class="o">@</span><span class="mi">4</span> <span class="p">:</span><span class="n">Void</span><span class="p">;</span>
+    <span class="n">employer</span> <span class="o">@</span><span class="mi">5</span> <span class="p">:</span><span class="n">Text</span><span class="p">;</span>
+    <span class="n">school</span> <span class="o">@</span><span class="mi">6</span> <span class="p">:</span><span class="n">Text</span><span class="p">;</span>
+    <span class="n">selfEmployed</span> <span class="o">@</span><span class="mi">7</span> <span class="p">:</span><span class="n">Void</span><span class="p">;</span>
+    <span class="c1"># We assume that a person is only one of these.</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-struct AddressBook {
-  people @0 :List(Person);
-}
+<span class="n">struct</span> <span class="n">AddressBook</span> <span class="p">{</span>
+  <span class="n">people</span> <span class="o">@</span><span class="mi">0</span> <span class="p">:</span><span class="n">List</span><span class="p">(</span><span class="n">Person</span><span class="p">);</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <div class="section" id="const-values">
 <h3>Const values<a class="headerlink" href="#const-values" title="Permalink to this headline">¶</a></h3>
-<p>Const values show up just as you&#8217;d expect under the loaded schema. For example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">qux</span>
-<span class="c"># 123</span>
+<p>Const values show up just as you’d expect under the loaded schema. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">qux</span>
+<span class="c1"># 123</span>
 </pre></div>
 </div>
 </div>
@@ -120,106 +111,106 @@ struct AddressBook {
 <div class="section" id="build-a-message">
 <h2>Build a message<a class="headerlink" href="#build-a-message" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="initialize-a-new-cap-n-proto-object">
-<h3>Initialize a New Cap&#8217;n Proto Object<a class="headerlink" href="#initialize-a-new-cap-n-proto-object" title="Permalink to this headline">¶</a></h3>
-<p>Now that you&#8217;ve imported your schema, you need to allocate an actual struct from that schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+<h3>Initialize a New Cap’n Proto Object<a class="headerlink" href="#initialize-a-new-cap-n-proto-object" title="Permalink to this headline">¶</a></h3>
+<p>Now that you’ve imported your schema, you need to allocate an actual struct from that schema. In this case, we will allocate an <cite>AddressBook</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>Notice that we used <cite>addressbook_capnp</cite> from the previous section: <a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a>.</p>
+<p>Notice that we used <cite>addressbook_capnp</cite> from the previous section: <a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap’n Proto Schema</a>.</p>
 <p>Also as a shortcut, you can pass keyword arguments to the <cite>new_message</cite> function, and those fields will be set in the new message:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;alice&#39;</span><span class="p">)</span>
-<span class="c"># is equivalent to:</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;alice&#39;</span><span class="p">)</span>
+<span class="c1"># is equivalent to:</span>
 <span class="n">person</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
-<span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;alice&#39;</span>
+<span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;alice&#39;</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="list">
 <h3>List<a class="headerlink" href="#list" title="Permalink to this headline">¶</a></h3>
 <p>Allocating a list inside of an object requires use of the <cite>init</cite> function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">people</span> <span class="o">=</span> <span class="n">addresses</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">people</span> <span class="o">=</span> <span class="n">addresses</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>For now, let&#8217;s grab the first element out of this list and assign it to a variable named <cite>alice</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<p>For now, let’s grab the first element out of this list and assign it to a variable named <cite>alice</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">It is a very bad idea to call <cite>init</cite> more than once on a single field. Every call to <cite>init</cite> allocates new memory inside your Cap&#8217;n Proto message, and if you call it more than once, the previous memory is leaked.</p>
+<p class="admonition-title">Note</p>
+<p>It is a very bad idea to call <cite>init</cite> more than once on a single field. Every call to <cite>init</cite> allocates new memory inside your Cap’n Proto message, and if you call it more than once, the previous memory is left as dead space in the message. See <a class="reference external" href="https://capnproto.org/cxx.html#tips-and-best-practices">Tips and Best Practices</a> for more details.</p>
 </div>
 </div>
 <div class="section" id="primitive-types">
 <h3>Primitive Types<a class="headerlink" href="#primitive-types" title="Permalink to this headline">¶</a></h3>
-<p>For all primitive types, from the Cap&#8217;n Proto docs:</p>
+<p>For all primitive types, from the Cap’n Proto docs:</p>
 <ul class="simple">
-<li>Boolean: Bool</li>
-<li>Integers: Int8, Int16, Int32, Int64</li>
-<li>Unsigned integers: UInt8, UInt16, UInt32, UInt64</li>
-<li>Floating-point: Float32, Float64</li>
-<li>Blobs: Text, Data</li>
+<li><p>Boolean: Bool</p></li>
+<li><p>Integers: Int8, Int16, Int32, Int64</p></li>
+<li><p>Unsigned integers: UInt8, UInt16, UInt32, UInt64</p></li>
+<li><p>Floating-point: Float32, Float64</p></li>
+<li><p>Blobs: Text, Data</p></li>
 </ul>
 <p>You can assign straight to the variable with the corresponding Python type. For Blobs, you use strings. Assignment happens just by using the <cite>.</cite> syntax on the object you contstructed above:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">123</span>
-<span class="n">alice</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Alice&#39;</span>
-<span class="n">alice</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s">&#39;alice@example.com&#39;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Alice&#39;</span>
+<span class="n">alice</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s1">&#39;alice@example.com&#39;</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Text fields will behave differently depending on your version of Python. In Python 2.x, Text fields will expect and return a <cite>bytes</cite> string, while in Python 3.x, they will expect and return a <cite>unicode</cite> string. Data fields will always a return <cite>bytes</cite> string.</p>
+<p class="admonition-title">Note</p>
+<p>Text fields will behave differently depending on your version of Python. In Python 2.x, Text fields will expect and return a <cite>bytes</cite> string, while in Python 3.x, they will expect and return a <cite>unicode</cite> string. Data fields will always a return <cite>bytes</cite> string.</p>
 </div>
 </div>
 <div class="section" id="enums">
 <h3>Enums<a class="headerlink" href="#enums" title="Permalink to this headline">¶</a></h3>
-<p>First we&#8217;ll allocate a length one list of phonenumbers for <cite>alice</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alicePhone</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<p>First we’ll allocate a length one list of phonenumbers for <cite>alice</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alicePhone</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s1">&#39;phones&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>Note that even though it was a length 1 list, it was still a list that was returned, and we extracted the first (and only) element with <cite>[0]</cite>.</p>
 <p>Enums are treated like strings, and you assign to them like they were a Text field:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alicePhone</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s">&#39;mobile&#39;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alicePhone</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s1">&#39;mobile&#39;</span>
 </pre></div>
 </div>
 <p>If you assign an invalid value to one, you will get a ValueError:</p>
-<div class="highlight-python"><div class="highlight"><pre>alicePhone.type = &#39;foo&#39;
----------------------------------------------------------------------------
-ValueError                                Traceback (most recent call last)
-...
-ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enumerant; name = foo
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alicePhone</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s1">&#39;foo&#39;</span>
+<span class="o">---------------------------------------------------------------------------</span>
+<span class="ne">ValueError</span>                                <span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="ne">ValueError</span><span class="p">:</span> <span class="n">src</span><span class="o">/</span><span class="n">capnp</span><span class="o">/</span><span class="n">schema</span><span class="o">.</span><span class="n">c</span><span class="o">++</span><span class="p">:</span><span class="mi">326</span><span class="p">:</span> <span class="n">requirement</span> <span class="ow">not</span> <span class="n">met</span><span class="p">:</span> <span class="n">enum</span> <span class="n">has</span> <span class="n">no</span> <span class="n">such</span> <span class="n">enumerant</span><span class="p">;</span> <span class="n">name</span> <span class="o">=</span> <span class="n">foo</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="unions">
 <h3>Unions<a class="headerlink" href="#unions" title="Permalink to this headline">¶</a></h3>
 <p>For the most part, you just treat them like structs:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span> <span class="o">=</span> <span class="s">&quot;MIT&quot;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
 </pre></div>
 </div>
-<p>Now the <cite>school</cite> field is the active part of the union, and we&#8217;ve assigned <cite>&#8216;MIT&#8217;</cite> to it. You can query which field is set in a union with <cite>which()</cite>, shown in <a class="reference internal" href="#reading-unions">Reading Unions</a></p>
+<p>Now the <cite>school</cite> field is the active part of the union, and we’ve assigned <cite>‘MIT’</cite> to it. You can query which field is set in a union with <cite>which()</cite>, shown in <a class="reference internal" href="#reading-unions">Reading Unions</a></p>
 <p>Also, one weird case is for Void types in Unions (and in general, but Void is really only used in Unions). For these, you will have to assign <cite>None</cite> to them:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">bob</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">unemployed</span> <span class="o">=</span> <span class="bp">None</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bob</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">unemployed</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
+<p class="admonition-title">Note</p>
 <p>One caveat for unions is having structs as union members. Let us assume <cite>employment.school</cite> was actually a struct with a field of type <cite>Text</cite> called <cite>name</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;MIT&quot;</span>
-<span class="c"># Raises a ValueError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="c1"># Raises a ValueError</span>
 </pre></div>
 </div>
-<p>The problem is that a struct within a union isn&#8217;t initialized automatically. You have to do the following:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">school</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;school&#39;</span><span class="p">)</span>
-<span class="n">school</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;MIT&quot;</span>
+<p>The problem is that a struct within a union isn’t initialized automatically. You have to do the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">school</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s1">&#39;school&#39;</span><span class="p">)</span>
+<span class="n">school</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
 </pre></div>
 </div>
-<p class="last">Note that this is similar to <cite>init</cite> for lists, but you don&#8217;t pass a size. Requiring the <cite>init</cite> makes it more clear that a memory allocation is occurring, and will hopefully make you mindful that you shouldn&#8217;t set more than 1 field inside of a union, else you risk a memory leak</p>
+<p>Note that this is similar to <cite>init</cite> for lists, but you don’t pass a size. Requiring the <cite>init</cite> makes it more clear that a memory allocation is occurring, and will hopefully make you mindful that you shouldn’t set more than 1 field inside of a union, else you risk a memory leak</p>
 </div>
 </div>
 <div class="section" id="writing-to-a-file">
 <h3>Writing to a File<a class="headerlink" href="#writing-to-a-file" title="Permalink to this headline">¶</a></h3>
-<p>Once you&#8217;re done assigning to all the fields in a message, you can write it to a file like so:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w+b&#39;</span><span class="p">)</span>
+<p>Once you’re done assigning to all the fields in a message, you can write it to a file like so:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s1">&#39;w+b&#39;</span><span class="p">)</span>
 <span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -231,45 +222,45 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <div class="section" id="reading-from-a-file">
 <h3>Reading from a file<a class="headerlink" href="#reading-from-a-file" title="Permalink to this headline">¶</a></h3>
 <p>Much like before, you will have to de-serialize the message from a file descriptor:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
 <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note that this very much needs to match the type you wrote out. In general, you will always be sending the same message types out over a given channel or you should wrap all your types in an unnamed union. Unnamed unions are defined in the .capnp file like so:</p>
-<div class="highlight-python"><div class="highlight"><pre>struct Message {
-    union {
-      person @0 :Person;
-      addressbook @1 :AddressBook;
-    }
-}
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">Message</span> <span class="p">{</span>
+    <span class="n">union</span> <span class="p">{</span>
+      <span class="n">person</span> <span class="o">@</span><span class="mi">0</span> <span class="p">:</span><span class="n">Person</span><span class="p">;</span>
+      <span class="n">addressbook</span> <span class="o">@</span><span class="mi">1</span> <span class="p">:</span><span class="n">AddressBook</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="reading-fields">
 <h3>Reading Fields<a class="headerlink" href="#reading-fields" title="Permalink to this headline">¶</a></h3>
 <p>Fields are very easy to read. You just use the <cite>.</cite> syntax as before. Lists behave just like normal Python lists:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addresses</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
-    <span class="k">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">addresses</span><span class="o">.</span><span class="n">people</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">person</span><span class="o">.</span><span class="n">phones</span><span class="p">:</span>
-        <span class="k">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">phone</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="n">phone</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="reading-unions">
 <h3>Reading Unions<a class="headerlink" href="#reading-unions" title="Permalink to this headline">¶</a></h3>
 <p>The only tricky one is unions, where you need to call <cite>.which()</cite> to determine the union type. The <cite>.which()</cite> call returns an enum, ie. a string, corresponding to the field name:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">which</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
-<span class="k">print</span><span class="p">(</span><span class="n">which</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">which</span> <span class="o">=</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">which</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">which</span><span class="p">)</span>
 
-<span class="k">if</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;unemployed&#39;</span><span class="p">:</span>
-    <span class="k">print</span><span class="p">(</span><span class="s">&#39;unemployed&#39;</span><span class="p">)</span>
-<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;employer&#39;</span><span class="p">:</span>
-    <span class="k">print</span><span class="p">(</span><span class="s">&#39;employer:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span><span class="p">)</span>
-<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;school&#39;</span><span class="p">:</span>
-    <span class="k">print</span><span class="p">(</span><span class="s">&#39;student at:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span><span class="p">)</span>
-<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s">&#39;selfEmployed&#39;</span><span class="p">:</span>
-    <span class="k">print</span><span class="p">(</span><span class="s">&#39;self employed&#39;</span><span class="p">)</span>
-<span class="k">print</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">which</span> <span class="o">==</span> <span class="s1">&#39;unemployed&#39;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;unemployed&#39;</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s1">&#39;employer&#39;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;employer:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">employer</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s1">&#39;school&#39;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;student at:&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">employment</span><span class="o">.</span><span class="n">school</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">which</span> <span class="o">==</span> <span class="s1">&#39;selfEmployed&#39;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;self employed&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -279,19 +270,19 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <div class="section" id="files">
 <h3>Files<a class="headerlink" href="#files" title="Permalink to this headline">¶</a></h3>
 <p>As shown in the examples above, there is file serialization with <cite>write()</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 <span class="o">...</span>
-<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w+b&#39;</span><span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s1">&#39;w+b&#39;</span><span class="p">)</span>
 <span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>And similarly for reading:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
 <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>There are packed versions as well:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span><span class="o">.</span><span class="n">write_packed</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">addresses</span><span class="o">.</span><span class="n">write_packed</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read_packed</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
@@ -300,113 +291,251 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 <div class="section" id="multi-message-files">
 <h3>Multi-message files<a class="headerlink" href="#multi-message-files" title="Permalink to this headline">¶</a></h3>
 <p>The above methods only guaranteed to work if your file contains a single message. If you have more than 1 message serialized sequentially in your file, then you need to use these convenience functions:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">addresses</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
 <span class="o">...</span>
-<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s">&#39;w+b&#39;</span><span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;example.bin&#39;</span><span class="p">,</span> <span class="s1">&#39;w+b&#39;</span><span class="p">)</span>
 <span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 <span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-<span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="c"># write 3 messages</span>
+<span class="n">addresses</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="c1"># write 3 messages</span>
 <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">addresses</span> <span class="ow">in</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read_multiple</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-    <span class="k">print</span> <span class="n">addresses</span>
+    <span class="nb">print</span> <span class="n">addresses</span>
 </pre></div>
 </div>
 <p>There is also a packed version:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">addresses</span> <span class="ow">in</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read_multiple_packed</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-    <span class="k">print</span> <span class="n">addresses</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">addresses</span> <span class="ow">in</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">read_multiple_packed</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="nb">print</span> <span class="n">addresses</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="dictionaries">
 <h3>Dictionaries<a class="headerlink" href="#dictionaries" title="Permalink to this headline">¶</a></h3>
-<p>There is a convenience method for converting Cap&#8217;n Proto messages to a dictionary. This works for both Builder and Reader type messages:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<p>There is a convenience method for converting Cap’n Proto messages to a dictionary. This works for both Builder and Reader type messages:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>For the reverse, all you have to do is pass keyword arguments to the new_message constructor:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">my_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span> <span class="p">:</span> <span class="s">&#39;alice&#39;</span><span class="p">}</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span> <span class="p">:</span> <span class="s1">&#39;alice&#39;</span><span class="p">}</span>
 <span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="o">**</span><span class="n">my_dict</span><span class="p">)</span>
-<span class="c"># equivalent to: alice = addressbook_capnp.Person.new_message(name=&#39;alice&#39;)</span>
+<span class="c1"># equivalent to: alice = addressbook_capnp.Person.new_message(name=&#39;alice&#39;)</span>
 </pre></div>
 </div>
-<p>It&#8217;s also worth noting, you can use python lists/dictionaries interchangably with their Cap&#8217;n Proto equivalent types:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">book</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="n">people</span><span class="o">=</span><span class="p">[{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&#39;Alice&#39;</span><span class="p">}])</span>
+<p>It’s also worth noting, you can use python lists/dictionaries interchangably with their Cap’n Proto equivalent types:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">book</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="n">people</span><span class="o">=</span><span class="p">[{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Alice&#39;</span><span class="p">}])</span>
 <span class="o">...</span>
 <span class="n">book</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">AddressBook</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span>
-<span class="n">book</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s">&#39;people&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="n">book</span><span class="o">.</span><span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&#39;Bob&#39;</span><span class="p">}</span>
+<span class="n">book</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">book</span><span class="o">.</span><span class="n">people</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Bob&#39;</span><span class="p">}</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="byte-strings-buffers">
 <h3>Byte Strings/Buffers<a class="headerlink" href="#byte-strings-buffers" title="Permalink to this headline">¶</a></h3>
 <p>There is serialization to a byte string available:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">encoded_message</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">encoded_message</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>And a corresponding from_bytes function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">encoded_message</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">encoded_message</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>There are also packed versions:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">alice2</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes_packed</span><span class="p">(</span><span class="n">alice</span><span class="o">.</span><span class="n">to_bytes_packed</span><span class="p">())</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice2</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_bytes_packed</span><span class="p">(</span><span class="n">alice</span><span class="o">.</span><span class="n">to_bytes_packed</span><span class="p">())</span>
 </pre></div>
 </div>
+</div>
+<div class="section" id="byte-segments">
+<h3>Byte Segments<a class="headerlink" href="#byte-segments" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This feature is not supported in PyPy at the moment, pending investigation.</p>
+</div>
+<p>Cap’n Proto supports a serialization mode which minimizes object copies. In the C++ interface, <code class="docutils literal notranslate"><span class="pre">capnp::MessageBuilder::getSegmentsForOutput()</span></code> returns an array of pointers to segments of the message’s content without copying. <code class="docutils literal notranslate"><span class="pre">capnp::SegmentArrayMessageReader</span></code> performs the reverse operation, i.e., takes an array of pointers to segments and uses the underlying data, again without copying. This produces a different wire serialization format from <code class="docutils literal notranslate"><span class="pre">to_bytes()</span></code> serialization, which uses <code class="docutils literal notranslate"><span class="pre">capnp::messageToFlatArray()</span></code> and <code class="docutils literal notranslate"><span class="pre">capnp::FlatArrayMessageReader</span></code> (both of which use segments internally, but write them in an incompatible way).</p>
+<p>For compatibility on the Python side, use the <code class="docutils literal notranslate"><span class="pre">to_segments()</span></code> and <code class="docutils literal notranslate"><span class="pre">from_segments()</span></code> functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">segments</span> <span class="o">=</span> <span class="n">alice</span><span class="o">.</span><span class="n">to_segments</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This returns a list of segments, each a byte buffer. Each segment can be, e.g., turned into a ZeroMQ message frame. The list of segments can also be turned back into an object:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span> <span class="o">=</span> <span class="n">addressbook_capnp</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">from_segments</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more information, please refer to the following links:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://stackoverflow.com/questions/28149139/serializing-mutable-state-and-sending-it-asynchronously-over-the-network-with-ne/28156323#28156323">Advice on minimizing copies from Cap’n Proto</a> (from the author of Cap’n Proto)</p></li>
+<li><p><a class="reference external" href="https://stackoverflow.com/questions/32041315/how-to-send-capn-proto-message-over-zmq/32042234#32042234">Advice on using Cap’n Proto over ZeroMQ</a> (from the author of Cap’n Proto)</p></li>
+<li><p><a class="reference external" href="https://groups.google.com/forum/#!topic/capnproto/ClDjGbO7egA">Discussion about sending and reassembling Cap’n Proto message segments in C++</a> (from the Cap’n Proto mailing list; includes sample code)</p></li>
+</ul>
 </div>
 </div>
 <div class="section" id="rpc">
 <h2>RPC<a class="headerlink" href="#rpc" title="Permalink to this headline">¶</a></h2>
-<p>Cap&#8217;n Proto has a rich RPC protocol. You should read the <a class="reference external" href="http://kentonv.github.io/capnproto/rpc.html">RPC specification</a> as well as the <a class="reference external" href="http://kentonv.github.io/capnproto/cxxrpc.html">C++ RPC documentation</a> before using pycapnp&#8217;s RPC features. As with the serialization part of this library, the RPC component tries to be a very thin wrapper on top of the C++ API.</p>
-<p>The examples below will be using <a class="reference external" href="https://github.com/jparyani/pycapnp/blob/master/examples/calculator.capnp">calculator.capnp</a>. Please refer to it to understand the interfaces that will be used.</p>
+<p>Cap’n Proto has a rich RPC protocol. You should read the <a class="reference external" href="https://capnproto.org/rpc.html">RPC specification</a> as well as the <a class="reference external" href="http://kentonv.github.io/capnproto/cxxrpc.html">C++ RPC documentation</a> before using pycapnp’s RPC features. As with the serialization part of this library, the RPC component tries to be a very thin wrapper on top of the C++ API.</p>
+<p>The examples below will be using <a class="reference external" href="https://github.com/capnproto/pycapnp/blob/master/examples/calculator.capnp">calculator.capnp</a>. Please refer to it to understand the interfaces that will be used.</p>
+<p>Asyncio support was added to pycapnp in v1.0.0 utilizing the TwoWayPipe interface to libcapnp (instead of having libcapnp control the socket communication). The main advantage here is that standard Python socket libraries can be used with pycapnp (more importantly, TLS/SSL). Asyncio requires a bit more boiler plate to get started but it does allow for a lot more control than using the pycapnp socket wrapper.</p>
 <div class="section" id="client">
 <h3>Client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h3>
+<p>There are two ways to start a client: libcapnp socket wrapper and asyncio.
+The wrapper is easier to implement but is very limited (doesn’t support SSL/TLS with Python).
+asyncio requires more setup and can be harder to debug; however, it does support SSL/TLS and has more control over the socket error conditions. asyncio also helps get around the threading limitations around the current pycapnp implementation has with libcapnp (pycapnp objects and functions must all be in the same thread).</p>
 <div class="section" id="starting-a-client">
 <h4>Starting a Client<a class="headerlink" href="#starting-a-client" title="Permalink to this headline">¶</a></h4>
 <p>Starting a client is very easy:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">capnp</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">capnp</span>
 <span class="kn">import</span> <span class="nn">calculator_capnp</span>
 
-<span class="n">client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">(</span><span class="s">&#39;localhost:60000&#39;</span><span class="p">)</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">(</span><span class="s1">&#39;localhost:60000&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">You can also pass a raw socket with a <cite>fileno()</cite> method to TwoPartyClient</p>
+<p class="admonition-title">Note</p>
+<p>You can also pass a raw socket with a <cite>fileno()</cite> method to TwoPartyClient</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will not work with SSL/TLS, please see <a class="reference internal" href="#rpc-asyncio-client"><span class="std std-ref">Starting a Client (asyncio)</span></a></p>
 </div>
 </div>
-<div class="section" id="restoring">
-<h4>Restoring<a class="headerlink" href="#restoring" title="Permalink to this headline">¶</a></h4>
-<p>Before you do anything else, you will need to restore a capability from the server. Refer to the <a class="reference external" href="http://kentonv.github.io/capnproto/rpc.html">Cap&#8217;n Proto docs</a> if you don&#8217;t know what this means:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">calculator</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">ez_restore</span><span class="p">(</span><span class="s">&#39;calculator&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">cast_as</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">Calculator</span><span class="p">)</span>
+<div class="section" id="starting-a-client-asyncio">
+<span id="rpc-asyncio-client"></span><h4>Starting a Client (asyncio)<a class="headerlink" href="#starting-a-client-asyncio" title="Permalink to this headline">¶</a></h4>
+<p>Asyncio takes a bit more boilerplate than using the socket wrapper, but it gives you a lot more control. The example here is very simplistic. Here’s an example of full error handling (with reconnection on server failure): <a class="reference external" href="https://github.com/hid-io/hid-io-core/blob/master/python/hidiocore/client/__init__.py">hidio client</a>.</p>
+<p>At a basic level, asyncio splits the input and output streams of the tcp socket and sends it to the libcapnp TwoWayPipe interface. An async reader Python function/method is used to consume the incoming byte stream and an async writer Python function/method is used to write outgoing bytes to the socket.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You’ll need to be using the async keyword on some of the Python function/methods. If you’re unsure, look at the full <a class="reference external" href="https://github.com/capnproto/pycapnp/blob/master/examples/async_calculator_client.py">example code</a>. Also, read up on recent Python asyncio tutorials if you’re new to the concept. Make sure the tutorial is 3.7+, asyncio changed a lot from when it was first introduced in 3.4.</p>
+</div>
+<p>First you’ll need two basic async functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">myreader</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">reader</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">mywriter</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">writer</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+        <span class="k">await</span> <span class="n">writer</span><span class="o">.</span><span class="n">drain</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>There&#8217;s two things worth noting here. First, we used the simpler <cite>ez_restore</cite> function. For servers that use a struct type as their Restorer, you will have to do the following instead:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">calculator</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">MyStructType</span><span class="o">.</span><span class="n">new_message</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="s">&#39;bar&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">cast_as</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">Calculator</span><span class="p">)</span>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There’s no socket error handling here, so this won’t be sufficient for anything beyond a simple example.</p>
+</div>
+<p>Next you’ll need to define an async function that sets up the socket connection. This is equivalent to <cite>client = capnp.TwoPartyClient(‘localhost:60000’)</cite> in the earlier example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">host</span><span class="p">):</span>
+    <span class="n">addr</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="s1">&#39;6000&#39;</span>
+
+    <span class="c1"># Handle both IPv4 and IPv6 cases</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv4&quot;</span><span class="p">)</span>
+        <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv6&quot;</span><span class="p">)</span>
+        <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET6</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">()</span>
+
+    <span class="c1"># Assemble reader and writer tasks, run in the background</span>
+    <span class="n">coroutines</span> <span class="o">=</span> <span class="p">[</span><span class="n">myreader</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">reader</span><span class="p">),</span> <span class="n">mywriter</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">writer</span><span class="p">)]</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">coroutines</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">## Bootstrap Here ##</span>
 </pre></div>
 </div>
-<p>Secondly, you see that we are casting the capability that we receive. This is because capabilities are intrinsically dynamic, and they hold no run time type information, so we need to pick what interface to interpret them as.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On systems that have both IPv4 and IPv6 addresses, IPv6 is often resolved first and needs to be handled separately. If you’re certain IPv6 won’t be used, you can remove it (you should also avoid localhost, and stick to something like 127.0.0.1).</p>
+</div>
+<p>Finally, you’ll need to start the asyncio function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">(</span><span class="n">parse_args</span><span class="p">()</span><span class="o">.</span><span class="n">host</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the simplest way to start asyncio and usually not sufficient for most applications.</p>
+</div>
+<div class="section" id="ssl-tls-client">
+<h5>SSL/TLS Client<a class="headerlink" href="#ssl-tls-client" title="Permalink to this headline">¶</a></h5>
+<p>SSL/TLS setup effectively wraps the socket transport. You’ll need an SSL certificate, for this example we’ll be using a self-signed certificate. Most of the asyncio setup is the same as above:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">host</span><span class="p">):</span>
+    <span class="n">addr</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="s1">&#39;6000&#39;</span>
+
+    <span class="c1"># Setup SSL context</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">(</span><span class="n">ssl</span><span class="o">.</span><span class="n">Purpose</span><span class="o">.</span><span class="n">SERVER_AUTH</span><span class="p">,</span> <span class="n">cafile</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">this_dir</span><span class="p">,</span> <span class="s1">&#39;selfsigned.cert&#39;</span><span class="p">))</span>
+
+    <span class="c1"># Handle both IPv4 and IPv6 cases</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv4&quot;</span><span class="p">)</span>
+        <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">ssl</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv6&quot;</span><span class="p">)</span>
+        <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">open_connection</span><span class="p">(</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">ssl</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET6</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">()</span>
+
+    <span class="c1"># Assemble reader and writer tasks, run in the background</span>
+    <span class="n">coroutines</span> <span class="o">=</span> <span class="p">[</span><span class="n">myreader</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">reader</span><span class="p">),</span> <span class="n">mywriter</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">writer</span><span class="p">)]</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">coroutines</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">## Bootstrap Here ##</span>
+</pre></div>
+</div>
+<p>Due to a <a class="reference external" href="https://bugs.python.org/issue36709">bug</a> in Python 3.7 and 3.8 asyncio client needs to be initialized in a slightly different way:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+    <span class="n">loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span><span class="n">main</span><span class="p">(</span><span class="n">parse_args</span><span class="p">()</span><span class="o">.</span><span class="n">host</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="bootstrap">
+<h4>Bootstrap<a class="headerlink" href="#bootstrap" title="Permalink to this headline">¶</a></h4>
+<p>Before calling any methods you’ll need to bootstrap the Calculator interface:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">calculator</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">bootstrap</span><span class="p">()</span><span class="o">.</span><span class="n">cast_as</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">Calculator</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There’s two things worth noting here. First, we are asking for the server capability. Secondly, you see that we are casting the capability that we receive. This is because capabilities are intrinsically dynamic, and they hold no run time type information, so we need to pick what interface to interpret them as.</p>
 </div>
 <div class="section" id="calling-methods">
 <h4>Calling methods<a class="headerlink" href="#calling-methods" title="Permalink to this headline">¶</a></h4>
 <p>There are 2 ways to call RPC methods. First the more verbose <cite>request</cite> syntax:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">request</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">evaluate_request</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">request</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">evaluate_request</span><span class="p">()</span>
 <span class="n">request</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">literal</span> <span class="o">=</span> <span class="mi">123</span>
 <span class="n">eval_promise</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>This creates a request for the method named &#8216;evaluate&#8217;, sets <cite>expression.literal</cite> in that call&#8217;s parameters to 123, and then sends the request and returns a promise (all non-blocking).</p>
+<p>This creates a request for the method named ‘evaluate’, sets <cite>expression.literal</cite> in that call’s parameters to 123, and then sends the request and returns a promise (all non-blocking).</p>
 <p>The shorter syntax for calling methods is:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">eval_promise</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">({</span><span class="s">&quot;literal&quot;</span><span class="p">:</span> <span class="mi">123</span><span class="p">})</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">eval_promise</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">({</span><span class="s2">&quot;literal&quot;</span><span class="p">:</span> <span class="mi">123</span><span class="p">})</span>
 </pre></div>
 </div>
 <p>The major shortcoming with this method is that expressing complex fields with many nested sub-structs can become very tedious.</p>
 <p>Once you have a promise, there are 2 ways of getting to the result. The first is to wait for it:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">result</span> <span class="o">=</span> <span class="n">eval_promise</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">eval_promise</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>The second is to build a promise chain by calling <cite>then</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">do_stuff</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">do_stuff</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
     <span class="o">...</span>
 
 <span class="n">eval_promise</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">do_stuff</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
@@ -415,42 +544,191 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 <div class="section" id="pipelining">
 <h4>Pipelining<a class="headerlink" href="#pipelining" title="Permalink to this headline">¶</a></h4>
-<p>If a method returns values that are themselves capabilites, then you can access these fields before having to call <cite>wait</cite>. Doing this is called pipelining, and it allows Cap&#8217;n Proto to chain the calls without a round-trip occurring to the server:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># evaluate returns `value` which is itself an interface.</span>
-<span class="c"># You can call a new method on `value` without having to call wait first</span>
+<p>If a method returns values that are themselves capabilites, then you can access these fields before having to call <cite>wait</cite>. Doing this is called pipelining, and it allows Cap’n Proto to chain the calls without a round-trip occurring to the server:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># evaluate returns `value` which is itself an interface.</span>
+<span class="c1"># You can call a new method on `value` without having to call wait first</span>
 <span class="n">read_promise</span> <span class="o">=</span> <span class="n">eval_promise</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-<span class="n">read_result</span> <span class="o">=</span> <span class="n">read_promise</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span> <span class="c"># only 1 wait call</span>
+<span class="n">read_result</span> <span class="o">=</span> <span class="n">read_promise</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span> <span class="c1"># only 1 wait call</span>
 </pre></div>
 </div>
 <p>You can also chain promises with <cite>then</cite> and the same pipelining will occur:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">read_result</span> <span class="o">=</span> <span class="n">eval_promise</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="k">lambda</span> <span class="n">ret</span><span class="p">:</span> <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">read_result</span> <span class="o">=</span> <span class="n">eval_promise</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="k">lambda</span> <span class="n">ret</span><span class="p">:</span> <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="section" id="server">
 <h3>Server<a class="headerlink" href="#server" title="Permalink to this headline">¶</a></h3>
+<p>There are two ways to start a server: libcapnp socket wrapper and asyncio.
+The wrapper is easier to implement but is very limited (doesn’t support SSL/TLS with Python).
+asyncio requires more setup and can be harder to debug; however, it does support SSL/TLS and has more control over the socket error conditions. asyncio also helps get around the threading limitations around the current pycapnp implementation has with libcapnp (pycapnp objects and functions must all be in the same thread). The asyncio Server is a bit more work to implement than an asyncio client as more error handling is required to deal with client connection/disconnection/timeout events.</p>
 <div class="section" id="starting-a-server">
 <h4>Starting a Server<a class="headerlink" href="#starting-a-server" title="Permalink to this headline">¶</a></h4>
-<blockquote>
-<div><p>server = capnp.TwoPartyServer(&#8216;<a href="#id2"><span class="problematic" id="id3">*</span></a>:60000&#8217;, restore)</p>
-<p>server.run_forever()</p>
-</div></blockquote>
-<p>See the <a class="reference internal" href="#restore">Restore</a> section for an explanation of what the <cite>restore</cite> object needs to looks like.</p>
+<p>To start a server:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">server</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyServer</span><span class="p">(</span><span class="s1">&#39;*:60000&#39;</span><span class="p">,</span> <span class="n">bootstrap</span><span class="o">=</span><span class="n">CalculatorImpl</span><span class="p">())</span>
+<span class="n">server</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
+</pre></div>
+</div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">You can also pass a raw socket with a <cite>fileno()</cite> method to TwoPartyServer. In that case, <cite>run_forever</cite> will not work, and you will have to use <cite>on_disconnect.wait()</cite>.</p>
+<p class="admonition-title">Note</p>
+<p>You can also pass a raw socket with a <cite>fileno()</cite> method to TwoPartyServer. In that case, <cite>run_forever</cite> will not work, and you will have to use <cite>on_disconnect.wait()</cite>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will not work with SSL/TLS, please see <a class="reference internal" href="#rpc-asyncio-server"><span class="std std-ref">Starting a Server (asyncio)</span></a></p>
+</div>
+</div>
+<div class="section" id="starting-a-server-asyncio">
+<span id="rpc-asyncio-server"></span><h4>Starting a Server (asyncio)<a class="headerlink" href="#starting-a-server-asyncio" title="Permalink to this headline">¶</a></h4>
+<p>Like the asyncio client, an asyncio server takes a bunch of boilerplate as opposed to using the socket wrapper. Servers generally have to handle a lot more error conditions than clients so they are generally more complicated to implement with asyncio.</p>
+<p>Just like the asyncio client, both the input and output socket streams are handled by reader/writer callback functions/methods.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You’ll need to be using the async keyword on some of the Python function/methods. If you’re unsure, look at the full <a class="reference external" href="https://github.com/capnproto/pycapnp/blob/master/examples/async_calculator_client.py">example code</a>. Also, read up on recent Python asyncio tutorials if you’re new to the concept. Make sure the tutorial is 3.7+, asyncio changed a lot from when it was first introduced in 3.4.</p>
+</div>
+<p>To simplify the callbacks use a server class to define the reader/writer callbacks.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Server</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">myreader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">retry</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Must be a wait_for so we don&#39;t block on read()</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4096</span><span class="p">),</span>
+                    <span class="n">timeout</span><span class="o">=</span><span class="mf">0.1</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;myreader timeout.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unknown myreader err: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;myreader done.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">mywriter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">retry</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Must be a wait_for so we don&#39;t block on read()</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4096</span><span class="p">),</span>
+                    <span class="n">timeout</span><span class="o">=</span><span class="mf">0.1</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+            <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mywriter timeout.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unknown mywriter err: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mywriter done.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p>We need an additional <cite>myserver()</cite> method in the <cite>Server</cite> class to handle each of the incoming socket connections:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">myserver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span><span class="p">):</span>
+    <span class="c1"># Start TwoPartyServer using TwoWayPipe (only requires bootstrap)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyServer</span><span class="p">(</span><span class="n">bootstrap</span><span class="o">=</span><span class="n">CalculatorImpl</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">writer</span> <span class="o">=</span> <span class="n">writer</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Assemble reader and writer tasks, run in the background</span>
+    <span class="n">coroutines</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">myreader</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">mywriter</span><span class="p">()]</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">coroutines</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">poll_once</span><span class="p">()</span>
+        <span class="c1"># Check to see if reader has been sent an eof (disconnect)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">at_eof</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">break</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+    <span class="c1"># Make wait for reader/writer to finish (prevent possible resource leaks)</span>
+    <span class="k">await</span> <span class="n">tasks</span>
+</pre></div>
+</div>
+<p>Finally, we’ll need to start an asyncio server to spawn a new async <cite>myserver()</cite> with it’s own <cite>Server()</cite> object for each new connection:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">new_connection</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">writer</span><span class="p">):</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">server</span><span class="o">.</span><span class="n">myserver</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">writer</span><span class="p">)</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">addr</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="s1">&#39;60000&#39;</span>
+
+    <span class="c1"># Handle both IPv4 and IPv6 cases</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv4&quot;</span><span class="p">)</span>
+        <span class="n">server</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">start_server</span><span class="p">(</span>
+            <span class="n">new_connection</span><span class="p">,</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv6&quot;</span><span class="p">)</span>
+        <span class="n">server</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">start_server</span><span class="p">(</span>
+            <span class="n">new_connection</span><span class="p">,</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET6</span>
+        <span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">with</span> <span class="n">server</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On systems that have both IPv4 and IPv6 addresses, IPv6 is often resolved first and needs to be handled separately. If you’re certain IPv6 won’t be used, you can remove it (you should also avoid localhost, and stick to something like 127.0.0.1). If you’re broadcasting in general, you’ll probably want to use <cite>0.0.0.0</cite> (IPv4) or <cite>::/0</cite> (IPv6).</p>
+</div>
+<div class="section" id="ssl-tls-server">
+<h5>SSL/TLS Server<a class="headerlink" href="#ssl-tls-server" title="Permalink to this headline">¶</a></h5>
+<p>Adding SSL/TLS support for a pycapnp asyncio server is fairly straight-forward. Just create an SSL context before starting the asyncio server:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">addr</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="s1">&#39;60000&#39;</span>
+
+    <span class="c1"># Setup SSL context</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">(</span><span class="n">ssl</span><span class="o">.</span><span class="n">Purpose</span><span class="o">.</span><span class="n">CLIENT_AUTH</span><span class="p">)</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">load_cert_chain</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">this_dir</span><span class="p">,</span> <span class="s1">&#39;selfsigned.cert&#39;</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">this_dir</span><span class="p">,</span> <span class="s1">&#39;selfsigned.key&#39;</span><span class="p">))</span>
+
+    <span class="c1"># Handle both IPv4 and IPv6 cases</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv4&quot;</span><span class="p">)</span>
+        <span class="n">server</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">start_server</span><span class="p">(</span>
+            <span class="n">new_connection</span><span class="p">,</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">ssl</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Try IPv6&quot;</span><span class="p">)</span>
+        <span class="n">server</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">start_server</span><span class="p">(</span>
+            <span class="n">new_connection</span><span class="p">,</span>
+            <span class="n">addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span>
+            <span class="n">ssl</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET6</span>
+        <span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">with</span> <span class="n">server</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="implementing-a-server">
 <h4>Implementing a Server<a class="headerlink" href="#implementing-a-server" title="Permalink to this headline">¶</a></h4>
-<p>Here&#8217;s a part of how you would implement a Calculator server:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">CalculatorImpl</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">Calculator</span><span class="o">.</span><span class="n">Server</span><span class="p">):</span>
+<p>Here’s a part of how you would implement a Calculator server:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CalculatorImpl</span><span class="p">(</span><span class="n">calculator_capnp</span><span class="o">.</span><span class="n">Calculator</span><span class="o">.</span><span class="n">Server</span><span class="p">):</span>
 
-    <span class="s">&quot;Implementation of the Calculator Cap&#39;n Proto interface.&quot;</span>
+    <span class="s2">&quot;Implementation of the Calculator Cap&#39;n Proto interface.&quot;</span>
 
     <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">_context</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">evaluate_impl</span><span class="p">(</span><span class="n">expression</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="k">lambda</span> <span class="n">value</span><span class="p">:</span> <span class="nb">setattr</span><span class="p">(</span><span class="n">_context</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="s">&#39;value&#39;</span><span class="p">,</span> <span class="n">ValueImpl</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">evaluate_impl</span><span class="p">(</span><span class="n">expression</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="k">lambda</span> <span class="n">value</span><span class="p">:</span> <span class="nb">setattr</span><span class="p">(</span><span class="n">_context</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">ValueImpl</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
 
     <span class="k">def</span> <span class="nf">defFunction_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">params</span>
@@ -462,121 +740,92 @@ ValueError: src/capnp/schema.c++:326: requirement not met: enum has no such enum
 </div>
 <p>Some major things worth noting.</p>
 <ul>
-<li><p class="first">You must inherit from <cite>your_module_capnp.YourInterface.Server</cite>, but don&#8217;t worry about calling __super__ in your __init__</p>
-</li>
-<li><p class="first">Method names of your class must either match the interface exactly, or have &#8216;_context&#8217; appended to it</p>
-</li>
-<li><p class="first">If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a <cite>_context</cite> parameter which is equivalent to the C++ API&#8217;s Context. I highly recommend having <a href="#id4"><span class="problematic" id="id5">**</span></a>kwargs as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine.</p>
-</li>
-<li><p class="first">Returns work with a bit of magic as well. If you return a promise, then it will be handled the same as if you returned a promise from a server method in the C++ API. Otherwise, your return statement will be filled into the results struct following the ordering in your spec, for example:</p>
-<div class="highlight-python"><div class="highlight"><pre># capability.capnp file
-interface TestInterface {
-  foo @0 (i :UInt32, j :Bool) -&gt; (x: Text, i:UInt32);
-}
+<li><p>You must inherit from <cite>your_module_capnp.YourInterface.Server</cite>, but don’t worry about calling __super__ in your __init__</p></li>
+<li><p>Method names of your class must either match the interface exactly, or have ‘_context’ appended to it</p></li>
+<li><p>If your method name is exactly the same as the interface, then you will be passed all the arguments from the interface as keyword arguments, so your argument names must match the interface spec exactly. You will also receive a <cite>_context</cite> parameter which is equivalent to the C++ API’s Context. I highly recommend having <cite>**kwargs</cite> as well, so that even if your interface spec is upgraded and arguments were added, your server will still operate fine.</p></li>
+<li><p>Returns work with a bit of magic as well. If you return a promise, then it will be handled the same as if you returned a promise from a server method in the C++ API. Otherwise, your return statement will be filled into the results struct following the ordering in your spec, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># capability.capnp file</span>
+<span class="n">interface</span> <span class="n">TestInterface</span> <span class="p">{</span>
+  <span class="n">foo</span> <span class="o">@</span><span class="mi">0</span> <span class="p">(</span><span class="n">i</span> <span class="p">:</span><span class="n">UInt32</span><span class="p">,</span> <span class="n">j</span> <span class="p">:</span><span class="n">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Text</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span><span class="n">UInt32</span><span class="p">);</span>
+<span class="p">}</span>
 
-# python code
-class TestInterface(capability_capnp.TestInterface.Server):
-    def foo(self, i, j, **kwargs):
-        return str(j), i
+<span class="c1"># python code</span>
+<span class="k">class</span> <span class="nc">TestInterface</span><span class="p">(</span><span class="n">capability_capnp</span><span class="o">.</span><span class="n">TestInterface</span><span class="o">.</span><span class="n">Server</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">foo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">),</span> <span class="n">i</span>
 </pre></div>
 </div>
 </li>
-<li><p class="first">If your method ends in _context, then you will only be passed a context parameter. You will have to access params and set results yourself manually. Returning promises still works as above, but you can&#8217;t return anything else from a method.</p>
-</li>
+<li><p>If your method ends in _context, then you will only be passed a context parameter. You will have to access params and set results yourself manually. Returning promises still works as above, but you can’t return anything else from a method.</p></li>
 </ul>
-</div>
-<div class="section" id="restore">
-<h4>Restore<a class="headerlink" href="#restore" title="Permalink to this headline">¶</a></h4>
-<p>Restoring can occur in either a class:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">SimpleRestorer</span><span class="p">(</span><span class="n">test_capability_capnp</span><span class="o">.</span><span class="n">TestSturdyRefObjectId</span><span class="o">.</span><span class="n">Restorer</span><span class="p">):</span>
-
-    <span class="k">def</span> <span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_id</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">ref_id</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s">&#39;testInterface&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">Server</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Unrecognized ref passed to restore&#39;</span><span class="p">)</span>
-
-<span class="o">...</span>
-
-<span class="n">server</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyServer</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">SimpleRestorer</span><span class="p">())</span>
-</pre></div>
-</div>
-<p>Where you inherit from StructType.Restorer, and the argument passed to restore will be cast to the proper type.</p>
-<p>Otherwise, restore can be a function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">restore</span><span class="p">(</span><span class="n">ref_id</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">ref_id</span><span class="o">.</span><span class="n">as_struct</span><span class="p">(</span><span class="n">test_capability_capnp</span><span class="o">.</span><span class="n">TestSturdyRefObjectId</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s">&#39;testInterface&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">Server</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Unrecognized ref passed to restore&#39;</span><span class="p">)</span>
-
-<span class="o">...</span>
-
-<span class="n">server</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyServer</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">restore</span><span class="p">)</span>
-</pre></div>
-</div>
 </div>
 </div>
 </div>
 <div class="section" id="full-examples">
 <h2>Full Examples<a class="headerlink" href="#full-examples" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference external" href="https://github.com/jparyani/pycapnp/blob/master/examples">Full examples</a> are available on github. There is also an example of a very simplistic RPC available in <a class="reference external" href="https://github.com/jparyani/pycapnp/blob/master/test/test_rpc.py">test_rpc.py</a>.</p>
+<p><a class="reference external" href="https://github.com/capnproto/pycapnp/blob/master/examples">Full examples</a> are available on github. There is also an example of a very simplistic RPC available in <a class="reference external" href="https://github.com/capnproto/pycapnp/blob/master/test/test_rpc.py">test_rpc.py</a>.</p>
 </div>
 </div>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Quickstart</a><ul>
-<li><a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap&#8217;n Proto Schema</a><ul>
-<li><a class="reference internal" href="#const-values">Const values</a></li>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#load-a-cap-n-proto-schema">Load a Cap’n Proto Schema</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#const-values">Const values</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#build-a-message">Build a message</a><ul>
-<li><a class="reference internal" href="#initialize-a-new-cap-n-proto-object">Initialize a New Cap&#8217;n Proto Object</a></li>
-<li><a class="reference internal" href="#list">List</a></li>
-<li><a class="reference internal" href="#primitive-types">Primitive Types</a></li>
-<li><a class="reference internal" href="#enums">Enums</a></li>
-<li><a class="reference internal" href="#unions">Unions</a></li>
-<li><a class="reference internal" href="#writing-to-a-file">Writing to a File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build-a-message">Build a message</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initialize-a-new-cap-n-proto-object">Initialize a New Cap’n Proto Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#list">List</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#primitive-types">Primitive Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enums">Enums</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#writing-to-a-file">Writing to a File</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#read-a-message">Read a message</a><ul>
-<li><a class="reference internal" href="#reading-from-a-file">Reading from a file</a></li>
-<li><a class="reference internal" href="#reading-fields">Reading Fields</a></li>
-<li><a class="reference internal" href="#reading-unions">Reading Unions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#read-a-message">Read a message</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#reading-from-a-file">Reading from a file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-fields">Reading Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-unions">Reading Unions</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#serializing-deserializing">Serializing/Deserializing</a><ul>
-<li><a class="reference internal" href="#files">Files</a></li>
-<li><a class="reference internal" href="#multi-message-files">Multi-message files</a></li>
-<li><a class="reference internal" href="#dictionaries">Dictionaries</a></li>
-<li><a class="reference internal" href="#byte-strings-buffers">Byte Strings/Buffers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#serializing-deserializing">Serializing/Deserializing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#files">Files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-message-files">Multi-message files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dictionaries">Dictionaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#byte-strings-buffers">Byte Strings/Buffers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#byte-segments">Byte Segments</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#rpc">RPC</a><ul>
-<li><a class="reference internal" href="#client">Client</a><ul>
-<li><a class="reference internal" href="#starting-a-client">Starting a Client</a></li>
-<li><a class="reference internal" href="#restoring">Restoring</a></li>
-<li><a class="reference internal" href="#calling-methods">Calling methods</a></li>
-<li><a class="reference internal" href="#pipelining">Pipelining</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rpc">RPC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#client">Client</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#starting-a-client">Starting a Client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#starting-a-client-asyncio">Starting a Client (asyncio)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bootstrap">Bootstrap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calling-methods">Calling methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pipelining">Pipelining</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server">Server</a><ul>
-<li><a class="reference internal" href="#starting-a-server">Starting a Server</a></li>
-<li><a class="reference internal" href="#implementing-a-server">Implementing a Server</a></li>
-<li><a class="reference internal" href="#restore">Restore</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#server">Server</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#starting-a-server">Starting a Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#starting-a-server-asyncio">Starting a Server (asyncio)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#implementing-a-server">Implementing a Server</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#full-examples">Full Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#full-examples">Full Examples</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="capnp.html">API Reference</a></li>
 </ul>
 
   <h4>Previous topic</h4>
@@ -585,29 +834,28 @@ class TestInterface(capability_capnp.TestInterface.Server):
   <h4>Next topic</h4>
   <p class="topless"><a href="capnp.html"
                         title="next chapter">API Reference</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="_sources/quickstart.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/quickstart.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -622,12 +870,13 @@ class TestInterface(capability_capnp.TestInterface.Server):
         <li class="right" >
           <a href="install.html" title="Installation"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.5.4 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0b2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Quickstart</a></li> 
       </ul>
     </div>
-    <div class="footer">
-        &copy; Copyright 2013, Author.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.0.
     </div>
   </body>
 </html>

@@ -1,34 +1,24 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Installation &mdash; capnp 0.5.4 documentation</title>
-    
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installation &#8212; capnp 1.0.0b2 documentation</title>
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.5.4',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="capnp 0.5.4 documentation" href="index.html" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Quickstart" href="quickstart.html" />
-    <link rel="prev" title="Welcome to pycapnp’s documentation!" href="index.html" /> 
-  </head>
-  <body>
-    <div class="related">
+    <link rel="prev" title="pycapnp" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -41,120 +31,167 @@
           <a href="quickstart.html" title="Quickstart"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to pycapnp’s documentation!"
+          <a href="index.html" title="pycapnp"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">capnp 0.5.4 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0b2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
       </ul>
     </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="installation">
 <span id="install"></span><h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="c-cap-n-proto-library">
-<h2>C++ Cap&#8217;n Proto Library<a class="headerlink" href="#c-cap-n-proto-library" title="Permalink to this headline">¶</a></h2>
-<p>You need to install the C++ Cap&#8217;n Proto library first. It requires a C++ compiler with C++11 support, such as GCC 4.7+ or Clang 3.2+. Follow installation docs at <a class="reference external" href="http://kentonv.github.io/capnproto/install.html">http://kentonv.github.io/capnproto/install.html</a>, or if you&#8217;re feeling lazy, you can run the commands below:</p>
-<div class="highlight-python"><div class="highlight"><pre>curl -O http://capnproto.org/capnproto-c++-0.5.0.tar.gz
-tar zxf capnproto-c++-0.5.0.tar.gz
-cd capnproto-c++-0.5.0
-./configure
-make -j6 check
-sudo make install
-</pre></div>
-</div>
-</div>
 <div class="section" id="pip">
 <h2>Pip<a class="headerlink" href="#pip" title="Permalink to this headline">¶</a></h2>
-<p>Using pip is by far the easiest way to install the library. After you&#8217;ve installed the C++ library, all you need to run is:</p>
-<div class="highlight-python"><div class="highlight"><pre>[sudo] pip install -U cython
-[sudo] pip install -U setuptools
-[sudo] pip install pycapnp
+<p>The pip installation will using the binary versions of the package (if possible). These contain a bundled version of capnproto (on Linux compiled with <a class="reference external" href="https://github.com/pypa/manylinux">manylinux</a>). Starting from v1.0.0b1 binary releases are available for Windows, macOS and Linux from <a class="reference external" href="https://pypi.org/project/pycapnp/#history">pypi</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">pycapnp</span>
 </pre></div>
 </div>
-<p>On some systems you will have to install Python&#8217;s headers before doing any of this. For Debian/Ubuntu, this is:</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install python-dev
+<p>To force rebuilding the pip package from source (you’ll need requirments.txt or pipenv):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="n">pycapnp</span>
 </pre></div>
 </div>
-<p>You can control what compiler is used with the environment variable CC, ie. <cite>CC=gcc-4.8 pip install pycapnp</cite>, and flags with CFLAGS. You only need to run the setuptools line if you have a setuptools older than v0.8.0, and the cython line if you have a version older than v0.19.1.</p>
+<p>To force bundling libcapnp (or force system libcapnp), just in case setup.py isn’t doing the right thing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--force-bundled-libcapnp&quot;</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--force-system-libcapnp&quot;</span>
+</pre></div>
+</div>
+<p>If you’re using an older Linux distro (e.g. CentOS 6) you many need to set <cite>LDFLAGS=”-Wl,–no-as-needed -lrt”</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">LDFLAGS</span><span class="o">=</span><span class="s2">&quot;-Wl,--no-as-needed -lrt&quot;</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="n">pycapnp</span>
+</pre></div>
+</div>
+<p>It’s also possible to specify the libcapnp url when bundling (this may not work, there be dragons):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--force-bundled-libcapnp&quot;</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--libcapnp-url&quot;</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;https://github.com/capnproto/capnproto/archive/master.tar.gz&quot;</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="from-source">
 <h2>From Source<a class="headerlink" href="#from-source" title="Permalink to this headline">¶</a></h2>
-<p>If you want the latest development version, you can clone the github repo and install like so:</p>
-<div class="highlight-python"><div class="highlight"><pre>git clone https://github.com/jparyani/pycapnp.git
-pip install ./pycapnp
+<p>Source installation is generally not needed unless you’re looking into an issue with capnproto or pycapnp itself.</p>
+<div class="section" id="c-cap-n-proto-library">
+<h3>C++ Cap’n Proto Library<a class="headerlink" href="#c-cap-n-proto-library" title="Permalink to this headline">¶</a></h3>
+<p>You need to install the C++ Cap’n Proto library first. It requires a C++ compiler with C++14 support, such as GCC 5+ or Clang 5+. Follow installation docs at <a class="reference external" href="https://capnproto.org/install.html">https://capnproto.org/install.html</a>.</p>
+</div>
+<div class="section" id="pycapnp-from-git">
+<h3>pycapnp from git<a class="headerlink" href="#pycapnp-from-git" title="Permalink to this headline">¶</a></h3>
+<p>If you want the latest development version, you can clone the github repo:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">capnproto</span><span class="o">/</span><span class="n">pycapnp</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+<p>For development packages use one of the following to install the python dependencies:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pipenv</span> <span class="n">install</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>And install pycapnp with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">pycapnp</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">.</span>
 </pre></div>
 </div>
 <p>or:</p>
-<div class="highlight-python"><div class="highlight"><pre>cd pycapnp
-python setup.py install
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">pycapnp</span>
+<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
 </pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="development">
 <h2>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h2>
-<p>Clone the repo from <a class="reference external" href="https://github.com/jparyani/pycapnp.git">https://github.com/jparyani/pycapnp.git</a> and use the <cite>develop</cite> branch. I&#8217;ll probably ask you to redo pull requests that target <cite>master</cite> and aren&#8217;t easily mergable to <cite>develop</cite>:</p>
-<div class="highlight-python"><div class="highlight"><pre>git clone https://github.com/jparyani/pycapnp.git
-git checkout develop
+<p>Clone the repo from <a class="reference external" href="https://github.com/capnproto/pycapnp.git">https://github.com/capnproto/pycapnp.git</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">capnproto</span><span class="o">/</span><span class="n">pycapnp</span><span class="o">.</span><span class="n">git</span>
 </pre></div>
 </div>
-<p>Testing is done through pytest, like so:</p>
-<div class="highlight-python"><div class="highlight"><pre>pip install pytest
-py.test
+<p>For development packages use one of the following to install the python dependencies:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pipenv</span> <span class="n">install</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 </div>
-<p>Once you&#8217;re done installing, take a look at the <a class="reference internal" href="quickstart.html#quickstart"><em>Quickstart</em></a></p>
+<p>Building:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">pycapnp</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">.</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">pycapnp</span>
+<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+</pre></div>
+</div>
+<p>Useful targets for setup.py:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">build</span>
+<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">clean</span>
+</pre></div>
+</div>
+<p>Useful command-line arguments are available for setup.py:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">force</span><span class="o">-</span><span class="n">bundled</span><span class="o">-</span><span class="n">libcapnp</span>
+<span class="o">--</span><span class="n">force</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">libcapnp</span>
+<span class="o">--</span><span class="n">libcapnp</span><span class="o">-</span><span class="n">url</span>
+</pre></div>
+</div>
+<p>Testing is done through pytest:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">pycapnp</span>
+<span class="n">pytest</span>
+<span class="n">pytest</span> <span class="n">test</span><span class="o">/</span><span class="n">test_rpc_calculator</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<p>Once you’re done installing, take a look at the <a class="reference internal" href="quickstart.html#quickstart"><span class="std std-ref">Quickstart</span></a></p>
 </div>
 </div>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Installation</a><ul>
-<li><a class="reference internal" href="#c-cap-n-proto-library">C++ Cap&#8217;n Proto Library</a></li>
-<li><a class="reference internal" href="#pip">Pip</a></li>
-<li><a class="reference internal" href="#from-source">From Source</a></li>
-<li><a class="reference internal" href="#development">Development</a></li>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pip">Pip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#from-source">From Source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#c-cap-n-proto-library">C++ Cap’n Proto Library</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycapnp-from-git">pycapnp from git</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#development">Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="capnp.html">API Reference</a></li>
 </ul>
 
   <h4>Previous topic</h4>
   <p class="topless"><a href="index.html"
-                        title="previous chapter">Welcome to pycapnp&#8217;s documentation!</a></p>
+                        title="previous chapter">pycapnp</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="quickstart.html"
                         title="next chapter">Quickstart</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="_sources/install.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/install.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -167,14 +204,15 @@ py.test
           <a href="quickstart.html" title="Quickstart"
              >next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to pycapnp’s documentation!"
+          <a href="index.html" title="pycapnp"
              >previous</a> |</li>
-        <li><a href="index.html">capnp 0.5.4 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0b2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
       </ul>
     </div>
-    <div class="footer">
-        &copy; Copyright 2013, Author.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.0.
     </div>
   </body>
 </html>
