@@ -1,4 +1,4 @@
-## v1.0.0b2 (2020-06-xx)
+## v1.0.0b2 (2020-06-14)
 - Minimum capnproto version is now 0.8.0
 - Added asyncio ssl calculator test
 - Added poll_once to TwoPartyServer API
