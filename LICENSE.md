@@ -1,4 +1,5 @@
 Copyright (c) 2013, Jason Paryani <pycapnp@jparyani.com>
+Copyright (c) 2019-2020, Jacob Alexander <haata@kiibohd.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
