@@ -33,11 +33,13 @@ def test_calculator():
     calculator_client.main(read)
 
 
+@pytest.mark.xfail(reason="Some versions of python don't like to share ports, don't worry if this fails")
 def test_calculator_tcp(cleanup):
     address = 'localhost:36431'
     test_examples.run_subprocesses(address, 'calculator_server.py', 'calculator_client.py', wildcard_server=True)
 
 
+@pytest.mark.xfail(reason="Some versions of python don't like to share ports, don't worry if this fails")
 @pytest.mark.skipif(os.name == 'nt', reason="socket.AF_UNIX not supported on Windows")
 def test_calculator_unix(cleanup):
     path = '/tmp/pycapnp-test'

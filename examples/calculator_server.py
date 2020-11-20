@@ -2,6 +2,7 @@
 
 import argparse
 import capnp
+import time
 
 import calculator_capnp
 
@@ -131,7 +132,9 @@ def main():
     address = parse_args().address
 
     server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())
-    server.run_forever()
+    while True:
+        server.poll_once()
+        time.sleep(0.001)
 
 
 if __name__ == '__main__':
