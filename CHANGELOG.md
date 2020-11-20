@@ -1,3 +1,9 @@
+## v1.0.0 (2020-11-20)
+- Validated Python 3.9 (3.7 and 3.8 are also supported)
+- Updated package to include LICENSE file
+- Updated examples to avoid run_forever() as ctrl+c will not work
+- Adding xfail to pytest cases which fail sometimes due to network port oddities (please use asyncio, as Python handles things more gracefully)
+
 ## v1.0.0b2 (2020-06-14)
 - Minimum capnproto version is now 0.8.0
 - Added asyncio ssl calculator test
