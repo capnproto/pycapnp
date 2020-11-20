@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Reference &#8212; capnp 1.0.0b2 documentation</title>
+    <title>API Reference &#8212; capnp 1.0.0 documentation</title>
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -29,7 +29,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0b2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>  
@@ -401,7 +401,7 @@ Passes socket directly to libcapnp. Do not use with asyncio.</p></li>
 <p>This is a copying operation with respect to the message’s buffer. Changes in the new builder will not reflect in the original reader.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p>
+<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></p>
@@ -550,10 +550,10 @@ loaded, you use it much like any other Module:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – A relative or absolute path to a Cap’n Proto schema</p></li>
-<li><p><strong>display_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name internally used by the Cap’n Proto library
+<li><p><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – A relative or absolute path to a Cap’n Proto schema</p></li>
+<li><p><strong>display_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The name internally used by the Cap’n Proto library
 for the loaded schema. By default, it’s just os.path.basename(file_name)</p></li>
-<li><p><strong>imports</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – A list of str directories to add to the import path.</p></li>
+<li><p><strong>imports</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – A list of str directories to add to the import path.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -598,7 +598,7 @@ parsed schemas and constants with . syntax</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>additional_paths</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – Additional paths, listed as strings, to be used to search for the .capnp files. It is prepended to the beginning of sys.path. It also affects imports inside of Cap’n Proto schemas.</p>
+<dd class="field-odd"><p><strong>additional_paths</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – Additional paths, listed as strings, to be used to search for the .capnp files. It is prepended to the beginning of sys.path. It also affects imports inside of Cap’n Proto schemas.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -644,10 +644,10 @@ loaded, you use it much like any other Module:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – A relative or absolute path to a Cap’n Proto schema</p></li>
-<li><p><strong>display_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name internally used by the Cap’n Proto library
+<li><p><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – A relative or absolute path to a Cap’n Proto schema</p></li>
+<li><p><strong>display_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The name internally used by the Cap’n Proto library
 for the loaded schema. By default, it’s just os.path.basename(file_name)</p></li>
-<li><p><strong>imports</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – A list of str directories to add to the import path.</p></li>
+<li><p><strong>imports</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – A list of str directories to add to the import path.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -723,9 +723,9 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>buf</strong> (<em>buffer</em>) – Any Python object that supports the buffer interface.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
-<li><p><strong>builder</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If true, return a builder object. This will allow you to change the contents of <cite>buf</cite>, so do this with care.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>builder</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If true, return a builder object. This will allow you to change the contents of <cite>buf</cite>, so do this with care.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -742,8 +742,8 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>buf</strong> (<em>buffer</em>) – Any Python object that supports the readable buffer interface.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -760,7 +760,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <p>NB: This is not currently supported on PyPy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)">list</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)">list</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -772,8 +772,8 @@ one yourself, but you may end up using some of their member methods.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p></li>
-<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – A list of fields and their values to initialize in the struct. Note, this is not an actual argument, but refers to Python’s ability to pass keyword arguments. ie. new_message(my_field=100)</p></li>
+<li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p></li>
+<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – A list of fields and their values to initialize in the struct. Note, this is not an actual argument, but refers to Python’s ability to pass keyword arguments. ie. new_message(my_field=100)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -790,8 +790,8 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -808,9 +808,9 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
-<li><p><strong>skip_copy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you’re doing.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>skip_copy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you’re doing.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -827,8 +827,8 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>buf</strong> (<em>buffer</em>) – Any Python object that supports the buffer interface.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -845,8 +845,8 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>buf</strong> (<em>buffer</em>) – Any Python object that supports the buffer interface.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -863,9 +863,9 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
-<li><p><strong>skip_copy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you’re doing.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>skip_copy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you’re doing.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -882,8 +882,8 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
-<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
-<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
+<li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
+<li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -920,7 +920,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <dt id="capnp._DynamicStructReader">
 <em class="property">class </em><code class="sig-prename descclassname">capnp.</code><code class="sig-name descname">_DynamicStructReader</code><a class="headerlink" href="#capnp._DynamicStructReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads Cap’n Proto structs</p>
-<p>This class is almost a 1 for 1 wrapping of the Cap’n Proto C++ DynamicStruct::Reader. The only difference is that instead of a <cite>get</cite> method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent <cite>get</cite>. This means you just use . syntax to access any field. For field names that don’t follow valid python naming convention for fields, use the global function <a class="reference external" href="https://docs.python.org/3/library/functions.html#getattr" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">getattr()</span></code></a>:</p>
+<p>This class is almost a 1 for 1 wrapping of the Cap’n Proto C++ DynamicStruct::Reader. The only difference is that instead of a <cite>get</cite> method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent <cite>get</cite>. This means you just use . syntax to access any field. For field names that don’t follow valid python naming convention for fields, use the global function <a class="reference external" href="https://docs.python.org/3/library/functions.html#getattr" title="(in Python v3.9)"><code class="xref py py-func docutils literal notranslate"><span class="pre">getattr()</span></code></a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="c1"># This returns a _DynamicStructReader</span>
 <span class="nb">print</span> <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="c1"># using . syntax</span>
 <span class="nb">print</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="s1">&#39;field-with-hyphens&#39;</span><span class="p">)</span> <span class="c1"># for names that are invalid for python, use getattr</span>
@@ -933,7 +933,7 @@ one yourself, but you may end up using some of their member methods.</p>
 <p>This is a copying operation with respect to the message’s buffer. Changes in the new builder will not reflect in the original reader.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p>
+<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
@@ -1178,7 +1178,7 @@ Access members with . syntax.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The index of the element in the list to replace with the newly adopted object</p></li>
+<li><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – The index of the element in the list to replace with the newly adopted object</p></li>
 <li><p><strong>orphan</strong> (<a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicOrphan</span></code></a>) – A Cap’n proto orphan to adopt. It will be unusable after this operation.</p></li>
 </ul>
 </dd>
@@ -1195,7 +1195,7 @@ Access members with . syntax.</p>
 <p>Don’t use this method unless you know what you’re doing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The index of the element in the list to disown</p>
+<dd class="field-odd"><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – The index of the element in the list to disown</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicOrphan</span></code></a></p>
@@ -1210,8 +1210,8 @@ Access members with . syntax.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The index of the element in the list</p></li>
-<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Size of the element to be initialized.</p></li>
+<li><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – The index of the element in the list</p></li>
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Size of the element to be initialized.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1223,7 +1223,7 @@ Access members with . syntax.</p>
 <dt id="capnp._DynamicStructBuilder">
 <em class="property">class </em><code class="sig-prename descclassname">capnp.</code><code class="sig-name descname">_DynamicStructBuilder</code><a class="headerlink" href="#capnp._DynamicStructBuilder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds Cap’n Proto structs</p>
-<p>This class is almost a 1 for 1 wrapping of the Cap’n Proto C++ DynamicStruct::Builder. The only difference is that instead of a <cite>get</cite>/<cite>set</cite> method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don’t follow valid python naming convention for fields, use the global functions <a class="reference external" href="https://docs.python.org/3/library/functions.html#getattr" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">getattr()</span></code></a>/<a class="reference external" href="https://docs.python.org/3/library/functions.html#setattr" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">setattr()</span></code></a>:</p>
+<p>This class is almost a 1 for 1 wrapping of the Cap’n Proto C++ DynamicStruct::Builder. The only difference is that instead of a <cite>get</cite>/<cite>set</cite> method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don’t follow valid python naming convention for fields, use the global functions <a class="reference external" href="https://docs.python.org/3/library/functions.html#getattr" title="(in Python v3.9)"><code class="xref py py-func docutils literal notranslate"><span class="pre">getattr()</span></code></a>/<a class="reference external" href="https://docs.python.org/3/library/functions.html#setattr" title="(in Python v3.9)"><code class="xref py py-func docutils literal notranslate"><span class="pre">setattr()</span></code></a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">person</span> <span class="o">=</span> <span class="n">addressbook</span><span class="o">.</span><span class="n">Person</span><span class="o">.</span><span class="n">new_message</span><span class="p">()</span> <span class="c1"># This returns a _DynamicStructBuilder</span>
 
 <span class="n">person</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;foo&#39;</span> <span class="c1"># using . syntax</span>
@@ -1241,7 +1241,7 @@ Access members with . syntax.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The field name in the struct</p></li>
+<li><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The field name in the struct</p></li>
 <li><p><strong>orphan</strong> (<a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicOrphan</span></code></a>) – A Cap’n proto orphan to adopt. It will be unusable after this operation.</p></li>
 </ul>
 </dd>
@@ -1277,7 +1277,7 @@ Access members with . syntax.</p>
 <p>This is a copying operation with respect to the message’s buffer. Changes in the new builder will not reflect in the original reader.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p>
+<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Size of the first segment to allocate in the message (in words ie. 8 byte increments)</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
@@ -1292,7 +1292,7 @@ Access members with . syntax.</p>
 <p>Don’t use this method unless you know what you’re doing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The field name in the struct</p>
+<dd class="field-odd"><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The field name in the struct</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicOrphan" title="capnp._DynamicOrphan"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicOrphan</span></code></a></p>
@@ -1313,8 +1313,8 @@ Access members with . syntax.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The field name to initialize</p></li>
-<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The size of the list to initiialize. This should be None for struct/union initialization.</p></li>
+<li><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The field name to initialize</p></li>
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – The size of the list to initiialize. This should be None for struct/union initialization.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -1337,7 +1337,7 @@ Access members with . syntax.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The field name to initialize</p>
+<dd class="field-odd"><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The field name to initialize</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicResizableListBuilder" title="capnp._DynamicResizableListBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicResizableListBuilder</span></code></a></p>
@@ -1367,7 +1367,7 @@ Access members with . syntax.</p>
 <p>This is inefficient; it makes several copies.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.8)">bytes</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)">bytes</a></p>
 </dd>
 <dt class="field-even">Raises</dt>
 <dd class="field-even"><p><a class="reference internal" href="#capnp.KjException" title="capnp.KjException"><code class="xref py py-exc docutils literal notranslate"><span class="pre">KjException</span></code></a> if this isn’t the message’s root struct.</p>
@@ -1393,7 +1393,7 @@ Access members with . syntax.</p>
 <p>NB: This is not currently supported on PyPy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)">list</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)">list</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1710,7 +1710,7 @@ instantiate. Schemas are available in a loaded Cap’n Proto module:</p>
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0b2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>
