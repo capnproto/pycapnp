@@ -20,7 +20,7 @@
   - ninja (macOS + Linux)
   - Visual Studio 2017+
 
-* capnproto-0.8.0
+* capnproto-0.8.0 (0.7.0 will also work if linking to system libraries)
   - Not necessary if using bundled capnproto
 
 32-bit Linux requires that capnproto be compiled with `-fPIC`. This is usually set correctly unless you are compiling canproto yourself. This is also called `-DCMAKE_POSITION_INDEPENDENT_CODE=1` for cmake.
