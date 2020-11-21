@@ -144,7 +144,7 @@ html_theme = 'nature'
 # html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html', 'versioning.html'] }
+html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html', 'versioning.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

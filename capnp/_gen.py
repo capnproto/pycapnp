@@ -6,6 +6,7 @@ from jinja2 import Environment, PackageLoader
 import capnp
 import schema_capnp
 
+
 def find_type(code, id):
     for node in code['nodes']:
         if node['id'] == id:

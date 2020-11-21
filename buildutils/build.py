@@ -7,7 +7,7 @@ import struct
 import sys
 
 
-def build_libcapnp(bundle_dir, build_dir):
+def build_libcapnp(bundle_dir, build_dir):  # noqa: C901
     '''
     Build capnproto
     '''

@@ -2,9 +2,7 @@ import gc
 import os
 import pytest
 import socket
-import subprocess
 import sys  # add examples dir to sys.path
-import time
 
 import capnp
 
@@ -15,9 +13,10 @@ import calculator_client  # noqa: E402
 import calculator_server  # noqa: E402
 
 # Uses run_subprocesses function
-import test_examples
+import test_examples  # noqa: E402
 
 processes = []
+
 
 @pytest.fixture
 def cleanup():

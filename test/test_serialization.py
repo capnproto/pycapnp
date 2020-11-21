@@ -106,6 +106,7 @@ def test_roundtrip_bytes_packed(all_types):
     msg = all_types.TestAllTypes.from_bytes_packed(message_bytes)
     test_regression.check_all_types(msg)
 
+
 @contextmanager
 def _warnings(expected_count=2, expected_text='This message has already been written once.'):
     with warnings.catch_warnings(record=True) as w:
@@ -114,6 +115,7 @@ def _warnings(expected_count=2, expected_text='This message has already been wri
         assert len(w) == expected_count
         assert all(issubclass(x.category, UserWarning) for x in w), w
         assert all(expected_text in str(x.message) for x in w), w
+
 
 def test_roundtrip_file_multiple(all_types):
     f = tempfile.TemporaryFile()

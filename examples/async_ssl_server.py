@@ -52,7 +52,6 @@ class Server:
         logger.debug("myreader done.")
         return True
 
-
     async def mywriter(self):
         while self.retry:
             try:
@@ -70,7 +69,6 @@ class Server:
                 return False
         logger.debug("mywriter done.")
         return True
-
 
     async def myserver(self, reader, writer):
         # Start TwoPartyServer using TwoWayPipe (only requires bootstrap)

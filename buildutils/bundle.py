@@ -11,7 +11,7 @@
 # for original project.
 
 
-import fileinput
+import fileinput  # noqa
 import os
 import shutil
 import tarfile
