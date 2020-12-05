@@ -1,7 +1,7 @@
 # pycapnp
 
 [![Packaging Status](https://github.com/capnproto/pycapnp/workflows/Packaging%20Test/badge.svg)](https://github.com/capnproto/pycapnp/actions)
-[![manylinux2010 Status](https://github.com/capnproto/pycapnp/workflows/manylinux2010/badge.svg)](https://github.com/capnproto/pycapnp/actions)
+[![manylinux Status](https://github.com/capnproto/pycapnp/workflows/manylinux/badge.svg)](https://github.com/capnproto/pycapnp/actions)
 [![PyPI version](https://badge.fury.io/py/pycapnp.svg)](https://badge.fury.io/py/pycapnp)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/capnproto/pycapnp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/capnproto/pycapnp/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/capnproto/pycapnp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/capnproto/pycapnp/context:python)
