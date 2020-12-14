@@ -1082,7 +1082,7 @@ cdef class _DynamicStructReader:
         """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
             if self._schema is None:
-                self._schema = _StructSchema()._init(self.thisptr.getSchema())
+                self._schema = _StructSchema()._init_child(self.thisptr.getSchema())
             return self._schema
 
     def __dir__(self):
@@ -1323,7 +1323,7 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
-        return _DynamicResizableListBuilder(self, field, _StructSchema()._init((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
+        return _DynamicResizableListBuilder(self, field, _StructSchema()._init_child((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
     cpdef _which_str(self):
         try:
@@ -1414,7 +1414,7 @@ cdef class _DynamicStructBuilder:
         """A property that returns the _StructSchema object matching this writer"""
         def __get__(self):
             if self._schema is None:
-                self._schema = _StructSchema()._init(self.thisptr.getSchema())
+                self._schema = _StructSchema()._init_child(self.thisptr.getSchema())
             return self._schema
 
     def __dir__(self):
@@ -1492,7 +1492,7 @@ cdef class _DynamicStructPipeline:
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
-            return _StructSchema()._init(self.thisptr.getSchema())
+            return _StructSchema()._init_child(self.thisptr.getSchema())
 
     def __dir__(self):
         return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
@@ -1544,7 +1544,7 @@ cdef class _DynamicObjectReader:
         else:
             s = schema
 
-        return _DynamicStructReader()._init(self.thisptr.getAs(s.thisptr), self._parent)
+        return _DynamicStructReader()._init(self.thisptr.getAs(s._thisptr()), self._parent)
 
     cpdef as_interface(self, schema) except +reraise_kj_exception:
         cdef _InterfaceSchema s
@@ -1586,7 +1586,7 @@ cdef class _DynamicObjectBuilder:
         else:
             s = schema
 
-        return _DynamicStructBuilder()._init(self.thisptr.getAs(s.thisptr), self._parent)
+        return _DynamicStructBuilder()._init(self.thisptr.getAs(s._thisptr()), self._parent)
 
     cpdef as_interface(self, schema) except +reraise_kj_exception:
         cdef _InterfaceSchema s
@@ -2008,7 +2008,7 @@ cdef class _RemotePromise:
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
-            return _StructSchema()._init(self.thisptr.getSchema())
+            return _StructSchema()._init_child(self.thisptr.getSchema())
 
     def __dir__(self):
         return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
@@ -2546,7 +2546,7 @@ cdef class _Schema:
         return to_python_reader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
 
     cpdef as_struct(self):
-        return _StructSchema()._init(self.thisptr.asStruct())
+        return _StructSchema()._init_child(self.thisptr.asStruct())
 
     cpdef as_interface(self):
         return _InterfaceSchema()._init(self.thisptr.asInterface())
@@ -2562,12 +2562,13 @@ cdef class _Schema:
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
-cdef class _StructSchema:
-    cdef C_StructSchema thisptr
+cdef class _StructSchema(_Schema):
+    cdef C_StructSchema thisptr_child
     cdef object __fieldnames, __union_fields, __non_union_fields, __fields, __getters
     cdef list __fields_list
-    cdef _init(self, C_StructSchema other):
-        self.thisptr = other
+    cdef _init_child(self, C_StructSchema other):
+        self.thisptr_child = other
+        self._init(other)
         self.__fieldnames = None
         self.__union_fields = None
         self.__non_union_fields = None
@@ -2576,12 +2577,15 @@ cdef class _StructSchema:
         self.__getters = None
         return self
 
+    cdef C_StructSchema _thisptr(self):
+        return self.thisptr_child
+
     property fieldnames:
         """A tuple of the field names in the struct."""
         def __get__(self):
             if self.__fieldnames is not None:
                return self.__fieldnames
-            fieldlist = self.thisptr.getFields()
+            fieldlist = self._thisptr().getFields()
             nfields = fieldlist.size()
             self.__fieldnames = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
@@ -2592,7 +2596,7 @@ cdef class _StructSchema:
         def __get__(self):
             if self.__union_fields is not None:
                return self.__union_fields
-            fieldlist = self.thisptr.getUnionFields()
+            fieldlist = self._thisptr().getUnionFields()
             nfields = fieldlist.size()
             self.__union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
@@ -2603,7 +2607,7 @@ cdef class _StructSchema:
         def __get__(self):
             if self.__non_union_fields is not None:
                return self.__non_union_fields
-            fieldlist = self.thisptr.getNonUnionFields()
+            fieldlist = self._thisptr().getNonUnionFields()
             nfields = fieldlist.size()
             self.__non_union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
                                       for i in xrange(nfields))
@@ -2614,7 +2618,7 @@ cdef class _StructSchema:
         def __get__(self):
             if self.__fields is not None:
                return self.__fields
-            fieldlist = self.thisptr.getFields()
+            fieldlist = self._thisptr().getFields()
             nfields = fieldlist.size()
             self.__fields = {<char*>fieldlist[i].getProto().getName().cStr() : _StructSchemaField()._init(fieldlist[i], self)
                                       for i in xrange(nfields)}
@@ -2625,7 +2629,7 @@ cdef class _StructSchema:
         def __get__(self):
             if self.__fields_list is not None:
                return self.__fields_list
-            fieldlist = self.thisptr.getFields()
+            fieldlist = self._thisptr().getFields()
             nfields = fieldlist.size()
             self.__fields_list = [_StructSchemaField()._init(fieldlist[i], self)
                                       for i in xrange(nfields)]
@@ -2634,13 +2638,13 @@ cdef class _StructSchema:
     property node:
         """The raw schema node"""
         def __get__(self):
-            return _DynamicStructReader()._init(self.thisptr.getProto(), self)
+            return _DynamicStructReader()._init(self._thisptr().getProto(), self)
 
     def __richcmp__(_StructSchema self, _StructSchema other, mode):
         if mode == 2:
-            return self.thisptr == other.thisptr
+            return self._thisptr() == other._thisptr()
         elif mode == 3:
-            return not (self.thisptr == other.thisptr)
+            return not (self._thisptr() == other._thisptr())
         else:
             raise NotImplementedError()
 
@@ -2652,7 +2656,7 @@ cdef typeAsSchema(capnp.SchemaType fieldType):
     if fieldType.isInterface():
         return _InterfaceSchema()._init(fieldType.asInterface())
     elif fieldType.isStruct():
-        return _StructSchema()._init(fieldType.asStruct())
+        return _StructSchema()._init_child(fieldType.asStruct())
     elif fieldType.isEnum():
         return _EnumSchema()._init(fieldType.asEnum())
     elif fieldType.isList():
@@ -2690,13 +2694,13 @@ cdef class _InterfaceMethod:
         """The type of this method's parameter struct"""
         def __get__(self):
             # TODO(soon): make sure this is memory safe
-            return _StructSchema()._init(self.thisptr.getParamType())
+            return _StructSchema()._init_child(self.thisptr.getParamType())
 
     property result_type:
         """The type of this method's result struct"""
         def __get__(self):
             # TODO(soon): make sure this is memory safe
-            return _StructSchema()._init(self.thisptr.getResultType())
+            return _StructSchema()._init_child(self.thisptr.getResultType())
 
 cdef class _InterfaceSchema:
     cdef _init(self, C_InterfaceSchema other):
@@ -2894,7 +2898,7 @@ cdef class _ListSchema:
             typeSchema = type(s)
             if typeSchema is _StructSchema:
                 ss = s
-                self.thisptr = capnp.listSchemaOfStruct(ss.thisptr)
+                self.thisptr = capnp.listSchemaOfStruct(ss._thisptr())
             elif typeSchema is _EnumSchema:
                 es = s
                 self.thisptr = capnp.listSchemaOfEnum(es.thisptr)
@@ -3332,7 +3336,7 @@ cdef class _MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s.thisptr), self, True)
+        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s._thisptr()), self, True)
 
     cpdef get_root(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
@@ -3357,7 +3361,7 @@ cdef class _MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self, True)
+        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s._thisptr()), self, True)
 
     cpdef get_root_as_any(self) except +reraise_kj_exception:
         """A method for getting a Cap'n Proto AnyPointer, from an already pre-written buffer
@@ -3418,7 +3422,7 @@ cdef class _MessageBuilder:
         else:
             s = schema
 
-        return _DynamicOrphan()._init(self.thisptr.newOrphan(s.thisptr), self)
+        return _DynamicOrphan()._init(self.thisptr.newOrphan(s._thisptr()), self)
 
 cdef class _MallocMessageBuilder(_MessageBuilder):
     """The main class for building Cap'n Proto messages
@@ -3474,7 +3478,7 @@ cdef class _MessageReader:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s.thisptr), self)
+        return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s._thisptr()), self)
 
     cpdef get_root_as_any(self) except +reraise_kj_exception:
         """A method for getting a Cap'n Proto AnyPointer, from an already pre-written buffer
