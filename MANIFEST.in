@@ -1,4 +1,17 @@
 include README.md
+include LICENSE.md
 include CHANGELOG.md
 include requirements.txt
 include buildutils/*
+include capnp/lib/capnp_api.h
+include Pipfile
+include tox.ini
+recursive-include examples *.capnp
+recursive-include examples *.cert
+recursive-include examples *.key
+recursive-include examples *.py
+recursive-include test *.binary
+recursive-include test *.capnp
+recursive-include test *.packed
+recursive-include test *.txt
+recursive-include test *.py
