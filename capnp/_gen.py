@@ -35,7 +35,7 @@ def main():
                 is_union = True
             field['c_name'] = field['name'][0].upper() + field['name'][1:]
             if 'slot' in field:
-                field['type'] = field['slot']['type'].keys()[0]
+                field['type'] = list(field['slot']['type'].keys())[0]
                 if not isinstance(field['slot']['type'][field['type']], dict):
                     continue
                 sub_type = field['slot']['type'][field['type']].get('typeId', None)
