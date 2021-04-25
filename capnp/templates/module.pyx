@@ -69,7 +69,7 @@ cpdef _set_{{field.name}}(self, {{field.type}}_t value):
 cpdef _set_{{field.name}}(self, value=None):
     pass
     {% elif 'bool' == field['type'] -%}
-cpdef _set_{{field.name}}(self, bool value):
+cpdef _set_{{field.name}}(self, cbool value):
     self.thisptr_child.set{{field.c_name}}(value)
     {% elif 'list' == field['type'] -%}
 cpdef _set_{{field.name}}(self, list value):
