@@ -4131,8 +4131,13 @@ def add_import_hook(additional_paths=[]):
 
     # Automatically include the system and built-in capnp paths
     # Highest priority at position 0
-    extra_paths = [
-        _os.path.join(_os.path.dirname(__file__), '..'), # Built-in (only used if bundled)
+    try:
+        this_file_path = __file__
+    except NameError:
+        this_file_path = None
+    extra_paths = ([
+        _os.path.join(_os.path.dirname(this_file_path), '..'), # Built-in (only used if bundled)
+    ] if this_file_path else []) + [
         # Common macOS brew location
         '/usr/local/include/capnp',
         '/usr/local/include',
