@@ -60,7 +60,7 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
             uint size()
 
 cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
-    enum :
+    enum:
         _ElementSize_inlineComposite " ::capnp::schema::ElementSize::INLINE_COMPOSITE"
         _ElementSize_eightBytes " ::capnp::schema::ElementSize::EIGHT_BYTES"
         _ElementSize_pointer " ::capnp::schema::ElementSize::POINTER"
@@ -133,7 +133,6 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
     cdef cppclass Annotation
     cdef cppclass CodeGeneratorRequest:
 
-
         cppclass Reader:
 
             List[CodeGeneratorRequest.Node].Reader getNodes()
@@ -144,16 +143,14 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             List[CodeGeneratorRequest.Node].Builder initNodes(int)
             List[UInt64].Builder getRequestedFiles()
             List[UInt64].Builder initRequestedFiles(int)
+
     cdef cppclass InterfaceNode:
         cppclass Method
-
 
         cppclass Method:
             cppclass Param
 
-
             cppclass Param:
-
 
                 cppclass Reader:
 
@@ -171,6 +168,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                     void setName(Text)
                     List[InterfaceNode.Method.Param.Annotation].Builder getAnnotations()
                     List[InterfaceNode.Method.Param.Annotation].Builder initAnnotations(int)
+
             cppclass Reader:
 
                 UInt16 getCodeOrder()
@@ -179,6 +177,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 UInt16 getRequiredParamCount()
                 Type getReturnType()
                 List[InterfaceNode.Method.Annotation].Reader getAnnotations()
+
             cppclass Builder:
 
                 UInt16 getCodeOrder()
@@ -193,19 +192,20 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 void setReturnType(Type)
                 List[InterfaceNode.Method.Annotation].Builder getAnnotations()
                 List[InterfaceNode.Method.Annotation].Builder initAnnotations(int)
+
         cppclass Reader:
 
             List[InterfaceNode.InterfaceNode.Method].Reader getMethods()
+
         cppclass Builder:
 
             List[InterfaceNode.InterfaceNode.Method].Builder getMethods()
             List[InterfaceNode.InterfaceNode.Method].Builder initMethods(int)
+
     cdef cppclass Value:
         cppclass Body
 
-
         cppclass Body:
-
 
             cppclass Reader:
                 int which()
@@ -228,6 +228,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 Text.Reader getTextValue()
                 UInt64 getUint64Value()
                 Object getObjectValue()
+
             cppclass Builder:
                 int which()
                 UInt32 getUint32Value()
@@ -268,32 +269,34 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 void setUint64Value(UInt64)
                 Object getObjectValue()
                 void setObjectValue(Object)
+
         cppclass Reader:
 
             Value.Body getBody()
+
         cppclass Builder:
 
             Value.Body getBody()
             void setBody(Value.Body)
-    cdef cppclass ConstNode:
 
+    cdef cppclass ConstNode:
 
         cppclass Reader:
 
             Type getType()
             Value getValue()
+
         cppclass Builder:
 
             Type getType()
             void setType(Type)
             Value getValue()
             void setValue(Value)
+
     cdef cppclass Type:
         cppclass Body
 
-
         cppclass Body:
-
 
             cppclass Reader:
                 int which()
@@ -316,6 +319,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 Void getUint64Type()
                 Void getTextType()
                 Void getInt16Type()
+
             cppclass Builder:
                 int which()
                 Void getBoolType()
@@ -356,44 +360,47 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 void setTextType(Void)
                 Void getInt16Type()
                 void setInt16Type(Void)
+
         cppclass Reader:
 
             Type.Body getBody()
+
         cppclass Builder:
 
             Type.Body getBody()
             void setBody(Type.Body)
+
     cdef cppclass FileNode:
         cppclass Import
 
-
         cppclass Import:
-
 
             cppclass Reader:
 
                 UInt64 getId()
                 Text.Reader getName()
+
             cppclass Builder:
 
                 UInt64 getId()
                 void setId(UInt64)
                 Text.Builder getName()
                 void setName(Text)
+
         cppclass Reader:
 
             List[FileNode.FileNode.Import].Reader getImports()
+
         cppclass Builder:
 
             List[FileNode.FileNode.Import].Builder getImports()
             List[FileNode.FileNode.Import].Builder initImports(int)
+
     cdef cppclass Node:
         cppclass Body
         cppclass NestedNode
 
-
         cppclass Body:
-
 
             cppclass Reader:
                 int which()
@@ -417,8 +424,8 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 void setConstNode(ConstNode)
                 FileNode getFileNode()
                 void setFileNode(FileNode)
-        cppclass NestedNode:
 
+        cppclass NestedNode:
 
             cppclass Reader:
 
@@ -444,6 +451,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             bint isInterface()
             bint isConst()
             bint isAnnotation()
+
         cppclass Builder:
 
             Node.Body getBody()
@@ -464,8 +472,8 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             bint isInterface()
             bint isConst()
             bint isAnnotation()
-    cdef cppclass AnnotationNode:
 
+    cdef cppclass AnnotationNode:
 
         cppclass Reader:
 
@@ -481,6 +489,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             Bool getTargetsEnum()
             Bool getTargetsInterface()
             Bool getTargetsMethod()
+
         cppclass Builder:
 
             Bool getTargetsField()
@@ -507,18 +516,18 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             void setTargetsInterface(Bool)
             Bool getTargetsMethod()
             void setTargetsMethod(Bool)
+
     cdef cppclass EnumNode:
         cppclass Enumerant
 
-
         cppclass Enumerant:
-
 
             cppclass Reader:
 
                 UInt16 getCodeOrder()
                 Text.Reader getName()
                 List[EnumNode.Enumerant.Annotation].Reader getAnnotations()
+
             cppclass Builder:
 
                 UInt16 getCodeOrder()
@@ -527,21 +536,22 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 void setName(Text)
                 List[EnumNode.Enumerant.Annotation].Builder getAnnotations()
                 List[EnumNode.Enumerant.Annotation].Builder initAnnotations(int)
+
         cppclass Reader:
 
             List[EnumNode.EnumNode.Enumerant].Reader getEnumerants()
+
         cppclass Builder:
 
             List[EnumNode.EnumNode.Enumerant].Builder getEnumerants()
             List[EnumNode.EnumNode.Enumerant].Builder initEnumerants(int)
+
     cdef cppclass StructNode:
         cppclass Union
         cppclass Member
         cppclass Field
 
-
         cppclass Union:
-
 
             cppclass Reader:
 
@@ -556,9 +566,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
         cppclass Member:
             cppclass Body
 
-
             cppclass Body:
-
 
                 cppclass Reader:
                     int which()
@@ -589,8 +597,8 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 void setName(Text)
                 List[StructNode.Member.Annotation].Builder getAnnotations()
                 List[StructNode.Member.Annotation].Builder initAnnotations(int)
-        cppclass Field:
 
+        cppclass Field:
 
             cppclass Reader:
 
@@ -620,7 +628,6 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             void setPointerSectionSize(UInt16)
     cdef cppclass Annotation:
 
-
         cppclass Reader:
 
             UInt64 getId()
@@ -632,10 +639,10 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             Value getValue()
             void setValue(Value)
     cdef cppclass ListNestedNodeReader"capnp::List<capnp::schema::Node::NestedNode>::Reader":
-       ListNestedNodeReader()
-       ListNestedNodeReader(ListNestedNodeReader)
-       Node.NestedNode.Reader operator[](uint)
-       uint size()
+        ListNestedNodeReader()
+        ListNestedNodeReader(ListNestedNodeReader)
+        Node.NestedNode.Reader operator[](uint)
+        uint size()
 
 cdef extern from "capnp/message.h" namespace " ::capnp":
     cdef cppclass ReaderOptions:

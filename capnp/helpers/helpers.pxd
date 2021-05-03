@@ -1,4 +1,9 @@
-from capnp.includes.capnp_cpp cimport Maybe, ReaderOptions, DynamicStruct, Request, Response, PyPromise, VoidPromise, PyPromiseArray, RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, AnyPointer, DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer, AsyncIoStreamReadHelper
+from capnp.includes.capnp_cpp cimport (
+    Maybe, ReaderOptions, DynamicStruct, Request, Response, PyPromise, VoidPromise, PyPromiseArray,
+    RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue,
+    Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, AnyPointer,
+    DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer, AsyncIoStreamReadHelper,
+)
 
 from capnp.includes.schema_cpp cimport ByteArray
 

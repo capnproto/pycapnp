@@ -7,7 +7,7 @@
 # cython: embedsignature = True
 # cython: language_level = 2
 
-cimport cython
+cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport AsyncIoStreamReadHelper, init_capnp_api
 from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise
@@ -42,15 +42,19 @@ _CAPNP_VERSION = capnp.CAPNP_VERSION
 
 cdef dict _type_registry = {}
 
+
 def register_type(id, klass):
     _type_registry[id] = klass
+
 
 def deregister_all_types():
     _type_registry = {}
 
+
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef api object wrap_dynamic_struct_reader(Response & r) with gil:
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
+
 
 cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
@@ -60,10 +64,13 @@ cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * wit
     Py_INCREF(ret)
     return <PyObject *>ret
 
+
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
 
-cdef api VoidPromise * call_server_method(PyObject * _server, char * _method_name, CallContext & _context) except * with gil:
+
+cdef api VoidPromise * call_server_method(PyObject * _server,
+                                          char * _method_name, CallContext & _context) except * with gil:
     server = <object>_server
     method_name = <object>_method_name
 
@@ -78,10 +85,13 @@ cdef api VoidPromise * call_server_method(PyObject * _server, char * _method_nam
                 return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
             else:
                 try:
-                    warning_msg = 'Server function (%s) returned a value that was not a Promise: return = %s' % (method_name, str(ret))
+                    warning_msg = (
+                        "Server function ({}) returned a value that was not a Promise: return = {}"
+                        .format(method_name, str(ret)))
                 except:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
-                _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
+                _warnings.warn_explicit(
+                    warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
 
         if ret is not None:
             if type(ret) is _Promise:
@@ -90,14 +100,17 @@ cdef api VoidPromise * call_server_method(PyObject * _server, char * _method_nam
                 return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
             else:
                 try:
-                    warning_msg = 'Server function (%s) returned a value that was not a Promise: return = %s' % (method_name, str(ret))
+                    warning_msg = (
+                        "Server function ({}) returned a value that was not a Promise: return = {}"
+                        .format(method_name, str(ret)))
                 except:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
-                _warnings.warn_explicit(warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
+                _warnings.warn_explicit(
+                    warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
     else:
         func = getattr(server, method_name) # will raise if no function found
         params = context.params
-        params_dict = {name : getattr(params, name) for name in params.schema.fieldnames}
+        params_dict = {name: getattr(params, name) for name in params.schema.fieldnames}
         params_dict['_context'] = context
         ret = func(**params_dict)
 
@@ -110,7 +123,9 @@ cdef api VoidPromise * call_server_method(PyObject * _server, char * _method_nam
                 ret = (ret,)
             names = _find_field_order(context.results.schema.node.struct)
             if len(ret) > len(names):
-                raise KjException('Too many values returned from `%s`. Expected %d and got %d' % (method_name, len(names), len(ret)))
+                raise KjException(
+                    "Too many values returned from `{}`. Expected {} and got {}"
+                    .format(method_name, len(names), len(ret)))
 
             results = context.results
             for arg_name, arg_val in zip(names, ret):
@@ -118,8 +133,10 @@ cdef api VoidPromise * call_server_method(PyObject * _server, char * _method_nam
 
     return NULL
 
+
 cdef api convert_array_pyobject(PyArray & arr) with gil:
     return [<object>arr[i] for i in range(arr.size())]
+
 
 cdef api PyPromise * extract_promise(object obj) with gil:
     if type(obj) is _Promise:
@@ -132,6 +149,7 @@ cdef api PyPromise * extract_promise(object obj) with gil:
 
     return NULL
 
+
 cdef api RemotePromise * extract_remote_promise(object obj) with gil:
     if type(obj) is _RemotePromise:
         promise = <_RemotePromise>obj
@@ -141,6 +159,7 @@ cdef api RemotePromise * extract_remote_promise(object obj) with gil:
 
     return NULL
 
+
 cdef extern from "<kj/string.h>" namespace " ::kj":
     String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
     String strStructBuilder" ::kj::str"(DynamicStruct_Builder)
@@ -149,18 +168,23 @@ cdef extern from "<kj/string.h>" namespace " ::kj":
     String strListBuilder" ::kj::str"(C_DynamicList.Builder)
     String strException" ::kj::str"(capnp.Exception)
 
+
 def _make_enum(enum_name, *sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
     reverse = dict((value, key) for key, value in enums.iteritems())
     enums['reverse_mapping'] = reverse
     return type(enum_name, (), enums)
 
-_Type = _make_enum('_Type',
-                    FAILED = 0,
-                    OVERLOADED = 1,
-                    DISCONNECTED = 2,
-                    UNIMPLEMENTED = 3,
-                    OTHER = 4)
+
+_Type = _make_enum(
+    "_Type",
+    FAILED=0,
+    OVERLOADED=1,
+    DISCONNECTED=2,
+    UNIMPLEMENTED=3,
+    OTHER=4,
+)
+
 
 cdef class _KjExceptionWrapper:
     cdef capnp.Exception * thisptr
@@ -189,12 +213,16 @@ cdef class _KjExceptionWrapper:
     def __str__(self):
         return <char*>strException(deref(self.thisptr)).cStr()
 
-# Extension classes can't inherit from Exception, so we're going to proxy wrap kj::Exception, and forward all calls to it from this Python class
+
+# Extension classes can't inherit from Exception, so we're going to proxy wrap kj::Exception,
+# and forward all calls to it from this Python class
 class KjException(Exception):
 
-    '''KjException is a wrapper of the internal C++ exception type. There is an enum named `Type` listed below, and a bunch of fields'''
+    """KjException is a wrapper of the internal C++ exception type.
 
-    Type = _make_enum('Type', **{x : x for x in _Type.reverse_mapping.values()})
+    There is an enum named `Type` listed below, and a bunch of fields."""
+
+    Type = _make_enum("Type", **{x: x for x in _Type.reverse_mapping.values()})
 
     def __init__(self, message=None, nature=None, durability=None, wrapper=None, type=None):
         if wrapper is not None:
@@ -210,15 +238,18 @@ class KjException(Exception):
     @property
     def file(self):
         return self.wrapper.file
+
     @property
     def line(self):
         return self.wrapper.line
+
     @property
     def type(self):
         if self.wrapper is not None:
             return self.wrapper.type
         else:
             return self._type
+
     @property
     def description(self):
         if self.wrapper is not None:
@@ -236,6 +267,7 @@ class KjException(Exception):
                 return AttributeError(message)
         return self
 
+
 cdef api object wrap_kj_exception(capnp.Exception & exception) with gil:
     PyErr_Clear()
     wrapper = _KjExceptionWrapper()._init(exception)
@@ -243,17 +275,22 @@ cdef api object wrap_kj_exception(capnp.Exception & exception) with gil:
 
     return ret
 
+
 cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil:
     wrapper = _KjExceptionWrapper()._init(exception)
 
     ret = KjException(wrapper=wrapper)
     return ret
 
+
 cdef api object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil:
     try:
-        return (exc_tb.tb_frame.f_code.co_filename.encode(), exc_tb.tb_lineno, (repr(exc_type) + ':' + str(exc_obj)).encode())
+        return (exc_tb.tb_frame.f_code.co_filename.encode(),
+                exc_tb.tb_lineno,
+                (repr(exc_type) + ":" + str(exc_obj)).encode())
     except:
         return (b'', 0, b"Couldn't determine python exception")
+
 
 cdef schema_cpp.ReaderOptions make_reader_opts(traversal_limit_in_words, nesting_limit) with gil:
     cdef schema_cpp.ReaderOptions opts
@@ -263,19 +300,23 @@ cdef schema_cpp.ReaderOptions make_reader_opts(traversal_limit_in_words, nesting
         opts.nestingLimit = nesting_limit
     return opts
 
+
 ctypedef fused _DynamicStructReaderOrBuilder:
     _DynamicStructReader
     _DynamicStructBuilder
 
+
 ctypedef fused _DynamicSetterClasses:
     C_DynamicList.Builder
     DynamicStruct_Builder
+
 
 ctypedef fused PromiseTypes:
     _Promise
     _RemotePromise
     _VoidPromise
     PromiseFulfillerPair
+
 
 cdef extern from "Python.h":
     cdef int PyObject_GetBuffer(object, Py_buffer *view, int flags)
@@ -291,6 +332,7 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
             T operator[](uint) except +reraise_kj_exception
             uint size()
 
+
 cdef extern from "<utility>" namespace "std":
     C_DynamicStruct.Pipeline moveStructPipeline"std::move"(C_DynamicStruct.Pipeline)
     C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
@@ -304,12 +346,14 @@ cdef extern from "<utility>" namespace "std":
     capnp.Exception moveException"std::move"(capnp.Exception)
     capnp.AsyncIoContext moveAsyncContext"std::move"(capnp.AsyncIoContext)
 
+
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
     StringTree printStructReader" ::capnp::prettyPrint"(C_DynamicStruct.Reader) except +reraise_kj_exception
     StringTree printStructBuilder" ::capnp::prettyPrint"(DynamicStruct_Builder) except +reraise_kj_exception
     StringTree printRequest" ::capnp::prettyPrint"(Request &) except +reraise_kj_exception
     StringTree printListReader" ::capnp::prettyPrint"(C_DynamicList.Reader) except +reraise_kj_exception
     StringTree printListBuilder" ::capnp::prettyPrint"(C_DynamicList.Builder) except +reraise_kj_exception
+
 
 cdef class _NodeReader:
     cdef C_Node.Reader thisptr
@@ -320,27 +364,35 @@ cdef class _NodeReader:
     property displayName:
         def __get__(self):
             return <char*>self.thisptr.getDisplayName().cStr()
+
     property scopeId:
         def __get__(self):
             return self.thisptr.getScopeId()
+
     property id:
         def __get__(self):
             return self.thisptr.getId()
+
     property nestedNodes:
         def __get__(self):
             return _List_NestedNode_Reader()._init(self.thisptr.getNestedNodes())
+
     property isStruct:
         def __get__(self):
             return self.thisptr.isStruct()
+
     property isConst:
         def __get__(self):
             return self.thisptr.isConst()
+
     property isInterface:
         def __get__(self):
             return self.thisptr.isInterface()
+
     property isEnum:
         def __get__(self):
             return self.thisptr.isEnum()
+
 
 cdef class _NestedNodeReader:
     cdef C_Node.NestedNode.Reader thisptr
@@ -355,10 +407,12 @@ cdef class _NestedNodeReader:
         def __get__(self):
             return self.thisptr.getId()
 
+
 cdef class _DynamicListReader:
     """Class for reading Cap'n Proto Lists
 
-    This class thinly wraps the C++ Cap'n Proto DynamicList::Reader class. __getitem__ and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
+    This class thinly wraps the C++ Cap'n Proto DynamicList::Reader class. __getitem__ and __len__
+    have been defined properly, so you can treat this class mostly like any other iterable class::
 
         ...
         person = addressbook.Person.read(file)
@@ -398,12 +452,17 @@ cdef class _DynamicListReader:
         # TODO:  Print the list type.
         return '<capnp list reader %s>' % <char*>strListReader(self.thisptr).cStr()
 
+
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
 
-    .. warning:: You need to call :meth:`finish` on this object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+    .. warning:: You need to call :meth:`finish` on this object before serializing the Cap'n Proto message.
+    Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
 
-    This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically. It is meant for lists of structs, since for primitive types like int or float, you're much better off using a normal python list and then serializing straight to a Cap'n Proto list. It has __getitem__ and __len__ defined, but not __setitem__::
+    This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically.
+    It is meant for lists of structs, since for primitive types like int or float, you're much better off
+    using a normal python list and then serializing straight to a Cap'n Proto list.
+    It has __getitem__ and __len__ defined, but not __setitem__::
 
         ...
         person = addressbook.Person.new_message()
@@ -422,6 +481,7 @@ cdef class _DynamicResizableListBuilder:
     """
     cdef public object _parent, _message, _field, _schema
     cdef public list _list
+
     def __init__(self, parent, field, schema):
         self._parent = parent
         self._message = parent._parent
@@ -433,7 +493,8 @@ cdef class _DynamicResizableListBuilder:
     cpdef add(self):
         """A method for adding a new struct to the list
 
-        This will return a struct, in which you can set fields that will be reflected in the serialized Cap'n Proto message.
+        This will return a struct, in which you can set fields that will be reflected in the serialized
+        Cap'n Proto message.
 
         :rtype: :class:`_DynamicStructBuilder`
         """
@@ -457,7 +518,8 @@ cdef class _DynamicResizableListBuilder:
     def finish(self):
         """A method for closing this list and serializing all its members to the message
 
-        If you don't call this method, the items you previously added from this object will leak into the message, ie. inaccessible but still taking up space.
+        If you don't call this method, the items you previously added from this object will leak into the message,
+        ie. inaccessible but still taking up space.
         """
         cdef int i = 0
         new_list = self._parent.init(self._field, len(self))
@@ -465,10 +527,12 @@ cdef class _DynamicResizableListBuilder:
             new_list.adopt(i, orphan)
             i += 1
 
+
 cdef class _DynamicListBuilder:
     """Class for building Cap'n Proto Lists
 
-    This class thinly wraps the C++ Cap'n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__ have been defined properly, so you can treat this class mostly like any other iterable class::
+    This class thinly wraps the C++ Cap'n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__
+    have been defined properly, so you can treat this class mostly like any other iterable class::
 
         ...
         person = addressbook.Person.new_message()
@@ -514,7 +578,8 @@ cdef class _DynamicListBuilder:
     cpdef adopt(self, index, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unknown sized list.
+        Don't use this method unless you know what you're doing.
+        Orphans are useful for dynamically allocating objects for an unknown sized list.
 
         :type index: int
         :param index: The index of the element in the list to replace with the newly adopted object
@@ -556,6 +621,7 @@ cdef class _DynamicListBuilder:
         # TODO:  Print the list type.
         return '<capnp list builder %s>' % <char*>strListBuilder(self.thisptr).cStr()
 
+
 cdef class _List_NestedNode_Reader:
     cdef C_Node.NestedNode.Reader.ListNestedNodeReader thisptr
     cdef _init(self, List[C_Node.NestedNode].Reader other):
@@ -582,6 +648,7 @@ cdef class _List_NestedNode_Reader:
 #         raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
 #     else:
 #         raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
+
 
 cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     cdef int type = self.getType()
@@ -616,6 +683,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
     else:
         raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
+
 cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     cdef int type = self.getType()
     if type == capnp.TYPE_BOOL:
@@ -649,32 +717,41 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     else:
         raise KjException("Cannot convert type to Python. Type is unhandled by capnproto library")
 
+
 cdef C_DynamicValue.Reader _extract_dynamic_struct_builder(_DynamicStructBuilder value):
     return C_DynamicValue.Reader(value.thisptr.asReader())
+
 
 cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader value):
     return C_DynamicValue.Reader(value.thisptr)
 
+
 cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient value):
     return C_DynamicValue.Reader(value.thisptr)
+
 
 cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
     cdef _InterfaceSchema schema = value.schema
     return helpers.new_server(schema.thisptr, <PyObject *>value)
 
+
 cdef C_DynamicValue.Reader _extract_dynamic_enum(_DynamicEnum value):
     return C_DynamicValue.Reader(value.thisptr)
+
 
 cdef C_DynamicValue.Reader _extract_any_pointer(_DynamicObjectReader value):
     return C_DynamicValue.Reader(value.thisptr)
 
+
 cdef C_DynamicValue.Reader _extract_any_pointer_builder(_DynamicObjectBuilder value):
     return C_DynamicValue.Reader(value.thisptr.asReader())
+
 
 cdef _setBytes(_DynamicSetterClasses thisptr, field, value):
     cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>value, len(value))
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.set(field, temp)
+
 
 cdef _setBaseString(_DynamicSetterClasses thisptr, field, value):
     encoded_value = value.encode('utf-8')
@@ -682,10 +759,12 @@ cdef _setBaseString(_DynamicSetterClasses thisptr, field, value):
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.set(field, temp)
 
+
 cdef _setBytesField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
     cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>value, len(value))
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.setByField(field.thisptr, temp)
+
 
 cdef _setBaseStringField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
     encoded_value = value.encode('utf-8')
@@ -693,15 +772,16 @@ cdef _setBaseStringField(DynamicStruct_Builder thisptr, _StructSchemaField field
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.setByField(field.thisptr, temp)
 
+
 cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
 
     if value_type is int or value_type is long:
         if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
+            temp = C_DynamicValue.Reader(<long long>value)
         else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
+            temp = C_DynamicValue.Reader(<unsigned long long>value)
         thisptr.set(field, temp)
     elif value_type is float:
         temp = C_DynamicValue.Reader(<double>value)
@@ -744,7 +824,10 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif value_type is _DynamicObjectBuilder:
         thisptr.set(field, _extract_any_pointer_builder(value))
     else:
-        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+        raise KjException(
+            "Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'"
+            .format(field, str(value), str(type(value))))
+
 
 cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -752,9 +835,9 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
 
     if value_type is int or value_type is long:
         if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
+            temp = C_DynamicValue.Reader(<long long>value)
         else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
+            temp = C_DynamicValue.Reader(<unsigned long long>value)
         thisptr.setByField(field.thisptr, temp)
     elif value_type is float:
         temp = C_DynamicValue.Reader(<double>value)
@@ -790,7 +873,10 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
     elif value_type is _DynamicObjectBuilder:
         thisptr.set(field, _extract_any_pointer_builder(value))
     else:
-        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+        raise KjException(
+            "Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'"
+            .format(field, str(value), str(type(value))))
+
 
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
@@ -798,9 +884,9 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
 
     if value_type is int or value_type is long:
         if value < 0:
-           temp = C_DynamicValue.Reader(<long long>value)
+            temp = C_DynamicValue.Reader(<long long>value)
         else:
-           temp = C_DynamicValue.Reader(<unsigned long long>value)
+            temp = C_DynamicValue.Reader(<unsigned long long>value)
         thisptr.set(field, temp)
     elif value_type is float:
         temp = C_DynamicValue.Reader(<double>value)
@@ -836,13 +922,18 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
     elif value_type is _DynamicObjectBuilder:
         thisptr.set(field, _extract_any_pointer_builder(value))
     else:
-        raise KjException("Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'".format(field, str(value), str(type(value))))
+        raise KjException(
+            "Tried to set field: '{}' with a value of: '{}' which is an unsupported type: '{}'"
+            .format(field, str(value), str(type(value))))
+
 
 cdef _DynamicListBuilder temp_list_b
 cdef _DynamicListReader temp_list_r
 cdef _DynamicResizableListBuilder temp_list_rb
 cdef _DynamicStructBuilder temp_msg_b
 cdef _DynamicStructReader temp_msg_r
+
+
 cdef _to_dict(msg, bint verbose, bint ordered):
     msg_type = type(msg)
     if msg_type is _DynamicListBuilder:
@@ -993,6 +1084,7 @@ cdef class _DynamicEnumField:
     def __call__(self):
         return str(self)
 
+
 cdef class _MessageSize:
     cdef public uint64_t word_count
     cdef public uint cap_count
@@ -1007,16 +1099,21 @@ else:
     def _struct_reducer(schema_id, data):
         return _global_schema_parser.modules_by_id[schema_id].from_bytes(data)
 
+
 cdef class _DynamicStructReader:
     """Reads Cap'n Proto structs
 
-    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Reader. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Reader.
+    The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name
+    is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field.
+    For field names that don't follow valid python naming convention for fields, use the global function
+    :py:func:`getattr`::
 
         person = addressbook.Person.read(file) # This returns a _DynamicStructReader
         print person.name # using . syntax
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=False, bint tryRegistry = True):
+    cdef _init(self, C_DynamicStruct.Reader other, object parent, bint isRoot=False, bint tryRegistry=True):
         self.thisptr = other
         self._parent = parent
         self.is_root = isRoot
@@ -1061,7 +1158,8 @@ cdef class _DynamicStructReader:
         :Raises: :exc:`KjException` if this struct doesn't contain a union
         """
         try:
-            which = _DynamicEnumField()._init(_StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
+            which = _DynamicEnumField()._init(
+                _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
         except:
             raise KjException("Attempted to call which on a non-union type")
 
@@ -1100,10 +1198,11 @@ cdef class _DynamicStructReader:
     cpdef as_builder(self, num_first_segment_words=None):
         """A method for casting this Reader to a Builder
 
-        This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
+        This is a copying operation with respect to the message's buffer.
+        Changes in the new builder will not reflect in the original reader.
 
         :type num_first_segment_words: int
-        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+        :param num_first_segment_words: Size of the first segment to allocate (in words ie. 8 byte increments)
 
         :rtype: :class:`_DynamicStructBuilder`
         """
@@ -1122,7 +1221,12 @@ cdef class _DynamicStructReader:
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
 
-    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder. The only difference is that instead of a `get`/`set` method, __getattr__/__setattr__ is overloaded and the field name is passed onto the C++ equivalent function. This means you just use . syntax to access or set any field. For field names that don't follow valid python naming convention for fields, use the global functions :py:func:`getattr`/:py:func:`setattr`::
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder.
+    The only difference is that instead of a `get`/`set` method, __getattr__/__setattr__ is overloaded
+    and the field name is passed onto the C++ equivalent function.
+
+    This means you just use . syntax to access or set any field. For field names that don't follow valid
+    python naming convention for fields, use the global functions :py:func:`getattr`/:py:func:`setattr`::
 
         person = addressbook.Person.new_message() # This returns a _DynamicStructBuilder
 
@@ -1132,7 +1236,7 @@ cdef class _DynamicStructBuilder:
         setattr(person, 'field-with-hyphens', 'foo') # for names that are invalid for python, use setattr
         print getattr(person, 'field-with-hyphens') # for names that are invalid for python, use getattr
     """
-    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot = False, bint tryRegistry = True):
+    cdef _init(self, DynamicStruct_Builder other, object parent, bint isRoot=False, bint tryRegistry=True):
         self.thisptr = other
         self._parent = parent
         self.is_root = isRoot
@@ -1149,7 +1253,11 @@ cdef class _DynamicStructBuilder:
         if not self.is_root:
             raise KjException("You can only call write() on the message's root struct.")
         if self._is_written:
-            _warnings.warn("This message has already been written once. Be very careful that you're not setting Text/Struct/List fields more than once, since that will cause memory leaks (both in memory and in the serialized data). You can disable this warning by calling the `clear_write_flag` method of this object after every write.")
+            _warnings.warn(
+                "This message has already been written once. Be very careful that you're not setting "
+                "Text/Struct/List fields more than once, since that will cause memory leaks "
+                "(both in memory and in the serialized data). You can disable this warning by "
+                "calling the `clear_write_flag` method of this object after every write.")
 
     def write(self, file):
         """Writes the struct's containing message to the given file object in unpacked binary format.
@@ -1312,9 +1420,14 @@ cdef class _DynamicStructBuilder:
     cpdef init_resizable_list(self, field):
         """Method for initializing fields that are of type list (of structs)
 
-        This version of init returns a :class:`_DynamicResizableListBuilder` that allows you to add members one at a time (ie. if you don't know the size for sure). This is only meant for lists of Cap'n Proto objects, since for primitive types you can just define a normal python list and fill it yourself.
+        This version of init returns a :class:`_DynamicResizableListBuilder` that allows
+        you to add members one at a time (ie. if you don't know the size for sure).
+        This is only meant for lists of Cap'n Proto objects, since for primitive types
+        you can just define a normal python list and fill it yourself.
 
-        .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the list object before serializing the Cap'n Proto message. Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+        .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the
+        list object before serializing the Cap'n Proto message. Failure to do so will cause
+        your objects not to be written out as well as leaking orphan structs into your message.
 
         :type field: str
         :param field: The field name to initialize
@@ -1323,7 +1436,8 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
-        return _DynamicResizableListBuilder(self, field, _StructSchema()._init_child((<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
+        return _DynamicResizableListBuilder(self, field, _StructSchema()._init_child(
+            (<C_DynamicValue.Builder>self.thisptr.get(field)).asList().getStructElementType()))
 
     cpdef _which_str(self):
         try:
@@ -1340,7 +1454,8 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`KjException` if this struct doesn't contain a union
         """
         try:
-            which = _DynamicEnumField()._init(_StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
+            which = _DynamicEnumField()._init(
+                _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
         except:
             raise KjException("Attempted to call which on a non-union type")
 
@@ -1360,7 +1475,8 @@ cdef class _DynamicStructBuilder:
     cpdef adopt(self, field, _DynamicOrphan orphan):
         """A method for adopting Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unknown sized list.
+        Don't use this method unless you know what you're doing.
+        Orphans are useful for dynamically allocating objects for an unknown sized list.
 
         :type field: str
         :param field: The field name in the struct
@@ -1387,23 +1503,25 @@ cdef class _DynamicStructBuilder:
     cpdef as_reader(self):
         """A method for casting this Builder to a Reader
 
-        This is a non-copying operation with respect to the message's buffer. This means changes to the fields in the original struct will carry over to the new reader.
+        This is a non-copying operation with respect to the message's buffer.
+        This means changes to the fields in the original struct will carry over to the new reader.
 
         :rtype: :class:`_DynamicStructReader`
         """
         cdef _DynamicStructReader reader
-        reader = _DynamicStructReader()._init(self.thisptr.asReader(),
-                                            self._parent, self.is_root)
+        reader = _DynamicStructReader()._init(
+            self.thisptr.asReader(), self._parent, self.is_root)
         reader._obj_to_pin = self
         return reader
 
     cpdef copy(self, num_first_segment_words=None):
         """A method for copying this Builder
 
-        This is a copying operation with respect to the message's buffer. Changes in the new builder will not reflect in the original reader.
+        This is a copying operation with respect to the message's buffer.
+        Changes in the new builder will not reflect in the original reader.
 
         :type num_first_segment_words: int
-        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+        :param num_first_segment_words: Size of the first segment to allocate (in words ie. 8 byte increments)
 
         :rtype: :class:`_DynamicStructBuilder`
         """
@@ -1456,10 +1574,15 @@ cdef class _DynamicStructBuilder:
     def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.to_bytes())
 
+
 cdef class _DynamicStructPipeline:
     """Reads Cap'n Proto structs
 
-    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Pipeline. The only difference is that instead of a `get` method, __getattr__ is overloaded and the field name is passed onto the C++ equivalent `get`. This means you just use . syntax to access any field. For field names that don't follow valid python naming convention for fields, use the global function :py:func:`getattr`::
+    This class is almost a 1 for 1 wrapping of the Cap'n Proto C++ DynamicStruct::Pipeline.
+    The only difference is that instead of a `get` method, __getattr__ is overloaded and the
+    field name is passed onto the C++ equivalent `get`. This means you just use . syntax to
+    access any field. For field names that don't follow valid python naming convention for fields,
+    use the global function :py:func:`getattr`::
     """
     cdef C_DynamicStruct.Pipeline * thisptr
     cdef public object _parent
@@ -1475,9 +1598,12 @@ cdef class _DynamicStructPipeline:
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
         if type == capnp.TYPE_CAPABILITY:
-            return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+            return _DynamicCapabilityClient()._init(
+                (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
         elif type == capnp.TYPE_STRUCT:
-            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
+            return _DynamicStructPipeline()._init(
+                new C_DynamicStruct.Pipeline(
+                    (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
             raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
@@ -1506,6 +1632,7 @@ cdef class _DynamicStructPipeline:
     def to_dict(self, verbose=False, ordered=False):
         return _to_dict(self, verbose, ordered)
 
+
 cdef class _DynamicOrphan:
     cdef _init(self, C_DynamicOrphan other, object parent):
         self.thisptr = moveOrphan(other)
@@ -1527,6 +1654,7 @@ cdef class _DynamicOrphan:
 
     def __repr__(self):
         return repr(self.get())
+
 
 cdef class _DynamicObjectReader:
     cdef C_DynamicObject.Reader thisptr
@@ -1566,6 +1694,7 @@ cdef class _DynamicObjectReader:
 
     cpdef as_text(self) except +reraise_kj_exception:
         return (<char*>self.thisptr.getAsText().cStr())[:]
+
 
 cdef class _DynamicObjectBuilder:
     cdef C_DynamicObject.Builder * thisptr
@@ -1629,6 +1758,7 @@ cdef class _DynamicObjectBuilder:
     cpdef as_reader(self):
         return _DynamicObjectReader()._init(self.thisptr.asReader(), self._parent)
 
+
 cdef class _EventLoop:
     cdef capnp.AsyncIoContext * thisptr
 
@@ -1651,10 +1781,12 @@ cdef class _EventLoop:
     cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
         return deref(deref(self.thisptr).lowLevelProvider).wrapSocketFd(fd)
 
+
 cdef _EventLoop C_DEFAULT_EVENT_LOOP
 
 _C_DEFAULT_EVENT_LOOP_LOCAL = None
 _THREAD_LOCAL_EVENT_LOOPS = []
+
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
     'Optimization for not having to deal with threadlocal event loops unless we need to'
@@ -1669,8 +1801,9 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
             _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
             return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
     else:
-      C_DEFAULT_EVENT_LOOP = _EventLoop()
-      return C_DEFAULT_EVENT_LOOP
+        C_DEFAULT_EVENT_LOOP = _EventLoop()
+        return C_DEFAULT_EVENT_LOOP
+
 
 cdef class _Timer:
     cdef capnp.Timer * thisptr
@@ -1682,11 +1815,13 @@ cdef class _Timer:
     cpdef after_delay(self, time) except +reraise_kj_exception:
         return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Nanoseconds(time)))
 
+
 def getTimer():
     """
     Get libcapnp event loop timer
     """
     return _Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().thisptr))
+
 
 cpdef remove_event_loop(ignore_errors=False):
     '''Remove the global event loop'''
@@ -1711,6 +1846,7 @@ cpdef remove_event_loop(ignore_errors=False):
         _THREAD_LOCAL_EVENT_LOOPS = []
         _C_DEFAULT_EVENT_LOOP_LOCAL = None
 
+
 cpdef create_event_loop(threaded=True):
     '''Create a new global event loop. This will not remove the previous
     EventLoop for you, so make sure to do that first'''
@@ -1725,10 +1861,12 @@ cpdef create_event_loop(threaded=True):
     else:
         C_DEFAULT_EVENT_LOOP = _EventLoop()
 
+
 cpdef reset_event_loop(ignore_errors=False, threaded=True):
     '''Removes event loop, then creates a new one. See remove_event_loop and create_event_loop for more details.'''
     remove_event_loop(ignore_errors)
     create_event_loop(threaded)
+
 
 def wait_forever():
     """
@@ -1737,12 +1875,14 @@ def wait_forever():
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
     helpers.waitNeverDone(deref(loop.thisptr).waitScope)
 
+
 def poll_once():
     """
     Poll libcapnp event loop once
     """
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
     helpers.pollWaitScope(deref(loop.thisptr).waitScope)
+
 
 cdef class _CallContext:
     cdef CallContext * thisptr
@@ -1756,14 +1896,14 @@ cdef class _CallContext:
 
     property params:
         def __get__(self):
-           return _DynamicStructReader()._init(self.thisptr.getParams(), self)
+            return _DynamicStructReader()._init(self.thisptr.getParams(), self)
 
     cpdef _get_results(self, uint word_count=0):
         return _DynamicStructBuilder()._init(self.thisptr.getResults(), self) # TODO: pass firstSegmentWordSize
 
     property results:
         def __get__(self):
-           return self._get_results()
+            return self._get_results()
 
     cpdef release_params(self):
         self.thisptr.releaseParams()
@@ -1775,6 +1915,7 @@ cdef class _CallContext:
         promise = _VoidPromise()._init(self.thisptr.tailCall(moveRequest(deref(tailRequest.thisptr_child))))
         promise.is_consumed = True
         return promise
+
 
 cdef class _Promise:
     cdef PyPromise * thisptr
@@ -1804,7 +1945,8 @@ cdef class _Promise:
 
     cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         ret = <object>helpers.waitPyPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
         Py_DECREF(ret)
@@ -1815,7 +1957,8 @@ cdef class _Promise:
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         argspec = None
         try:
@@ -1828,12 +1971,15 @@ cdef class _Promise:
             if args_length - defaults_length != 1:
                 raise KjException('Function passed to `then` call must take exactly one argument')
 
-        cdef _Promise new_promise = _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        cdef _Promise new_promise = _Promise()._init(
+            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return _Promise()._init(new_promise.thisptr.attach(
+            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     def attach(self, *args):
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         ret = _Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
         self.is_consumed = True
@@ -1870,7 +2016,8 @@ cdef class _VoidPromise:
 
     cpdef wait(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         helpers.waitVoidPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
 
@@ -1878,7 +2025,8 @@ cdef class _VoidPromise:
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         argspec = None
         try:
@@ -1891,17 +2039,21 @@ cdef class _VoidPromise:
             if args_length - defaults_length != 0:
                 raise KjException('Function passed to `then` call must take no arguments')
 
-        cdef _Promise new_promise = _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        cdef _Promise new_promise = _Promise()._init(
+            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return _Promise()._init(new_promise.thisptr.attach(
+            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
         return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     def attach(self, *args):
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         ret = _VoidPromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
         self.is_consumed = True
@@ -1915,6 +2067,7 @@ cdef class _VoidPromise:
         self.is_consumed = True
         del self.thisptr
         self.thisptr = NULL
+
 
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
@@ -1936,12 +2089,14 @@ cdef class _RemotePromise:
         del self.thisptr
 
     cpdef _wait(self) except +reraise_kj_exception:
-        return _Response()._init_childptr(helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
+        return _Response()._init_childptr(
+            helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
 
     def wait(self):
         """Wait on the promise. This will block until the promise has completed."""
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         ret = self._wait()
         self.is_consumed = True
@@ -1955,7 +2110,8 @@ cdef class _RemotePromise:
         Will still work with non-asyncio socket communication, but requires async handling of the function call.
         """
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         while not helpers.pollRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope):
             await asyncio.sleep(0.01)
@@ -1966,13 +2122,15 @@ cdef class _RemotePromise:
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
         return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         """Promise pipelining, use to queue up operations on a promise before executing the promise."""
         if self.is_consumed:
-            raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         argspec = None
         try:
@@ -1985,15 +2143,20 @@ cdef class _RemotePromise:
             if args_length - defaults_length != 1:
                 raise KjException('Function passed to `then` call must take exactly one argument')
 
-        cdef _Promise new_promise = _Promise()._init(helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        cdef _Promise new_promise = _Promise()._init(
+            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+        return _Promise()._init(new_promise.thisptr.attach(
+            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
         if type == capnp.TYPE_CAPABILITY:
-            return _DynamicCapabilityClient()._init((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+            return _DynamicCapabilityClient()._init(
+                (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
         elif type == capnp.TYPE_STRUCT:
-            return _DynamicStructPipeline()._init(new C_DynamicStruct.Pipeline((<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
+            return _DynamicStructPipeline()._init(
+                new C_DynamicStruct.Pipeline(
+                    (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
             raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
@@ -2026,12 +2189,14 @@ cdef class _RemotePromise:
 
     # def attach(self, *args):
     #     if self.is_consumed:
-    #         raise KjException('Promise was already used in a consuming operation. You can no longer use this Promise object')
+    #         raise KjException(
+    #             "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
     #     ret = _RemotePromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
     #     self.is_consumed = True
 
     #     return ret
+
 
 cpdef join_promises(promises) except +reraise_kj_exception:
     heap = capnp.heapArrayBuilderPyPromise(len(promises))
@@ -2047,11 +2212,13 @@ cpdef join_promises(promises) except +reraise_kj_exception:
             pyPromise = <_Promise>promise.as_pypromise()
             new_promises_append(pyPromise)
         else:
-            raise KjException('One of the promises passed to `join_promises` had a non promise value of: ' + str(promise))
+            raise KjException(
+                "One of the promises passed to `join_promises` had a non promise value of: {}".format(promise))
         heap.add(movePromise(deref(pyPromise.thisptr)))
         pyPromise.is_consumed = True
 
     return _Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
+
 
 cdef class _Request(_DynamicStructBuilder):
     cdef Request * thisptr_child
@@ -2071,6 +2238,7 @@ cdef class _Request(_DynamicStructBuilder):
             raise KjException('Request has already been sent. You can only send a request once.')
         self.is_consumed = True
         return _RemotePromise()._init(self.thisptr_child.send(), self._parent)
+
 
 cdef class _Response(_DynamicStructReader):
     cdef Response * thisptr_child
@@ -2108,6 +2276,7 @@ cdef class _DynamicCapabilityServer:
         except KjException as e:
             raise e._to_python(), None, _sys.exc_info()[2]
 
+
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
     cdef public object _server, _parent, _cached_schema
@@ -2136,7 +2305,9 @@ cdef class _DynamicCapabilityClient:
 
         params = meth.param_type.node
         if params.scopeId != 0:
-            raise KjException("Cannot call method `%s` with positional args, since its param struct is not implicitly defined and thus does not have a set order of arguments" % method_name)
+            raise KjException(
+                "Cannot call method `{}` with positional args, since its param struct is not "
+                "implicitly defined and thus does not have a set order of arguments".format(method_name))
 
         return _find_field_order(params.struct)
 
@@ -2144,7 +2315,9 @@ cdef class _DynamicCapabilityClient:
         if args is not None and len(args) > 0:
             arg_names = self._find_method_args(name)
             if len(args) > len(arg_names):
-                raise KjException('Too many arguments passed to `%s`. Expected %d and got %d' % (name, len(arg_names), len(args)))
+                raise KjException(
+                    "Too many arguments passed to `{}`. Expected {} and got {}"
+                    .format(name, len(arg_names), len(args)))
             for arg_name, arg_val in zip(arg_names, args):
                 _setDynamicField(<DynamicStruct_Builder>deref(request), arg_name, arg_val, self)
 
@@ -2217,6 +2390,7 @@ cdef class _DynamicCapabilityClient:
     def __dir__(self):
         return list(set(self.schema.method_names_inherited) + tuple(dir(self.__class__)))
 
+
 cdef class _CapabilityClient:
     cdef C_Capability.Client * thisptr
     cdef public object _parent
@@ -2237,6 +2411,7 @@ cdef class _CapabilityClient:
             s = schema
         return _DynamicCapabilityClient()._init(self.thisptr.castAs(s.thisptr), self._parent)
 
+
 cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
     cdef _AsyncIoStream stream
@@ -2252,6 +2427,7 @@ cdef class _TwoPartyVatNetwork:
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
+
 
 cdef class TwoPartyClient:
     """
@@ -2349,13 +2525,14 @@ cdef class TwoPartyClient:
     cpdef on_disconnect(self) except +reraise_kj_exception:
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
+
 cdef class TwoPartyServer:
     """
     TwoPartyServer for RPC Communication
 
     Can be initialized using a socket wrapper (libcapnp) or using asyncio controlled sockets.
 
-    :param socket: Can be a string defining a socket (e.g. localhost:12345, also supports \*:12345)
+    :param socket: Can be a string defining a socket (e.g. localhost:12345, also supports *:12345)
                    or a file descriptor for a socket.
                    Passes socket directly to libcapnp. Do not use with asyncio.
     :param bootstrap: Class object defining the implementation of the Cap'n'proto interface.
@@ -2386,18 +2563,21 @@ cdef class TwoPartyServer:
         self._orig_stream = socket
         if self._orig_stream:
             self._stream = _FdAsyncIoStream(socket.fileno())
-            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
+            self._network = _TwoPartyVatNetwork()._init(
+                self._stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
         else:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
-            self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
+            self._network = _TwoPartyVatNetwork()._init_pipe(
+                self._pipe, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
 
         self._port = 0
 
         if bootstrap:
             self._bootstrap = bootstrap
             schema = bootstrap.schema
-            self.thisptr = new RpcSystem(makeRpcServerBootstrap(deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
+            self.thisptr = new RpcSystem(makeRpcServerBootstrap(
+                deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
 
         Py_INCREF(self._orig_stream)
         Py_INCREF(self._stream)
@@ -2448,7 +2628,11 @@ cdef class TwoPartyServer:
         self._bootstrap = bootstrap
         Py_INCREF(self._bootstrap)
         schema = bootstrap.schema
-        self.port_promise = _Promise()._init(helpers.connectServer(deref(self._task_set), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap), loop.thisptr, temp_string, opts))
+        self.port_promise = _Promise()._init(
+            helpers.connectServer(
+                deref(self._task_set),
+                helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap),
+                loop.thisptr, temp_string, opts))
 
     def _decref(self):
         Py_DECREF(self._bootstrap)
@@ -2495,8 +2679,10 @@ cdef class TwoPartyServer:
             else:
                 return self._port
 
+
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
+
 
 cdef class _TwoWayPipe:
     cdef _EventLoop _event_loop
@@ -2510,6 +2696,7 @@ cdef class _TwoWayPipe:
         # Create two way pipe using AsyncIoContext
         self._pipe = self._event_loop.makeTwoWayPipe()
 
+
 cdef class _FdAsyncIoStream(_AsyncIoStream):
     cdef _EventLoop _event_loop
 
@@ -2520,9 +2707,11 @@ cdef class _FdAsyncIoStream(_AsyncIoStream):
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = self._event_loop.wrapSocketFd(fd)
 
+
 cdef class PyAsyncIoStream(_AsyncIoStream):
     def __init__(self, int fd):
         pass
+
 
 cdef class PromiseFulfillerPair:
     cdef Own[C_PromiseFulfillerPair] thisptr
@@ -2536,6 +2725,7 @@ cdef class PromiseFulfillerPair:
 
     cpdef fulfill(self):
         deref(deref(self.thisptr).fulfiller).fulfill()
+
 
 cdef class _Schema:
     cdef _init(self, C_Schema other):
@@ -2562,6 +2752,7 @@ cdef class _Schema:
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
+
 cdef class _StructSchema(_Schema):
     cdef C_StructSchema thisptr_child
     cdef object __fieldnames, __union_fields, __non_union_fields, __fields, __getters
@@ -2584,55 +2775,55 @@ cdef class _StructSchema(_Schema):
         """A tuple of the field names in the struct."""
         def __get__(self):
             if self.__fieldnames is not None:
-               return self.__fieldnames
+                return self.__fieldnames
             fieldlist = self._thisptr().getFields()
             nfields = fieldlist.size()
-            self.__fieldnames = tuple(<char*>fieldlist[i].getProto().getName().cStr()
-                                      for i in xrange(nfields))
+            self.__fieldnames = tuple(<char*>fieldlist[i].getProto().getName().cStr() for i in xrange(nfields))
             return self.__fieldnames
 
     property union_fields:
         """A tuple of the field names in the struct."""
         def __get__(self):
             if self.__union_fields is not None:
-               return self.__union_fields
+                return self.__union_fields
             fieldlist = self._thisptr().getUnionFields()
             nfields = fieldlist.size()
-            self.__union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
-                                      for i in xrange(nfields))
+            self.__union_fields = tuple(
+                <char*>fieldlist[i].getProto().getName().cStr() for i in xrange(nfields))
             return self.__union_fields
 
     property non_union_fields:
         """A tuple of the field names in the struct."""
         def __get__(self):
             if self.__non_union_fields is not None:
-               return self.__non_union_fields
+                return self.__non_union_fields
             fieldlist = self._thisptr().getNonUnionFields()
             nfields = fieldlist.size()
-            self.__non_union_fields = tuple(<char*>fieldlist[i].getProto().getName().cStr()
-                                      for i in xrange(nfields))
+            self.__non_union_fields = tuple(
+                <char*>fieldlist[i].getProto().getName().cStr() for i in xrange(nfields))
             return self.__non_union_fields
 
     property fields:
         """All of the _StructSchemaField in this schema as a dict"""
         def __get__(self):
             if self.__fields is not None:
-               return self.__fields
+                return self.__fields
             fieldlist = self._thisptr().getFields()
             nfields = fieldlist.size()
-            self.__fields = {<char*>fieldlist[i].getProto().getName().cStr() : _StructSchemaField()._init(fieldlist[i], self)
-                                      for i in xrange(nfields)}
+            self.__fields = {
+                <char*>fieldlist[i].getProto().getName().cStr(): _StructSchemaField()._init(fieldlist[i], self)
+                for i in xrange(nfields)
+            }
             return self.__fields
 
     property fields_list:
         """All of the _StructSchemaField in this schema as a list"""
         def __get__(self):
             if self.__fields_list is not None:
-               return self.__fields_list
+                return self.__fields_list
             fieldlist = self._thisptr().getFields()
             nfields = fieldlist.size()
-            self.__fields_list = [_StructSchemaField()._init(fieldlist[i], self)
-                                      for i in xrange(nfields)]
+            self.__fields_list = [_StructSchemaField()._init(fieldlist[i], self) for i in xrange(nfields)]
             return self.__fields_list
 
     property node:
@@ -2651,6 +2842,7 @@ cdef class _StructSchema(_Schema):
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
 
+
 cdef typeAsSchema(capnp.SchemaType fieldType):
     # TODO(soon): make sure this is memory safe
     if fieldType.isInterface():
@@ -2663,6 +2855,7 @@ cdef typeAsSchema(capnp.SchemaType fieldType):
         return _ListSchema()._init(fieldType.asList())
     else:
         raise KjException("Schema type is unknown")
+
 
 cdef class _StructSchemaField:
     cdef _init(self, C_StructSchema.Field other, parent=None):
@@ -2683,6 +2876,7 @@ cdef class _StructSchemaField:
     def __repr__(self):
         return '<field schema for %s>' % self.proto.name
 
+
 cdef class _InterfaceMethod:
     cdef C_InterfaceSchema.Method thisptr
 
@@ -2702,6 +2896,7 @@ cdef class _InterfaceMethod:
             # TODO(soon): make sure this is memory safe
             return _StructSchema()._init_child(self.thisptr.getResultType())
 
+
 cdef class _InterfaceSchema:
     cdef _init(self, C_InterfaceSchema other):
         self.thisptr = other
@@ -2711,23 +2906,23 @@ cdef class _InterfaceSchema:
         """A tuple of the function names in the interface."""
         def __get__(self):
             if self.__method_names is not None:
-               return self.__method_names
+                return self.__method_names
             fieldlist = self.thisptr.getMethods()
             nfields = fieldlist.size()
-            self.__method_names = tuple(<char*>fieldlist[i].getProto().getName().cStr()
-                                      for i in xrange(nfields))
+            self.__method_names = tuple(
+                <char*>fieldlist[i].getProto().getName().cStr() for i in xrange(nfields))
             return self.__method_names
 
     property method_names_inherited:
         """A set of the function names in the interface, including inherited methods"""
         def __get__(self):
             if self.__method_names_inherited is not None:
-               return self.__method_names_inherited
+                return self.__method_names_inherited
 
             fieldlist = self.thisptr.getMethods()
             nfields = fieldlist.size()
-            self.__method_names_inherited = set(<char*>fieldlist[i].getProto().getName().cStr()
-                                      for i in xrange(nfields))
+            self.__method_names_inherited = set(
+                <char*>fieldlist[i].getProto().getName().cStr() for i in xrange(nfields))
             for interface in self.superclasses:
                 self.__method_names_inherited |= interface.method_names_inherited
 
@@ -2737,26 +2932,30 @@ cdef class _InterfaceSchema:
         """A mapping of method names to their respective _InterfaceMethod"""
         def __get__(self):
             if self.__methods is not None:
-               return self.__methods
+                return self.__methods
 
             fieldlist = self.thisptr.getMethods()
             nfields = fieldlist.size()
             # TODO(soon): make sure this is memory safe
-            self.__methods = {fieldlist[i].getProto().getName().cStr() : _InterfaceMethod()._init(fieldlist[i])
-                                      for i in xrange(nfields)}
+            self.__methods = {
+                fieldlist[i].getProto().getName().cStr(): _InterfaceMethod()._init(fieldlist[i])
+                for i in xrange(nfields)
+            }
             return self.__methods
 
     property methods_inherited:
         """A mapping of method names to their respective _InterfaceMethod, including inherited methods"""
         def __get__(self):
             if self.__methods_inherited is not None:
-               return self.__methods_inherited
+                return self.__methods_inherited
 
             fieldlist = self.thisptr.getMethods()
             nfields = fieldlist.size()
             # TODO(soon): make sure this is memory safe
-            self.__methods_inherited = {fieldlist[i].getProto().getName().cStr() : _InterfaceMethod()._init(fieldlist[i])
-                                      for i in xrange(nfields)}
+            self.__methods_inherited = {
+                fieldlist[i].getProto().getName().cStr(): _InterfaceMethod()._init(fieldlist[i])
+                for i in xrange(nfields)
+            }
             for interface in self.superclasses:
                 self.__methods_inherited.update(interface.methods_inherited)
 
@@ -2775,6 +2974,7 @@ cdef class _InterfaceSchema:
 
     def __repr__(self):
         return '<schema for %s>' % self.node.displayName
+
 
 cdef class _EnumSchema:
     cdef C_EnumSchema thisptr
@@ -2799,8 +2999,10 @@ cdef class _EnumSchema:
         def __get__(self):
             return _DynamicStructReader()._init(self.thisptr.getProto(), self)
 
+
 cdef class _SchemaType:
     cdef capnp.SchemaType thisptr
+
 
 types = _ModuleType('capnp.types')
 cdef _SchemaType _void = _SchemaType()
@@ -2879,6 +3081,7 @@ cdef _SchemaType _any_pointer = _SchemaType()
 _any_pointer.thisptr = capnp.SchemaType(capnp.TypeWhichANY_POINTER)
 types.AnyPointer = _any_pointer
 
+
 cdef class _ListSchema:
     cdef C_ListSchema thisptr
 
@@ -2923,6 +3126,7 @@ cdef class _ListSchema:
         def __get__(self):
             return typeAsSchema(self.thisptr.getElementType())
 
+
 cdef class _ParsedSchema(_Schema):
     cdef C_ParsedSchema thisptr_child
     cdef _init_child(self, C_ParsedSchema other):
@@ -2933,10 +3137,12 @@ cdef class _ParsedSchema(_Schema):
     cpdef get_nested(self, name):
         return _ParsedSchema()._init_child(self.thisptr_child.getNested(name))
 
+
 class _StructABCMeta(type):
     """A metaclass for the Type.Reader and Type.Builder ABCs."""
     def __instancecheck__(cls, obj):
         return isinstance(obj, cls.__base__) and obj.schema == cls._schema
+
 
 cdef _new_message(self, kwargs, num_first_segment_words):
     builder = _MallocMessageBuilder(num_first_segment_words)
@@ -2945,8 +3151,10 @@ cdef _new_message(self, kwargs, num_first_segment_words):
         msg.from_dict(kwargs)
     return msg
 
+
 class _StructModuleWhich(object):
     pass
+
 
 class _StructModule(object):
     def __init__(self, schema, name):
@@ -2968,14 +3176,15 @@ class _StructModule(object):
                         setattr(sub_module, union_field.name, union_field.discriminantValue)
                 setattr(self, name, sub_module)
 
-    def read(self, file, traversal_limit_in_words = None, nesting_limit = None):
+    def read(self, file, traversal_limit_in_words=None, nesting_limit=None):
         """Returns a Reader for the unpacked object read from file.
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
@@ -2983,32 +3192,37 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`"""
         reader = _StreamFdMessageReader(file, traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
-    def read_multiple(self, file, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
+
+    def read_multiple(self, file, traversal_limit_in_words=None, nesting_limit=None, skip_copy=False):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :type skip_copy: bool
-        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you're doing.
+        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is
+                          never read completely. Skip this only if you know what you're doing.
 
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultipleMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit, skip_copy)
         return reader
-    def read_packed(self, file, traversal_limit_in_words = None, nesting_limit = None):
+
+    def read_packed(self, file, traversal_limit_in_words=None, nesting_limit=None):
         """Returns a Reader for the packed object read from file.
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
@@ -3016,32 +3230,37 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`"""
         reader = _PackedFdMessageReader(file, traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
-    def read_multiple_packed(self, file, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
+
+    def read_multiple_packed(self, file, traversal_limit_in_words=None, nesting_limit=None, skip_copy=False):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type file: file
         :param file: A python file-like object. It must be a "real" file, with a `fileno()` method.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :type skip_copy: bool
-        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is never read completely. Skip this only if you know what you're doing.
+        :param skip_copy: By default, each message is copied because the file needs to advance, even if the message is
+                          never read completely. Skip this only if you know what you're doing.
 
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultiplePackedMessageReader(file, self.schema, traversal_limit_in_words, nesting_limit, skip_copy)
         return reader
-    def read_multiple_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+
+    def read_multiple_bytes(self, buf, traversal_limit_in_words=None, nesting_limit=None):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type buf: buffer
         :param buf: Any Python object that supports the buffer interface.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
@@ -3049,14 +3268,16 @@ class _StructModule(object):
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultipleBytesMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit)
         return reader
-    def read_multiple_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+
+    def read_multiple_bytes_packed(self, buf, traversal_limit_in_words=None, nesting_limit=None):
         """Returns an iterable, that when traversed will return Readers for messages.
 
         :type buf: buffer
         :param buf: Any Python object that supports the buffer interface.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
@@ -3064,20 +3285,24 @@ class _StructModule(object):
         :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
         reader = _MultipleBytesPackedMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit)
         return reader
-    def from_bytes(self, buf, traversal_limit_in_words = None, nesting_limit = None, builder=False):
+
+    def from_bytes(self, buf, traversal_limit_in_words=None, nesting_limit=None, builder=False):
         """Returns a Reader for the unpacked object in buf.
 
         :type buf: buffer
         :param buf: Any Python object that supports the buffer interface.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :type builder: bool
-        :param builder: If true, return a builder object. This will allow you to change the contents of `buf`, so do this with care.
+        :param builder: If true, return a builder object.
+
+        Enabling `builder` will allow you to change the contents of `buf`, so do this with care.
 
         :rtype: :class:`_DynamicStructReader` or :class:`_DynamicStructBuilder`
         """
@@ -3088,7 +3313,8 @@ class _StructModule(object):
         else:
             message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
             return message.get_root(self.schema)
-    def from_segments(self, segments, traversal_limit_in_words = None, nesting_limit = None):
+
+    def from_segments(self, segments, traversal_limit_in_words=None, nesting_limit=None):
         """Returns a Reader for a list of segment bytes.
 
         This avoids making copies.
@@ -3099,14 +3325,16 @@ class _StructModule(object):
         """
         message = _SegmentArrayMessageReader(segments, traversal_limit_in_words, nesting_limit)
         return message.get_root(self.schema)
-    def from_bytes_packed(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+
+    def from_bytes_packed(self, buf, traversal_limit_in_words=None, nesting_limit=None):
         """Returns a Reader for the packed object in buf.
 
         :type buf: buffer
         :param buf: Any Python object that supports the readable buffer interface.
 
         :type traversal_limit_in_words: int
-        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed. Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
 
         :type nesting_limit: int
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
@@ -3114,20 +3342,26 @@ class _StructModule(object):
         :rtype: :class:`_DynamicStructReader`
         """
         return _PackedMessageReaderBytes(buf, traversal_limit_in_words, nesting_limit).get_root(self.schema)
+
     def __call__(self, num_first_segment_words=None, **kwargs):
         return self.new_message(num_first_segment_words=num_first_segment_words, **kwargs)
+
     def new_message(self, num_first_segment_words=None, **kwargs):
         """Returns a newly allocated builder message.
 
         :type num_first_segment_words: int
-        :param num_first_segment_words: Size of the first segment to allocate in the message (in words ie. 8 byte increments)
+        :param num_first_segment_words: Size of the first segment to allocate (in words ie. 8 byte increments)
 
         :type kwargs: dict
-        :param kwargs: A list of fields and their values to initialize in the struct. Note, this is not an actual argument, but refers to Python's ability to pass keyword arguments. ie. new_message(my_field=100)
+        :param kwargs: A list of fields and their values to initialize in the struct.
+
+        Note, kwargs is not an actual argument, but refers to Python's ability to pass keyword arguments.
+        ie. new_message(my_field=100)
 
         :rtype: :class:`_DynamicStructBuilder`
         """
         return _new_message(self, kwargs, num_first_segment_words)
+
 
 class _InterfaceModule(object):
     def __init__(self, schema, name):
@@ -3142,11 +3376,13 @@ class _InterfaceModule(object):
     def _new_server(self, server):
         return _DynamicCapabilityServer(self.schema, server)
 
+
 class _EnumModule(object):
     def __init__(self, schema, name):
         self.schema = schema
         for name, val in schema.enumerants.items():
             setattr(self, name, val)
+
 
 cdef class _StringArrayPtr:
     def __cinit__(self, size_t size, parent):
@@ -3164,7 +3400,8 @@ cdef class _StringArrayPtr:
 cdef class SchemaParser:
     """A class for loading Cap'n Proto schema files.
 
-    Do not use this class unless you're sure you know what you're doing. Use the convenience method :func:`load` instead.
+    Do not use this class unless you're sure you know what you're doing.
+    Use the convenience method :func:`load` instead.
     """
 
     def __cinit__(self):
@@ -3243,18 +3480,22 @@ cdef class SchemaParser:
                 proto = schema.get_proto()
                 if proto.isStruct:
                     local_module = _StructModule(schema.as_struct(), node.name)
+
                     class Reader(_DynamicStructReader):
                         """An abstract base class.  Readers are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta
                         __slots__ = []
                         _schema = local_module.schema
+
                         def __new__(self):
                             raise TypeError('This is an abstract base class')
+
                     class Builder(_DynamicStructBuilder):
                         """An abstract base class.  Builders are 'instances' of this class."""
                         __metaclass__ = _StructABCMeta
                         __slots__ = []
                         _schema = local_module.schema
+
                         def __new__(self):
                             raise TypeError('This is an abstract base class')
 
@@ -3303,6 +3544,7 @@ cdef class SchemaParser:
         module.schema = fileSchema
 
         return module
+
 
 cdef class _MessageBuilder:
     """An abstract base class for building Cap'n Proto messages
@@ -3404,7 +3646,8 @@ cdef class _MessageBuilder:
     cpdef new_orphan(self, schema) except +reraise_kj_exception:
         """A method for instantiating Cap'n Proto orphans
 
-        Don't use this method unless you know what you're doing. Orphans are useful for dynamically allocating objects for an unknown sized list, ie::
+        Don't use this method unless you know what you're doing.
+        Orphans are useful for dynamically allocating objects for an unknown sized list, ie::
 
             addressbook = capnp.load('addressbook.capnp')
             m = capnp._MallocMessageBuilder()
@@ -3423,6 +3666,7 @@ cdef class _MessageBuilder:
             s = schema
 
         return _DynamicOrphan()._init(self.thisptr.newOrphan(s._thisptr()), self)
+
 
 cdef class _MallocMessageBuilder(_MessageBuilder):
     """The main class for building Cap'n Proto messages
@@ -3444,6 +3688,7 @@ cdef class _MallocMessageBuilder(_MessageBuilder):
             self.thisptr = new schema_cpp.MallocMessageBuilder()
         else:
             self.thisptr = new schema_cpp.MallocMessageBuilder(size)
+
 
 cdef class _MessageReader:
     """An abstract base class for reading Cap'n Proto messages
@@ -3490,10 +3735,12 @@ cdef class _MessageReader:
         """
         return _DynamicObjectReader()._init(self.thisptr.getRootAnyPointer(), self)
 
+
 cdef class _StreamFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_message_to_fd` and :class:`_MessageBuilder`, but in one class::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of
+    :func:`_write_message_to_fd` and :class:`_MessageBuilder`, but in one class::
 
         f = open('out.txt')
         message = _StreamFdMessageReader(f)
@@ -3502,7 +3749,7 @@ cdef class _StreamFdMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, file, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, traversal_limit_in_words=None, nesting_limit=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
@@ -3515,7 +3762,8 @@ cdef class _StreamFdMessageReader(_MessageReader):
 cdef class _PackedMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of
+    :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
 
         f = open('out.txt')
         message = _PackedFdMessageReader(f)
@@ -3527,7 +3775,8 @@ cdef class _PackedMessageReader(_MessageReader):
     def __init__(self):
         pass
 
-    cdef _init(self, schema_cpp.BufferedInputStream & stream, traversal_limit_in_words = None, nesting_limit = None, parent = None):
+    cdef _init(self, schema_cpp.BufferedInputStream & stream,
+               traversal_limit_in_words=None, nesting_limit=None, parent=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = parent
@@ -3542,7 +3791,7 @@ cdef class _PackedMessageReaderBytes(_MessageReader):
     cdef schema_cpp.ArrayInputStream * stream
     cdef Py_buffer view
 
-    def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, buf, traversal_limit_in_words=None, nesting_limit=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = buf
@@ -3559,10 +3808,12 @@ cdef class _PackedMessageReaderBytes(_MessageReader):
         del self.stream
         PyBuffer_Release(&self.view)
 
+
 cdef class _InputMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of
+    :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
 
         f = open('out.txt')
         message = _PackedFdMessageReader(f)
@@ -3574,7 +3825,8 @@ cdef class _InputMessageReader(_MessageReader):
     def __init__(self):
         pass
 
-    cdef _init(self, schema_cpp.BufferedInputStream & stream, traversal_limit_in_words = None, nesting_limit = None, parent = None):
+    cdef _init(self, schema_cpp.BufferedInputStream & stream,
+               traversal_limit_in_words=None, nesting_limit=None, parent=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = parent
@@ -3588,7 +3840,8 @@ cdef class _InputMessageReader(_MessageReader):
 cdef class _PackedFdMessageReader(_MessageReader):
     """Read a Cap'n Proto message from a file descriptor in a packed manner
 
-    You use this class to for reading message(s) from a file. It's analagous to the inverse of :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
+    You use this class to for reading message(s) from a file. It's analagous to the inverse of
+    :func:`_write_packed_message_to_fd` and :class:`_MessageBuilder`, but in one class.::
 
         f = open('out.txt')
         message = _PackedFdMessageReader(f)
@@ -3597,7 +3850,7 @@ cdef class _PackedFdMessageReader(_MessageReader):
 
     :Parameters: - fd (`int`) - A file descriptor
     """
-    def __init__(self, file, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, file, traversal_limit_in_words=None, nesting_limit=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
@@ -3614,7 +3867,7 @@ cdef class _MultipleMessageReader:
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, file
 
-    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
+    def __init__(self, file, schema, traversal_limit_in_words=None, nesting_limit=None, skip_copy=False):
         self.file = file
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
@@ -3630,10 +3883,11 @@ cdef class _MultipleMessageReader:
 
     def __next__(self):
         try:
-            reader = _InputMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            reader = _InputMessageReader()._init(
+                deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
             ret = reader.get_root(self.schema)
             if not self.skip_copy:
-              ret = ret.as_builder().as_reader()
+                ret = ret.as_builder().as_reader()
             return ret
         except KjException as e:
             if 'EOF' in str(e):
@@ -3643,6 +3897,7 @@ cdef class _MultipleMessageReader:
 
     def __iter__(self):
         return self
+
 
 cdef class _MultiplePackedMessageReader:
     cdef schema_cpp.FdInputStream * stream
@@ -3651,7 +3906,7 @@ cdef class _MultiplePackedMessageReader:
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, file
 
-    def __init__(self, file, schema, traversal_limit_in_words = None, nesting_limit = None, skip_copy = False):
+    def __init__(self, file, schema, traversal_limit_in_words=None, nesting_limit=None, skip_copy=False):
         self.file = file
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
@@ -3667,10 +3922,11 @@ cdef class _MultiplePackedMessageReader:
 
     def __next__(self):
         try:
-            reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            reader = _PackedMessageReader()._init(
+                deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
             ret = reader.get_root(self.schema)
             if not self.skip_copy:
-              ret = ret.as_builder().as_reader()
+                ret = ret.as_builder().as_reader()
             return ret
         except KjException as e:
             if 'EOF' in str(e):
@@ -3681,13 +3937,14 @@ cdef class _MultiplePackedMessageReader:
     def __iter__(self):
         return self
 
+
 cdef class _MultipleBytesMessageReader:
     cdef Py_ssize_t offset, sz
     cdef const char *ptr
     cdef object _object_to_pin
     cdef public object traversal_limit_in_words, nesting_limit, schema
 
-    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, buf, schema, traversal_limit_in_words=None, nesting_limit=None):
         self.offset = 0
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
@@ -3710,14 +3967,14 @@ cdef class _MultipleBytesMessageReader:
         else:
             raise TypeError('expected buffer-like object in FlatArrayMessageReader')
 
-
     def __next__(self):
         cdef _FlatArrayMessageReaderAligned reader
         if self.offset == self.sz:
             raise StopIteration
         try:
             reader = _FlatArrayMessageReaderAligned()
-            reader._init(self._object_to_pin, self.ptr + self.offset, self.sz - self.offset, self.traversal_limit_in_words, self.nesting_limit)
+            reader._init(self._object_to_pin, self.ptr + self.offset, self.sz - self.offset,
+                         self.traversal_limit_in_words, self.nesting_limit)
             self.offset += reader.msg_size
             return reader.get_root(self.schema)
         except KjException as e:
@@ -3729,6 +3986,7 @@ cdef class _MultipleBytesMessageReader:
     def __iter__(self):
         return self
 
+
 cdef class _MultipleBytesPackedMessageReader:
     cdef schema_cpp.ArrayInputStream * stream
     cdef schema_cpp.BufferedInputStream * buffered_stream
@@ -3736,7 +3994,7 @@ cdef class _MultipleBytesPackedMessageReader:
 
     cdef public object traversal_limit_in_words, nesting_limit, schema, buf
 
-    def __init__(self, buf, schema, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, buf, schema, traversal_limit_in_words=None, nesting_limit=None):
         self.schema = schema
         self.traversal_limit_in_words = traversal_limit_in_words
         self.nesting_limit = nesting_limit
@@ -3755,7 +4013,8 @@ cdef class _MultipleBytesPackedMessageReader:
 
     def __next__(self):
         try:
-            reader = _PackedMessageReader()._init(deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            reader = _PackedMessageReader()._init(
+                deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
             return reader.get_root(self.schema)
         except KjException as e:
             if 'EOF' in str(e):
@@ -3765,6 +4024,7 @@ cdef class _MultipleBytesPackedMessageReader:
 
     def __iter__(self):
         return self
+
 
 @cython.internal
 cdef class _AlignedBuffer:
@@ -3798,11 +4058,12 @@ cdef class _BufferView:
     def __init__(self, other):
         cdef int ret = PyObject_GetBuffer(other, &self.view, PyBUF_SIMPLE)
         if ret < 0:
-          raise ValueError("Invalid buffer passed to BufferView")
+            raise ValueError("Invalid buffer passed to BufferView")
         self.buf = <char*>self.view.buf
 
     def __dealloc__(self):
         PyBuffer_Release(&self.view)
+
 
 @cython.internal
 cdef class _FlatArrayMessageReaderAligned(_MessageReader):
@@ -3814,11 +4075,11 @@ cdef class _FlatArrayMessageReaderAligned(_MessageReader):
     """
     cdef object _object_to_pin
     cdef Py_ssize_t msg_size
+
     def __init__(self):
         self.msg_size = 0
 
-
-    cdef _init(self, buf, const char *ptr, Py_ssize_t sz, traversal_limit_in_words = None, nesting_limit = None):
+    cdef _init(self, buf, const char *ptr, Py_ssize_t sz, traversal_limit_in_words=None, nesting_limit=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         cdef schema_cpp.FlatArrayMessageReader * flat_reader
 
@@ -3838,7 +4099,8 @@ cdef class _FlatArrayMessageReaderAligned(_MessageReader):
 @cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
     cdef object _object_to_pin
-    def __init__(self, buf, traversal_limit_in_words = None, nesting_limit = None):
+
+    def __init__(self, buf, traversal_limit_in_words=None, nesting_limit=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         cdef _AlignedBuffer aligned
 
@@ -3877,7 +4139,7 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
     cdef schema_cpp.ConstWordArrayPtr* _seg_ptrs
     cdef Py_buffer* views
 
-    def __init__(self, segments, traversal_limit_in_words = None, nesting_limit = None):
+    def __init__(self, segments, traversal_limit_in_words=None, nesting_limit=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         # take a Python array of bytes and constructs a ConstWordArrayArrayPtr
         num_segments = len(segments)
@@ -3911,16 +4173,19 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
 cdef class _FlatMessageBuilder(_MessageBuilder):
     cdef object _object_to_pin
     cdef Py_buffer view
+
     def __init__(self, buf):
         if PyObject_GetBuffer(buf, &self.view, PyBUF_WRITABLE) != 0:
             raise KjException("expected variable length string object")
         if self.view.len % 8 != 0:
             raise KjException("input length must be a multiple of eight bytes")
         self._object_to_pin = buf
-        self.thisptr = new schema_cpp.FlatMessageBuilder(schema_cpp.WordArrayPtr(<schema_cpp.word*>self.view.buf, self.view.len//8))
+        self.thisptr = new schema_cpp.FlatMessageBuilder(
+            schema_cpp.WordArrayPtr(<schema_cpp.word*>self.view.buf, self.view.len // 8))
 
     def __dealloc__(self):
         PyBuffer_Release(&self.view)
+
 
 def _message_to_packed_bytes(_MessageBuilder message):
     r, w = _os.pipe()
@@ -3936,6 +4201,7 @@ def _message_to_packed_bytes(_MessageBuilder message):
     reader.close()
 
     return ret
+
 
 def _write_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor
@@ -3961,6 +4227,7 @@ def _write_message_to_fd(int fd, _MessageBuilder message):
     :rtype: void
     """
     schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
+
 
 def _write_packed_message_to_fd(int fd, _MessageBuilder message):
     """Serialize a Cap'n Proto message to a file descriptor in a packed manner
@@ -3988,7 +4255,9 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
     """
     schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
 
+
 _global_schema_parser = None
+
 
 def cleanup_global_schema_parser():
     """Unloads all of the schema from the current context"""
@@ -3996,6 +4265,7 @@ def cleanup_global_schema_parser():
     if _global_schema_parser:
         del _global_schema_parser
         _global_schema_parser = None
+
 
 def load(file_name, display_name=None, imports=[]):
     """Load a Cap'n Proto schema from a file
@@ -4033,6 +4303,7 @@ def load(file_name, display_name=None, imports=[]):
 
     return _global_schema_parser.load(file_name, display_name, imports)
 
+
 class _Loader:
     def __init__(self, fullname, path, additional_paths):
         self.fullname = fullname
@@ -4047,8 +4318,7 @@ class _Loader:
 
     def load_module(self, fullname):
         assert self.fullname == fullname, (
-            "invalid module, expected %s, got %s" % (
-            self.fullname, fullname))
+            "invalid module, expected {}, got {}".format(self.fullname, fullname))
 
         imports = self.additional_paths + _sys.path
         imports = [path if path != '' else '.' for path in imports] # convert empty path '' to '.'
@@ -4057,10 +4327,12 @@ class _Loader:
 
         return module
 
+
 class _Importer:
     def __init__(self, additional_paths):
         self.extension = '.capnp'
         self.additional_paths = additional_paths
+
     def find_module(self, fullname, package_path=None):
         if fullname in _sys.modules: # Don't allow re-imports
             return None
@@ -4109,21 +4381,27 @@ class _Importer:
                 if is_file(path+sep+capnp_module_name_spaces):
                     return _Loader(fullname, join_path(path, capnp_module_name_spaces), self.additional_paths)
 
+
 _importer = None
+
 
 def add_import_hook(additional_paths=[]):
     """Add a hook to the python import system, so that Cap'n Proto modules are directly importable
 
-    After calling this function, you can use the python import syntax to directly import capnproto schemas. This function is automatically called upon first import of `capnp`, so you will typically never need to use this function.::
+    After calling this function, you can use the python import syntax to directly import capnproto schemas.
+    This function is automatically called upon first import of `capnp`,
+    so you will typically never need to use this function.::
 
         import capnp
         capnp.add_import_hook()
 
         import addressbook_capnp
-        # equivalent to capnp.load('addressbook.capnp', 'addressbook', sys.path), except it will search for 'addressbook.capnp' in all directories of sys.path
+        # equivalent to capnp.load('addressbook.capnp', 'addressbook', sys.path),
+        # except it will search for 'addressbook.capnp' in all directories of sys.path
 
     :type additional_paths: list
-    :param additional_paths: Additional paths, listed as strings, to be used to search for the .capnp files. It is prepended to the beginning of sys.path. It also affects imports inside of Cap'n Proto schemas.
+    :param additional_paths: Additional paths, listed as strings, to be used to search for the .capnp files.
+    It is prepended to the beginning of sys.path. It also affects imports inside of Cap'n Proto schemas.
     """
     global _importer
     if _importer is not None:
@@ -4153,12 +4431,14 @@ def add_import_hook(additional_paths=[]):
     _importer = _Importer(additional_paths)
     _sys.meta_path.append(_importer)
 
+
 def remove_import_hook():
     """Remove the import hook, and return python's import to normal"""
     global _importer
     if _importer is not None:
         _sys.meta_path.remove(_importer)
     _importer = None
+
 
 def _init_capnp_api():
     """ Initialize static function pointers for cdef api functions. """

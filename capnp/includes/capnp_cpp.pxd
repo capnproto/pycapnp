@@ -4,8 +4,12 @@ cdef extern from "capnp/helpers/checkCompiler.h":
     pass
 
 from libcpp cimport bool
-from capnp.helpers.non_circular cimport PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler
-from capnp.includes.schema_cpp cimport Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions
+from capnp.helpers.non_circular cimport (
+    PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler,
+)
+from capnp.includes.schema_cpp cimport (
+    Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions,
+)
 from capnp.includes.types cimport *
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
@@ -46,8 +50,10 @@ cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T]:
         T& operator*()
         T* get()
-    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(AsyncIoStream& stream, Side, ReaderOptions)
-    Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(PromiseFulfillerPair&)
+    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(
+        AsyncIoStream& stream, Side, ReaderOptions)
+    Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(
+        PromiseFulfillerPair&)
     Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
 
 cdef extern from "kj/async.h" namespace " ::kj":
@@ -309,7 +315,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicValueForward.Pipeline get(char *)
             StructSchema getSchema()
 
-    cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder": # Need to flatten this class out, since nested C++ classes cause havoc with cython fused types
+    cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder":
+        # Need to flatten this class out, since nested C++ classes cause havoc with cython fused types
         DynamicStruct_Builder()
         DynamicStruct_Builder(DynamicStruct_Builder &)
         DynamicValueForward.Builder get(char *) except +reraise_kj_exception
@@ -344,7 +351,8 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
 cdef extern from "capnp/capability.h" namespace " ::capnp":
     cdef cppclass Response" ::capnp::Response< ::capnp::DynamicStruct>"(DynamicStruct.Reader):
         Response(Response)
-    cdef cppclass RemotePromise" ::capnp::RemotePromise< ::capnp::DynamicStruct>"(Promise[Response], DynamicStruct.Pipeline):
+    cdef cppclass RemotePromise" ::capnp::RemotePromise< ::capnp::DynamicStruct>"(
+            Promise[Response], DynamicStruct.Pipeline):
         RemotePromise(RemotePromise)
     cdef cppclass Capability:
         cppclass Client:
@@ -404,20 +412,23 @@ cdef extern from "capnp/any.h" namespace " ::capnp":
     cdef cppclass AnyPointer:
         cppclass Reader:
             DynamicStruct.Reader getAs"getAs< ::capnp::DynamicStruct>"(StructSchema) except +reraise_kj_exception
-            DynamicCapability.Client getAsCapability"getAs< ::capnp::DynamicCapability>"(InterfaceSchema) except +reraise_kj_exception
+            DynamicCapability.Client getAsCapability"getAs< ::capnp::DynamicCapability>"(
+                InterfaceSchema) except +reraise_kj_exception
             DynamicList.Reader getAsList"getAs< ::capnp::DynamicList>"(ListSchema) except +reraise_kj_exception
             StringPtr getAsText"getAs< ::capnp::Text>"() except +reraise_kj_exception
         cppclass Builder:
             Builder(Builder)
             DynamicStruct_Builder getAs"getAs< ::capnp::DynamicStruct>"(StructSchema) except +reraise_kj_exception
-            DynamicCapability.Client getAsCapability"getAs< ::capnp::DynamicCapability>"(InterfaceSchema) except +reraise_kj_exception
+            DynamicCapability.Client getAsCapability"getAs< ::capnp::DynamicCapability>"(
+                InterfaceSchema) except +reraise_kj_exception
             DynamicList.Builder getAsList"getAs< ::capnp::DynamicList>"(ListSchema) except +reraise_kj_exception
             StringPtr getAsText"getAs< ::capnp::Text>"() except +reraise_kj_exception
             void setAsStruct"setAs< ::capnp::DynamicStruct>"(DynamicStruct.Reader&) except +reraise_kj_exception
             void setAsText"setAs< ::capnp::Text>"(char*) except +reraise_kj_exception
             AnyPointer.Reader asReader() except +reraise_kj_exception
             void set(AnyPointer.Reader) except +reraise_kj_exception
-            DynamicStruct_Builder initAsStruct"initAs< ::capnp::DynamicStruct>"(StructSchema) except +reraise_kj_exception
+            DynamicStruct_Builder initAsStruct"initAs< ::capnp::DynamicStruct>"(
+                StructSchema) except +reraise_kj_exception
             DynamicList.Builder initAsList"initAs< ::capnp::DynamicList>"(ListSchema, uint) except +reraise_kj_exception
 
 
