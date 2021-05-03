@@ -57,4 +57,4 @@ from .lib.capnp import (
 )
 
 _init_capnp_api()
-add_import_hook() # enable import hook by default
+add_import_hook()  # enable import hook by default

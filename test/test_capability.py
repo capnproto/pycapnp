@@ -297,7 +297,13 @@ def test_timer():
     assert test_timer_var is True
 
     test_timer_var = False
-    promise = capnp.Promise(0).then(lambda x: time.sleep(.1)).then(lambda x: time.sleep(.1)).then(lambda x: set_timer_var())
+    promise = capnp.Promise(0).then(
+        lambda x: time.sleep(.1)
+    ).then(
+        lambda x: time.sleep(.1)
+    ).then(
+        lambda x: set_timer_var()
+    )
 
     canceller = capnp.getTimer().after_delay(1).then(lambda: promise.cancel())
 
