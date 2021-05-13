@@ -4136,6 +4136,7 @@ cdef class _FlatArrayMessageReader(_MessageReader):
 cdef class _SegmentArrayMessageReader(_MessageReader):
 
     cdef object _objects_to_pin
+    cdef uint num_segments
     cdef schema_cpp.ConstWordArrayPtr* _seg_ptrs
     cdef Py_buffer* views
 
@@ -4146,6 +4147,7 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
         cdef schema_cpp.ConstWordArrayPtr seg_ptr
         self._seg_ptrs = <schema_cpp.ConstWordArrayPtr*>malloc(num_segments * sizeof(schema_cpp.ConstWordArrayPtr))
         self.views = <Py_buffer*>malloc(num_segments * sizeof(Py_buffer))
+        self.num_segments = num_segments
         self._objects_to_pin = []
         for i in range(0, num_segments):
             if PyObject_GetBuffer(segments[i], &self.views[i], PyBUF_SIMPLE) != 0:
@@ -4165,6 +4167,8 @@ cdef class _SegmentArrayMessageReader(_MessageReader):
 
     def __dealloc__(self):
         free(self._seg_ptrs)
+        for i in range(0, self.num_segments):
+            PyBuffer_Release(&self.views[i])
         free(self.views)
         del self.thisptr
 
