@@ -19,11 +19,9 @@ import argparse
 import sys
 import os.path
 import importlib
-import capnp
 import logging
 import keyword
 from dataclasses import dataclass, field
-from types import ModuleType
 
 try:
     import black
@@ -31,7 +29,7 @@ except ImportError:
     black = None  # type: ignore
 
 try:
-    from ycecream import y
+    from ycecream import y  # noqa
 except ImportError:
 
     def y(*args, **kwargs):
@@ -254,7 +252,7 @@ def gen_enum(schema, writer):
     name = schema.node.displayName[schema.node.displayNamePrefixLength :]
     writer.imports.add("from enum import Enum")
     writer.begin_scope(name, schema.node, f"class {name}(str, Enum):")
-    registered = writer.register_type(schema.node.id, schema, name)
+    writer.register_type(schema.node.id, schema, name)
     for enumerant in schema.node.enum.enumerants:
         value = enumerant.name
         name = enumerant.name
@@ -384,7 +382,6 @@ def gen_struct(schema, writer, name: str = ""):
             group_name = field.name[0].upper() + field.name[1:]
             assert group_name != field.name
             raw_schema = raw_field.schema
-            field_schema = raw_schema.node.struct
             group_name = gen_struct(raw_schema, writer, name=group_name).name
             field_py_code = f"{field.name}: {group_name}"
             writer.writeln(field_py_code)
