@@ -3175,6 +3175,13 @@ class _StructModule(object):
                     for union_field in field_schema.fields:
                         setattr(sub_module, union_field.name, union_field.discriminantValue)
                 setattr(self, name, sub_module)
+        if schema.union_fields and not schema.non_union_fields:
+            sub_module = _StructModuleWhich()
+            for union_field in schema.node.struct.fields:
+                name = union_field.name
+                name = name[0].upper() + name[1:]
+                setattr(sub_module, name, union_field.discriminantValue)
+            setattr(self, 'Union', sub_module)
 
     def read(self, file, traversal_limit_in_words=None, nesting_limit=None):
         """Returns a Reader for the unpacked object read from file.

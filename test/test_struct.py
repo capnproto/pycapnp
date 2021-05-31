@@ -189,7 +189,28 @@ def test_set_dict(all_types):
 def test_set_dict_union(addressbook):
     person = addressbook.Person.new_message(**{'employment': {'employer': {'name': 'foo'}}})
 
+    assert person.employment.which == addressbook.Person.Employment.employer
+
     assert person.employment.employer.name == 'foo'
+
+
+def test_union_enum(all_types):
+    assert all_types.UnionAllTypes.Union.UnionStructField1 == 0
+    assert all_types.UnionAllTypes.Union.UnionStructField2 == 1
+
+    msg = all_types.UnionAllTypes.new_message(**{'unionStructField1': {'textField': "foo"}})
+    assert msg.which == all_types.UnionAllTypes.Union.UnionStructField1
+    msg = all_types.UnionAllTypes.new_message(**{'unionStructField2': {'textField': "foo"}})
+    assert msg.which == all_types.UnionAllTypes.Union.UnionStructField2
+
+    assert all_types.GroupedUnionAllTypes.Union.G1 == 0
+    assert all_types.GroupedUnionAllTypes.Union.G2 == 1
+
+    msg = all_types.GroupedUnionAllTypes.new_message(**{'g1': {'unionStructField1': {'textField': "foo"}}})
+    assert msg.which == all_types.GroupedUnionAllTypes.Union.G1
+
+    msg = all_types.GroupedUnionAllTypes.new_message(**{'g2': {'unionStructField2': {'textField': "foo"}}})
+    assert msg.which == all_types.GroupedUnionAllTypes.Union.G2
 
 
 def isstr(s):
