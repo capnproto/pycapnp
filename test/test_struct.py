@@ -200,8 +200,13 @@ def test_union_enum(all_types):
 
     msg = all_types.UnionAllTypes.new_message(**{'unionStructField1': {'textField': "foo"}})
     assert msg.which == all_types.UnionAllTypes.Union.UnionStructField1
+    assert msg.which == 'unionStructField1'
+    assert msg.which == 0
+
     msg = all_types.UnionAllTypes.new_message(**{'unionStructField2': {'textField': "foo"}})
     assert msg.which == all_types.UnionAllTypes.Union.UnionStructField2
+    assert msg.which == 'unionStructField2'
+    assert msg.which == 1
 
     assert all_types.GroupedUnionAllTypes.Union.G1 == 0
     assert all_types.GroupedUnionAllTypes.Union.G2 == 1
