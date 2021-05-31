@@ -1393,6 +1393,8 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
+        if isinstance(field, _StructModuleWhich):
+            field = field.name[0].lower() + field.name[1:]
         if size is None:
             return to_python_builder(self.thisptr.init(field), self._parent)
         else:

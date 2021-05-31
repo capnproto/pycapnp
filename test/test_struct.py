@@ -217,6 +217,9 @@ def test_union_enum(all_types):
     msg = all_types.GroupedUnionAllTypes.new_message(**{'g2': {'unionStructField2': {'textField': "foo"}}})
     assert msg.which == all_types.GroupedUnionAllTypes.Union.G2
 
+    msg = all_types.UnionAllTypes.new_message()
+    msg.unionStructField2 = msg.init(all_types.UnionAllTypes.Union.UnionStructField2)
+
 
 def isstr(s):
     return isinstance(s, str)
