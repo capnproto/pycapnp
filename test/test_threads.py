@@ -9,6 +9,9 @@ import threading
 import pytest
 
 import capnp
+
+from capnp.lib.capnp import KjException
+
 import test_capability_capnp
 
 
@@ -35,11 +38,19 @@ def test_making_threaded_event_loop():
     '''
     Threaded event loop test
     '''
-    capnp.remove_event_loop(True)
-    capnp.create_event_loop(True)
+    # The following raises a KjException, and if not caught causes an SIGABRT:
+    # kj/async.c++:973: failed: expected head == nullptr; EventLoop destroyed with events still in the queue.
+    # Memory leak?; head->trace() = kj::_::ForkHub<kj::_::Void>
+    # kj::_::AdapterPromiseNode<kj::_::Void, kj::_::PromiseAndFulfillerAdapter<void> >
+    # stack: ...
+    # python(..) malloc: *** error for object 0x...: pointer being freed was not allocated
+    # python(..) malloc: *** set a breakpoint in malloc_error_break to debug
+    # Fatal Python error: Aborted
+    capnp.remove_event_loop(KjException)
+    capnp.create_event_loop(KjException)
 
     capnp.remove_event_loop()
-    capnp.create_event_loop(True)
+    capnp.create_event_loop(KjException)
 
 
 class Server(test_capability_capnp.TestInterface.Server):

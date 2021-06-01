@@ -1843,16 +1843,26 @@ cpdef remove_event_loop(ignore_errors=False):
     if C_DEFAULT_EVENT_LOOP:
         try:
             C_DEFAULT_EVENT_LOOP._remove()
-        except:
-            if not ignore_errors:
+        except Exception as e:
+            if isinstance(ignore_errors, Exception):
+                if isinstance(e, ignore_errors):
+                    ignore_errors = True
+            if ignore_errors is True:
+                pass
+            else:
                 raise
         C_DEFAULT_EVENT_LOOP = None
     if len(_THREAD_LOCAL_EVENT_LOOPS) > 0:
         for loop in _THREAD_LOCAL_EVENT_LOOPS:
             try:
                 loop._remove()
-            except:
-                if not ignore_errors:
+            except Exception as e:
+                if isinstance(ignore_errors, Exception):
+                    if isinstance(e, ignore_errors):
+                        ignore_errors = True
+                if ignore_errors is True:
+                    pass
+                else:
                     raise
         _THREAD_LOCAL_EVENT_LOOPS = []
         _C_DEFAULT_EVENT_LOOP_LOCAL = None
