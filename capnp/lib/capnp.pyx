@@ -89,7 +89,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                     warning_msg = (
                         "Server function ({}) returned a value that was not a Promise: return = {}"
                         .format(method_name, str(ret)))
-                except:
+                except Exception:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(
                     warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
@@ -104,7 +104,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                     warning_msg = (
                         "Server function ({}) returned a value that was not a Promise: return = {}"
                         .format(method_name, str(ret)))
-                except:
+                except Exception:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(
                     warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
@@ -289,7 +289,7 @@ cdef api object get_exception_info(object exc_type, object exc_obj, object exc_t
         return (exc_tb.tb_frame.f_code.co_filename.encode(),
                 exc_tb.tb_lineno,
                 (repr(exc_type) + ":" + str(exc_obj)).encode())
-    except:
+    except Exception:
         return (b'', 0, b"Couldn't determine python exception")
 
 
