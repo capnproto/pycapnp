@@ -1974,7 +1974,7 @@ cdef class _Promise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
@@ -2042,7 +2042,7 @@ cdef class _VoidPromise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
@@ -2146,7 +2146,7 @@ cdef class _RemotePromise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
