@@ -1147,8 +1147,10 @@ cdef class _DynamicStructReader:
     cpdef _which_str(self):
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1161,8 +1163,10 @@ cdef class _DynamicStructReader:
         try:
             which = _DynamicEnumField()._init(
                 _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
         return which
 
@@ -1445,8 +1449,10 @@ cdef class _DynamicStructBuilder:
     cpdef _which_str(self):
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1459,8 +1465,10 @@ cdef class _DynamicStructBuilder:
         try:
             which = _DynamicEnumField()._init(
                 _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
         return which
 
