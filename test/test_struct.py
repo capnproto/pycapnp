@@ -4,6 +4,8 @@ import os
 import tempfile
 import sys
 
+from capnp.lib.capnp import KjException
+
 this_dir = os.path.dirname(__file__)
 
 
@@ -37,9 +39,13 @@ def test_which_builder(addressbook):
     assert bob.employment.which == addressbook.Person.Employment.unemployed
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(Exception):
-        addresses.which
-    with pytest.raises(Exception):
+    with pytest.raises(KjException):
+        addresses._which()
+
+    with pytest.raises(KjException):
+        addresses._which_str()
+
+    with pytest.raises(KjException):
         addresses.which
 
 
@@ -71,9 +77,13 @@ def test_which_reader(addressbook):
     bob = people[1]
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(Exception):
-        addresses.which
-    with pytest.raises(Exception):
+    with pytest.raises(KjException):
+        addresses._which_str()
+
+    with pytest.raises(KjException):
+        addresses._which()
+
+    with pytest.raises(KjException):
         addresses.which
 
 

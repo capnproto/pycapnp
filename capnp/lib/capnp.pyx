@@ -89,7 +89,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                     warning_msg = (
                         "Server function ({}) returned a value that was not a Promise: return = {}"
                         .format(method_name, str(ret)))
-                except:
+                except Exception:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(
                     warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
@@ -104,7 +104,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                     warning_msg = (
                         "Server function ({}) returned a value that was not a Promise: return = {}"
                         .format(method_name, str(ret)))
-                except:
+                except Exception:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(
                     warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
@@ -289,7 +289,7 @@ cdef api object get_exception_info(object exc_type, object exc_obj, object exc_t
         return (exc_tb.tb_frame.f_code.co_filename.encode(),
                 exc_tb.tb_lineno,
                 (repr(exc_type) + ":" + str(exc_obj)).encode())
-    except:
+    except Exception:
         return (b'', 0, b"Couldn't determine python exception")
 
 
@@ -1147,8 +1147,10 @@ cdef class _DynamicStructReader:
     cpdef _which_str(self):
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1161,8 +1163,10 @@ cdef class _DynamicStructReader:
         try:
             which = _DynamicEnumField()._init(
                 _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
         return which
 
@@ -1445,8 +1449,10 @@ cdef class _DynamicStructBuilder:
     cpdef _which_str(self):
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1459,8 +1465,10 @@ cdef class _DynamicStructBuilder:
         try:
             which = _DynamicEnumField()._init(
                 _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
         return which
 
@@ -1835,16 +1843,26 @@ cpdef remove_event_loop(ignore_errors=False):
     if C_DEFAULT_EVENT_LOOP:
         try:
             C_DEFAULT_EVENT_LOOP._remove()
-        except:
-            if not ignore_errors:
+        except Exception as e:
+            if isinstance(ignore_errors, Exception):
+                if isinstance(e, ignore_errors):
+                    ignore_errors = True
+            if ignore_errors is True:
+                pass
+            else:
                 raise
         C_DEFAULT_EVENT_LOOP = None
     if len(_THREAD_LOCAL_EVENT_LOOPS) > 0:
         for loop in _THREAD_LOCAL_EVENT_LOOPS:
             try:
                 loop._remove()
-            except:
-                if not ignore_errors:
+            except Exception as e:
+                if isinstance(ignore_errors, Exception):
+                    if isinstance(e, ignore_errors):
+                        ignore_errors = True
+                if ignore_errors is True:
+                    pass
+                else:
                     raise
         _THREAD_LOCAL_EVENT_LOOPS = []
         _C_DEFAULT_EVENT_LOOP_LOCAL = None
@@ -1966,7 +1984,7 @@ cdef class _Promise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
@@ -2034,7 +2052,7 @@ cdef class _VoidPromise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
@@ -2138,7 +2156,7 @@ cdef class _RemotePromise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
