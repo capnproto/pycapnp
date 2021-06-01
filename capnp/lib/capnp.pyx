@@ -22,6 +22,7 @@ from libc.string cimport memcpy
 import array
 import asyncio
 import collections as _collections
+import enum as _enum
 import inspect as _inspect
 import os as _os
 import random as _random
@@ -1392,6 +1393,8 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
+        if isinstance(field, _StructModuleWhich):
+            field = field.name[0].lower() + field.name[1:]
         if size is None:
             return to_python_builder(self.thisptr.init(field), self._parent)
         else:
@@ -3152,8 +3155,12 @@ cdef _new_message(self, kwargs, num_first_segment_words):
     return msg
 
 
-class _StructModuleWhich(object):
-    pass
+class _StructModuleWhich(_enum.Enum):
+    def __eq__(self, other):
+        if isinstance(other, int):
+            return self.value == other
+        else:
+            return self.name == other
 
 
 class _StructModule(object):
@@ -3170,17 +3177,19 @@ class _StructModule(object):
                 if field_schema.discriminantCount == 0:
                     sub_module = _StructModule(raw_schema, name)
                 else:
-                    sub_module = _StructModuleWhich()
-                    setattr(sub_module, 'schema', raw_schema)
+                    mapping = []
                     for union_field in field_schema.fields:
-                        setattr(sub_module, union_field.name, union_field.discriminantValue)
+                        mapping.append((union_field.name, union_field.discriminantValue))
+                    sub_module = _StructModuleWhich("StructModuleWhich", mapping)
+                    setattr(sub_module, 'schema', raw_schema)
                 setattr(self, name, sub_module)
         if schema.union_fields and not schema.non_union_fields:
-            sub_module = _StructModuleWhich()
+            mapping = []
             for union_field in schema.node.struct.fields:
                 name = union_field.name
                 name = name[0].upper() + name[1:]
-                setattr(sub_module, name, union_field.discriminantValue)
+                mapping.append((name, union_field.discriminantValue))
+            sub_module = _StructModuleWhich("StructModuleWhich", mapping)
             setattr(self, 'Union', sub_module)
 
     def read(self, file, traversal_limit_in_words=None, nesting_limit=None):
