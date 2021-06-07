@@ -1,3 +1,18 @@
+## v1.1.0 (2021-06-09)
+- Validated compatibility with Python 3.10.0b2
+- Remove all bare except
+- Improve _StructModuleWhich to inherit from `enum.Enum`
+- Add Union on top level union messages
+- Fixed memory leak in `_SegmentArrayMessageReader`
+- Removed many pycodestyle warnings
+- Avoid crash if `__file__` is not set by importer
+- Fixed module.pyx `_set_<field>` for boolean fields
+- Fixed setup.py.tmpl support for `*.c++` files
+- Fixed _gen.py for python3 as `dict_keys` object are not indexable.
+- Add test data to sdist
+- Add `pyproject.yaml`
+- Add missing inheritance to `_Schema` for `_StructSchema`
+
 ## v1.0.0 (2020-11-20)
 - Validated Python 3.9 (3.7 and 3.8 are also supported)
 - Updated package to include LICENSE file
