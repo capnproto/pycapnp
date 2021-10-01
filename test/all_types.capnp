@@ -50,3 +50,21 @@ struct TestAllTypes {
   enumList      @32 : List(TestEnum);
   interfaceList @33 : List(Void);  # TODO
 }
+
+struct UnionAllTypes {
+  union {
+    unionStructField1 @0 : TestAllTypes;
+    unionStructField2 @1 : TestAllTypes;
+  }
+}
+
+struct GroupedUnionAllTypes {
+  union {
+    g1 :group {
+      unionStructField1 @0 : TestAllTypes;
+    }
+    g2 :group {
+      unionStructField2 @1 : TestAllTypes;
+    }
+  }
+}

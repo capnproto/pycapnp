@@ -4,6 +4,8 @@ import os
 import tempfile
 import sys
 
+from capnp.lib.capnp import KjException
+
 this_dir = os.path.dirname(__file__)
 
 
@@ -37,9 +39,13 @@ def test_which_builder(addressbook):
     assert bob.employment.which == addressbook.Person.Employment.unemployed
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(Exception):
-        addresses.which
-    with pytest.raises(Exception):
+    with pytest.raises(KjException):
+        addresses._which()
+
+    with pytest.raises(KjException):
+        addresses._which_str()
+
+    with pytest.raises(KjException):
         addresses.which
 
 
@@ -71,9 +77,13 @@ def test_which_reader(addressbook):
     bob = people[1]
     assert bob.employment.which == "unemployed"
 
-    with pytest.raises(Exception):
-        addresses.which
-    with pytest.raises(Exception):
+    with pytest.raises(KjException):
+        addresses._which_str()
+
+    with pytest.raises(KjException):
+        addresses._which()
+
+    with pytest.raises(KjException):
         addresses.which
 
 
@@ -189,7 +199,36 @@ def test_set_dict(all_types):
 def test_set_dict_union(addressbook):
     person = addressbook.Person.new_message(**{'employment': {'employer': {'name': 'foo'}}})
 
+    assert person.employment.which == addressbook.Person.Employment.employer
+
     assert person.employment.employer.name == 'foo'
+
+
+def test_union_enum(all_types):
+    assert all_types.UnionAllTypes.Union.UnionStructField1 == 0
+    assert all_types.UnionAllTypes.Union.UnionStructField2 == 1
+
+    msg = all_types.UnionAllTypes.new_message(**{'unionStructField1': {'textField': "foo"}})
+    assert msg.which == all_types.UnionAllTypes.Union.UnionStructField1
+    assert msg.which == 'unionStructField1'
+    assert msg.which == 0
+
+    msg = all_types.UnionAllTypes.new_message(**{'unionStructField2': {'textField': "foo"}})
+    assert msg.which == all_types.UnionAllTypes.Union.UnionStructField2
+    assert msg.which == 'unionStructField2'
+    assert msg.which == 1
+
+    assert all_types.GroupedUnionAllTypes.Union.G1 == 0
+    assert all_types.GroupedUnionAllTypes.Union.G2 == 1
+
+    msg = all_types.GroupedUnionAllTypes.new_message(**{'g1': {'unionStructField1': {'textField': "foo"}}})
+    assert msg.which == all_types.GroupedUnionAllTypes.Union.G1
+
+    msg = all_types.GroupedUnionAllTypes.new_message(**{'g2': {'unionStructField2': {'textField': "foo"}}})
+    assert msg.which == all_types.GroupedUnionAllTypes.Union.G2
+
+    msg = all_types.UnionAllTypes.new_message()
+    msg.unionStructField2 = msg.init(all_types.UnionAllTypes.Union.UnionStructField2)
 
 
 def isstr(s):

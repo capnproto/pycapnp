@@ -22,6 +22,7 @@ from libc.string cimport memcpy
 import array
 import asyncio
 import collections as _collections
+import enum as _enum
 import inspect as _inspect
 import os as _os
 import random as _random
@@ -88,7 +89,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                     warning_msg = (
                         "Server function ({}) returned a value that was not a Promise: return = {}"
                         .format(method_name, str(ret)))
-                except:
+                except Exception:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(
                     warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
@@ -103,7 +104,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                     warning_msg = (
                         "Server function ({}) returned a value that was not a Promise: return = {}"
                         .format(method_name, str(ret)))
-                except:
+                except Exception:
                     warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
                 _warnings.warn_explicit(
                     warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
@@ -288,7 +289,7 @@ cdef api object get_exception_info(object exc_type, object exc_obj, object exc_t
         return (exc_tb.tb_frame.f_code.co_filename.encode(),
                 exc_tb.tb_lineno,
                 (repr(exc_type) + ":" + str(exc_obj)).encode())
-    except:
+    except Exception:
         return (b'', 0, b"Couldn't determine python exception")
 
 
@@ -1146,8 +1147,10 @@ cdef class _DynamicStructReader:
     cpdef _which_str(self):
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1160,8 +1163,10 @@ cdef class _DynamicStructReader:
         try:
             which = _DynamicEnumField()._init(
                 _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
         return which
 
@@ -1392,6 +1397,8 @@ cdef class _DynamicStructBuilder:
 
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
+        if isinstance(field, _StructModuleWhich):
+            field = field.name[0].lower() + field.name[1:]
         if size is None:
             return to_python_builder(self.thisptr.init(field), self._parent)
         else:
@@ -1442,8 +1449,10 @@ cdef class _DynamicStructBuilder:
     cpdef _which_str(self):
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
     cpdef _DynamicEnumField _which(self):
         """Returns the enum corresponding to the union in this struct
@@ -1456,8 +1465,10 @@ cdef class _DynamicStructBuilder:
         try:
             which = _DynamicEnumField()._init(
                 _StructSchemaField()._init(helpers.fixMaybe(self.thisptr.which()), self).proto)
-        except:
-            raise KjException("Attempted to call which on a non-union type")
+        except RuntimeError as e:
+            if str(e) == "Member was null.":
+                raise KjException("Attempted to call which on a non-union type")
+            raise
 
         return which
 
@@ -1832,16 +1843,26 @@ cpdef remove_event_loop(ignore_errors=False):
     if C_DEFAULT_EVENT_LOOP:
         try:
             C_DEFAULT_EVENT_LOOP._remove()
-        except:
-            if not ignore_errors:
+        except Exception as e:
+            if isinstance(ignore_errors, Exception):
+                if isinstance(e, ignore_errors):
+                    ignore_errors = True
+            if ignore_errors is True:
+                pass
+            else:
                 raise
         C_DEFAULT_EVENT_LOOP = None
     if len(_THREAD_LOCAL_EVENT_LOOPS) > 0:
         for loop in _THREAD_LOCAL_EVENT_LOOPS:
             try:
                 loop._remove()
-            except:
-                if not ignore_errors:
+            except Exception as e:
+                if isinstance(ignore_errors, Exception):
+                    if isinstance(e, ignore_errors):
+                        ignore_errors = True
+                if ignore_errors is True:
+                    pass
+                else:
                     raise
         _THREAD_LOCAL_EVENT_LOOPS = []
         _C_DEFAULT_EVENT_LOOP_LOCAL = None
@@ -1963,7 +1984,7 @@ cdef class _Promise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
@@ -2031,7 +2052,7 @@ cdef class _VoidPromise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
@@ -2135,7 +2156,7 @@ cdef class _RemotePromise:
         argspec = None
         try:
             argspec = _inspect.getfullargspec(func)
-        except:
+        except (TypeError, ValueError):
             pass
         if argspec:
             args_length = len(argspec.args) if argspec.args else 0
@@ -3152,8 +3173,12 @@ cdef _new_message(self, kwargs, num_first_segment_words):
     return msg
 
 
-class _StructModuleWhich(object):
-    pass
+class _StructModuleWhich(_enum.Enum):
+    def __eq__(self, other):
+        if isinstance(other, int):
+            return self.value == other
+        else:
+            return self.name == other
 
 
 class _StructModule(object):
@@ -3170,11 +3195,20 @@ class _StructModule(object):
                 if field_schema.discriminantCount == 0:
                     sub_module = _StructModule(raw_schema, name)
                 else:
-                    sub_module = _StructModuleWhich()
-                    setattr(sub_module, 'schema', raw_schema)
+                    mapping = []
                     for union_field in field_schema.fields:
-                        setattr(sub_module, union_field.name, union_field.discriminantValue)
+                        mapping.append((union_field.name, union_field.discriminantValue))
+                    sub_module = _StructModuleWhich("StructModuleWhich", mapping)
+                    setattr(sub_module, 'schema', raw_schema)
                 setattr(self, name, sub_module)
+        if schema.union_fields and not schema.non_union_fields:
+            mapping = []
+            for union_field in schema.node.struct.fields:
+                name = union_field.name
+                name = name[0].upper() + name[1:]
+                mapping.append((name, union_field.discriminantValue))
+            sub_module = _StructModuleWhich("StructModuleWhich", mapping)
+            setattr(self, 'Union', sub_module)
 
     def read(self, file, traversal_limit_in_words=None, nesting_limit=None):
         """Returns a Reader for the unpacked object read from file.
