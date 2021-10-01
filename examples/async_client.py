@@ -13,18 +13,20 @@ capnp.create_event_loop(threaded=True)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(usage='Connects to the Example thread server \
-at the given address and does some RPCs')
+    parser = argparse.ArgumentParser(
+        usage="Connects to the Example thread server \
+at the given address and does some RPCs"
+    )
     parser.add_argument("host", help="HOST:PORT")
 
     return parser.parse_args()
 
 
 class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
-    '''An implementation of the StatusSubscriber interface'''
+    """An implementation of the StatusSubscriber interface"""
 
     def status(self, value, **kwargs):
-        print('status: {}'.format(time.time()))
+        print("status: {}".format(time.time()))
 
 
 async def myreader(client, reader):
@@ -46,21 +48,19 @@ async def background(cap):
 
 
 async def main(host):
-    host = host.split(':')
+    host = host.split(":")
     addr = host[0]
     port = host[1]
     # Handle both IPv4 and IPv6 cases
     try:
         print("Try IPv4")
         reader, writer = await asyncio.open_connection(
-            addr, port,
-            family=socket.AF_INET
+            addr, port, family=socket.AF_INET
         )
     except Exception:
         print("Try IPv6")
         reader, writer = await asyncio.open_connection(
-            addr, port,
-            family=socket.AF_INET6
+            addr, port, family=socket.AF_INET6
         )
 
     # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
@@ -76,13 +76,14 @@ async def main(host):
     asyncio.gather(*tasks, return_exceptions=True)
 
     # Run blocking tasks
-    print('main: {}'.format(time.time()))
+    print("main: {}".format(time.time()))
     await cap.longRunning().a_wait()
-    print('main: {}'.format(time.time()))
+    print("main: {}".format(time.time()))
     await cap.longRunning().a_wait()
-    print('main: {}'.format(time.time()))
+    print("main: {}".format(time.time()))
     await cap.longRunning().a_wait()
-    print('main: {}'.format(time.time()))
+    print("main: {}".format(time.time()))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main(parse_args().host))

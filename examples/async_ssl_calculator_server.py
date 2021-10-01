@@ -22,10 +22,7 @@ class Server:
         while self.retry:
             try:
                 # Must be a wait_for so we don't block on read()
-                data = await asyncio.wait_for(
-                    self.reader.read(4096),
-                    timeout=0.1
-                )
+                data = await asyncio.wait_for(self.reader.read(4096), timeout=0.1)
             except asyncio.TimeoutError:
                 logger.debug("myreader timeout.")
                 continue
@@ -40,10 +37,7 @@ class Server:
         while self.retry:
             try:
                 # Must be a wait_for so we don't block on read()
-                data = await asyncio.wait_for(
-                    self.server.read(4096),
-                    timeout=0.1
-                )
+                data = await asyncio.wait_for(self.server.read(4096), timeout=0.1)
                 self.writer.write(data.tobytes())
             except asyncio.TimeoutError:
                 logger.debug("mywriter timeout.")
@@ -78,29 +72,29 @@ class Server:
 
 
 def read_value(value):
-    '''Helper function to asynchronously call read() on a Calculator::Value and
+    """Helper function to asynchronously call read() on a Calculator::Value and
     return a promise for the result.  (In the future, the generated code might
-    include something like this automatically.)'''
+    include something like this automatically.)"""
 
     return value.read().then(lambda result: result.value)
 
 
 def evaluate_impl(expression, params=None):
-    '''Implementation of CalculatorImpl::evaluate(), also shared by
+    """Implementation of CalculatorImpl::evaluate(), also shared by
     FunctionImpl::call().  In the latter case, `params` are the parameter
     values passed to the function; in the former case, `params` is just an
-    empty list.'''
+    empty list."""
 
     which = expression.which()
 
-    if which == 'literal':
+    if which == "literal":
         return capnp.Promise(expression.literal)
-    elif which == 'previousResult':
+    elif which == "previousResult":
         return read_value(expression.previousResult)
-    elif which == 'parameter':
+    elif which == "parameter":
         assert expression.parameter < len(params)
         return capnp.Promise(params[expression.parameter])
-    elif which == 'call':
+    elif which == "call":
         call = expression.call
         func = call.function
 
@@ -109,9 +103,9 @@ def evaluate_impl(expression, params=None):
 
         joinedParams = capnp.join_promises(paramPromises)
         # When the parameters are complete, call the function.
-        ret = (joinedParams
-               .then(lambda vals: func.call(vals))
-               .then(lambda result: result.value))
+        ret = joinedParams.then(lambda vals: func.call(vals)).then(
+            lambda result: result.value
+        )
 
         return ret
     else:
@@ -131,28 +125,30 @@ class ValueImpl(calculator_capnp.Calculator.Value.Server):
 
 class FunctionImpl(calculator_capnp.Calculator.Function.Server):
 
-    '''Implementation of the Calculator.Function Cap'n Proto interface, where the
-    function is defined by a Calculator.Expression.'''
+    """Implementation of the Calculator.Function Cap'n Proto interface, where the
+    function is defined by a Calculator.Expression."""
 
     def __init__(self, paramCount, body):
         self.paramCount = paramCount
         self.body = body.as_builder()
 
     def call(self, params, _context, **kwargs):
-        '''Note that we're returning a Promise object here, and bypassing the
+        """Note that we're returning a Promise object here, and bypassing the
         helper functionality that normally sets the results struct from the
         returned object. Instead, we set _context.results directly inside of
-        another promise'''
+        another promise"""
 
         assert len(params) == self.paramCount
         # using setattr because '=' is not allowed inside of lambdas
-        return evaluate_impl(self.body, params).then(lambda value: setattr(_context.results, 'value', value))
+        return evaluate_impl(self.body, params).then(
+            lambda value: setattr(_context.results, "value", value)
+        )
 
 
 class OperatorImpl(calculator_capnp.Calculator.Function.Server):
 
-    '''Implementation of the Calculator.Function Cap'n Proto interface, wrapping
-    basic binary arithmetic operators.'''
+    """Implementation of the Calculator.Function Cap'n Proto interface, wrapping
+    basic binary arithmetic operators."""
 
     def __init__(self, op):
         self.op = op
@@ -162,16 +158,16 @@ class OperatorImpl(calculator_capnp.Calculator.Function.Server):
 
         op = self.op
 
-        if op == 'add':
+        if op == "add":
             return params[0] + params[1]
-        elif op == 'subtract':
+        elif op == "subtract":
             return params[0] - params[1]
-        elif op == 'multiply':
+        elif op == "multiply":
             return params[0] * params[1]
-        elif op == 'divide':
+        elif op == "divide":
             return params[0] / params[1]
         else:
-            raise ValueError('Unknown operator')
+            raise ValueError("Unknown operator")
 
 
 class CalculatorImpl(calculator_capnp.Calculator.Server):
@@ -179,7 +175,9 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
     "Implementation of the Calculator Cap'n Proto interface."
 
     def evaluate(self, expression, _context, **kwargs):
-        return evaluate_impl(expression).then(lambda value: setattr(_context.results, 'value', ValueImpl(value)))
+        return evaluate_impl(expression).then(
+            lambda value: setattr(_context.results, "value", ValueImpl(value))
+        )
 
     def defFunction(self, paramCount, body, _context, **kwargs):
         return FunctionImpl(paramCount, body)
@@ -189,8 +187,10 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(usage='''Runs the server bound to the\
-given address/port ADDRESS. ''')
+    parser = argparse.ArgumentParser(
+        usage="""Runs the server bound to the\
+given address/port ADDRESS. """
+    )
 
     parser.add_argument("address", help="ADDRESS:PORT")
 
@@ -204,34 +204,32 @@ async def new_connection(reader, writer):
 
 async def main():
     address = parse_args().address
-    host = address.split(':')
+    host = address.split(":")
     addr = host[0]
     port = host[1]
 
     # Setup SSL context
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ctx.load_cert_chain(os.path.join(this_dir, 'selfsigned.cert'), os.path.join(this_dir, 'selfsigned.key'))
+    ctx.load_cert_chain(
+        os.path.join(this_dir, "selfsigned.cert"),
+        os.path.join(this_dir, "selfsigned.key"),
+    )
 
     # Handle both IPv4 and IPv6 cases
     try:
         print("Try IPv4")
         server = await asyncio.start_server(
-            new_connection,
-            addr, port,
-            ssl=ctx,
-            family=socket.AF_INET
+            new_connection, addr, port, ssl=ctx, family=socket.AF_INET
         )
     except Exception:
         print("Try IPv6")
         server = await asyncio.start_server(
-            new_connection,
-            addr, port,
-            ssl=ctx,
-            family=socket.AF_INET6
+            new_connection, addr, port, ssl=ctx, family=socket.AF_INET6
         )
 
     async with server:
         await server.serve_forever()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())

@@ -6,7 +6,18 @@ from random import choice
 
 MAKES = ["Toyota", "GM", "Ford", "Honda", "Tesla"]
 MODELS = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"]
-COLORS = ["black", "white", "red", "green", "blue", "cyan", "magenta", "yellow", "silver"]
+COLORS = [
+    "black",
+    "white",
+    "red",
+    "green",
+    "blue",
+    "cyan",
+    "magenta",
+    "yellow",
+    "silver",
+]
+
 
 def random_car(car):
     car.make = choice(MAKES)
@@ -42,6 +53,7 @@ def random_car(car):
     car.cup_holders = rand_int(12)
     car.has_nav_system = rand_bool()
 
+
 def calc_value(car):
     result = 0
 
@@ -57,9 +69,9 @@ def calc_value(car):
     result += engine.horsepower * 40
     if engine.uses_electric:
         if engine.uses_gas:
-          result += 5000
+            result += 5000
         else:
-          result += 3000
+            result += 3000
 
     result += 100 if car.has_power_windows else 0
     result += 200 if car.has_power_steering else 0
@@ -69,6 +81,7 @@ def calc_value(car):
     result += car.cup_holders * 25
 
     return result
+
 
 class Benchmark:
     def __init__(self, compression):
@@ -81,15 +94,15 @@ class Benchmark:
     def setup(self, request):
         result = 0
         for _ in range(rand_int(200)):
-          car = request.car.add()
-          random_car(car)
-          result += calc_value(car)
+            car = request.car.add()
+            random_car(car)
+            result += calc_value(car)
         return result
 
     def handle(self, request, response):
         result = 0
         for car in request.car:
-          result += calc_value(car)
+            result += calc_value(car)
 
         response.amount = result
 

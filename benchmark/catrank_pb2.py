@@ -2,121 +2,163 @@
 # source: catrank.proto
 
 import sys
-_b=sys.version_info[0]<3 and (lambda x:x) or (lambda x:x.encode('latin1'))
+
+_b = sys.version_info[0] < 3 and (lambda x: x) or (lambda x: x.encode("latin1"))
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf import descriptor_pb2
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
 DESCRIPTOR = _descriptor.FileDescriptor(
-  name='catrank.proto',
-  package='capnp.benchmark.protobuf',
-  syntax='proto2',
-  serialized_pb=_b('\n\rcatrank.proto\x12\x18\x63\x61pnp.benchmark.protobuf\"J\n\x10SearchResultList\x12\x36\n\x06result\x18\x01 \x03(\x0b\x32&.capnp.benchmark.protobuf.SearchResult\";\n\x0cSearchResult\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\r\n\x05score\x18\x02 \x01(\x01\x12\x0f\n\x07snippet\x18\x03 \x01(\t')
+    name="catrank.proto",
+    package="capnp.benchmark.protobuf",
+    syntax="proto2",
+    serialized_pb=_b(
+        '\n\rcatrank.proto\x12\x18\x63\x61pnp.benchmark.protobuf"J\n\x10SearchResultList\x12\x36\n\x06result\x18\x01 \x03(\x0b\x32&.capnp.benchmark.protobuf.SearchResult";\n\x0cSearchResult\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\r\n\x05score\x18\x02 \x01(\x01\x12\x0f\n\x07snippet\x18\x03 \x01(\t'
+    ),
 )
 
 
-
-
 _SEARCHRESULTLIST = _descriptor.Descriptor(
-  name='SearchResultList',
-  full_name='capnp.benchmark.protobuf.SearchResultList',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='result', full_name='capnp.benchmark.protobuf.SearchResultList.result', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=43,
-  serialized_end=117,
+    name="SearchResultList",
+    full_name="capnp.benchmark.protobuf.SearchResultList",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="result",
+            full_name="capnp.benchmark.protobuf.SearchResultList.result",
+            index=0,
+            number=1,
+            type=11,
+            cpp_type=10,
+            label=3,
+            has_default_value=False,
+            default_value=[],
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[],
+    options=None,
+    is_extendable=False,
+    syntax="proto2",
+    extension_ranges=[],
+    oneofs=[],
+    serialized_start=43,
+    serialized_end=117,
 )
 
 
 _SEARCHRESULT = _descriptor.Descriptor(
-  name='SearchResult',
-  full_name='capnp.benchmark.protobuf.SearchResult',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='url', full_name='capnp.benchmark.protobuf.SearchResult.url', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='score', full_name='capnp.benchmark.protobuf.SearchResult.score', index=1,
-      number=2, type=1, cpp_type=5, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='snippet', full_name='capnp.benchmark.protobuf.SearchResult.snippet', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=119,
-  serialized_end=178,
+    name="SearchResult",
+    full_name="capnp.benchmark.protobuf.SearchResult",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="url",
+            full_name="capnp.benchmark.protobuf.SearchResult.url",
+            index=0,
+            number=1,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+        _descriptor.FieldDescriptor(
+            name="score",
+            full_name="capnp.benchmark.protobuf.SearchResult.score",
+            index=1,
+            number=2,
+            type=1,
+            cpp_type=5,
+            label=1,
+            has_default_value=False,
+            default_value=float(0),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+        _descriptor.FieldDescriptor(
+            name="snippet",
+            full_name="capnp.benchmark.protobuf.SearchResult.snippet",
+            index=2,
+            number=3,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[],
+    options=None,
+    is_extendable=False,
+    syntax="proto2",
+    extension_ranges=[],
+    oneofs=[],
+    serialized_start=119,
+    serialized_end=178,
 )
 
-_SEARCHRESULTLIST.fields_by_name['result'].message_type = _SEARCHRESULT
-DESCRIPTOR.message_types_by_name['SearchResultList'] = _SEARCHRESULTLIST
-DESCRIPTOR.message_types_by_name['SearchResult'] = _SEARCHRESULT
+_SEARCHRESULTLIST.fields_by_name["result"].message_type = _SEARCHRESULT
+DESCRIPTOR.message_types_by_name["SearchResultList"] = _SEARCHRESULTLIST
+DESCRIPTOR.message_types_by_name["SearchResult"] = _SEARCHRESULT
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-SearchResultList = _reflection.GeneratedProtocolMessageType('SearchResultList', (_message.Message,), dict(
-  DESCRIPTOR = _SEARCHRESULTLIST,
-  __module__ = 'catrank_pb2'
-  # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.SearchResultList)
-  ))
+SearchResultList = _reflection.GeneratedProtocolMessageType(
+    "SearchResultList",
+    (_message.Message,),
+    dict(
+        DESCRIPTOR=_SEARCHRESULTLIST,
+        __module__="catrank_pb2"
+        # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.SearchResultList)
+    ),
+)
 _sym_db.RegisterMessage(SearchResultList)
 
-SearchResult = _reflection.GeneratedProtocolMessageType('SearchResult', (_message.Message,), dict(
-  DESCRIPTOR = _SEARCHRESULT,
-  __module__ = 'catrank_pb2'
-  # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.SearchResult)
-  ))
+SearchResult = _reflection.GeneratedProtocolMessageType(
+    "SearchResult",
+    (_message.Message,),
+    dict(
+        DESCRIPTOR=_SEARCHRESULT,
+        __module__="catrank_pb2"
+        # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.SearchResult)
+    ),
+)
 _sym_db.RegisterMessage(SearchResult)
 
 

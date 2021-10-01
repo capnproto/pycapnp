@@ -1,6 +1,6 @@
-'''
+"""
 rpc test
-'''
+"""
 
 import pytest
 import capnp
@@ -10,7 +10,6 @@ import test_capability_capnp
 
 
 class Server(test_capability_capnp.TestInterface.Server):
-
     def __init__(self, val=100):
         self.val = val
 
@@ -45,4 +44,4 @@ def test_simple_rpc_bootstrap():
     remote = cap.foo(i=5)
     response = remote.wait()
 
-    assert response.x == '125'
+    assert response.x == "125"

@@ -6,7 +6,7 @@ import sys  # add examples dir to sys.path
 
 import capnp
 
-examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
+examples_dir = os.path.join(os.path.dirname(__file__), "..", "examples")
 sys.path.append(examples_dir)
 
 import calculator_client  # noqa: E402
@@ -32,23 +32,31 @@ def test_calculator():
     calculator_client.main(read)
 
 
-@pytest.mark.xfail(reason="Some versions of python don't like to share ports, don't worry if this fails")
+@pytest.mark.xfail(
+    reason="Some versions of python don't like to share ports, don't worry if this fails"
+)
 def test_calculator_tcp(cleanup):
-    address = 'localhost:36431'
-    test_examples.run_subprocesses(address, 'calculator_server.py', 'calculator_client.py', wildcard_server=True)
+    address = "localhost:36431"
+    test_examples.run_subprocesses(
+        address, "calculator_server.py", "calculator_client.py", wildcard_server=True
+    )
 
 
-@pytest.mark.xfail(reason="Some versions of python don't like to share ports, don't worry if this fails")
-@pytest.mark.skipif(os.name == 'nt', reason="socket.AF_UNIX not supported on Windows")
+@pytest.mark.xfail(
+    reason="Some versions of python don't like to share ports, don't worry if this fails"
+)
+@pytest.mark.skipif(os.name == "nt", reason="socket.AF_UNIX not supported on Windows")
 def test_calculator_unix(cleanup):
-    path = '/tmp/pycapnp-test'
+    path = "/tmp/pycapnp-test"
     try:
         os.unlink(path)
     except OSError:
         pass
 
-    address = 'unix:' + path
-    test_examples.run_subprocesses(address, 'calculator_server.py', 'calculator_client.py')
+    address = "unix:" + path
+    test_examples.run_subprocesses(
+        address, "calculator_server.py", "calculator_client.py"
+    )
 
 
 def test_calculator_gc():
@@ -56,6 +64,7 @@ def test_calculator_gc():
         def call(*args, **kwargs):
             gc.collect()
             return old_evaluate_impl(*args, **kwargs)
+
         return call
 
     read, write = socket.socketpair()

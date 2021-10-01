@@ -2,58 +2,55 @@
 # source: eval.proto
 
 import sys
-_b=sys.version_info[0]<3 and (lambda x:x) or (lambda x:x.encode('latin1'))
+
+_b = sys.version_info[0] < 3 and (lambda x: x) or (lambda x: x.encode("latin1"))
 from google.protobuf.internal import enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf import descriptor_pb2
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
 DESCRIPTOR = _descriptor.FileDescriptor(
-  name='eval.proto',
-  package='capnp.benchmark.protobuf',
-  syntax='proto2',
-  serialized_pb=_b('\n\neval.proto\x12\x18\x63\x61pnp.benchmark.protobuf\"\xe5\x01\n\nExpression\x12/\n\x02op\x18\x01 \x02(\x0e\x32#.capnp.benchmark.protobuf.Operation\x12\x12\n\nleft_value\x18\x02 \x01(\x05\x12=\n\x0fleft_expression\x18\x03 \x01(\x0b\x32$.capnp.benchmark.protobuf.Expression\x12\x13\n\x0bright_value\x18\x04 \x01(\x05\x12>\n\x10right_expression\x18\x05 \x01(\x0b\x32$.capnp.benchmark.protobuf.Expression\"!\n\x10\x45valuationResult\x12\r\n\x05value\x18\x01 \x02(\x11*I\n\tOperation\x12\x07\n\x03\x41\x44\x44\x10\x00\x12\x0c\n\x08SUBTRACT\x10\x01\x12\x0c\n\x08MULTIPLY\x10\x02\x12\n\n\x06\x44IVIDE\x10\x03\x12\x0b\n\x07MODULUS\x10\x04')
+    name="eval.proto",
+    package="capnp.benchmark.protobuf",
+    syntax="proto2",
+    serialized_pb=_b(
+        '\n\neval.proto\x12\x18\x63\x61pnp.benchmark.protobuf"\xe5\x01\n\nExpression\x12/\n\x02op\x18\x01 \x02(\x0e\x32#.capnp.benchmark.protobuf.Operation\x12\x12\n\nleft_value\x18\x02 \x01(\x05\x12=\n\x0fleft_expression\x18\x03 \x01(\x0b\x32$.capnp.benchmark.protobuf.Expression\x12\x13\n\x0bright_value\x18\x04 \x01(\x05\x12>\n\x10right_expression\x18\x05 \x01(\x0b\x32$.capnp.benchmark.protobuf.Expression"!\n\x10\x45valuationResult\x12\r\n\x05value\x18\x01 \x02(\x11*I\n\tOperation\x12\x07\n\x03\x41\x44\x44\x10\x00\x12\x0c\n\x08SUBTRACT\x10\x01\x12\x0c\n\x08MULTIPLY\x10\x02\x12\n\n\x06\x44IVIDE\x10\x03\x12\x0b\n\x07MODULUS\x10\x04'
+    ),
 )
 
 _OPERATION = _descriptor.EnumDescriptor(
-  name='Operation',
-  full_name='capnp.benchmark.protobuf.Operation',
-  filename=None,
-  file=DESCRIPTOR,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='ADD', index=0, number=0,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='SUBTRACT', index=1, number=1,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='MULTIPLY', index=2, number=2,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='DIVIDE', index=3, number=3,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='MODULUS', index=4, number=4,
-      options=None,
-      type=None),
-  ],
-  containing_type=None,
-  options=None,
-  serialized_start=307,
-  serialized_end=380,
+    name="Operation",
+    full_name="capnp.benchmark.protobuf.Operation",
+    filename=None,
+    file=DESCRIPTOR,
+    values=[
+        _descriptor.EnumValueDescriptor(
+            name="ADD", index=0, number=0, options=None, type=None
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="SUBTRACT", index=1, number=1, options=None, type=None
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="MULTIPLY", index=2, number=2, options=None, type=None
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="DIVIDE", index=3, number=3, options=None, type=None
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="MODULUS", index=4, number=4, options=None, type=None
+        ),
+    ],
+    containing_type=None,
+    options=None,
+    serialized_start=307,
+    serialized_end=380,
 )
 _sym_db.RegisterEnumDescriptor(_OPERATION)
 
@@ -65,116 +62,177 @@ DIVIDE = 3
 MODULUS = 4
 
 
-
 _EXPRESSION = _descriptor.Descriptor(
-  name='Expression',
-  full_name='capnp.benchmark.protobuf.Expression',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='op', full_name='capnp.benchmark.protobuf.Expression.op', index=0,
-      number=1, type=14, cpp_type=8, label=2,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='left_value', full_name='capnp.benchmark.protobuf.Expression.left_value', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='left_expression', full_name='capnp.benchmark.protobuf.Expression.left_expression', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='right_value', full_name='capnp.benchmark.protobuf.Expression.right_value', index=3,
-      number=4, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='right_expression', full_name='capnp.benchmark.protobuf.Expression.right_expression', index=4,
-      number=5, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=41,
-  serialized_end=270,
+    name="Expression",
+    full_name="capnp.benchmark.protobuf.Expression",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="op",
+            full_name="capnp.benchmark.protobuf.Expression.op",
+            index=0,
+            number=1,
+            type=14,
+            cpp_type=8,
+            label=2,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+        _descriptor.FieldDescriptor(
+            name="left_value",
+            full_name="capnp.benchmark.protobuf.Expression.left_value",
+            index=1,
+            number=2,
+            type=5,
+            cpp_type=1,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+        _descriptor.FieldDescriptor(
+            name="left_expression",
+            full_name="capnp.benchmark.protobuf.Expression.left_expression",
+            index=2,
+            number=3,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+        _descriptor.FieldDescriptor(
+            name="right_value",
+            full_name="capnp.benchmark.protobuf.Expression.right_value",
+            index=3,
+            number=4,
+            type=5,
+            cpp_type=1,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+        _descriptor.FieldDescriptor(
+            name="right_expression",
+            full_name="capnp.benchmark.protobuf.Expression.right_expression",
+            index=4,
+            number=5,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[],
+    options=None,
+    is_extendable=False,
+    syntax="proto2",
+    extension_ranges=[],
+    oneofs=[],
+    serialized_start=41,
+    serialized_end=270,
 )
 
 
 _EVALUATIONRESULT = _descriptor.Descriptor(
-  name='EvaluationResult',
-  full_name='capnp.benchmark.protobuf.EvaluationResult',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='value', full_name='capnp.benchmark.protobuf.EvaluationResult.value', index=0,
-      number=1, type=17, cpp_type=1, label=2,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=272,
-  serialized_end=305,
+    name="EvaluationResult",
+    full_name="capnp.benchmark.protobuf.EvaluationResult",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="value",
+            full_name="capnp.benchmark.protobuf.EvaluationResult.value",
+            index=0,
+            number=1,
+            type=17,
+            cpp_type=1,
+            label=2,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            options=None,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[],
+    options=None,
+    is_extendable=False,
+    syntax="proto2",
+    extension_ranges=[],
+    oneofs=[],
+    serialized_start=272,
+    serialized_end=305,
 )
 
-_EXPRESSION.fields_by_name['op'].enum_type = _OPERATION
-_EXPRESSION.fields_by_name['left_expression'].message_type = _EXPRESSION
-_EXPRESSION.fields_by_name['right_expression'].message_type = _EXPRESSION
-DESCRIPTOR.message_types_by_name['Expression'] = _EXPRESSION
-DESCRIPTOR.message_types_by_name['EvaluationResult'] = _EVALUATIONRESULT
-DESCRIPTOR.enum_types_by_name['Operation'] = _OPERATION
+_EXPRESSION.fields_by_name["op"].enum_type = _OPERATION
+_EXPRESSION.fields_by_name["left_expression"].message_type = _EXPRESSION
+_EXPRESSION.fields_by_name["right_expression"].message_type = _EXPRESSION
+DESCRIPTOR.message_types_by_name["Expression"] = _EXPRESSION
+DESCRIPTOR.message_types_by_name["EvaluationResult"] = _EVALUATIONRESULT
+DESCRIPTOR.enum_types_by_name["Operation"] = _OPERATION
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Expression = _reflection.GeneratedProtocolMessageType('Expression', (_message.Message,), dict(
-  DESCRIPTOR = _EXPRESSION,
-  __module__ = 'eval_pb2'
-  # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.Expression)
-  ))
+Expression = _reflection.GeneratedProtocolMessageType(
+    "Expression",
+    (_message.Message,),
+    dict(
+        DESCRIPTOR=_EXPRESSION,
+        __module__="eval_pb2"
+        # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.Expression)
+    ),
+)
 _sym_db.RegisterMessage(Expression)
 
-EvaluationResult = _reflection.GeneratedProtocolMessageType('EvaluationResult', (_message.Message,), dict(
-  DESCRIPTOR = _EVALUATIONRESULT,
-  __module__ = 'eval_pb2'
-  # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.EvaluationResult)
-  ))
+EvaluationResult = _reflection.GeneratedProtocolMessageType(
+    "EvaluationResult",
+    (_message.Message,),
+    dict(
+        DESCRIPTOR=_EVALUATIONRESULT,
+        __module__="eval_pb2"
+        # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.EvaluationResult)
+    ),
+)
 _sym_db.RegisterMessage(EvaluationResult)
 
 

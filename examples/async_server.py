@@ -18,12 +18,15 @@ class ExampleImpl(thread_capnp.Example.Server):
     "Implementation of the Example threading Cap'n Proto interface."
 
     def subscribeStatus(self, subscriber, **kwargs):
-        return capnp.getTimer().after_delay(10**9) \
-            .then(lambda: subscriber.status(True)) \
+        return (
+            capnp.getTimer()
+            .after_delay(10 ** 9)
+            .then(lambda: subscriber.status(True))
             .then(lambda _: self.subscribeStatus(subscriber))
+        )
 
     def longRunning(self, **kwargs):
-        return capnp.getTimer().after_delay(1 * 10**9)
+        return capnp.getTimer().after_delay(1 * 10 ** 9)
 
 
 class Server:
@@ -31,10 +34,7 @@ class Server:
         while self.retry:
             try:
                 # Must be a wait_for so we don't block on read()
-                data = await asyncio.wait_for(
-                    self.reader.read(4096),
-                    timeout=0.1
-                )
+                data = await asyncio.wait_for(self.reader.read(4096), timeout=0.1)
             except asyncio.TimeoutError:
                 logger.debug("myreader timeout.")
                 continue
@@ -49,10 +49,7 @@ class Server:
         while self.retry:
             try:
                 # Must be a wait_for so we don't block on read()
-                data = await asyncio.wait_for(
-                    self.server.read(4096),
-                    timeout=0.1
-                )
+                data = await asyncio.wait_for(self.server.read(4096), timeout=0.1)
                 self.writer.write(data.tobytes())
             except asyncio.TimeoutError:
                 logger.debug("mywriter timeout.")
@@ -87,8 +84,10 @@ class Server:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(usage='''Runs the server bound to the\
-given address/port ADDRESS. ''')
+    parser = argparse.ArgumentParser(
+        usage="""Runs the server bound to the\
+given address/port ADDRESS. """
+    )
 
     parser.add_argument("address", help="ADDRESS:PORT")
 
@@ -102,7 +101,7 @@ async def new_connection(reader, writer):
 
 async def main():
     address = parse_args().address
-    host = address.split(':')
+    host = address.split(":")
     addr = host[0]
     port = host[1]
 
@@ -110,21 +109,17 @@ async def main():
     try:
         print("Try IPv4")
         server = await asyncio.start_server(
-            new_connection,
-            addr, port,
-            family=socket.AF_INET
+            new_connection, addr, port, family=socket.AF_INET
         )
     except Exception:
         print("Try IPv6")
         server = await asyncio.start_server(
-            new_connection,
-            addr, port,
-            family=socket.AF_INET6
+            new_connection, addr, port, family=socket.AF_INET6
         )
 
     async with server:
         await server.serve_forever()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

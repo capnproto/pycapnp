@@ -16,33 +16,33 @@ else:
 
 @pytest.fixture
 def addressbook():
-    return capnp.load(os.path.join(this_dir, 'addressbook.capnp'))
+    return capnp.load(os.path.join(this_dir, "addressbook.capnp"))
 
 
 def test_addressbook_message_classes(addressbook):
     def writeAddressBook(fd):
         message = capnp._MallocMessageBuilder()
         addressBook = message.init_root(addressbook.AddressBook)
-        people = addressBook.init('people', 2)
+        people = addressBook.init("people", 2)
 
         alice = people[0]
         alice.id = 123
-        alice.name = 'Alice'
-        alice.email = 'alice@example.com'
-        alicePhones = alice.init('phones', 1)
+        alice.name = "Alice"
+        alice.email = "alice@example.com"
+        alicePhones = alice.init("phones", 1)
         alicePhones[0].number = "555-1212"
-        alicePhones[0].type = 'mobile'
+        alicePhones[0].type = "mobile"
         alice.employment.school = "MIT"
 
         bob = people[1]
         bob.id = 456
-        bob.name = 'Bob'
-        bob.email = 'bob@example.com'
-        bobPhones = bob.init('phones', 2)
+        bob.name = "Bob"
+        bob.email = "bob@example.com"
+        bobPhones = bob.init("phones", 2)
         bobPhones[0].number = "555-4567"
-        bobPhones[0].type = 'home'
+        bobPhones[0].type = "home"
         bobPhones[1].number = "555-7654"
-        bobPhones[1].type = 'work'
+        bobPhones[1].type = "work"
         bob.employment.unemployed = None
 
         capnp._write_packed_message_to_fd(fd, message)
@@ -55,54 +55,54 @@ def test_addressbook_message_classes(addressbook):
 
         alice = people[0]
         assert alice.id == 123
-        assert alice.name == 'Alice'
-        assert alice.email == 'alice@example.com'
+        assert alice.name == "Alice"
+        assert alice.email == "alice@example.com"
         alicePhones = alice.phones
         assert alicePhones[0].number == "555-1212"
-        assert alicePhones[0].type == 'mobile'
+        assert alicePhones[0].type == "mobile"
         assert alice.employment.school == "MIT"
 
         bob = people[1]
         assert bob.id == 456
-        assert bob.name == 'Bob'
-        assert bob.email == 'bob@example.com'
+        assert bob.name == "Bob"
+        assert bob.email == "bob@example.com"
         bobPhones = bob.phones
         assert bobPhones[0].number == "555-4567"
-        assert bobPhones[0].type == 'home'
+        assert bobPhones[0].type == "home"
         assert bobPhones[1].number == "555-7654"
-        assert bobPhones[1].type == 'work'
+        assert bobPhones[1].type == "work"
         assert bob.employment.unemployed is None
 
-    f = open('example', 'w')
+    f = open("example", "w")
     writeAddressBook(f.fileno())
 
-    f = open('example', 'r')
+    f = open("example", "r")
     printAddressBook(f.fileno())
 
 
 def test_addressbook(addressbook):
     def writeAddressBook(file):
         addresses = addressbook.AddressBook.new_message()
-        people = addresses.init('people', 2)
+        people = addresses.init("people", 2)
 
         alice = people[0]
         alice.id = 123
-        alice.name = 'Alice'
-        alice.email = 'alice@example.com'
-        alicePhones = alice.init('phones', 1)
+        alice.name = "Alice"
+        alice.email = "alice@example.com"
+        alicePhones = alice.init("phones", 1)
         alicePhones[0].number = "555-1212"
-        alicePhones[0].type = 'mobile'
+        alicePhones[0].type = "mobile"
         alice.employment.school = "MIT"
 
         bob = people[1]
         bob.id = 456
-        bob.name = 'Bob'
-        bob.email = 'bob@example.com'
-        bobPhones = bob.init('phones', 2)
+        bob.name = "Bob"
+        bob.email = "bob@example.com"
+        bobPhones = bob.init("phones", 2)
         bobPhones[0].number = "555-4567"
-        bobPhones[0].type = 'home'
+        bobPhones[0].type = "home"
         bobPhones[1].number = "555-7654"
-        bobPhones[1].type = 'work'
+        bobPhones[1].type = "work"
         bob.employment.unemployed = None
 
         addresses.write(file)
@@ -114,54 +114,54 @@ def test_addressbook(addressbook):
 
         alice = people[0]
         assert alice.id == 123
-        assert alice.name == 'Alice'
-        assert alice.email == 'alice@example.com'
+        assert alice.name == "Alice"
+        assert alice.email == "alice@example.com"
         alicePhones = alice.phones
         assert alicePhones[0].number == "555-1212"
-        assert alicePhones[0].type == 'mobile'
+        assert alicePhones[0].type == "mobile"
         assert alice.employment.school == "MIT"
 
         bob = people[1]
         assert bob.id == 456
-        assert bob.name == 'Bob'
-        assert bob.email == 'bob@example.com'
+        assert bob.name == "Bob"
+        assert bob.email == "bob@example.com"
         bobPhones = bob.phones
         assert bobPhones[0].number == "555-4567"
-        assert bobPhones[0].type == 'home'
+        assert bobPhones[0].type == "home"
         assert bobPhones[1].number == "555-7654"
-        assert bobPhones[1].type == 'work'
+        assert bobPhones[1].type == "work"
         assert bob.employment.unemployed is None
 
-    f = open('example', 'w')
+    f = open("example", "w")
     writeAddressBook(f)
 
-    f = open('example', 'r')
+    f = open("example", "r")
     printAddressBook(f)
 
 
 def test_addressbook_resizable(addressbook):
     def writeAddressBook(file):
         addresses = addressbook.AddressBook.new_message()
-        people = addresses.init_resizable_list('people')
+        people = addresses.init_resizable_list("people")
 
         alice = people.add()
         alice.id = 123
-        alice.name = 'Alice'
-        alice.email = 'alice@example.com'
-        alicePhones = alice.init('phones', 1)
+        alice.name = "Alice"
+        alice.email = "alice@example.com"
+        alicePhones = alice.init("phones", 1)
         alicePhones[0].number = "555-1212"
-        alicePhones[0].type = 'mobile'
+        alicePhones[0].type = "mobile"
         alice.employment.school = "MIT"
 
         bob = people.add()
         bob.id = 456
-        bob.name = 'Bob'
-        bob.email = 'bob@example.com'
-        bobPhones = bob.init('phones', 2)
+        bob.name = "Bob"
+        bob.email = "bob@example.com"
+        bobPhones = bob.init("phones", 2)
         bobPhones[0].number = "555-4567"
-        bobPhones[0].type = 'home'
+        bobPhones[0].type = "home"
         bobPhones[1].number = "555-7654"
-        bobPhones[1].type = 'work'
+        bobPhones[1].type = "work"
         bob.employment.unemployed = None
 
         people.finish()
@@ -175,28 +175,28 @@ def test_addressbook_resizable(addressbook):
 
         alice = people[0]
         assert alice.id == 123
-        assert alice.name == 'Alice'
-        assert alice.email == 'alice@example.com'
+        assert alice.name == "Alice"
+        assert alice.email == "alice@example.com"
         alicePhones = alice.phones
         assert alicePhones[0].number == "555-1212"
-        assert alicePhones[0].type == 'mobile'
+        assert alicePhones[0].type == "mobile"
         assert alice.employment.school == "MIT"
 
         bob = people[1]
         assert bob.id == 456
-        assert bob.name == 'Bob'
-        assert bob.email == 'bob@example.com'
+        assert bob.name == "Bob"
+        assert bob.email == "bob@example.com"
         bobPhones = bob.phones
         assert bobPhones[0].number == "555-4567"
-        assert bobPhones[0].type == 'home'
+        assert bobPhones[0].type == "home"
         assert bobPhones[1].number == "555-7654"
-        assert bobPhones[1].type == 'work'
+        assert bobPhones[1].type == "work"
         assert bob.employment.unemployed is None
 
-    f = open('example', 'w')
+    f = open("example", "w")
     writeAddressBook(f)
 
-    f = open('example', 'r')
+    f = open("example", "r")
     printAddressBook(f)
 
 
@@ -206,29 +206,33 @@ def test_addressbook_explicit_fields(addressbook):
         address_fields = addressbook.AddressBook.schema.fields
         person_fields = addressbook.Person.schema.fields
         phone_fields = addressbook.Person.PhoneNumber.schema.fields
-        people = addresses._init_by_field(address_fields['people'], 2)
+        people = addresses._init_by_field(address_fields["people"], 2)
 
         alice = people[0]
-        alice._set_by_field(person_fields['id'], 123)
-        alice._set_by_field(person_fields['name'], 'Alice')
-        alice._set_by_field(person_fields['email'], 'alice@example.com')
-        alicePhones = alice._init_by_field(person_fields['phones'], 1)
-        alicePhones[0]._set_by_field(phone_fields['number'], "555-1212")
-        alicePhones[0]._set_by_field(phone_fields['type'], 'mobile')
-        employment = alice._get_by_field(person_fields['employment'])
-        employment._set_by_field(addressbook.Person.Employment.schema.fields['school'], "MIT")
+        alice._set_by_field(person_fields["id"], 123)
+        alice._set_by_field(person_fields["name"], "Alice")
+        alice._set_by_field(person_fields["email"], "alice@example.com")
+        alicePhones = alice._init_by_field(person_fields["phones"], 1)
+        alicePhones[0]._set_by_field(phone_fields["number"], "555-1212")
+        alicePhones[0]._set_by_field(phone_fields["type"], "mobile")
+        employment = alice._get_by_field(person_fields["employment"])
+        employment._set_by_field(
+            addressbook.Person.Employment.schema.fields["school"], "MIT"
+        )
 
         bob = people[1]
-        bob._set_by_field(person_fields['id'], 456)
-        bob._set_by_field(person_fields['name'], 'Bob')
-        bob._set_by_field(person_fields['email'], 'bob@example.com')
-        bobPhones = bob._init_by_field(person_fields['phones'], 2)
-        bobPhones[0]._set_by_field(phone_fields['number'], "555-4567")
-        bobPhones[0]._set_by_field(phone_fields['type'], 'home')
-        bobPhones[1]._set_by_field(phone_fields['number'], "555-7654")
-        bobPhones[1]._set_by_field(phone_fields['type'], 'work')
-        employment = bob._get_by_field(person_fields['employment'])
-        employment._set_by_field(addressbook.Person.Employment.schema.fields['unemployed'], None)
+        bob._set_by_field(person_fields["id"], 456)
+        bob._set_by_field(person_fields["name"], "Bob")
+        bob._set_by_field(person_fields["email"], "bob@example.com")
+        bobPhones = bob._init_by_field(person_fields["phones"], 2)
+        bobPhones[0]._set_by_field(phone_fields["number"], "555-4567")
+        bobPhones[0]._set_by_field(phone_fields["type"], "home")
+        bobPhones[1]._set_by_field(phone_fields["number"], "555-7654")
+        bobPhones[1]._set_by_field(phone_fields["type"], "work")
+        employment = bob._get_by_field(person_fields["employment"])
+        employment._set_by_field(
+            addressbook.Person.Employment.schema.fields["unemployed"], None
+        )
 
         addresses.write(file)
 
@@ -238,40 +242,45 @@ def test_addressbook_explicit_fields(addressbook):
         person_fields = addressbook.Person.schema.fields
         phone_fields = addressbook.Person.PhoneNumber.schema.fields
 
-        people = addresses._get_by_field(address_fields['people'])
+        people = addresses._get_by_field(address_fields["people"])
 
         alice = people[0]
-        assert alice._get_by_field(person_fields['id']) == 123
-        assert alice._get_by_field(person_fields['name']) == 'Alice'
-        assert alice._get_by_field(person_fields['email']) == 'alice@example.com'
-        alicePhones = alice._get_by_field(person_fields['phones'])
-        assert alicePhones[0]._get_by_field(phone_fields['number']) == "555-1212"
-        assert alicePhones[0]._get_by_field(phone_fields['type']) == 'mobile'
-        employment = alice._get_by_field(person_fields['employment'])
-        employment._get_by_field(addressbook.Person.Employment.schema.fields['school']) == "MIT"
+        assert alice._get_by_field(person_fields["id"]) == 123
+        assert alice._get_by_field(person_fields["name"]) == "Alice"
+        assert alice._get_by_field(person_fields["email"]) == "alice@example.com"
+        alicePhones = alice._get_by_field(person_fields["phones"])
+        assert alicePhones[0]._get_by_field(phone_fields["number"]) == "555-1212"
+        assert alicePhones[0]._get_by_field(phone_fields["type"]) == "mobile"
+        employment = alice._get_by_field(person_fields["employment"])
+        employment._get_by_field(
+            addressbook.Person.Employment.schema.fields["school"]
+        ) == "MIT"
 
         bob = people[1]
-        assert bob._get_by_field(person_fields['id']) == 456
-        assert bob._get_by_field(person_fields['name']) == 'Bob'
-        assert bob._get_by_field(person_fields['email']) == 'bob@example.com'
-        bobPhones = bob._get_by_field(person_fields['phones'])
-        assert bobPhones[0]._get_by_field(phone_fields['number']) == "555-4567"
-        assert bobPhones[0]._get_by_field(phone_fields['type']) == 'home'
-        assert bobPhones[1]._get_by_field(phone_fields['number']) == "555-7654"
-        assert bobPhones[1]._get_by_field(phone_fields['type']) == 'work'
-        employment = bob._get_by_field(person_fields['employment'])
-        employment._get_by_field(addressbook.Person.Employment.schema.fields['unemployed']) is None
+        assert bob._get_by_field(person_fields["id"]) == 456
+        assert bob._get_by_field(person_fields["name"]) == "Bob"
+        assert bob._get_by_field(person_fields["email"]) == "bob@example.com"
+        bobPhones = bob._get_by_field(person_fields["phones"])
+        assert bobPhones[0]._get_by_field(phone_fields["number"]) == "555-4567"
+        assert bobPhones[0]._get_by_field(phone_fields["type"]) == "home"
+        assert bobPhones[1]._get_by_field(phone_fields["number"]) == "555-7654"
+        assert bobPhones[1]._get_by_field(phone_fields["type"]) == "work"
+        employment = bob._get_by_field(person_fields["employment"])
+        employment._get_by_field(
+            addressbook.Person.Employment.schema.fields["unemployed"]
+        ) is None
 
-    f = open('example', 'w')
+    f = open("example", "w")
     writeAddressBook(f)
 
-    f = open('example', 'r')
+    f = open("example", "r")
     printAddressBook(f)
 
 
 @pytest.fixture
 def all_types():
-    return capnp.load(os.path.join(this_dir, 'all_types.capnp'))
+    return capnp.load(os.path.join(this_dir, "all_types.capnp"))
+
 
 # TODO:  These tests should be extended to:
 # - Read each field in Python and assert that it is equal to the expected value.
@@ -317,19 +326,24 @@ def init_all_types(builder):
 
     subBuilder.voidList = [None, None, None]
     subBuilder.boolList = [False, True, False, True, True]
-    subBuilder.int8List = [12, -34, -0x80, 0x7f]
-    subBuilder.int16List = [1234, -5678, -0x8000, 0x7fff]
-    subBuilder.int32List = [12345678, -90123456, -0x80000000, 0x7fffffff]
-    subBuilder.int64List = [123456789012345, -678901234567890, -0x8000000000000000, 0x7fffffffffffffff]
-    subBuilder.uInt8List = [12, 34, 0, 0xff]
-    subBuilder.uInt16List = [1234, 5678, 0, 0xffff]
-    subBuilder.uInt32List = [12345678, 90123456, 0, 0xffffffff]
-    subBuilder.uInt64List = [123456789012345, 678901234567890, 0, 0xffffffffffffffff]
+    subBuilder.int8List = [12, -34, -0x80, 0x7F]
+    subBuilder.int16List = [1234, -5678, -0x8000, 0x7FFF]
+    subBuilder.int32List = [12345678, -90123456, -0x80000000, 0x7FFFFFFF]
+    subBuilder.int64List = [
+        123456789012345,
+        -678901234567890,
+        -0x8000000000000000,
+        0x7FFFFFFFFFFFFFFF,
+    ]
+    subBuilder.uInt8List = [12, 34, 0, 0xFF]
+    subBuilder.uInt16List = [1234, 5678, 0, 0xFFFF]
+    subBuilder.uInt32List = [12345678, 90123456, 0, 0xFFFFFFFF]
+    subBuilder.uInt64List = [123456789012345, 678901234567890, 0, 0xFFFFFFFFFFFFFFFF]
     subBuilder.float32List = [0, 1234567, 1e37, -1e37, 1e-37, -1e-37]
     subBuilder.float64List = [0, 123456789012345, 1e306, -1e306, 1e-306, -1e-306]
     subBuilder.textList = ["quux", "corge", "grault"]
     subBuilder.dataList = [b"garply", b"waldo", b"fred"]
-    listBuilder = subBuilder.init('structList', 3)
+    listBuilder = subBuilder.init("structList", 3)
     listBuilder[0].textField = "x structlist 1"
     listBuilder[1].textField = "x structlist 2"
     listBuilder[2].textField = "x structlist 3"
@@ -351,7 +365,7 @@ def init_all_types(builder):
     builder.float64List = [7777.75, float("inf"), float("-inf"), float("nan")]
     builder.textList = ["plugh", "xyzzy", "thud"]
     builder.dataList = [b"oops", b"exhausted", b"rfc3092"]
-    listBuilder = builder.init('structList', 3)
+    listBuilder = builder.init("structList", 3)
     listBuilder[0].textField = "structlist 1"
     listBuilder[1].textField = "structlist 2"
     listBuilder[2].textField = "structlist 3"
@@ -419,23 +433,30 @@ def check_all_types(reader):
     assert subReader.enumField == "baz"
     # Check that enums are hashable and can be used as keys in dicts
     # interchangably with their string version.
-    assert hash(subReader.enumField) == hash('baz')
+    assert hash(subReader.enumField) == hash("baz")
     assert {subReader.enumField: 17}.get(subReader.enumField) == 17
-    assert {subReader.enumField: 17}.get('baz') == 17
-    assert {'baz': 17}.get(subReader.enumField) == 17
+    assert {subReader.enumField: 17}.get("baz") == 17
+    assert {"baz": 17}.get(subReader.enumField) == 17
 
     check_list(subReader.voidList, [None, None, None])
     check_list(subReader.boolList, [False, True, False, True, True])
-    check_list(subReader.int8List, [12, -34, -0x80, 0x7f])
-    check_list(subReader.int16List, [1234, -5678, -0x8000, 0x7fff])
-    check_list(subReader.int32List, [12345678, -90123456, -0x80000000, 0x7fffffff])
-    check_list(subReader.int64List, [123456789012345, -678901234567890, -0x8000000000000000, 0x7fffffffffffffff])
-    check_list(subReader.uInt8List, [12, 34, 0, 0xff])
-    check_list(subReader.uInt16List, [1234, 5678, 0, 0xffff])
-    check_list(subReader.uInt32List, [12345678, 90123456, 0, 0xffffffff])
-    check_list(subReader.uInt64List, [123456789012345, 678901234567890, 0, 0xffffffffffffffff])
+    check_list(subReader.int8List, [12, -34, -0x80, 0x7F])
+    check_list(subReader.int16List, [1234, -5678, -0x8000, 0x7FFF])
+    check_list(subReader.int32List, [12345678, -90123456, -0x80000000, 0x7FFFFFFF])
+    check_list(
+        subReader.int64List,
+        [123456789012345, -678901234567890, -0x8000000000000000, 0x7FFFFFFFFFFFFFFF],
+    )
+    check_list(subReader.uInt8List, [12, 34, 0, 0xFF])
+    check_list(subReader.uInt16List, [1234, 5678, 0, 0xFFFF])
+    check_list(subReader.uInt32List, [12345678, 90123456, 0, 0xFFFFFFFF])
+    check_list(
+        subReader.uInt64List, [123456789012345, 678901234567890, 0, 0xFFFFFFFFFFFFFFFF]
+    )
     check_list(subReader.float32List, [0.0, 1234567.0, 1e37, -1e37, 1e-37, -1e-37])
-    check_list(subReader.float64List, [0.0, 123456789012345.0, 1e306, -1e306, 1e-306, -1e-306])
+    check_list(
+        subReader.float64List, [0.0, 123456789012345.0, 1e306, -1e306, 1e-306, -1e-306]
+    )
     check_list(subReader.textList, ["quux", "corge", "grault"])
     check_list(subReader.dataList, [b"garply", b"waldo", b"fred"])
 
@@ -489,29 +510,37 @@ def check_all_types(reader):
 def test_build(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
-    assert str(root) + '\n' == expectedText
+    expectedText = open(
+        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
+    ).read()
+    assert str(root) + "\n" == expectedText
 
 
 def test_build_first_segment_size(all_types):
     root = all_types.TestAllTypes.new_message(1)
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
-    assert str(root) + '\n' == expectedText
+    expectedText = open(
+        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
+    ).read()
+    assert str(root) + "\n" == expectedText
 
     root = all_types.TestAllTypes.new_message(1024 * 1024)
     init_all_types(root)
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
-    assert str(root) + '\n' == expectedText
+    expectedText = open(
+        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
+    ).read()
+    assert str(root) + "\n" == expectedText
 
 
 def test_binary_read(all_types):
-    f = open(os.path.join(this_dir, 'all-types.binary'), 'r', encoding='utf8')
+    f = open(os.path.join(this_dir, "all-types.binary"), "r", encoding="utf8")
     root = all_types.TestAllTypes.read(f)
     check_all_types(root)
 
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
-    assert str(root) + '\n' == expectedText
+    expectedText = open(
+        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
+    ).read()
+    assert str(root) + "\n" == expectedText
 
     # Test set_root().
     builder = capnp._MallocMessageBuilder()
@@ -524,25 +553,27 @@ def test_binary_read(all_types):
 
 
 def test_packed_read(all_types):
-    f = open(os.path.join(this_dir, 'all-types.packed'), 'r', encoding='utf8')
+    f = open(os.path.join(this_dir, "all-types.packed"), "r", encoding="utf8")
     root = all_types.TestAllTypes.read_packed(f)
     check_all_types(root)
 
-    expectedText = open(os.path.join(this_dir, 'all-types.txt'), 'r', encoding='utf8').read()
-    assert str(root) + '\n' == expectedText
+    expectedText = open(
+        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
+    ).read()
+    assert str(root) + "\n" == expectedText
 
 
 def test_binary_write(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    root.write(open('example', 'w'))
+    root.write(open("example", "w"))
 
-    check_all_types(all_types.TestAllTypes.read(open('example', 'r')))
+    check_all_types(all_types.TestAllTypes.read(open("example", "r")))
 
 
 def test_packed_write(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    root.write_packed(open('example', 'w'))
+    root.write_packed(open("example", "w"))
 
-    check_all_types(all_types.TestAllTypes.read_packed(open('example', 'r')))
+    check_all_types(all_types.TestAllTypes.read_packed(open("example", "r")))

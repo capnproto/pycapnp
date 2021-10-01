@@ -1,18 +1,36 @@
 from random import random
 import pyximport
+
 importers = pyximport.install()
-from common_fast import rand_int, rand_double, rand_bool 
+from common_fast import rand_int, rand_double, rand_bool
+
 pyximport.uninstall(*importers)
 
-WORDS = ["foo ", "bar ", "baz ", "qux ", "quux ", "corge ", "grault ", "garply ", "waldo ", "fred ",
-    "plugh ", "xyzzy ", "thud "]
+WORDS = [
+    "foo ",
+    "bar ",
+    "baz ",
+    "qux ",
+    "quux ",
+    "corge ",
+    "grault ",
+    "garply ",
+    "waldo ",
+    "fred ",
+    "plugh ",
+    "xyzzy ",
+    "thud ",
+]
+
 
 def from_bytes_helper(klass):
     def helper(text):
         obj = klass()
         obj.ParseFromString(text)
         return obj
+
     return helper
+
 
 def pass_by_object(reuse, iters, benchmark):
     for _ in range(iters):
@@ -23,7 +41,8 @@ def pass_by_object(reuse, iters, benchmark):
         benchmark.handle(request, response)
 
         if not benchmark.check(response, expected):
-            raise ValueError('Expected {}'.format(expected))
+            raise ValueError("Expected {}".format(expected))
+
 
 def pass_by_bytes(reuse, iters, benchmark):
     for _ in range(iters):
@@ -38,7 +57,8 @@ def pass_by_bytes(reuse, iters, benchmark):
 
         response2 = benchmark.from_bytes_response(resp_bytes)
         if not benchmark.check(response2, expected):
-            raise ValueError('Expected {}'.format(expected))
+            raise ValueError("Expected {}".format(expected))
+
 
 def do_benchmark(mode, *args, **kwargs):
     if mode == "client":
@@ -49,6 +69,8 @@ def do_benchmark(mode, *args, **kwargs):
         return pass_by_bytes(*args, **kwargs)
     else:
         raise ValueError("Unknown mode: " + str(mode))
+
+
 #   typedef typename BenchmarkTypes::template BenchmarkMethods<TestCase, Reuse, Compression>
 #       BenchmarkMethods;
 #   if (mode == "client") {

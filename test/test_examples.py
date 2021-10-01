@@ -5,8 +5,8 @@ import subprocess
 import sys
 import time
 
-examples_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
-hostname = 'localhost'
+examples_dir = os.path.join(os.path.dirname(__file__), "..", "examples")
+hostname = "localhost"
 
 
 processes = []
@@ -19,24 +19,28 @@ def cleanup():
         p.kill()
 
 
-def run_subprocesses(address, server, client, wildcard_server=False, ipv4_force=True): # noqa
+def run_subprocesses(
+    address, server, client, wildcard_server=False, ipv4_force=True
+):  # noqa
     server_attempt = 0
     server_attempts = 2
     done = False
-    addr, port = address.split(':')
+    addr, port = address.split(":")
     c_address = address
     s_address = address
     while not done:
-        assert server_attempt < server_attempts, "Failed {} server attempts".format(server_attempts)
+        assert server_attempt < server_attempts, "Failed {} server attempts".format(
+            server_attempts
+        )
         server_attempt += 1
 
         # Force ipv4 for tests (known issues on GitHub Actions with IPv6 for some targets)
-        if 'unix' not in addr and ipv4_force:
+        if "unix" not in addr and ipv4_force:
             addr = socket.gethostbyname(addr)
-            c_address = '{}:{}'.format(addr, port)
+            c_address = "{}:{}".format(addr, port)
             s_address = c_address
             if wildcard_server:
-                s_address = '*:{}'.format(port)  # Use wildcard address for server
+                s_address = "*:{}".format(port)  # Use wildcard address for server
             print("Forcing ipv4 -> {} => {} {}".format(address, c_address, s_address))
 
         # Start server
@@ -48,7 +52,7 @@ def run_subprocesses(address, server, client, wildcard_server=False, ipv4_force=
         # Loop until we have a socket connection to the server (with timeout)
         while True:
             try:
-                if 'unix' in address:
+                if "unix" in address:
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                     result = sock.connect_ex(port)
                     if result == 0:
@@ -114,22 +118,26 @@ def run_subprocesses(address, server, client, wildcard_server=False, ipv4_force=
 
 
 def test_async_calculator_example(cleanup):
-    address = '{}:36432'.format(hostname)
-    server = 'async_calculator_server.py'
-    client = 'async_calculator_client.py'
+    address = "{}:36432".format(hostname)
+    server = "async_calculator_server.py"
+    client = "async_calculator_client.py"
     run_subprocesses(address, server, client)
 
 
-@pytest.mark.xfail(reason="Some versions of python don't like to share ports, don't worry if this fails")
+@pytest.mark.xfail(
+    reason="Some versions of python don't like to share ports, don't worry if this fails"
+)
 def test_thread_example(cleanup):
-    address = '{}:36433'.format(hostname)
-    server = 'thread_server.py'
-    client = 'thread_client.py'
+    address = "{}:36433".format(hostname)
+    server = "thread_server.py"
+    client = "thread_client.py"
     run_subprocesses(address, server, client, wildcard_server=True)
 
 
 def test_addressbook_example(cleanup):
-    proc = subprocess.Popen([sys.executable, os.path.join(examples_dir, 'addressbook.py')])
+    proc = subprocess.Popen(
+        [sys.executable, os.path.join(examples_dir, "addressbook.py")]
+    )
     ret = proc.wait()
     assert ret == 0
 
@@ -139,12 +147,12 @@ def test_addressbook_example(cleanup):
     reason="""
 Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop.
 See https://github.com/capnproto/pycapnp/issues/196
-"""
+""",
 )
 def test_async_example(cleanup):
-    address = '{}:36434'.format(hostname)
-    server = 'async_server.py'
-    client = 'async_client.py'
+    address = "{}:36434".format(hostname)
+    server = "async_server.py"
+    client = "async_client.py"
     run_subprocesses(address, server, client)
 
 
@@ -153,12 +161,12 @@ def test_async_example(cleanup):
     reason="""
 Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop.
 See https://github.com/capnproto/pycapnp/issues/196
-"""
+""",
 )
 def test_ssl_async_example(cleanup):
-    address = '{}:36435'.format(hostname)
-    server = 'async_ssl_server.py'
-    client = 'async_ssl_client.py'
+    address = "{}:36435".format(hostname)
+    server = "async_ssl_server.py"
+    client = "async_ssl_client.py"
     run_subprocesses(address, server, client, ipv4_force=False)
 
 
@@ -167,17 +175,17 @@ def test_ssl_async_example(cleanup):
     reason="""
 Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop.
 See https://github.com/capnproto/pycapnp/issues/196
-"""
+""",
 )
 def test_ssl_reconnecting_async_example(cleanup):
-    address = '{}:36436'.format(hostname)
-    server = 'async_ssl_server.py'
-    client = 'async_reconnecting_ssl_client.py'
+    address = "{}:36436".format(hostname)
+    server = "async_ssl_server.py"
+    client = "async_reconnecting_ssl_client.py"
     run_subprocesses(address, server, client, ipv4_force=False)
 
 
 def test_async_ssl_calculator_example(cleanup):
-    address = '{}:36437'.format(hostname)
-    server = 'async_ssl_calculator_server.py'
-    client = 'async_ssl_calculator_client.py'
+    address = "{}:36437".format(hostname)
+    server = "async_ssl_calculator_server.py"
+    client = "async_ssl_calculator_client.py"
     run_subprocesses(address, server, client, ipv4_force=False)
