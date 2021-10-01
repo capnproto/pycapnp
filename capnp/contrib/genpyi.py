@@ -14,14 +14,14 @@ Example usage:
 """
 
 from __future__ import annotations
-from typing import Any
+from typing import Any, Set
 import argparse
 import sys
 import os.path
 import importlib
 import logging
 import keyword
-from dataclasses import dataclass, field
+import dataclasses
 
 try:
     import black
@@ -57,21 +57,21 @@ CAPNP_TYPE_TO_PYTHON = {
 }
 
 
-@dataclass
+@dataclasses.dataclass
 class Scope:
     name: str
     id: int
     parent: Scope | None
     return_scope: Scope | None
-    lines: list[str] = field(default_factory=list)
+    lines: list[str] = dataclasses.field(default_factory=list)
 
 
-@dataclass
+@dataclasses.dataclass
 class Type:
     schema: Any
     name: str
     scope: Scope
-    generic_params: list[str] = field(default_factory=list)
+    generic_params: list[str] = dataclasses.field(default_factory=list)
 
     @property
     def scope_path(self) -> list[Scope]:
@@ -319,14 +319,14 @@ def gen_struct(schema, writer, name: str = ""):
                         writer.lookup_type(
                             field.slot.type.list.elementType.struct.typeId
                         )
-                    except KeyError as ex:
+                    except KeyError:
                         gen_nested(raw_field.schema.elementType, writer)
                 elif field.slot.type.list.elementType.which() == "enum":
                     try:
                         writer.lookup_type(
                             field.slot.type.list.elementType.enum.typeId
                         )
-                    except KeyError as ex:
+                    except KeyError:
                         gen_nested(raw_field.schema.elementType, writer)
                 type_name = writer.type_ref(field.slot.type.list.elementType)
                 field_py_code = f"{field.name}: List[{type_name}]"
@@ -357,7 +357,7 @@ def gen_struct(schema, writer, name: str = ""):
                 elem_type = raw_field.schema
                 try:
                     writer.lookup_type(elem_type.node.id)
-                except KeyError as ex:
+                except KeyError:
                     gen_struct(elem_type, writer)
                 type_name = writer.type_ref(field.slot.type)
                 field_py_code = f"{field.name}: {type_name}"
@@ -397,9 +397,9 @@ def gen_struct(schema, writer, name: str = ""):
         scoped_name = ".".join([scope.name for scope in scope_path] + [name])
     else:
         scoped_name = name
-    writer.writeln(f"@staticmethod")
+    writer.writeln("@staticmethod")
     writer.writeln(f"def from_bytes(data: bytes) -> {scoped_name}: ...")
-    writer.writeln(f"def to_bytes(self) -> bytes: ...")
+    writer.writeln("def to_bytes(self) -> bytes: ...")
     have_body = True
 
     if schema.node.struct.discriminantCount:
