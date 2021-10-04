@@ -16,17 +16,17 @@ class Server(capability.TestInterface.Server):
         return str(i * 5 + extra + self.val)
 
     def buz(self, i, **kwargs):
-        return i.host + '_test'
+        return i.host + "_test"
 
     def bam(self, i, **kwargs):
-        return str(i) + '_test', i
+        return str(i) + "_test", i
 
 
 class PipelineServer(capability.TestPipeline.Server):
     def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
             _results = _context.results
-            _results.s = response.x + '_foo'
+            _results.s = response.x + "_foo"
             _results.outBox.cap = Server(100)
 
         return inCap.foo(i=n).then(_then)
@@ -35,13 +35,13 @@ class PipelineServer(capability.TestPipeline.Server):
 def test_client():
     client = capability.TestInterface._new_client(Server())
 
-    req = client._request('foo')
+    req = client._request("foo")
     req.i = 5
 
     remote = req.send()
     response = remote.wait()
 
-    assert response.x == '26'
+    assert response.x == "26"
 
     req = client.foo_request()
     req.i = 5
@@ -49,7 +49,7 @@ def test_client():
     remote = req.send()
     response = remote.wait()
 
-    assert response.x == '26'
+    assert response.x == "26"
 
     with pytest.raises(AttributeError):
         client.foo2_request()
@@ -57,7 +57,7 @@ def test_client():
     req = client.foo_request()
 
     with pytest.raises(Exception):
-        req.i = 'foo'
+        req.i = "foo"
 
     req = client.foo_request()
 
@@ -68,45 +68,45 @@ def test_client():
 def test_simple_client():
     client = capability.TestInterface._new_client(Server())
 
-    remote = client._send('foo', i=5)
+    remote = client._send("foo", i=5)
     response = remote.wait()
 
-    assert response.x == '26'
+    assert response.x == "26"
 
     remote = client.foo(i=5)
     response = remote.wait()
 
-    assert response.x == '26'
+    assert response.x == "26"
 
     remote = client.foo(i=5, j=True)
     response = remote.wait()
 
-    assert response.x == '27'
+    assert response.x == "27"
 
     remote = client.foo(5)
     response = remote.wait()
 
-    assert response.x == '26'
+    assert response.x == "26"
 
     remote = client.foo(5, True)
     response = remote.wait()
 
-    assert response.x == '27'
+    assert response.x == "27"
 
     remote = client.foo(5, j=True)
     response = remote.wait()
 
-    assert response.x == '27'
+    assert response.x == "27"
 
-    remote = client.buz(capability.TestSturdyRefHostId.new_message(host='localhost'))
+    remote = client.buz(capability.TestSturdyRefHostId.new_message(host="localhost"))
     response = remote.wait()
 
-    assert response.x == 'localhost_test'
+    assert response.x == "localhost_test"
 
     remote = client.bam(i=5)
     response = remote.wait()
 
-    assert response.x == '5_test'
+    assert response.x == "5_test"
     assert response.i == 5
 
     with pytest.raises(Exception):
@@ -116,7 +116,7 @@ def test_simple_client():
         remote = client.foo(5, True, 100)
 
     with pytest.raises(Exception):
-        remote = client.foo(i='foo')
+        remote = client.foo(i="foo")
 
     with pytest.raises(AttributeError):
         remote = client.foo2(i=5)
@@ -135,10 +135,10 @@ def test_pipeline():
     pipelinePromise = outCap.foo(i=10)
 
     response = pipelinePromise.wait()
-    assert response.x == '150'
+    assert response.x == "150"
 
     response = remote.wait()
-    assert response.s == '26_foo'
+    assert response.s == "26_foo"
 
 
 class BadServer(capability.TestInterface.Server):
@@ -155,7 +155,7 @@ class BadServer(capability.TestInterface.Server):
 def test_exception_client():
     client = capability.TestInterface._new_client(BadServer())
 
-    remote = client._send('foo', i=5)
+    remote = client._send("foo", i=5)
     with pytest.raises(capnp.KjException):
         remote.wait()
 
@@ -164,11 +164,11 @@ class BadPipelineServer(capability.TestPipeline.Server):
     def getCap(self, n, inCap, _context, **kwargs):
         def _then(response):
             _results = _context.results
-            _results.s = response.x + '_foo'
+            _results.s = response.x + "_foo"
             _results.outBox.cap = Server(100)
 
         def _error(error):
-            raise Exception('test was a success')
+            raise Exception("test was a success")
 
         return inCap.foo(i=n).then(_then, _error)
 
@@ -182,7 +182,7 @@ def test_exception_chain():
     try:
         remote.wait()
     except Exception as e:
-        assert 'test was a success' in str(e)
+        assert "test was a success" in str(e)
 
 
 def test_pipeline_exception():
@@ -226,7 +226,7 @@ class TailCaller(capability.TestTailCaller.Server):
     def foo(self, i, callee, _context, **kwargs):
         self.count += 1
 
-        tail = callee.foo_request(i=i, t='from TailCaller')
+        tail = callee.foo_request(i=i, t="from TailCaller")
         return _context.tail_call(tail)
 
 
@@ -275,7 +275,7 @@ def test_tail_call():
 def test_cancel():
     client = capability.TestInterface._new_client(Server())
 
-    req = client._request('foo')
+    req = client._request("foo")
     req.i = 5
 
     remote = req.send()
@@ -292,17 +292,17 @@ def test_timer():
     def set_timer_var():
         global test_timer_var
         test_timer_var = True
+
     capnp.getTimer().after_delay(1).then(set_timer_var).wait()
 
     assert test_timer_var is True
 
     test_timer_var = False
-    promise = capnp.Promise(0).then(
-        lambda x: time.sleep(.1)
-    ).then(
-        lambda x: time.sleep(.1)
-    ).then(
-        lambda x: set_timer_var()
+    promise = (
+        capnp.Promise(0)
+        .then(lambda x: time.sleep(0.1))
+        .then(lambda x: time.sleep(0.1))
+        .then(lambda x: set_timer_var())
     )
 
     canceller = capnp.getTimer().after_delay(1).then(lambda: promise.cancel())
@@ -317,7 +317,7 @@ def test_timer():
 def test_double_send():
     client = capability.TestInterface._new_client(Server())
 
-    req = client._request('foo')
+    req = client._request("foo")
     req.i = 5
 
     req.send()
@@ -362,19 +362,20 @@ def test_inheritance():
     remote = client.foo(i=5)
     response = remote.wait()
 
-    assert response.x == '26'
+    assert response.x == "26"
 
 
 class PassedCapTest(capability.TestPassedCap.Server):
     def foo(self, cap, _context, **kwargs):
         def set_result(res):
             _context.results.x = res.x
+
         return cap.foo(5).then(set_result)
 
 
 def test_null_cap():
     client = capability.TestPassedCap._new_client(PassedCapTest())
-    assert client.foo(Server()).wait().x == '26'
+    assert client.foo(Server()).wait().x == "26"
 
     with pytest.raises(capnp.KjException):
         client.foo().wait()
@@ -387,14 +388,14 @@ class StructArgTest(capability.TestStructArg.Server):
 
 def test_struct_args():
     client = capability.TestStructArg._new_client(StructArgTest())
-    assert client.bar(a='test', b=1).wait().c == 'test1'
+    assert client.bar(a="test", b=1).wait().c == "test1"
     with pytest.raises(capnp.KjException):
-        assert client.bar('test', 1).wait().c == 'test1'
+        assert client.bar("test", 1).wait().c == "test1"
 
 
 class GenericTest(capability.TestGeneric.Server):
     def foo(self, a, **kwargs):
-        return a.as_text() + 'test'
+        return a.as_text() + "test"
 
 
 def test_generic():
@@ -402,4 +403,4 @@ def test_generic():
 
     obj = capnp._MallocMessageBuilder().get_root_as_any()
     obj.set_as_text("anypointer_")
-    assert client.foo(obj).wait().b == 'anypointer_test'
+    assert client.foo(obj).wait().b == "anypointer_test"

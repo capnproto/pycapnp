@@ -10,16 +10,16 @@ import calculator_capnp
 
 class PowerFunction(calculator_capnp.Calculator.Function.Server):
 
-    '''An implementation of the Function interface wrapping pow().  Note that
+    """An implementation of the Function interface wrapping pow().  Note that
     we're implementing this on the client side and will pass a reference to
-    the server.  The server will then be able to make calls back to the client.'''
+    the server.  The server will then be able to make calls back to the client."""
 
     def call(self, params, **kwargs):
-        '''Note the **kwargs. This is very necessary to include, since
+        """Note the **kwargs. This is very necessary to include, since
         protocols can add parameters over time. Also, by default, a _context
         variable is passed to all server methods, but you can also return
         results directly as python objects, and they'll be added to the
-        results struct in the correct order'''
+        results struct in the correct order"""
 
         return pow(params[0], params[1])
 
@@ -38,29 +38,29 @@ async def mywriter(client, writer):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(usage='Connects to the Calculator server \
-at the given address and does some RPCs')
+    parser = argparse.ArgumentParser(
+        usage="Connects to the Calculator server \
+at the given address and does some RPCs"
+    )
     parser.add_argument("host", help="HOST:PORT")
 
     return parser.parse_args()
 
 
 async def main(host):
-    host = host.split(':')
+    host = host.split(":")
     addr = host[0]
     port = host[1]
     # Handle both IPv4 and IPv6 cases
     try:
         print("Try IPv4")
         reader, writer = await asyncio.open_connection(
-            addr, port,
-            family=socket.AF_INET
+            addr, port, family=socket.AF_INET
         )
     except Exception:
         print("Try IPv6")
         reader, writer = await asyncio.open_connection(
-            addr, port,
-            family=socket.AF_INET6
+            addr, port, family=socket.AF_INET6
         )
 
     # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
@@ -73,7 +73,7 @@ async def main(host):
     # Bootstrap the Calculator interface
     calculator = client.bootstrap().cast_as(calculator_capnp.Calculator)
 
-    '''Make a request that just evaluates the literal value 123.
+    """Make a request that just evaluates the literal value 123.
 
     What's interesting here is that evaluate() returns a "Value", which is
     another interface and therefore points back to an object living on the
@@ -81,9 +81,9 @@ async def main(host):
     However, even though we are making two RPC's, this block executes in
     *one* network round trip because of promise pipelining:  we do not wait
     for the first call to complete before we send the second call to the
-    server.'''
+    server."""
 
-    print('Evaluating a literal... ', end="")
+    print("Evaluating a literal... ", end="")
 
     # Make the request. Note we are using the shorter function form (instead
     # of evaluate_request), and we are passing a dictionary that represents a
@@ -91,13 +91,13 @@ async def main(host):
     eval_promise = calculator.evaluate({"literal": 123})
 
     # This is equivalent to:
-    '''
+    """
     request = calculator.evaluate_request()
     request.expression.literal = 123
 
     # Send it, which returns a promise for the result (without blocking).
     eval_promise = request.send()
-    '''
+    """
 
     # Using the promise, create a pipelined request to call read() on the
     # returned object. Note that here we are using the shortened method call
@@ -111,32 +111,32 @@ async def main(host):
 
     print("PASS")
 
-    '''Make a request to evaluate 123 + 45 - 67.
+    """Make a request to evaluate 123 + 45 - 67.
 
     The Calculator interface requires that we first call getOperator() to
     get the addition and subtraction functions, then call evaluate() to use
     them.  But, once again, we can get both functions, call evaluate(), and
     then read() the result -- four RPCs -- in the time of *one* network
-    round trip, because of promise pipelining.'''
+    round trip, because of promise pipelining."""
 
-    print("Using add and subtract... ", end='')
+    print("Using add and subtract... ", end="")
 
     # Get the "add" function from the server.
-    add = calculator.getOperator(op='add').func
+    add = calculator.getOperator(op="add").func
     # Get the "subtract" function from the server.
-    subtract = calculator.getOperator(op='subtract').func
+    subtract = calculator.getOperator(op="subtract").func
 
     # Build the request to evaluate 123 + 45 - 67. Note the form is 'evaluate'
     # + '_request', where 'evaluate' is the name of the method we want to call
     request = calculator.evaluate_request()
-    subtract_call = request.expression.init('call')
+    subtract_call = request.expression.init("call")
     subtract_call.function = subtract
-    subtract_params = subtract_call.init('params', 2)
+    subtract_params = subtract_call.init("params", 2)
     subtract_params[1].literal = 67.0
 
-    add_call = subtract_params[0].init('call')
+    add_call = subtract_params[0].init("call")
     add_call.function = add
-    add_params = add_call.init('params', 2)
+    add_params = add_call.init("params", 2)
     add_params[0].literal = 123
     add_params[1].literal = 45
 
@@ -149,7 +149,7 @@ async def main(host):
 
     print("PASS")
 
-    '''
+    """
     Note: a one liner version of building the previous request (I highly
     recommend not doing it this way for such a complicated structure, but I
     just wanted to demonstrate it is possible to set all of the fields with a
@@ -161,22 +161,22 @@ async def main(host):
                                'params': [{'literal': 123},
                                           {'literal': 45}]}},
                      {'literal': 67.0}]}})
-    '''
+    """
 
-    '''Make a request to evaluate 4 * 6, then use the result in two more
+    """Make a request to evaluate 4 * 6, then use the result in two more
     requests that add 3 and 5.
 
     Since evaluate() returns its result wrapped in a `Value`, we can pass
     that `Value` back to the server in subsequent requests before the first
     `evaluate()` has actually returned.  Thus, this example again does only
-    one network round trip.'''
+    one network round trip."""
 
     print("Pipelining eval() calls... ", end="")
 
     # Get the "add" function from the server.
-    add = calculator.getOperator(op='add').func
+    add = calculator.getOperator(op="add").func
     # Get the "multiply" function from the server.
-    multiply = calculator.getOperator(op='multiply').func
+    multiply = calculator.getOperator(op="multiply").func
 
     # Build the request to evaluate 4 * 6
     request = calculator.evaluate_request()
@@ -213,7 +213,7 @@ async def main(host):
 
     print("PASS")
 
-    '''Our calculator interface supports defining functions.  Here we use it
+    """Our calculator interface supports defining functions.  Here we use it
     to define two functions and then make calls to them as follows:
 
       f(x, y) = x * 100 + y
@@ -221,14 +221,14 @@ async def main(host):
       f(12, 34)
       g(21)
 
-    Once again, the whole thing takes only one network round trip.'''
+    Once again, the whole thing takes only one network round trip."""
 
     print("Defining functions... ", end="")
 
     # Get the "add" function from the server.
-    add = calculator.getOperator(op='add').func
+    add = calculator.getOperator(op="add").func
     # Get the "multiply" function from the server.
-    multiply = calculator.getOperator(op='multiply').func
+    multiply = calculator.getOperator(op="multiply").func
 
     # Define f.
     request = calculator.defFunction_request()
@@ -286,7 +286,7 @@ async def main(host):
     g_eval_request = calculator.evaluate_request()
     g_call = g_eval_request.expression.init("call")
     g_call.function = g
-    g_call.init('params', 1)[0].literal = 21
+    g_call.init("params", 1)[0].literal = 21
     g_eval_promise = g_eval_request.send().value.read()
 
     # Wait for the results.
@@ -295,7 +295,7 @@ async def main(host):
 
     print("PASS")
 
-    '''Make a request that will call back to a function defined locally.
+    """Make a request that will call back to a function defined locally.
 
     Specifically, we will compute 2^(4 + 5).  However, exponent is not
     defined by the Calculator server.  So, we'll implement the Function
@@ -307,12 +307,12 @@ async def main(host):
     particular case, this could potentially be optimized by using a tail
     call on the server side -- see CallContext::tailCall().  However, to
     keep the example simpler, we haven't implemented this optimization in
-    the sample server.'''
+    the sample server."""
 
     print("Using a callback... ", end="")
 
     # Get the "add" function from the server.
-    add = calculator.getOperator(op='add').func
+    add = calculator.getOperator(op="add").func
 
     # Build the eval request for 2^(4+5).
     request = calculator.evaluate_request()
@@ -334,5 +334,6 @@ async def main(host):
 
     print("PASS")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main(parse_args().host))

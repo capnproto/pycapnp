@@ -41,7 +41,7 @@ ROOT = os.path.dirname(HERE)
 
 def untgz(archive):
     """Remove .tar.gz"""
-    return archive.replace('.tar.gz', '')
+    return archive.replace(".tar.gz", "")
 
 
 def localpath(*args):
@@ -60,7 +60,7 @@ def fetch_archive(savedir, url, fname, force=False):
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     req = urlopen(url)
-    with open(dest, 'wb') as f:
+    with open(dest, "wb") as f:
         f.write(req.read())
     return dest
 
@@ -76,7 +76,7 @@ def fetch_libcapnp(savedir, url=None):
     if url is None:
         url = libcapnp_url
         is_preconfigured = True
-    dest = pjoin(savedir, 'capnproto-c++')
+    dest = pjoin(savedir, "capnproto-c++")
     if os.path.exists(dest):
         print("already have %s" % dest)
         return
@@ -89,5 +89,5 @@ def fetch_libcapnp(savedir, url=None):
     if is_preconfigured:
         shutil.move(with_version, dest)
     else:
-        cpp_dir = os.path.join(with_version, 'c++')
+        cpp_dir = os.path.join(with_version, "c++")
         shutil.move(cpp_dir, dest)

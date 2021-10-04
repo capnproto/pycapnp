@@ -12,18 +12,23 @@ class ExampleImpl(thread_capnp.Example.Server):
     "Implementation of the Example threading Cap'n Proto interface."
 
     def subscribeStatus(self, subscriber, **kwargs):
-        return capnp.getTimer().after_delay(10**9) \
-            .then(lambda: subscriber.status(True)) \
+        return (
+            capnp.getTimer()
+            .after_delay(10 ** 9)
+            .then(lambda: subscriber.status(True))
             .then(lambda _: self.subscribeStatus(subscriber))
+        )
 
     def longRunning(self, **kwargs):
-        return capnp.getTimer().after_delay(1 * 10**9)
+        return capnp.getTimer().after_delay(1 * 10 ** 9)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(usage='''Runs the server bound to the\
+    parser = argparse.ArgumentParser(
+        usage="""Runs the server bound to the\
 given address/port ADDRESS may be '*' to bind to all local addresses.\
-:PORT may be omitted to choose a port automatically. ''')
+:PORT may be omitted to choose a port automatically. """
+    )
 
     parser.add_argument("address", help="ADDRESS[:PORT]")
 
@@ -39,5 +44,5 @@ def main():
         time.sleep(0.001)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

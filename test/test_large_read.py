@@ -11,7 +11,7 @@ this_dir = os.path.dirname(__file__)
 
 @pytest.fixture
 def test_capnp():
-    return capnp.load(os.path.join(this_dir, 'test_large_read.capnp'))
+    return capnp.load(os.path.join(this_dir, "test_large_read.capnp"))
 
 
 def test_large_read(test_capnp):
@@ -19,8 +19,8 @@ def test_large_read(test_capnp):
 
     array = test_capnp.MultiArray.new_message()
 
-    row = array.init('rows', 1)[0]
-    values = row.init('values', 10000)
+    row = array.init("rows", 1)[0]
+    values = row.init("values", 10000)
     for i in range(len(values)):
         values[i] = i
 
@@ -66,12 +66,15 @@ def test_large_read_multiple_bytes(test_capnp):
             pass
 
     with pytest.raises(capnp.KjException):
-        data = get_two_adjacent_messages(test_capnp) + b' '
+        data = get_two_adjacent_messages(test_capnp) + b" "
         for m in test_capnp.Msg.read_multiple_bytes(data):
             pass
 
 
-@pytest.mark.skipif(platform.python_implementation() == 'PyPy', reason="PyPy memoryview support is limited")
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy",
+    reason="PyPy memoryview support is limited",
+)
 def test_large_read_mutltiple_bytes_memoryview(test_capnp):
     data = get_two_adjacent_messages(test_capnp)
     for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
@@ -83,6 +86,6 @@ def test_large_read_mutltiple_bytes_memoryview(test_capnp):
             pass
 
     with pytest.raises(capnp.KjException):
-        data = get_two_adjacent_messages(test_capnp) + b' '
+        data = get_two_adjacent_messages(test_capnp) + b" "
         for m in test_capnp.Msg.read_multiple_bytes(memoryview(data)):
             pass

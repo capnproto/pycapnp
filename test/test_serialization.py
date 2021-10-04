@@ -16,7 +16,7 @@ this_dir = os.path.dirname(__file__)
 
 @pytest.fixture
 def all_types():
-    return capnp.load(os.path.join(this_dir, 'all_types.capnp'))
+    return capnp.load(os.path.join(this_dir, "all_types.capnp"))
 
 
 def test_roundtrip_file(all_types):
@@ -51,8 +51,8 @@ def test_roundtrip_bytes(all_types):
 
 
 @pytest.mark.skipif(
-    platform.python_implementation() == 'PyPy',
-    reason="TODO: Investigate why this works on CPython but fails on PyPy."
+    platform.python_implementation() == "PyPy",
+    reason="TODO: Investigate why this works on CPython but fails on PyPy.",
 )
 def test_roundtrip_segments(all_types):
     msg = all_types.TestAllTypes.new_message()
@@ -62,7 +62,10 @@ def test_roundtrip_segments(all_types):
     test_regression.check_all_types(msg)
 
 
-@pytest.mark.skipif(sys.version_info[0] < 3, reason="mmap doesn't implement the buffer interface under python 2.")
+@pytest.mark.skipif(
+    sys.version_info[0] < 3,
+    reason="mmap doesn't implement the buffer interface under python 2.",
+)
 def test_roundtrip_bytes_mmap(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -78,7 +81,9 @@ def test_roundtrip_bytes_mmap(all_types):
         test_regression.check_all_types(msg)
 
 
-@pytest.mark.skipif(sys.version_info[0] < 3, reason="memoryview is a builtin on Python 3")
+@pytest.mark.skipif(
+    sys.version_info[0] < 3, reason="memoryview is a builtin on Python 3"
+)
 def test_roundtrip_bytes_buffer(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)
@@ -95,8 +100,8 @@ def test_roundtrip_bytes_fail(all_types):
 
 
 @pytest.mark.skipif(
-    platform.python_implementation() == 'PyPy',
-    reason="This works in PyPy 4.0.1 but travisci's version of PyPy has some bug that fails this test."
+    platform.python_implementation() == "PyPy",
+    reason="This works in PyPy 4.0.1 but travisci's version of PyPy has some bug that fails this test.",
 )
 def test_roundtrip_bytes_packed(all_types):
     msg = all_types.TestAllTypes.new_message()
@@ -108,7 +113,9 @@ def test_roundtrip_bytes_packed(all_types):
 
 
 @contextmanager
-def _warnings(expected_count=2, expected_text='This message has already been written once.'):
+def _warnings(
+    expected_count=2, expected_text="This message has already been written once."
+):
     with warnings.catch_warnings(record=True) as w:
         yield
 
@@ -227,10 +234,7 @@ def test_from_bytes_traversal_limit(all_types):
         for i in range(0, size):
             msg.structList[i].uInt8Field == 0
 
-    msg = all_types.TestAllTypes.from_bytes(
-        data,
-        traversal_limit_in_words=2**62
-    )
+    msg = all_types.TestAllTypes.from_bytes(data, traversal_limit_in_words=2 ** 62)
     for i in range(0, size):
         assert msg.structList[i].uInt8Field == 0
 
@@ -247,8 +251,7 @@ def test_from_bytes_packed_traversal_limit(all_types):
             msg.structList[i].uInt8Field == 0
 
     msg = all_types.TestAllTypes.from_bytes_packed(
-        data,
-        traversal_limit_in_words=2**62
+        data, traversal_limit_in_words=2 ** 62
     )
     for i in range(0, size):
         assert msg.structList[i].uInt8Field == 0

@@ -5,15 +5,11 @@ import eval_capnp
 from common import rand_int, rand_double, rand_bool
 from random import choice
 
-MAX_INT = 2**31 - 1
-MIN_INT = -(2**31)
+MAX_INT = 2 ** 31 - 1
+MIN_INT = -(2 ** 31)
 
-OPERATIONS = [
-  "add",
-  "subtract",
-  "multiply",
-  "divide",
-  "modulus"]
+OPERATIONS = ["add", "subtract", "multiply", "divide", "modulus"]
+
 
 def clamp(res):
     if res > MAX_INT:
@@ -23,6 +19,7 @@ def clamp(res):
     else:
         return res
 
+
 def div(a, b):
     if b == 0:
         return MAX_INT
@@ -30,6 +27,7 @@ def div(a, b):
         return MAX_INT
 
     return a // b
+
 
 def mod(a, b):
     if b == 0:
@@ -39,6 +37,7 @@ def mod(a, b):
 
     return a % b
 
+
 def make_expression(exp, depth):
     exp.op = choice(OPERATIONS)
 
@@ -46,62 +45,63 @@ def make_expression(exp, depth):
         left = rand_int(128) + 1
         exp.left.value = left
     else:
-        left = make_expression(exp.left.init('expression'), depth+1)
+        left = make_expression(exp.left.init("expression"), depth + 1)
 
     if rand_int(8) < depth:
         right = rand_int(128) + 1
         exp.right.value = right
     else:
-        right = make_expression(exp.right.init('expression'), depth+1)
+        right = make_expression(exp.right.init("expression"), depth + 1)
 
     op = exp.op
-    if op == 'add':
+    if op == "add":
         return clamp(left + right)
-    elif op == 'subtract':
+    elif op == "subtract":
         return clamp(left - right)
-    elif op == 'multiply':
+    elif op == "multiply":
         return clamp(left * right)
-    elif op == 'divide':
+    elif op == "divide":
         return div(left, right)
-    elif op == 'modulus':
+    elif op == "modulus":
         return mod(left, right)
     raise RuntimeError("op wasn't a valid value: " + str(op))
+
 
 def evaluate_expression(exp):
     left = 0
     right = 0
 
     which = exp.left.which()
-    if which == 'value':
+    if which == "value":
         left = exp.left.value
-    elif which == 'expression':
+    elif which == "expression":
         left = evaluate_expression(exp.left.expression)
 
     which = exp.right.which()
-    if which == 'value':
+    if which == "value":
         right = exp.right.value
-    elif which == 'expression':
+    elif which == "expression":
         right = evaluate_expression(exp.right.expression)
 
-
     op = exp.op
-    if op == 'add':
+    if op == "add":
         return clamp(left + right)
-    elif op == 'subtract':
+    elif op == "subtract":
         return clamp(left - right)
-    elif op == 'multiply':
+    elif op == "multiply":
         return clamp(left * right)
-    elif op == 'divide':
+    elif op == "divide":
         return div(left, right)
-    elif op == 'modulus':
+    elif op == "modulus":
         return mod(left, right)
     raise RuntimeError("op wasn't a valid value: " + str(op))
+
 
 class Benchmark:
     def __init__(self, compression):
         self.Request = eval_capnp.Expression.new_message
         self.Response = eval_capnp.EvaluationResult.new_message
-        if compression == 'packed':
+        if compression == "packed":
             self.from_bytes_request = eval_capnp.Expression.from_bytes_packed
             self.from_bytes_response = eval_capnp.EvaluationResult.from_bytes_packed
             self.to_bytes = lambda x: x.to_bytes_packed()

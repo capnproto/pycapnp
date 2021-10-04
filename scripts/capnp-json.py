@@ -11,7 +11,12 @@ def parse_args():
     parser.add_argument("command")
     parser.add_argument("schema_file")
     parser.add_argument("struct_name")
-    parser.add_argument("-d", "--defaults", help="include default values in json output", action="store_true")
+    parser.add_argument(
+        "-d",
+        "--defaults",
+        help="include default values in json output",
+        action="store_true",
+    )
 
     return parser.parse_args()
 
@@ -41,9 +46,11 @@ def main():
 
     command = args.command
     kwargs = vars(args)
-    del kwargs['command']
+    del kwargs["command"]
 
-    globals()[command](**kwargs)  # hacky way to get defined functions, and call function with name=command
+    globals()[command](
+        **kwargs
+    )  # hacky way to get defined functions, and call function with name=command
 
 
 main()

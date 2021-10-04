@@ -4,15 +4,11 @@ from common import rand_int, rand_double, rand_bool, from_bytes_helper
 from random import choice
 import eval_pb2
 
-MAX_INT = 2**31 - 1
-MIN_INT = -(2**31)
+MAX_INT = 2 ** 31 - 1
+MIN_INT = -(2 ** 31)
 
-OPERATIONS = [
-  "add",
-  "subtract",
-  "multiply",
-  "divide",
-  "modulus"]
+OPERATIONS = ["add", "subtract", "multiply", "divide", "modulus"]
+
 
 def clamp(res):
     if res > MAX_INT:
@@ -22,6 +18,7 @@ def clamp(res):
     else:
         return res
 
+
 def div(a, b):
     if b == 0:
         return MAX_INT
@@ -29,6 +26,7 @@ def div(a, b):
         return MAX_INT
 
     return a // b
+
 
 def mod(a, b):
     if b == 0:
@@ -38,6 +36,7 @@ def mod(a, b):
 
     return a % b
 
+
 def make_expression(exp, depth):
     exp.op = rand_int(len(OPERATIONS))
 
@@ -45,13 +44,13 @@ def make_expression(exp, depth):
         left = rand_int(128) + 1
         exp.left_value = left
     else:
-        left = make_expression(exp.left_expression, depth+1)
+        left = make_expression(exp.left_expression, depth + 1)
 
     if rand_int(8) < depth:
         right = rand_int(128) + 1
         exp.right_value = right
     else:
-        right = make_expression(exp.right_expression, depth+1)
+        right = make_expression(exp.right_expression, depth + 1)
 
     op = exp.op
     if op == 0:
@@ -65,21 +64,21 @@ def make_expression(exp, depth):
     elif op == 4:
         return mod(left, right)
     raise RuntimeError("op wasn't a valid value: " + str(op))
+
 
 def evaluate_expression(exp):
     left = 0
     right = 0
 
-    if exp.HasField('left_value'):
+    if exp.HasField("left_value"):
         left = exp.left_value
     else:
         left = evaluate_expression(exp.left_expression)
 
-    if exp.HasField('right_value'):
+    if exp.HasField("right_value"):
         right = exp.right_value
     else:
         right = evaluate_expression(exp.right_expression)
-
 
     op = exp.op
     if op == 0:
@@ -93,6 +92,7 @@ def evaluate_expression(exp):
     elif op == 4:
         return mod(left, right)
     raise RuntimeError("op wasn't a valid value: " + str(op))
+
 
 class Benchmark:
     def __init__(self, compression):
