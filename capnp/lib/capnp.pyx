@@ -475,7 +475,7 @@ cdef class _DynamicResizableListBuilder:
         phone = phones.add()
         phone.number = 'bar'
 
-        people.finish()
+        phones.finish()
 
         f = open('example', 'w')
         person.write(f)
