@@ -90,8 +90,11 @@ def test_roundtrip_bytes_buffer(all_types):
 
     b = msg.to_bytes()
     v = memoryview(b)
-    msg = all_types.TestAllTypes.from_bytes(v)
-    test_regression.check_all_types(msg)
+    try:
+        msg = all_types.TestAllTypes.from_bytes(v)
+        test_regression.check_all_types(msg)
+    finally:
+        v.release()
 
 
 def test_roundtrip_bytes_fail(all_types):
