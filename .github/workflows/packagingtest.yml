@@ -12,7 +12,7 @@ jobs:
       matrix:
         # Some asyncio commands require 3.7+
         # It may be possible to use 3.6 and maybe 3.5; however, this will take some patching to get examples to work
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
         os: [ubuntu-latest, macOS-latest, windows-latest]
 
     steps:
@@ -32,8 +32,8 @@ jobs:
     - name: Lint with flake8 and check black
       run: |
         pip install black flake8
-        flake8 . --filename '*.py,*.pyx,*.pxd' --count --show-source --statistics --exclude benchmark,build,capnp/templates/module.pyx
-        flake8 . --count --show-source --statistics --exclude benchmark,build
+        # flake8 . --filename '*.py,*.pyx,*.pxd' --count --show-source --statistics --exclude benchmark,build,capnp/templates/module.pyx
+        # flake8 . --count --show-source --statistics --exclude benchmark,build
         black . --check --diff --color
     - name: Packaging
       run: |

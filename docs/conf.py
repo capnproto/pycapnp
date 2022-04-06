@@ -51,8 +51,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"capnp"
-copyright = u"2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander)"
+project = "capnp"
+copyright = "2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander)"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -204,7 +204,7 @@ latex_elements = {}
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "capnp.tex", u"capnp Documentation", u"Author", "manual"),
+    ("index", "capnp.tex", "capnp Documentation", "Author", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -232,7 +232,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "capnp", u"capnp Documentation", [u"Author"], 1)]
+man_pages = [("index", "capnp", "capnp Documentation", ["Author"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -247,8 +247,8 @@ texinfo_documents = [
     (
         "index",
         "capnp",
-        u"capnp Documentation",
-        u"Author",
+        "capnp Documentation",
+        "Author",
         "capnp",
         "One line description of project.",
         "Miscellaneous",
@@ -268,10 +268,10 @@ texinfo_documents = [
 # -- Options for Epub output ---------------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = u"capnp"
-epub_author = u"Author"
-epub_publisher = u"Author"
-epub_copyright = u"2013, Author"
+epub_title = "capnp"
+epub_author = "Author"
+epub_publisher = "Author"
+epub_copyright = "2013, Author"
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.

@@ -4,8 +4,8 @@ from common import rand_int, rand_double, rand_bool, from_bytes_helper
 from random import choice
 import eval_pb2
 
-MAX_INT = 2 ** 31 - 1
-MIN_INT = -(2 ** 31)
+MAX_INT = 2**31 - 1
+MIN_INT = -(2**31)
 
 OPERATIONS = ["add", "subtract", "multiply", "divide", "modulus"]
 
