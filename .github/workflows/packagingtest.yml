@@ -32,8 +32,8 @@ jobs:
     - name: Lint with flake8 and check black
       run: |
         pip install black flake8
-        # flake8 . --filename '*.py,*.pyx,*.pxd' --count --show-source --statistics --exclude benchmark,build,capnp/templates/module.pyx
-        # flake8 . --count --show-source --statistics --exclude benchmark,build
+        flake8 . --filename '*.py,*.pyx,*.pxd' --count --show-source --statistics --exclude benchmark,build,capnp/templates/module.pyx
+        flake8 . --count --show-source --statistics --exclude benchmark,build
         black . --check --diff --color
     - name: Packaging
       run: |

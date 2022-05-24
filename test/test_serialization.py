@@ -99,7 +99,7 @@ def test_roundtrip_bytes_buffer(all_types):
 
 def test_roundtrip_bytes_fail(all_types):
     with pytest.raises(TypeError):
-        with all_types.TestAllTypes.from_bytes(42) as msg:
+        with all_types.TestAllTypes.from_bytes(42) as _:
             pass
 
 
@@ -238,7 +238,9 @@ def test_from_bytes_traversal_limit(all_types):
             for i in range(0, size):
                 msg.structList[i].uInt8Field == 0
 
-    with all_types.TestAllTypes.from_bytes(data, traversal_limit_in_words=2 ** 62) as msg:
+    with all_types.TestAllTypes.from_bytes(
+        data, traversal_limit_in_words=2**62
+    ) as msg:
         for i in range(0, size):
             assert msg.structList[i].uInt8Field == 0
 
