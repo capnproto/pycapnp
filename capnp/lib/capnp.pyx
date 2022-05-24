@@ -1099,7 +1099,8 @@ if getattr(_sys, 'subversion', [''])[0] == 'PyPy':
     from pickle_helper import _struct_reducer
 else:
     def _struct_reducer(schema_id, data):
-        return _global_schema_parser.modules_by_id[schema_id].from_bytes(data)
+        with _global_schema_parser.modules_by_id[schema_id].from_bytes(data) as msg:
+            return msg
 
 
 cdef class _DynamicStructReader:

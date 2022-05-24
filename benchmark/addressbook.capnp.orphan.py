@@ -35,13 +35,12 @@ def writeAddressBook():
 
 
 def printAddressBook(msg_bytes):
-    addressBook = addressbook.AddressBook.from_bytes(msg_bytes)
-
-    for person in addressBook.people:
-        print(person.name, ":", person.email)
-        for phone in person.phones:
-            print(phone.type, ":", phone.number)
-        print()
+    with addressbook.AddressBook.from_bytes(msg_bytes) as addressBook:
+        for person in addressBook.people:
+            print(person.name, ":", person.email)
+            for phone in person.phones:
+                print(phone.type, ":", phone.number)
+            print()
 
 
 if __name__ == "__main__":
