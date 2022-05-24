@@ -46,8 +46,8 @@ def test_roundtrip_bytes(all_types):
     test_regression.init_all_types(msg)
     message_bytes = msg.to_bytes()
 
-    msg = all_types.TestAllTypes.from_bytes(message_bytes)
-    test_regression.check_all_types(msg)
+    with all_types.TestAllTypes.from_bytes(message_bytes) as msg:
+        test_regression.check_all_types(msg)
 
 
 @pytest.mark.skipif(
@@ -77,8 +77,8 @@ def test_roundtrip_bytes_mmap(all_types):
         f.seek(0)
         memory = mmap.mmap(f.fileno(), length)
 
-        msg = all_types.TestAllTypes.from_bytes(memory)
-        test_regression.check_all_types(msg)
+        with all_types.TestAllTypes.from_bytes(memory) as msg:
+            test_regression.check_all_types(msg)
 
 
 @pytest.mark.skipif(
@@ -91,15 +91,16 @@ def test_roundtrip_bytes_buffer(all_types):
     b = msg.to_bytes()
     v = memoryview(b)
     try:
-        msg = all_types.TestAllTypes.from_bytes(v)
-        test_regression.check_all_types(msg)
+        with all_types.TestAllTypes.from_bytes(v) as msg:
+            test_regression.check_all_types(msg)
     finally:
         v.release()
 
 
 def test_roundtrip_bytes_fail(all_types):
     with pytest.raises(TypeError):
-        all_types.TestAllTypes.from_bytes(42)
+        with all_types.TestAllTypes.from_bytes(42) as _:
+            pass
 
 
 @pytest.mark.skipif(
@@ -232,14 +233,16 @@ def test_from_bytes_traversal_limit(all_types):
     bld.init("structList", size)
     data = bld.to_bytes()
 
-    msg = all_types.TestAllTypes.from_bytes(data)
-    with pytest.raises(capnp.KjException):
-        for i in range(0, size):
-            msg.structList[i].uInt8Field == 0
+    with all_types.TestAllTypes.from_bytes(data) as msg:
+        with pytest.raises(capnp.KjException):
+            for i in range(0, size):
+                msg.structList[i].uInt8Field == 0
 
-    msg = all_types.TestAllTypes.from_bytes(data, traversal_limit_in_words=2 ** 62)
-    for i in range(0, size):
-        assert msg.structList[i].uInt8Field == 0
+    with all_types.TestAllTypes.from_bytes(
+        data, traversal_limit_in_words=2**62
+    ) as msg:
+        for i in range(0, size):
+            assert msg.structList[i].uInt8Field == 0
 
 
 def test_from_bytes_packed_traversal_limit(all_types):
@@ -254,7 +257,7 @@ def test_from_bytes_packed_traversal_limit(all_types):
             msg.structList[i].uInt8Field == 0
 
     msg = all_types.TestAllTypes.from_bytes_packed(
-        data, traversal_limit_in_words=2 ** 62
+        data, traversal_limit_in_words=2**62
     )
     for i in range(0, size):
         assert msg.structList[i].uInt8Field == 0

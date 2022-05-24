@@ -13,7 +13,8 @@ import test_capnp  # noqa: E402
 
 def decode(name):
     class_name = name[0].upper() + name[1:]
-    print(getattr(test_capnp, class_name).from_bytes(sys.stdin.read())._short_str())
+    with getattr(test_capnp, class_name).from_bytes(sys.stdin.read()) as msg:
+        print(msg._short_str())
 
 
 def encode(name):

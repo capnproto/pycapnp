@@ -40,12 +40,11 @@ def writeAddressBook():
 
 @profile
 def printAddressBook(msg_bytes):
-    addressBook = addressbook.AddressBook.from_bytes(msg_bytes)
-
-    for person in addressBook.people:
-        person.name, person.email
-        for phone in person.phones:
-            phone.type, phone.number
+    with addressbook.AddressBook.from_bytes(msg_bytes) as addressBook:
+        for person in addressBook.people:
+            person.name, person.email
+            for phone in person.phones:
+                phone.type, phone.number
 
 
 @profile

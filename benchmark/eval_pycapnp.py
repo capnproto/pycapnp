@@ -5,8 +5,8 @@ import eval_capnp
 from common import rand_int, rand_double, rand_bool
 from random import choice
 
-MAX_INT = 2 ** 31 - 1
-MIN_INT = -(2 ** 31)
+MAX_INT = 2**31 - 1
+MIN_INT = -(2**31)
 
 OPERATIONS = ["add", "subtract", "multiply", "divide", "modulus"]
 

@@ -9,7 +9,7 @@ jobs:
     container: ${{ matrix.container-image }}
     strategy:
       matrix:
-          python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39']
+          python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310']
           container-image: ['quay.io/pypa/manylinux2010_x86_64', 'quay.io/pypa/manylinux2010_i686']
 
     steps:
@@ -43,7 +43,7 @@ jobs:
       runs-on: ubuntu-latest
       strategy:
         matrix:
-          python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39']
+          python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310']
         fail-fast: false
       env:
         py: /opt/python/${{ matrix.python-version }}/bin/python

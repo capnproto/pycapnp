@@ -20,13 +20,13 @@ class ExampleImpl(thread_capnp.Example.Server):
     def subscribeStatus(self, subscriber, **kwargs):
         return (
             capnp.getTimer()
-            .after_delay(10 ** 9)
+            .after_delay(10**9)
             .then(lambda: subscriber.status(True))
             .then(lambda _: self.subscribeStatus(subscriber))
         )
 
     def longRunning(self, **kwargs):
-        return capnp.getTimer().after_delay(1 * 10 ** 9)
+        return capnp.getTimer().after_delay(1 * 10**9)
 
 
 class Server:

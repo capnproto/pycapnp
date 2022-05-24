@@ -22,6 +22,7 @@ from libc.string cimport memcpy
 import array
 import asyncio
 import collections as _collections
+import contextlib
 import enum as _enum
 import inspect as _inspect
 import os as _os
@@ -1098,7 +1099,8 @@ if getattr(_sys, 'subversion', [''])[0] == 'PyPy':
     from pickle_helper import _struct_reducer
 else:
     def _struct_reducer(schema_id, data):
-        return _global_schema_parser.modules_by_id[schema_id].from_bytes(data)
+        with _global_schema_parser.modules_by_id[schema_id].from_bytes(data) as msg:
+            return msg
 
 
 cdef class _DynamicStructReader:
@@ -3320,6 +3322,7 @@ class _StructModule(object):
         reader = _MultipleBytesPackedMessageReader(buf, self.schema, traversal_limit_in_words, nesting_limit)
         return reader
 
+    @contextlib.contextmanager
     def from_bytes(self, buf, traversal_limit_in_words=None, nesting_limit=None, builder=False):
         """Returns a Reader for the unpacked object in buf.
 
@@ -3340,13 +3343,18 @@ class _StructModule(object):
 
         :rtype: :class:`_DynamicStructReader` or :class:`_DynamicStructBuilder`
         """
-        if builder:
-            # message = _FlatMessageBuilder(buf)
-            message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
-            return message.get_root(self.schema).as_builder()
-        else:
-            message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
-            return message.get_root(self.schema)
+        message = None
+        try:
+            if builder:
+                # message = _FlatMessageBuilder(buf)
+                message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
+                yield message.get_root(self.schema).as_builder()
+            else:
+                message = _FlatArrayMessageReader(buf, traversal_limit_in_words, nesting_limit)
+                yield message.get_root(self.schema)
+        finally:
+            if message:
+                message.close()
 
     def from_segments(self, segments, traversal_limit_in_words=None, nesting_limit=None):
         """Returns a Reader for a list of segment bytes.
@@ -4088,15 +4096,22 @@ cdef class _AlignedBuffer:
 cdef class _BufferView:
     cdef Py_buffer view
     cdef char * buf
+    cdef int closed
 
     def __init__(self, other):
         cdef int ret = PyObject_GetBuffer(other, &self.view, PyBUF_SIMPLE)
         if ret < 0:
             raise ValueError("Invalid buffer passed to BufferView")
         self.buf = <char*>self.view.buf
+        self.closed = False
+
+    def close(self):
+        if not self.closed:
+            PyBuffer_Release(&self.view)
+            self.closed = True
 
     def __dealloc__(self):
-        PyBuffer_Release(&self.view)
+        self.close()
 
 
 @cython.internal
@@ -4133,6 +4148,7 @@ cdef class _FlatArrayMessageReaderAligned(_MessageReader):
 @cython.internal
 cdef class _FlatArrayMessageReader(_MessageReader):
     cdef object _object_to_pin
+    cdef _BufferView _buffer_view
 
     def __init__(self, buf, traversal_limit_in_words=None, nesting_limit=None):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
@@ -4151,10 +4167,12 @@ cdef class _FlatArrayMessageReader(_MessageReader):
                 self._object_to_pin = aligned
             else:
                 self._object_to_pin = buf
+            self._buffer_view = None
         elif PyObject_CheckBuffer(buf):
             view = _BufferView(buf)
             ptr = view.buf
             self._object_to_pin = view
+            self._buffer_view = view
         else:
             raise TypeError('expected buffer-like object in FlatArrayMessageReader')
 
@@ -4162,7 +4180,12 @@ cdef class _FlatArrayMessageReader(_MessageReader):
             schema_cpp.WordArrayPtr(<schema_cpp.word*>ptr, sz//8),
             opts)
 
+    def close(self):
+        if self._buffer_view:
+            self._buffer_view.close()
+
     def __dealloc__(self):
+        self.close()
         del self.thisptr
 
 

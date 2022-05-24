@@ -150,9 +150,9 @@ def test_unicode_str(all_types):
     msg = all_types.TestAllTypes.new_message()
 
     if sys.version_info[0] == 2:
-        msg.textField = u"f\u00e6oo".encode("utf-8")
+        msg.textField = "f\u00e6oo".encode("utf-8")
 
-        assert msg.textField.decode("utf-8") == u"f\u00e6oo"
+        assert msg.textField.decode("utf-8") == "f\u00e6oo"
     else:
         msg.textField = "f\u00e6oo"
 
