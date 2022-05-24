@@ -1,14 +1,20 @@
+## v1.1.1 (2022-05-23)
+- Added Python 3.10 support
+- aarch64 wheel support
+- Fix doc string for `_DynamicResizableListBuilder`
+- fix for unreleased buffers under mmap (issue 280)
+
 ## v1.1.0 (2021-06-09)
 - Validated compatibility with Python 3.10.0b2
 - Remove all bare except
-- Improve _StructModuleWhich to inherit from `enum.Enum`
+- Improve `_StructModuleWhich` to inherit from `enum.Enum`
 - Add Union on top level union messages
 - Fixed memory leak in `_SegmentArrayMessageReader`
 - Removed many pycodestyle warnings
 - Avoid crash if `__file__` is not set by importer
 - Fixed module.pyx `_set_<field>` for boolean fields
 - Fixed setup.py.tmpl support for `*.c++` files
-- Fixed _gen.py for python3 as `dict_keys` object are not indexable.
+- Fixed `_gen.py` for python3 as `dict_keys` object are not indexable.
 - Add test data to sdist
 - Add `pyproject.yaml`
 - Add missing inheritance to `_Schema` for `_StructSchema`
