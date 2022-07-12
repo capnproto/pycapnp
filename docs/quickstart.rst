@@ -298,7 +298,8 @@ There is serialization to a byte string available::
 
 And a corresponding from_bytes function::
 
-    alice = addressbook_capnp.Person.from_bytes(encoded_message)
+    with addressbook_capnp.Person.from_bytes(encoded_message) as alice:
+        # something with alice
 
 There are also packed versions::
 
