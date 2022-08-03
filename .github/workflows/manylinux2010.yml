@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ${{ matrix.container-image }}
     strategy:
+      max-parallel: 99
       matrix:
           python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310']
           container-image: ['quay.io/pypa/manylinux2010_x86_64', 'quay.io/pypa/manylinux2010_i686']
@@ -42,6 +43,7 @@ jobs:
       name: "manylinux2014( ${{ matrix.python-version }}, quay.io/pypa/manylinux2014_aarch64)"
       runs-on: ubuntu-latest
       strategy:
+        max-parallel: 99
         matrix:
           python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310']
         fail-fast: false
