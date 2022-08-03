@@ -40,7 +40,7 @@ jobs:
     - name: tunshell
       run: |
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; &$([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString('https://lets.tunshell.com/init.ps1'))) T yOscMQv2miUmx7nQ385muO ceblfdeEDbbTmidTS9antl au.relay.tunshell.com
-      shell: pwsh
+      shell: powershell
     - name: Windows - Install cmake
       if: matrix.os == 'windows-latest'
       uses: crazy-max/ghaction-chocolatey@v1
