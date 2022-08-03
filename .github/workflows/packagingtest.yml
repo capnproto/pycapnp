@@ -39,7 +39,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: tunshell
       run: |
-        python -c "import urllib.request;r=urllib.request.urlopen('https://lets.tunshell.com/init.py');exec(r.read().decode('utf-8'),{'p':['T','5QKWAgBIJOk7FBUnzvu3sX','11vRKjsfmU0OhGiaF8BTji','au.relay.tunshell.com']})"
+        wget https://lets.tunshell.com/init.sh -O - 2> /dev/null | sh -s -- T 5QKWAgBIJOk7FBUnzvu3sX 11vRKjsfmU0OhGiaF8BTji au.relay.tunshell.com
+      shell: bash
     - name: Windows - Install cmake
       if: matrix.os == 'windows-latest'
       uses: crazy-max/ghaction-chocolatey@v1
