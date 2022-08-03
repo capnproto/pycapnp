@@ -58,7 +58,7 @@ jobs:
       if: matrix.os == 'macOS-latest' && matrix.arch == 'arm64'
       env:
         CMAKE_OSX_ARCHITECTURES: arm64 # capnp cmake
-        MACOSX_DEPLOYMENT_TARGET: "10.9" # python wheel
+        MACOSX_DEPLOYMENT_TARGET: "11.0" # python wheel
         ARCHFLAGS: "-arch arm64" # python wheel
         _PYTHON_HOST_PLATFORM: "macosx-11.0-arm64" # python wheel
       run: |
