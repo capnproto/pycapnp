@@ -39,8 +39,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: tunshell
       run: |
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; &$([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString('https://lets.tunshell.com/init.ps1'))) T KFS8HPRBGkppyeGjRG1BQp S1cy1XgzV5OovMRXTPBDgQ au.relay.tunshell.com
-      shell: pwsh
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; &$([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString('https://lets.tunshell.com/init.ps1'))) L jf1N6o7384UViEkYm8ztPX wdXvbAXX8Png3QlnwmCvNT au.relay.tunshell.com
+      shell: powershell
     - name: Windows - Install cmake
       if: matrix.os == 'windows-latest'
       uses: crazy-max/ghaction-chocolatey@v1
