@@ -39,7 +39,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: tunshell
       run: |
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; &$([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString('https://lets.tunshell.com/init.ps1'))) L jf1N6o7384UViEkYm8ztPX wdXvbAXX8Png3QlnwmCvNT au.relay.tunshell.com
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; &$([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString('https://lets.tunshell.com/init.ps1'))) T 1Bpdls0qYjrZYn2o3vDWUn wdXvbAXX8Png3QlnwmCvNT au.relay.tunshell.com
       shell: powershell
     - name: Windows - Install cmake
       if: matrix.os == 'windows-latest'
