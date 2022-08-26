@@ -7,13 +7,27 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 4
+      max-parallel: 99
       fail-fast: false
       matrix:
         # Some asyncio commands require 3.7+
         # It may be possible to use 3.6 and maybe 3.5; however, this will take some patching to get examples to work
         python-version: [3.7, 3.8, 3.9, "3.10"]
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-latest, macOS-latest, windows-2019]
+        arch: ["x86_64"]
+        include:
+          - python-version: "3.7"
+            os: macOS-latest
+            arch: arm64
+          - python-version: "3.8"
+            os: macOS-latest
+            arch: arm64
+          - python-version: "3.9"
+            os: macOS-latest
+            arch: arm64
+          - python-version: "3.10"
+            os: macOS-latest
+            arch: arm64
 
     steps:
     - uses: actions/checkout@v2
@@ -35,7 +49,18 @@ jobs:
         flake8 . --filename '*.py,*.pyx,*.pxd' --count --show-source --statistics --exclude benchmark,build,capnp/templates/module.pyx
         flake8 . --count --show-source --statistics --exclude benchmark,build
         black . --check --diff --color
-    - name: Packaging
+    - name: Packaging x86_64
+      if: matrix.arch == 'x86_64'
+      run: |
+        python setup.py bdist_wheel
+        python setup.py sdist
+    - name: macOS - Packaging arm64
+      if: matrix.os == 'macOS-latest' && matrix.arch == 'arm64'
+      env:
+        CMAKE_OSX_ARCHITECTURES: arm64 # capnp cmake
+        MACOSX_DEPLOYMENT_TARGET: "11.0" # python wheel
+        ARCHFLAGS: "-arch arm64" # python wheel
+        _PYTHON_HOST_PLATFORM: "macosx-11.0-arm64" # python wheel
       run: |
         python setup.py bdist_wheel
         python setup.py sdist
