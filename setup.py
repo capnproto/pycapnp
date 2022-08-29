@@ -21,8 +21,8 @@ from buildutils.bundle import fetch_libcapnp
 _this_dir = os.path.dirname(__file__)
 
 MAJOR = 1
-MINOR = 1
-MICRO = 1
+MINOR = 2
+MICRO = 0
 TAG = ""
 VERSION = "%d.%d.%d%s" % (MAJOR, MINOR, MICRO, TAG)
 

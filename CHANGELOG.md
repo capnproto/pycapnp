@@ -1,3 +1,6 @@
+## v1.2.0 (2022-08-29)
+- Added support for Apple Silicon
+
 ## v1.1.1 (2022-05-23)
 - Added Python 3.10 support
 - aarch64 wheel support
