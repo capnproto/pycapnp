@@ -73,6 +73,7 @@ jobs:
         name: package_dist
         path: dist
     - name: Test with pytest
+      if: matrix.arch == 'x86_64'
       run: |
         pip install pytest
         pytest
