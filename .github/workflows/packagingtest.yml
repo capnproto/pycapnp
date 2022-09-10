@@ -40,6 +40,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Build pycapnp and install
+      if: matrix.arch == 'x86_64'
       run: |
         python setup.py build
         pip install .
@@ -62,13 +63,17 @@ jobs:
         ARCHFLAGS: "-arch arm64" # python wheel
         _PYTHON_HOST_PLATFORM: "macosx-11.0-arm64" # python wheel
       run: |
-        python setup.py bdist_wheel
+        env
+        rm -rf dist build build64 bundled
+        python setup.py bdist_wheel --force-bundled-libcapnp
+        ls -lh dist
         python setup.py sdist
     - uses: actions/upload-artifact@v1.0.0
       with:
         name: package_dist
         path: dist
     - name: Test with pytest
+      if: matrix.arch == 'x86_64'
       run: |
         pip install pytest
         pytest
