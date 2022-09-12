@@ -1,3 +1,6 @@
+## v1.2.1 (2022-09-11)
+- Fix packaging for Apple Silicon
+
 ## v1.2.0 (2022-08-29)
 - Added support for Apple Silicon
 
