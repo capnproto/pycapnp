@@ -40,7 +40,7 @@ struct ServerContext {
 void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<kj::ConnectionReceiver>&& listener, capnp::ReaderOptions & opts) {
   auto ptr = listener.get();
   tasks.add(ptr->accept().then(kj::mvCapture(kj::mv(listener),
-      [&, client](kj::Own<kj::ConnectionReceiver>&& listener,
+      [&, client, opts](kj::Own<kj::ConnectionReceiver>&& listener,
              kj::Own<kj::AsyncIoStream>&& connection) mutable {
     acceptLoop(tasks, client, kj::mv(listener), opts);
 
@@ -58,7 +58,7 @@ kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Cl
 
     tasks.add(context->provider->getNetwork().parseAddress(bindAddress)
         .then(kj::mvCapture(paf.fulfiller,
-          [&, client](kj::Own<kj::PromiseFulfiller<unsigned int>>&& portFulfiller,
+          [&, client, opts](kj::Own<kj::PromiseFulfiller<unsigned int>>&& portFulfiller,
                  kj::Own<kj::NetworkAddress>&& addr) mutable {
       auto listener = addr->listen();
       portFulfiller->fulfill(listener->getPort());
