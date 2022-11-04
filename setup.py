@@ -218,10 +218,12 @@ setup(
             "*.capnp",
             "helpers/*.pxd",
             "helpers/*.h",
+            "helpers/*.cpp",
             "includes/*.pxd",
             "lib/*.pxd",
             "lib/*.py",
             "lib/*.pyx",
+            "lib/*.h",
             "templates/*",
         ]
     },
