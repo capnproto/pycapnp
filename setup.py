@@ -136,7 +136,7 @@ class build_libcapnp_ext(build_ext_c):
 
             # Look for capnproto using pkg-config (and minimum version)
             try:
-                if pkgconfig.installed("capnp", ">= 0.8.0"):
+                if pkgconfig.installed("capnp", ">= 0.7.0"):
                     need_build = False
                 else:
                     need_build = True

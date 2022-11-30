@@ -19,7 +19,7 @@
 * cmake (needed for bundled capnproto)
   - ninja (macOS + Linux)
   - Visual Studio 2017+
-* capnproto-0.8.0 (0.7.0 will also work if linking to system libraries)
+* capnproto-0.8.0 (>=0.7.0 will also work if linking to system libraries)
   - Not necessary if using bundled capnproto
 * Python development headers (i.e. Python.h)
   - Distributables from python.org include these, however they are usually in a separate package on Linux distributions
