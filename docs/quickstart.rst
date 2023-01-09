@@ -550,35 +550,21 @@ To simplify the callbacks use a server class to define the reader/writer callbac
 
     class Server:
         async def myreader(self):
-            while self.retry:
+            while self.retry and not self.reader.at_eof():
                 try:
-                    # Must be a wait_for so we don't block on read()
-                    data = await asyncio.wait_for(
-                        self.reader.read(4096),
-                        timeout=0.1
-                    )
-                except asyncio.TimeoutError:
-                    print("myreader timeout.")
-                    continue
+                    data = await self.reader.read(4096)
+                    await self.server.write(data)
                 except Exception as err:
                     print("Unknown myreader err: %s", err)
                     return False
-                await self.server.write(data)
             print("myreader done.")
             return True
 
         async def mywriter(self):
             while self.retry:
                 try:
-                    # Must be a wait_for so we don't block on read()
-                    data = await asyncio.wait_for(
-                        self.server.read(4096),
-                        timeout=0.1
-                    )
+                    data = await self.server.read(4096)
                     self.writer.write(data.tobytes())
-                except asyncio.TimeoutError:
-                    print("mywriter timeout.")
-                    continue
                 except Exception as err:
                     print("Unknown mywriter err: %s", err)
                     return False
