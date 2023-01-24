@@ -40,16 +40,16 @@ jobs:
         path: wheelhouse
 
   manylinux2014:
-      name: "manylinux2014( ${{ matrix.python-version }}, quay.io/pypa/manylinux2014_aarch64)"
+      name: "manylinux2014( ${{ matrix.python-version }}, ${{ matrix.container-image }})"
       runs-on: ubuntu-latest
       strategy:
         max-parallel: 99
         matrix:
-          python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310']
+          python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310', 'cp311-cp311']
+          container-image: ['quay.io/pypa/manylinux2014_aarch64', 'quay.io/pypa/manylinux2014_x86_64']
         fail-fast: false
       env:
         py: /opt/python/${{ matrix.python-version }}/bin/python
-        img: quay.io/pypa/manylinux2014_aarch64
       steps:
       - uses: actions/checkout@v1
       - name: Set up QEMU
@@ -58,7 +58,7 @@ jobs:
       - name: Building pycapnp and packaging
         run: |
           docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
-          ${{ env.img }} \
+          ${{ matrix.container-image }} \
           bash -exc '${{ env.py }} -m venv .env && \
           source .env/bin/activate && \
           echo "Install Dependencies" && \
