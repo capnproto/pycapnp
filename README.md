@@ -1,11 +1,8 @@
 # pycapnp
 
 [![Packaging Status](https://github.com/capnproto/pycapnp/workflows/Packaging%20Test/badge.svg)](https://github.com/capnproto/pycapnp/actions)
-[![manylinux2010 Status](https://github.com/capnproto/pycapnp/workflows/manylinux2010/badge.svg)](https://github.com/capnproto/pycapnp/actions)
+[![manylinux2014 Status](https://github.com/capnproto/pycapnp/workflows/manylinux2014/badge.svg)](https://github.com/capnproto/pycapnp/actions)
 [![PyPI version](https://badge.fury.io/py/pycapnp.svg)](https://badge.fury.io/py/pycapnp)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/capnproto/pycapnp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/capnproto/pycapnp/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/capnproto/pycapnp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/capnproto/pycapnp/context:python)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/capnproto/pycapnp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/capnproto/pycapnp/context:cpp)
 
 [Cap'n'proto Mailing List](https://groups.google.com/forum/#!forum/capnproto) [Documentation](https://capnproto.github.io/pycapnp)
 
@@ -19,7 +16,7 @@
 * cmake (needed for bundled capnproto)
   - ninja (macOS + Linux)
   - Visual Studio 2017+
-* capnproto-0.8.0 (>=0.7.0 will also work if linking to system libraries)
+* capnproto-0.10 (>=0.7.0 will also work if linking to system libraries)
   - Not necessary if using bundled capnproto
 * Python development headers (i.e. Python.h)
   - Distributables from python.org include these, however they are usually in a separate package on Linux distributions
@@ -72,7 +69,6 @@ python setup.py clean
 ## Python Versions
 
 Python 3.7+ is supported.
-Earlier versions of Python have asyncio bugs that might be possible to work around, but may require significant work (3.5 and 3.6).
 
 
 ## Development
