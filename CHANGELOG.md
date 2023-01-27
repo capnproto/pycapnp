@@ -1,3 +1,13 @@
+## v1.3.0 (2023-01-26)
+- Update to bundled capnproto-0.10.3
+- Add Python 3.11 to Github Actions builds (#306)
+- Prevent race condition in example code (#305)
+
+## v1.2.2 (2022-12-01)
+- Update bundled bundled capnp to 0.8.1 due to CVE-2022-46149
+- Bundle lib/capnp_api.h and helpers/capabilityHelper.cpp (#301)
+- Avoid reading random values for reader options from dangling reference (#300)
+
 ## v1.2.1 (2022-09-11)
 - Fix packaging for Apple Silicon
 
