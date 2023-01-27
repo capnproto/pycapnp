@@ -12,7 +12,7 @@ jobs:
       matrix:
         # Some asyncio commands require 3.7+
         # It may be possible to use 3.6 and maybe 3.5; however, this will take some patching to get examples to work
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
         os: [ubuntu-latest, macOS-latest, windows-2019]
         arch: ["x86_64"]
         include:
@@ -26,6 +26,9 @@ jobs:
             os: macOS-latest
             arch: arm64
           - python-version: "3.10"
+            os: macOS-latest
+            arch: arm64
+          - python-version: "3.11"
             os: macOS-latest
             arch: arm64
 

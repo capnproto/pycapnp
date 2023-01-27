@@ -1,0 +1,41 @@
+name: manylinux2014
+
+on: [push, pull_request]
+
+jobs:
+  manylinux2014:
+      name: "manylinux2014( ${{ matrix.python-version }}, ${{ matrix.container-image }})"
+      runs-on: ubuntu-latest
+      strategy:
+        max-parallel: 99
+        matrix:
+          python-version: ['cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310', 'cp311-cp311']
+          container-image: ['quay.io/pypa/manylinux2014_aarch64', 'quay.io/pypa/manylinux2014_x86_64', 'quay.io/pypa/manylinux2014_i686']
+        fail-fast: false
+      env:
+        py: /opt/python/${{ matrix.python-version }}/bin/python
+      steps:
+      - uses: actions/checkout@v1
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+      - name: Building pycapnp and packaging
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          ${{ matrix.container-image }} \
+          bash -exc '${{ env.py }} -m venv .env && \
+          source .env/bin/activate && \
+          echo "Install Dependencies" && \
+          python -m pip install -r requirements.txt && \
+          python -m pip install auditwheel && \
+          echo "Build pycapnp and install" && \
+          python setup.py build && \
+          echo "Packaging" && \
+          python setup.py bdist_wheel && \
+          python setup.py sdist && \
+          auditwheel repair dist/*linux_*.whl && \
+          deactivate'
+      - uses: actions/upload-artifact@v1.0.0
+        with:
+          name: manylinux2014_dist
+          path: wheelhouse
