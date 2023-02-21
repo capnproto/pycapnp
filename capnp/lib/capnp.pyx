@@ -362,6 +362,11 @@ cdef class _NodeReader:
     property isEnum:
         def __get__(self):
             return self.thisptr.isEnum()
+    
+    property node:
+        """A property that returns the NodeReader as a DynamicStructReader."""
+        def __get__(self):
+            return _DynamicStructReader()._init(self.thisptr, self)
 
 
 cdef class _NestedNodeReader:
@@ -3229,6 +3234,34 @@ cdef class _StringArrayPtr:
 
     cdef ArrayPtr[StringPtr] asArrayPtr(self) except +reraise_kj_exception:
         return ArrayPtr[StringPtr](self.thisptr, self.size)
+
+
+cdef class SchemaLoader:
+    """ Class which can be used to construct Schema objects from schema::Nodes as defined in
+    schema.capnp.
+    
+    This class wraps capnproto/c++/src/capnp/schema-loader.h directly."""
+    def __cinit__(self):
+        self.thisptr = new C_SchemaLoader()
+    
+    def __dealloc__(self):
+        del self.thisptr
+
+    def load(self, _NodeReader reader):
+        """Loads the given schema node.  Validates the node and throws an exception if invalid.  This
+        makes a copy of the schema, so the object passed in can be destroyed after this returns.
+        
+        """
+        return _Schema()._init(self.thisptr.load(reader.thisptr))
+
+    def load_dynamic(self, _DynamicStructReader reader):
+        """Loads the given schema node with self.load, but converts from a _DynamicStructReader
+        first."""
+        return _Schema()._init(self.thisptr.load(helpers.toReader(reader.thisptr)))
+    
+    def get(self, id_):
+        """Gets the schema for the given ID, throwing an exception if it isn't present."""
+        return _Schema()._init(self.thisptr.get(<uint64_t>id_))
 
 
 cdef class SchemaParser:

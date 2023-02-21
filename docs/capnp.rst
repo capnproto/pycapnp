@@ -88,6 +88,10 @@ Miscellaneous
   :undoc-members:
   :inherited-members:
 
+.. autoclass:: SchemaLoader
+  :members:
+  :undoc-members:
+  :inherited-members:
 
 Functions
 ---------

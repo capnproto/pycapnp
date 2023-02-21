@@ -119,3 +119,30 @@ def test_bundled_import_hook():
     # stream.capnp should be bundled, or provided by the system capnproto
     capnp.add_import_hook()
     import stream_capnp  # noqa: F401
+
+
+def test_load_capnp(foo):
+    # test dynamically loading
+    loader = capnp.SchemaLoader()
+    loader.load(foo.Baz.schema.get_proto())
+    loader.load_dynamic(foo.Qux.schema.get_proto().node)
+
+    schema = loader.get(foo.Baz.schema.get_proto().node.id).as_struct()
+    assert "text" in schema.fieldnames
+    assert "qux" in schema.fieldnames
+    assert schema.fields["qux"].proto.slot.type.which == "struct"
+
+    class Wrapper(foo.Wrapper.Server):
+        def wrapped(self, object, **kwargs):
+            assert isinstance(object, capnp.lib.capnp._DynamicObjectReader)
+            baz_ = object.as_struct(schema)
+            assert baz_.text == "test"
+            assert baz_.qux.id == 2
+
+    # test calling into the wrapper with a Baz message.
+    baz_ = foo.Baz.new_message()
+    baz_.text = "test"
+    baz_.qux.id = 2
+
+    wrapper = foo.Wrapper._new_client(Wrapper())
+    wrapper.wrapped(baz_).wait()

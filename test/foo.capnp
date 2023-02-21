@@ -5,3 +5,16 @@ struct Foo {
   name @1 :Text;
 }
 
+
+struct Baz{
+    text @0 :Text;
+    qux @1 :Qux;
+}
+
+struct Qux{
+    id @0 :UInt64;
+}
+
+interface Wrapper  {
+    wrapped @0 (object :AnyPointer);
+}

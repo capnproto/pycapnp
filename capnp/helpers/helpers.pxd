@@ -1,7 +1,7 @@
 from capnp.includes.capnp_cpp cimport (
     Maybe, PyPromise, VoidPromise, RemotePromise,
-    DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability,
-    RpcSystem, MessageBuilder, Own, PyRefCounter
+    DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, 
+    RpcSystem, MessageBuilder, Own, PyRefCounter, Node, DynamicStruct
 )
 
 from capnp.includes.schema_cpp cimport ByteArray
@@ -30,3 +30,7 @@ cdef extern from "capnp/helpers/rpcHelper.h":
 
 cdef extern from "capnp/helpers/serialize.h":
     ByteArray messageToPackedBytes(MessageBuilder &, size_t wordCount)
+
+cdef extern from "capnp/helpers/deserialize.h":
+    Node.Reader toReader(DynamicStruct.Reader reader) except +reraise_kj_exception
+
