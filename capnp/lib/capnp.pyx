@@ -3822,7 +3822,8 @@ cdef class _PackedMessageReader(_MessageReader):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = parent
-        self.thisptr = new schema_cpp.PackedMessageReader(stream, opts)
+        with nogil:
+            self.thisptr = new schema_cpp.PackedMessageReader(stream, opts)
         return self
 
     def __dealloc__(self):
@@ -3872,7 +3873,8 @@ cdef class _InputMessageReader(_MessageReader):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = parent
-        self.thisptr = new schema_cpp.InputStreamMessageReader(stream, opts)
+        with nogil:
+            self.thisptr = new schema_cpp.InputStreamMessageReader(stream, opts)
         return self
 
     def __dealloc__(self):
