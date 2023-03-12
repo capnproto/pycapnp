@@ -18,7 +18,6 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class ExampleImpl(thread_capnp.Example.Server):
-
     "Implementation of the Example threading Cap'n Proto interface."
 
     def subscribeStatus(self, subscriber, **kwargs):

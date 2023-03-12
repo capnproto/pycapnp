@@ -1,5 +1,7 @@
 jinja2
+black
 cython
+flake8
 setuptools
 pkgconfig
 pytest

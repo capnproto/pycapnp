@@ -6,6 +6,8 @@ verify_ssl = true
 [packages]
 Cython = "*"
 Jinja2 = "*"
+black = "*"
+flake8 = "*"
 pkgconfig = "*"
 pytest = "*"
 sphinx = "*"

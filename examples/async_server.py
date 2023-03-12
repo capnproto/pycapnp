@@ -14,7 +14,6 @@ logger.setLevel(logging.DEBUG)
 
 
 class ExampleImpl(thread_capnp.Example.Server):
-
     "Implementation of the Example threading Cap'n Proto interface."
 
     def subscribeStatus(self, subscriber, **kwargs):

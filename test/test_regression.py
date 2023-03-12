@@ -379,7 +379,7 @@ def assert_almost(float1, float2):
 
 def check_list(reader, expected):
     assert len(reader) == len(expected)
-    for (i, v) in enumerate(expected):
+    for i, v in enumerate(expected):
         if type(v) is float:
             assert_almost(reader[i], v)
         else:
