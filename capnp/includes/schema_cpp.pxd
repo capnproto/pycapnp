@@ -7,55 +7,55 @@ from capnp.helpers.non_circular cimport reraise_kj_exception
 from capnp.includes.types cimport *
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
-    cdef cppclass DynamicValue:
-        cppclass Reader:
+    cdef cppclass DynamicValue nogil:
+        cppclass Reader nogil:
             pass
-        cppclass Builder:
+        cppclass Builder nogil:
             pass
-    cdef cppclass DynamicStruct:
-        cppclass Reader:
+    cdef cppclass DynamicStruct nogil:
+        cppclass Reader nogil:
             pass
 
-    cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder":
+    cdef cppclass DynamicStruct_Builder" ::capnp::DynamicStruct::Builder" nogil:
         pass
 
 cdef extern from "capnp/orphan.h" namespace " ::capnp":
-    cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>":
+    cdef cppclass DynamicOrphan" ::capnp::Orphan< ::capnp::DynamicValue>" nogil:
         DynamicValue.Builder get()
         DynamicValue.Reader getReader()
 
 cdef extern from "capnp/schema.h" namespace " ::capnp":
-    cdef cppclass Schema:
+    cdef cppclass Schema nogil:
         pass
-    cdef cppclass StructSchema(Schema):
+    cdef cppclass StructSchema(Schema) nogil:
         pass
 
 cdef extern from "capnp/any.h" namespace " ::capnp":
-    cdef cppclass AnyPointer:
-        cppclass Reader:
+    cdef cppclass AnyPointer nogil:
+        cppclass Reader nogil:
             pass
-        cppclass Builder:
+        cppclass Builder nogil:
             pass
 
 cdef extern from "capnp/blob.h" namespace " ::capnp":
-    cdef cppclass Data:
-        cppclass Reader:
+    cdef cppclass Data nogil:
+        cppclass Reader nogil:
             char * begin()
             size_t size()
-        cppclass Builder:
+        cppclass Builder nogil:
             char * begin()
             size_t size()
-    cdef cppclass Text:
-        cppclass Reader:
+    cdef cppclass Text nogil:
+        cppclass Reader nogil:
             char * cStr()
-        cppclass Builder:
+        cppclass Builder nogil:
             char * cStr()
 cdef extern from "capnp/message.h" namespace " ::capnp":
-    cdef cppclass List[T]:
-        cppclass Reader:
+    cdef cppclass List[T] nogil:
+        cppclass Reader nogil:
             T operator[](uint)
             uint size()
-        cppclass Builder:
+        cppclass Builder nogil:
             T operator[](uint)
             uint size()
 
@@ -131,34 +131,34 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
     cdef cppclass EnumNode
     cdef cppclass StructNode
     cdef cppclass Annotation
-    cdef cppclass CodeGeneratorRequest:
+    cdef cppclass CodeGeneratorRequest nogil:
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             List[CodeGeneratorRequest.Node].Reader getNodes()
             List[UInt64].Reader getRequestedFiles()
-        cppclass Builder:
+        cppclass Builder nogil:
 
             List[CodeGeneratorRequest.Node].Builder getNodes()
             List[CodeGeneratorRequest.Node].Builder initNodes(int)
             List[UInt64].Builder getRequestedFiles()
             List[UInt64].Builder initRequestedFiles(int)
 
-    cdef cppclass InterfaceNode:
+    cdef cppclass InterfaceNode nogil:
         cppclass Method
 
         cppclass Method:
             cppclass Param
 
-            cppclass Param:
+            cppclass Param nogil:
 
-                cppclass Reader:
+                cppclass Reader nogil:
 
                     Value getDefaultValue()
                     Type getType()
                     Text.Reader getName()
                     List[InterfaceNode.Method.Param.Annotation].Reader getAnnotations()
-                cppclass Builder:
+                cppclass Builder nogil:
 
                     Value getDefaultValue()
                     void setDefaultValue(Value)
@@ -169,7 +169,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                     List[InterfaceNode.Method.Param.Annotation].Builder getAnnotations()
                     List[InterfaceNode.Method.Param.Annotation].Builder initAnnotations(int)
 
-            cppclass Reader:
+            cppclass Reader nogil:
 
                 UInt16 getCodeOrder()
                 Text.Reader getName()
@@ -178,7 +178,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 Type getReturnType()
                 List[InterfaceNode.Method.Annotation].Reader getAnnotations()
 
-            cppclass Builder:
+            cppclass Builder nogil:
 
                 UInt16 getCodeOrder()
                 void setCodeOrder(UInt16)
@@ -193,21 +193,21 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 List[InterfaceNode.Method.Annotation].Builder getAnnotations()
                 List[InterfaceNode.Method.Annotation].Builder initAnnotations(int)
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             List[InterfaceNode.InterfaceNode.Method].Reader getMethods()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             List[InterfaceNode.InterfaceNode.Method].Builder getMethods()
             List[InterfaceNode.InterfaceNode.Method].Builder initMethods(int)
 
-    cdef cppclass Value:
+    cdef cppclass Value nogil:
         cppclass Body
 
-        cppclass Body:
+        cppclass Body nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
                 int which()
                 UInt32 getUint32Value()
                 Float64 getFloat64Value()
@@ -229,7 +229,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 UInt64 getUint64Value()
                 Object getObjectValue()
 
-            cppclass Builder:
+            cppclass Builder nogil:
                 int which()
                 UInt32 getUint32Value()
                 void setUint32Value(UInt32)
@@ -270,35 +270,35 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 Object getObjectValue()
                 void setObjectValue(Object)
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             Value.Body getBody()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             Value.Body getBody()
             void setBody(Value.Body)
 
-    cdef cppclass ConstNode:
+    cdef cppclass ConstNode nogil:
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             Type getType()
             Value getValue()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             Type getType()
             void setType(Type)
             Value getValue()
             void setValue(Value)
 
-    cdef cppclass Type:
+    cdef cppclass Type nogil:
         cppclass Body
 
-        cppclass Body:
+        cppclass Body nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
                 int which()
                 Void getBoolType()
                 UInt64 getStructType()
@@ -320,7 +320,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 Void getTextType()
                 Void getInt16Type()
 
-            cppclass Builder:
+            cppclass Builder nogil:
                 int which()
                 Void getBoolType()
                 void setBoolType(Void)
@@ -361,48 +361,48 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 Void getInt16Type()
                 void setInt16Type(Void)
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             Type.Body getBody()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             Type.Body getBody()
             void setBody(Type.Body)
 
-    cdef cppclass FileNode:
+    cdef cppclass FileNode nogil:
         cppclass Import
 
-        cppclass Import:
+        cppclass Import nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
 
                 UInt64 getId()
                 Text.Reader getName()
 
-            cppclass Builder:
+            cppclass Builder nogil:
 
                 UInt64 getId()
                 void setId(UInt64)
                 Text.Builder getName()
                 void setName(Text)
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             List[FileNode.FileNode.Import].Reader getImports()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             List[FileNode.FileNode.Import].Builder getImports()
             List[FileNode.FileNode.Import].Builder initImports(int)
 
-    cdef cppclass Node:
+    cdef cppclass Node nogil:
         cppclass Body
         cppclass NestedNode
 
-        cppclass Body:
+        cppclass Body nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
                 int which()
                 AnnotationNode getAnnotationNode()
                 InterfaceNode getInterfaceNode()
@@ -410,7 +410,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 StructNode getStructNode()
                 ConstNode getConstNode()
                 FileNode getFileNode()
-            cppclass Builder:
+            cppclass Builder nogil:
                 int which()
                 AnnotationNode getAnnotationNode()
                 void setAnnotationNode(AnnotationNode)
@@ -425,19 +425,19 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 FileNode getFileNode()
                 void setFileNode(FileNode)
 
-        cppclass NestedNode:
+        cppclass NestedNode nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
 
                 Text.Reader getName()
                 UInt64 getId()
-            cppclass Builder:
+            cppclass Builder nogil:
 
                 Text.Builder getName()
                 void setName(Text)
                 UInt64 getId()
                 void setId(UInt64)
-        cppclass Reader:
+        cppclass Reader nogil:
 
             Node.Body getBody()
             Text.Reader getDisplayName()
@@ -452,7 +452,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             bint isConst()
             bint isAnnotation()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             Node.Body getBody()
             void setBody(Node.Body)
@@ -473,9 +473,9 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             bint isConst()
             bint isAnnotation()
 
-    cdef cppclass AnnotationNode:
+    cdef cppclass AnnotationNode nogil:
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             Bool getTargetsField()
             Bool getTargetsConst()
@@ -490,7 +490,7 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             Bool getTargetsInterface()
             Bool getTargetsMethod()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             Bool getTargetsField()
             void setTargetsField(Bool)
@@ -517,18 +517,18 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             Bool getTargetsMethod()
             void setTargetsMethod(Bool)
 
-    cdef cppclass EnumNode:
+    cdef cppclass EnumNode nogil:
         cppclass Enumerant
 
-        cppclass Enumerant:
+        cppclass Enumerant nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
 
                 UInt16 getCodeOrder()
                 Text.Reader getName()
                 List[EnumNode.Enumerant.Annotation].Reader getAnnotations()
 
-            cppclass Builder:
+            cppclass Builder nogil:
 
                 UInt16 getCodeOrder()
                 void setCodeOrder(UInt16)
@@ -537,55 +537,55 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 List[EnumNode.Enumerant.Annotation].Builder getAnnotations()
                 List[EnumNode.Enumerant.Annotation].Builder initAnnotations(int)
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             List[EnumNode.EnumNode.Enumerant].Reader getEnumerants()
 
-        cppclass Builder:
+        cppclass Builder nogil:
 
             List[EnumNode.EnumNode.Enumerant].Builder getEnumerants()
             List[EnumNode.EnumNode.Enumerant].Builder initEnumerants(int)
 
-    cdef cppclass StructNode:
+    cdef cppclass StructNode nogil:
         cppclass Union
         cppclass Member
         cppclass Field
 
-        cppclass Union:
+        cppclass Union nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
 
                 UInt32 getDiscriminantOffset()
                 List[StructNode.Union.StructNode.Member].Reader getMembers()
-            cppclass Builder:
+            cppclass Builder nogil:
 
                 UInt32 getDiscriminantOffset()
                 void setDiscriminantOffset(UInt32)
                 List[StructNode.Union.StructNode.Member].Builder getMembers()
                 List[StructNode.Union.StructNode.Member].Builder initMembers(int)
-        cppclass Member:
+        cppclass Member nogil:
             cppclass Body
 
-            cppclass Body:
+            cppclass Body nogil:
 
-                cppclass Reader:
+                cppclass Reader nogil:
                     int which()
                     Field getFieldMember()
                     Union getUnionMember()
-                cppclass Builder:
+                cppclass Builder nogil:
                     int which()
                     Field getFieldMember()
                     void setFieldMember(Field)
                     Union getUnionMember()
                     void setUnionMember(Union)
-            cppclass Reader:
+            cppclass Reader nogil:
 
                 UInt16 getOrdinal()
                 StructNode.Member.Body getBody()
                 UInt16 getCodeOrder()
                 Text.Reader getName()
                 List[StructNode.Member.Annotation].Reader getAnnotations()
-            cppclass Builder:
+            cppclass Builder nogil:
 
                 UInt16 getOrdinal()
                 void setOrdinal(UInt16)
@@ -598,14 +598,14 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 List[StructNode.Member.Annotation].Builder getAnnotations()
                 List[StructNode.Member.Annotation].Builder initAnnotations(int)
 
-        cppclass Field:
+        cppclass Field nogil:
 
-            cppclass Reader:
+            cppclass Reader nogil:
 
                 Value getDefaultValue()
                 Type getType()
                 UInt32 getOffset()
-            cppclass Builder:
+            cppclass Builder nogil:
 
                 Value getDefaultValue()
                 void setDefaultValue(Value)
@@ -613,12 +613,12 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
                 void setType(Type)
                 UInt32 getOffset()
                 void setOffset(UInt32)
-        cppclass Reader:
+        cppclass Reader nogil:
 
             UInt16 getDataSectionWordSize()
             List[StructNode.StructNode.Member].Reader getMembers()
             UInt16 getPointerSectionSize()
-        cppclass Builder:
+        cppclass Builder nogil:
 
             UInt16 getDataSectionWordSize()
             void setDataSectionWordSize(UInt16)
@@ -626,30 +626,30 @@ cdef extern from "capnp/schema.capnp.h" namespace " ::capnp::schema":
             List[StructNode.StructNode.Member].Builder initMembers(int)
             UInt16 getPointerSectionSize()
             void setPointerSectionSize(UInt16)
-    cdef cppclass Annotation:
+    cdef cppclass Annotation nogil:
 
-        cppclass Reader:
+        cppclass Reader nogil:
 
             UInt64 getId()
             Value getValue()
-        cppclass Builder:
+        cppclass Builder nogil:
 
             UInt64 getId()
             void setId(UInt64)
             Value getValue()
             void setValue(Value)
-    cdef cppclass ListNestedNodeReader"capnp::List<capnp::schema::Node::NestedNode>::Reader":
+    cdef cppclass ListNestedNodeReader"capnp::List<capnp::schema::Node::NestedNode>::Reader" nogil:
         ListNestedNodeReader()
         ListNestedNodeReader(ListNestedNodeReader)
         Node.NestedNode.Reader operator[](uint)
         uint size()
 
 cdef extern from "capnp/message.h" namespace " ::capnp":
-    cdef cppclass ReaderOptions:
+    cdef cppclass ReaderOptions nogil:
         uint64_t traversalLimitInWords
         uint nestingLimit
 
-    cdef cppclass MessageBuilder:
+    cdef cppclass MessageBuilder nogil:
         CodeGeneratorRequest.Builder getRootCodeGeneratorRequest'getRoot< ::capnp::schema::CodeGeneratorRequest>'()
         CodeGeneratorRequest.Builder initRootCodeGeneratorRequest'initRoot< ::capnp::schema::CodeGeneratorRequest>'()
         InterfaceNode.Builder getRootInterfaceNode'getRoot< ::capnp::schema::InterfaceNode>'()
@@ -683,7 +683,7 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
 
         DynamicOrphan newOrphan'getOrphanage().newOrphan'(StructSchema)
 
-    cdef cppclass MessageReader:
+    cdef cppclass MessageReader nogil:
         CodeGeneratorRequest.Reader getRootCodeGeneratorRequest'getRoot< ::capnp::schema::CodeGeneratorRequest>'()
         InterfaceNode.Reader getRootInterfaceNode'getRoot< ::capnp::schema::InterfaceNode>'()
         Value.Reader getRootValue'getRoot< ::capnp::schema::Value>'()
@@ -699,15 +699,15 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         DynamicStruct.Reader getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
         AnyPointer.Reader getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
 
-    cdef cppclass MallocMessageBuilder(MessageBuilder):
+    cdef cppclass MallocMessageBuilder(MessageBuilder) nogil:
         MallocMessageBuilder()
         MallocMessageBuilder(int)
 
-    cdef cppclass SegmentArrayMessageReader(MessageReader):
+    cdef cppclass SegmentArrayMessageReader(MessageReader) nogil:
         SegmentArrayMessageReader(ConstWordArrayArrayPtr array) except +reraise_kj_exception
         SegmentArrayMessageReader(ConstWordArrayArrayPtr array, ReaderOptions) except +reraise_kj_exception
 
-    cdef cppclass FlatMessageBuilder(MessageBuilder):
+    cdef cppclass FlatMessageBuilder(MessageBuilder) nogil:
         FlatMessageBuilder(WordArrayPtr array)
         FlatMessageBuilder(WordArrayPtr array, ReaderOptions)
 
@@ -715,27 +715,27 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         VOID
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
-    cdef cppclass word:
+    cdef cppclass word nogil:
         pass
 
 cdef extern from "kj/common.h" namespace " ::kj":
     # Cython can't handle ArrayPtr[word] as a function argument
-    cdef cppclass WordArrayPtr " ::kj::ArrayPtr< ::capnp::word>":
+    cdef cppclass WordArrayPtr " ::kj::ArrayPtr< ::capnp::word>" nogil:
         WordArrayPtr()
         WordArrayPtr(word *, size_t size)
         size_t size()
         word& operator[](size_t index)
-    cdef cppclass ByteArrayPtr " ::kj::ArrayPtr< ::capnp::byte>":
+    cdef cppclass ByteArrayPtr " ::kj::ArrayPtr< ::capnp::byte>" nogil:
         ByteArrayPtr()
         ByteArrayPtr(byte *, size_t size)
         size_t size()
         byte& operator[](size_t index)
-    cdef cppclass ConstWordArrayPtr " ::kj::ArrayPtr< const ::capnp::word>":
+    cdef cppclass ConstWordArrayPtr " ::kj::ArrayPtr< const ::capnp::word>" nogil:
         ConstWordArrayPtr()
         ConstWordArrayPtr(word *, size_t size)
         size_t size()
         const word* begin()
-    cdef cppclass ConstWordArrayArrayPtr " ::kj::ArrayPtr< const ::kj::ArrayPtr< const ::capnp::word>>":
+    cdef cppclass ConstWordArrayArrayPtr " ::kj::ArrayPtr< const ::kj::ArrayPtr< const ::capnp::word>>" nogil:
         ConstWordArrayArrayPtr()
         ConstWordArrayArrayPtr(ConstWordArrayPtr*, size_t size)
         size_t size()
@@ -743,79 +743,79 @@ cdef extern from "kj/common.h" namespace " ::kj":
 
 cdef extern from "kj/array.h" namespace " ::kj":
     # Cython can't handle Array[word] as a function argument
-    cdef cppclass WordArray " ::kj::Array< ::capnp::word>":
+    cdef cppclass WordArray " ::kj::Array< ::capnp::word>" nogil:
         word* begin()
         size_t size()
-    cdef cppclass ByteArray " ::kj::Array< ::capnp::byte>":
+    cdef cppclass ByteArray " ::kj::Array< ::capnp::byte>" nogil:
         char* begin()
         size_t size()
 
 cdef extern from "kj/array.h" namespace " ::kj":
-    cdef cppclass InputStream:
+    cdef cppclass InputStream nogil:
         void read(void* buffer, size_t bytes) except +reraise_kj_exception
         size_t read(void* buffer, size_t minBytes, size_t maxBytes) except +reraise_kj_exception
         size_t tryRead(void* buffer, size_t minBytes, size_t maxBytes) except +reraise_kj_exception
         void skip(size_t bytes) except +reraise_kj_exception
 
-    cdef cppclass OutputStream:
+    cdef cppclass OutputStream nogil:
         void write(const void* buffer, size_t size) except +reraise_kj_exception
         # void write(ArrayPtr<const ArrayPtr<const byte>> pieces);
 
-    cdef cppclass BufferedInputStream(InputStream):
+    cdef cppclass BufferedInputStream(InputStream) nogil:
         pass
-    cdef cppclass BufferedOutputStream(OutputStream):
+    cdef cppclass BufferedOutputStream(OutputStream) nogil:
         pass
 
-    cdef cppclass BufferedInputStreamWrapper(BufferedInputStream):
+    cdef cppclass BufferedInputStreamWrapper(BufferedInputStream) nogil:
         BufferedInputStreamWrapper(InputStream&)
-    cdef cppclass BufferedOutputStreamWrapper(BufferedOutputStream):
+    cdef cppclass BufferedOutputStreamWrapper(BufferedOutputStream) nogil:
         BufferedOutputStreamWrapper(OutputStream&)
 
-    cdef cppclass ArrayInputStream(BufferedInputStream):
+    cdef cppclass ArrayInputStream(BufferedInputStream) nogil:
         ArrayInputStream(ByteArrayPtr)
         ByteArrayPtr getArray()
         # ByteArrayPtr tryGetReadBuffer() except +reraise_kj_exception
-    cdef cppclass ArrayOutputStream(BufferedOutputStream):
+    cdef cppclass ArrayOutputStream(BufferedOutputStream) nogil:
         ArrayOutputStream(ByteArrayPtr)
         ByteArrayPtr getArray()
         ByteArrayPtr getWriteBuffer()
 
-    cdef cppclass FdInputStream(InputStream):
+    cdef cppclass FdInputStream(InputStream) nogil:
         FdInputStream(int)
-    cdef cppclass FdOutputStream(OutputStream):
+    cdef cppclass FdOutputStream(OutputStream) nogil:
         FdOutputStream(int)
 
 cdef extern from "capnp/serialize.h" namespace " ::capnp":
-    cdef cppclass InputStreamMessageReader(MessageReader):
+    cdef cppclass InputStreamMessageReader(MessageReader) nogil:
         InputStreamMessageReader(InputStream&) except +reraise_kj_exception
         InputStreamMessageReader(InputStream&, ReaderOptions) except +reraise_kj_exception
-    cdef cppclass StreamFdMessageReader(MessageReader):
+    cdef cppclass StreamFdMessageReader(MessageReader) nogil:
         StreamFdMessageReader(int) except +reraise_kj_exception
         StreamFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
-    cdef cppclass FlatArrayMessageReader(MessageReader):
+    cdef cppclass FlatArrayMessageReader(MessageReader) nogil:
         FlatArrayMessageReader(WordArrayPtr array) except +reraise_kj_exception
         FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +reraise_kj_exception
         const word* getEnd() const
 
-    void writeMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
+    void writeMessageToFd(int, MessageBuilder&) nogil except +reraise_kj_exception
 
-    WordArray messageToFlatArray(MessageBuilder &)
+    WordArray messageToFlatArray(MessageBuilder &) nogil
 
 cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
-    cdef cppclass PackedInputStream(InputStream):
+    cdef cppclass PackedInputStream(InputStream) nogil:
         PackedInputStream(BufferedInputStream&) except +reraise_kj_exception
-    cdef cppclass PackedOutputStream(OutputStream):
+    cdef cppclass PackedOutputStream(OutputStream) nogil:
         PackedOutputStream(BufferedOutputStream&) except +reraise_kj_exception
 
-    cdef cppclass PackedMessageReader(MessageReader):
+    cdef cppclass PackedMessageReader(MessageReader) nogil:
         PackedMessageReader(BufferedInputStream&) except +reraise_kj_exception
         PackedMessageReader(BufferedInputStream&, ReaderOptions) except +reraise_kj_exception
 
-    cdef cppclass PackedFdMessageReader(MessageReader):
+    cdef cppclass PackedFdMessageReader(MessageReader) nogil:
         PackedFdMessageReader(int) except +reraise_kj_exception
         PackedFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
-    void writePackedMessage(BufferedOutputStream&, MessageBuilder&) except +reraise_kj_exception
-    void writePackedMessage(OutputStream&, MessageBuilder&) except +reraise_kj_exception
-    void writePackedMessageToFd(int, MessageBuilder&) except +reraise_kj_exception
+    void writePackedMessage(BufferedOutputStream&, MessageBuilder&) nogil except +reraise_kj_exception
+    void writePackedMessage(OutputStream&, MessageBuilder&) nogil except +reraise_kj_exception
+    void writePackedMessageToFd(int, MessageBuilder&) nogil except +reraise_kj_exception
