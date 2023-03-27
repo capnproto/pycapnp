@@ -1,8 +1,9 @@
 from capnp.includes.capnp_cpp cimport (
-    Maybe, ReaderOptions, DynamicStruct, Request, Response, PyPromise, VoidPromise, PyPromiseArray,
+    Maybe, ReaderOptions, DynamicStruct, Request, Response, Promise, PyPromise, VoidPromise, PyPromiseArray,
     RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue,
     Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, AnyPointer,
-    DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer, AsyncIoStreamReadHelper,
+    DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer,
+    LowLevelAsyncIoProvider, AsyncIoProvider
 )
 
 from capnp.includes.schema_cpp cimport ByteArray
@@ -30,12 +31,13 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     PyPromise convert_to_pypromise(RemotePromise&)
     PyPromise convert_to_pypromise(VoidPromise&)
     VoidPromise convert_to_voidpromise(PyPromise&)
+    PyPromise wrapSizePromise(Promise[size_t])
     void init_capnp_api()
 
 cdef extern from "capnp/helpers/rpcHelper.h":
     Capability.Client bootstrapHelper(RpcSystem&)
     Capability.Client bootstrapHelperServer(RpcSystem&)
-    PyPromise connectServer(TaskSet &, Capability.Client, AsyncIoContext *, StringPtr, ReaderOptions &)
+    PyPromise connectServer(TaskSet &, Capability.Client, AsyncIoProvider *, StringPtr, ReaderOptions &)
 
 cdef extern from "capnp/helpers/serialize.h":
     ByteArray messageToPackedBytes(MessageBuilder &, size_t wordCount)
@@ -47,4 +49,4 @@ cdef extern from "capnp/helpers/asyncHelper.h":
     bool pollRemote(RemotePromise *, WaitScope&)
     PyObject * waitPyPromise(PyPromise *, WaitScope&)
     void waitVoidPromise(VoidPromise *, WaitScope&)
-    Timer * getTimer(AsyncIoContext *) except +reraise_kj_exception
+    Timer * getTimer(LowLevelAsyncIoProvider *) except +reraise_kj_exception

@@ -4,36 +4,6 @@
 #include "Python.h"
 #include "capabilityHelper.h"
 
-class PyEventPort: public kj::EventPort {
-public:
-  PyEventPort(PyObject * _py_event_port): py_event_port(_py_event_port) {
-    // We don't need to incref/decref, since this C++ class will be owned by the Python wrapper class, and we'll make sure the python class doesn't refcount to 0 elsewhere.
-    // Py_INCREF(py_event_port);
-  }
-  virtual bool wait() {
-    GILAcquire gil;
-    PyObject_CallMethod(py_event_port, const_cast<char *>("wait"), NULL);
-    return true;  // TODO: get the bool result from python
-  }
-
-  virtual bool poll() {
-    GILAcquire gil;
-    PyObject_CallMethod(py_event_port, const_cast<char *>("poll"), NULL);
-    return true;  // TODO: get the bool result from python
-  }
-
-  virtual void setRunnable(bool runnable) {
-    GILAcquire gil;
-    PyObject * arg = Py_False;
-    if (runnable)
-      arg = Py_True;
-    PyObject_CallMethod(py_event_port, const_cast<char *>("set_runnable"), const_cast<char *>("o"), arg);
-  }
-
-private:
-  PyObject * py_event_port;
-};
-
 void waitNeverDone(kj::WaitScope & scope) {
   GILRelease gil;
   kj::NEVER_DONE.wait(scope);
@@ -44,8 +14,8 @@ void pollWaitScope(kj::WaitScope & scope) {
   scope.poll();
 }
 
-kj::Timer * getTimer(kj::AsyncIoContext * context) {
-  return &context->lowLevelProvider->getTimer();
+kj::Timer * getTimer(kj::LowLevelAsyncIoProvider * provider) {
+  return &provider->getTimer();
 }
 
 void waitVoidPromise(kj::Promise<void> * promise, kj::WaitScope & scope) {

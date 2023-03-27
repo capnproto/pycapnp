@@ -45,6 +45,10 @@ void reraise_kj_exception();
 
 void check_py_error();
 
+inline kj::Promise<PyObject *>wrapSizePromise(kj::Promise<size_t> promise) {
+  return promise.then([](size_t response) { return PyLong_FromSize_t(response); } );
+}
+
 kj::Promise<PyObject *> wrapPyFunc(PyObject * func, PyObject * arg);
 
 kj::Promise<PyObject *> wrapPyFuncNoArg(PyObject * func);

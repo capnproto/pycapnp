@@ -5,7 +5,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
 
 from libcpp cimport bool
 from capnp.helpers.non_circular cimport (
-    PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler,
+    PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, ErrorHandler,
 )
 from capnp.includes.schema_cpp cimport (
     Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions,
@@ -132,7 +132,7 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
         Promise[size_t] read(void*, size_t, size_t)
         Promise[void] write(const void*, size_t)
 
-    cdef cppclass LowLevelAsyncIoProvider nogil:
+    cdef cppclass LowLevelAsyncIoProvider:
         # Own[AsyncInputStream] wrapInputFd(int)
         # Own[AsyncOutputStream] wrapOutputFd(int)
         Own[AsyncIoStream] wrapSocketFd(int)
@@ -140,9 +140,6 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
 
     cdef cppclass AsyncIoProvider nogil:
         TwoWayPipe newTwoWayPipe()
-
-    cdef cppclass WaitScope nogil:
-        pass
 
     cdef cppclass AsyncIoContext nogil:
         AsyncIoContext(AsyncIoContext&)
@@ -157,6 +154,7 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
         Own[AsyncIoStream] ends[2]
 
     AsyncIoContext setupAsyncIo() nogil
+    Own[AsyncIoProvider] newAsyncIoProvider(LowLevelAsyncIoProvider& lowLevel);
 
 cdef extern from "capnp/schema.capnp.h" namespace " ::capnp":
     enum TypeWhich" ::capnp::schema::Type::Which":
@@ -518,9 +516,16 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
         void allowCancellation() except +reraise_kj_exception
 
 cdef extern from "kj/async.h" namespace " ::kj":
+    cdef cppclass EventPort:
+        bool wait() with gil
+        bool poll() with gil
+        void setRunnable(bool runnable) with gil
     cdef cppclass EventLoop nogil:
         EventLoop()
-        EventLoop(PyEventPort &)
+        EventLoop(EventPort &)
+        void run()
+    cdef cppclass WaitScope nogil:
+        WaitScope(EventLoop &)
     cdef cppclass PromiseFulfiller nogil:
         void fulfill()
     cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>" nogil:
@@ -529,9 +534,12 @@ cdef extern from "kj/async.h" namespace " ::kj":
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"() nogil
     PyPromiseArray joinPromises(Array[PyPromise]) nogil
 
-cdef extern from "capnp/helpers/asyncIoHelper.h":
-    cdef cppclass AsyncIoStreamReadHelper nogil:
-        AsyncIoStreamReadHelper(AsyncIoStream *, WaitScope *, size_t)
-        bool poll()
-        size_t read_size()
-        void* read_buffer()
+cdef extern from "capnp/helpers/asyncProvider.h":
+    cdef cppclass PyLowLevelAsyncIoProvider(LowLevelAsyncIoProvider):
+        pass
+
+    Own[LowLevelAsyncIoProvider] makePyLowLevelAsyncIoProvider" ::kj::heap<PyLowLevelAsyncIoProvider>"(
+        void (*ar)(int, void (*cb)(void* data), void* data),
+        void (*rr)(int),
+        void (*aw)(int, void (*cb)(void* data), void* data),
+        void (*rw)(int))

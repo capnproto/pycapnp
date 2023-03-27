@@ -52,11 +52,11 @@ void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<k
   })));
 }
 
-kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Client client, kj::AsyncIoContext * context, kj::StringPtr bindAddress, capnp::ReaderOptions & opts) {
+kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Client client, kj::AsyncIoProvider * provider, kj::StringPtr bindAddress, capnp::ReaderOptions & opts) {
     auto paf = kj::newPromiseAndFulfiller<unsigned int>();
     auto portPromise = paf.promise.fork();
 
-    tasks.add(context->provider->getNetwork().parseAddress(bindAddress)
+    tasks.add(provider->getNetwork().parseAddress(bindAddress)
         .then(kj::mvCapture(paf.fulfiller,
           [&, client, opts](kj::Own<kj::PromiseFulfiller<unsigned int>>&& portFulfiller,
                  kj::Own<kj::NetworkAddress>&& addr) mutable {

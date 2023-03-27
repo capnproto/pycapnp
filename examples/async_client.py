@@ -8,10 +8,6 @@ import socket
 
 import thread_capnp
 
-capnp.remove_event_loop()
-capnp.create_event_loop(threaded=True)
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
         usage="Connects to the Example thread server \
