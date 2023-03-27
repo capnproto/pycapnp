@@ -2621,11 +2621,9 @@ cdef class TwoPartyClient:
         fut = loop.create_future()
         def cont(read_size_actual):
             print(f"read continuation called with {read_size_actual}")
-            cdef array.array final_read_buffer = array.array('b', [])
             if not fut.cancelled():
-                array.resize(final_read_buffer, read_size_actual)
-                memcpy(final_read_buffer.data.as_voidptr, read_buffer.data.as_voidptr, read_size_actual)
-                fut.set_result(final_read_buffer)
+                array.resize(read_buffer, read_size_actual)
+                fut.set_result(read_buffer)
         def exc(err):
             # TODO: This is untested
             print("Exception received")
@@ -2752,11 +2750,9 @@ cdef class TwoPartyServer:
         fut = loop.create_future()
         def cont(read_size_actual):
             print(f"read continuation called with {read_size_actual}")
-            cdef array.array final_read_buffer = array.array('b', [])
             if not fut.cancelled():
-                array.resize(final_read_buffer, read_size_actual)
-                memcpy(final_read_buffer.data.as_voidptr, read_buffer.data.as_voidptr, read_size_actual)
-                fut.set_result(final_read_buffer)
+                array.resize(read_buffer, read_size_actual)
+                fut.set_result(read_buffer)
         def exc(err):
             # TODO: This is untested
             print("Exception received")
