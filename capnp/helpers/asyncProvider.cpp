@@ -1,3 +1,6 @@
+// Adapted from https://github.com/capnproto/node-capnp/blob/node10/src/node-capnp/capnp.cc
+// Original code licensed under BSD 2-clause
+
 #include <kj/debug.h>
 #include <fcntl.h>
 #include <sys/socket.h>
