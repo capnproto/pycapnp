@@ -68,6 +68,8 @@ public:
                       void (*rw)(int))
     : fd(applyFlags(fd, flags)), flags(flags),
       add_reader(ar), remove_reader(rr), add_writer(ar), remove_writer(rw) {
+    readRegistered = false;
+    writeRegistered = false;
   }
 
   ~OwnedFileDescriptor() noexcept(false) {
@@ -85,28 +87,14 @@ public:
 
   kj::Promise<void> onReadable() {
     // TODO: Detect if fd is already readable and return kj::READY_NOW immediately
-
-    KJ_REQUIRE(readable == nullptr, "Must wait for previous event to complete.");
-
-    auto paf = kj::newPromiseAndFulfiller<void>();
-    readable = kj::mv(paf.fulfiller);
-
-    add_reader(fd, &readCallback, (void*)this);
-
-    return kj::mv(paf.promise);
+    KJ_REQUIRE(readRegistered == false, "Must wait for previous event to complete.");
+    return kj::newAdaptedPromise<void, ReadPromiseAdapter>(*this);
   }
 
   kj::Promise<void> onWritable() {
     // TODO: Detect if fd is already readable and return kj::READY_NOW immediately
-
-    KJ_REQUIRE(writable == nullptr, "Must wait for previous event to complete.");
-
-    auto paf = kj::newPromiseAndFulfiller<void>();
-    writable = kj::mv(paf.fulfiller);
-
-    add_writer(fd, &writeCallback, (void*)this);
-
-    return kj::mv(paf.promise);
+    KJ_REQUIRE(writeRegistered == false, "Must wait for previous event to complete.");
+    return kj::newAdaptedPromise<void, WritePromiseAdapter>(*this);
   }
 
 protected:
@@ -118,31 +106,66 @@ protected:
   void (*remove_writer)(int);
 
 private:
-  kj::Maybe<kj::Own<kj::PromiseFulfiller<void>>> readable;
-  kj::Maybe<kj::Own<kj::PromiseFulfiller<void>>> writable;
+  bool readRegistered;
+  bool writeRegistered;
 
+  class ReadPromiseAdapter {
+  public:
+    ReadPromiseAdapter(kj::PromiseFulfiller<void>& fulfiller, OwnedFileDescriptor& ofd)
+      : fulfiller(fulfiller), ofd(ofd) {
+      ofd.add_reader(ofd.fd, &readCallback, (void*)this);
+      ofd.readRegistered = true;
+    }
 
-  static void readCallback(void* data) {
-    reinterpret_cast<OwnedFileDescriptor*>(data)->readDone();
-  }
+    ~ReadPromiseAdapter() {
+      ofd.remove_reader(ofd.fd);
+      ofd.readRegistered = false;
+    }
 
-  static void writeCallback(void* data) {
-    reinterpret_cast<OwnedFileDescriptor*>(data)->writeDone();
-  }
+  private:
+    kj::PromiseFulfiller<void>& fulfiller;
+    OwnedFileDescriptor& ofd;
 
-  void readDone() {
-    std::cout<<"The Value of 'fd' is "<<this->fd<<"\n";
-    std::cout.flush();
-    KJ_ASSERT_NONNULL(readable)->fulfill();
-    readable = nullptr;
-    remove_reader(fd);
-  }
+    static void readCallback(void* data) {
+      reinterpret_cast<ReadPromiseAdapter*>(data)->readDone();
+    }
 
-  void writeDone() {
-    KJ_ASSERT_NONNULL(writable)->fulfill();
-    writable = nullptr;
-    remove_writer(fd);
-  }
+    void readDone() {
+      std::cout<<"The Value of 'fd' is "<<ofd.fd<<"\n";
+      std::cout.flush();
+      fulfiller.fulfill();
+    }
+
+  };
+
+  class WritePromiseAdapter {
+  public:
+    WritePromiseAdapter(kj::PromiseFulfiller<void>& fulfiller, OwnedFileDescriptor& ofd)
+      : fulfiller(fulfiller), ofd(ofd) {
+      ofd.add_writer(ofd.fd, &writeCallback, (void*)this);
+      ofd.writeRegistered = true;
+    }
+
+    ~WritePromiseAdapter() {
+      ofd.remove_writer(ofd.fd);
+      ofd.writeRegistered = false;
+    }
+
+  private:
+    kj::PromiseFulfiller<void>& fulfiller;
+    OwnedFileDescriptor& ofd;
+
+    static void writeCallback(void* data) {
+      reinterpret_cast<WritePromiseAdapter*>(data)->writeDone();
+    }
+
+    void writeDone() {
+      std::cout<<"The Value of 'fd' is "<<ofd.fd<<"\n";
+      std::cout.flush();
+      fulfiller.fulfill();
+    }
+
+  };
 
 };
 
@@ -390,8 +413,9 @@ public:
 PyLowLevelAsyncIoProvider::PyLowLevelAsyncIoProvider(void (*ar)(int, void (*cb)(void* data), void* data),
                                                      void (*rr)(int),
                                                      void (*aw)(int, void (*cb)(void* data), void* data),
-                                                     void (*rw)(int)) :
-  add_reader(ar), remove_reader(rr), add_writer(ar), remove_writer(rw) {}
+                                                     void (*rw)(int),
+                                                     kj::Timer* t) :
+  add_reader(ar), remove_reader(rr), add_writer(ar), remove_writer(rw), timer(t) {}
 
 kj::Own<kj::AsyncInputStream> PyLowLevelAsyncIoProvider::wrapInputFd(int fd, uint flags) {
   return kj::heap<PyIoStream>(fd, flags, add_reader, remove_reader, add_writer, remove_writer);
@@ -450,6 +474,5 @@ kj::Own<kj::ConnectionReceiver> PyLowLevelAsyncIoProvider::wrapListenSocketFd(in
 #endif
 
 kj::Timer& PyLowLevelAsyncIoProvider::getTimer() {
-  // TODO(soon):  Implement this.
-  KJ_FAIL_ASSERT("Timers not implemented.");
+  return *timer;
 }

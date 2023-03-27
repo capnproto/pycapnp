@@ -10,7 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
@@ -1788,12 +1788,17 @@ cdef cppclass AsyncIoEventPort(EventPort):
     int c
     EventLoop *kjLoop
     cbool runnable
+    TimerImpl *timerImpl;
 
     __init__():
         this.c = 0
         this.runnable = False
         this.kjLoop = new EventLoop(deref(this))
+        this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
         print(f"port initializing")
+
+    __dealloc__():
+        del this.timerImpl
 
     cbool wait() with gil:
         # TODO: Implement
@@ -1814,6 +1819,9 @@ cdef cppclass AsyncIoEventPort(EventPort):
 
     EventLoop *getKjLoop():
         return this.kjLoop
+
+    Timer *getTimer():
+        return this.timerImpl;
 
 
 cdef void add_reader(int fd, void (*cb)(void* data), void* data) with gil:
@@ -1865,7 +1873,8 @@ cdef class _EventLoop:
             kjLoop = test.getKjLoop()
             print("c")
             self.lowLevelProvider = makePyLowLevelAsyncIoProvider(&add_reader, &remove_reader,
-                                                                  &add_writer, &remove_writer)
+                                                                  &add_writer, &remove_writer,
+                                                                  test.getTimer())
             print("d")
             self.waitScope = new WaitScope(deref(kjLoop))
             print("e")
@@ -1924,6 +1933,7 @@ cdef class _Timer:
         return self
 
     cpdef after_delay(self, time) except +reraise_kj_exception:
+        print("after delay")
         return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Nanoseconds(time)))
 
 
@@ -2191,6 +2201,29 @@ cdef class _VoidPromise:
         self.thisptr = NULL
 
 
+cdef to_asyncio(_Promise promise):
+    loop = asyncio.get_running_loop()
+    fut = loop.create_future()
+    def cont(res):
+        print(f"Continuation called with {res}")
+        if not fut.cancelled():
+            fut.set_result(res)
+    def exc(err):
+        print(f"Exception received {type(err)} {err}")
+        if not fut.cancelled():
+            fut.set_exception(err)
+    promise2 = promise.then(cont, error_func=exc)
+    # Attach to promise to the future, so that it doesn't get destroyed
+    fut.kjpromise = promise2
+    def done(fut):
+        print(f"done arg {fut}")
+        if fut.cancelled():
+            print(f"future cancelled")
+            fut.kjpromise.cancel()
+    fut.add_done_callback(done)
+    return fut
+
+
 cdef class _RemotePromise:
     cdef RemotePromise * thisptr
     cdef public bint is_consumed
@@ -2224,7 +2257,7 @@ cdef class _RemotePromise:
         self.is_consumed = True
         return ret
 
-    def a_wait(self):
+    async def a_wait(self):
         """
         Asyncio version of wait().
         Required when using asyncio for socket communication.
@@ -2236,22 +2269,7 @@ cdef class _RemotePromise:
                 "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         print("await called")
-        loop = asyncio.get_running_loop()
-        fut = loop.create_future()
-        def cont(res):
-            print(f"Continuation called with {res}")
-            if not fut.cancelled():
-                fut.set_result(res)
-        def exc(err):
-            # TODO: This is untested
-            print("Exception received")
-            if not fut.cancelled():
-                fut.set_exception(err)
-        # TODO: Add a `add_done_callback` that cancels the promise when the future gets cancelled
-        promise = self.then(cont, error_func=exc)
-        # Attach to promise to the future, so that it doesn't get destroyed
-        fut.kjpromise = promise
-        return fut
+        await to_asyncio(self.as_pypromise())
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
@@ -2602,7 +2620,7 @@ cdef class TwoPartyClient:
             Py_INCREF(self._pipe)
         Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
-    def read(self, bufsize):
+    async def read(self, bufsize):
         """
         libcapnp reader (asyncio sockets only)
 
@@ -2616,24 +2634,9 @@ cdef class TwoPartyClient:
         cdef _Promise prom = _Promise()._init(
             helpers.wrapSizePromise(
                 self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-
-        loop = asyncio.get_running_loop()
-        fut = loop.create_future()
-        def cont(read_size_actual):
-            print(f"read continuation called with {read_size_actual}")
-            if not fut.cancelled():
-                array.resize(read_buffer, read_size_actual)
-                fut.set_result(read_buffer)
-        def exc(err):
-            # TODO: This is untested
-            print("Exception received")
-            if not fut.cancelled():
-                fut.set_exception(err)
-                # TODO: Add a `add_done_callback` that cancels the promise when the future gets cancelled
-        promise = prom.then(cont, error_func=exc)
-        # Attach to promise to the future, so that it doesn't get destroyed
-        fut.kjpromise = promise
-        return fut
+        read_size_actual = await to_asyncio(prom)
+        array.resize(read_buffer, read_size_actual)
+        return read_buffer
 
     def write(self, data):
         """
@@ -2732,7 +2735,7 @@ cdef class TwoPartyServer:
         Py_INCREF(self._network)
         self._disconnect_promise = self.on_disconnect().then(self._decref)
 
-    def read(self, bufsize):
+    async def read(self, bufsize):
         """
         libcapnp reader (asyncio sockets only)
 
@@ -2745,24 +2748,9 @@ cdef class TwoPartyServer:
         cdef _Promise prom = _Promise()._init(
             helpers.wrapSizePromise(
                 self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-
-        loop = asyncio.get_running_loop()
-        fut = loop.create_future()
-        def cont(read_size_actual):
-            print(f"read continuation called with {read_size_actual}")
-            if not fut.cancelled():
-                array.resize(read_buffer, read_size_actual)
-                fut.set_result(read_buffer)
-        def exc(err):
-            # TODO: This is untested
-            print("Exception received")
-            if not fut.cancelled():
-                fut.set_exception(err)
-                # TODO: Add a `add_done_callback` that cancels the promise when the future gets cancelled
-        promise = prom.then(cont, error_func=exc)
-        # Attach to promise to the future, so that it doesn't get destroyed
-        fut.kjpromise = promise
-        return fut
+        read_size_actual = await to_asyncio(prom)
+        array.resize(read_buffer, read_size_actual)
+        return read_buffer
 
     async def write(self, data):
         """

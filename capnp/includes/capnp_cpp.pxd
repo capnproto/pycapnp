@@ -117,12 +117,23 @@ cdef extern from "kj/time.h" namespace " ::kj":
     Duration MINUTES
     Duration HOURS
     Duration DAYS
-    # cdef cppclass TimePoint:
-    #     TimePoint(Duration)
+    cdef cppclass TimePoint:
+        TimePoint(Duration)
+    cdef cppclass MonotonicClock nogil:
+        MonotonicClock(MonotonicClock&)
+        TimePoint now()
+    MonotonicClock systemPreciseMonotonicClock()
+
+cdef extern from "kj/timer.h" namespace " ::kj":
     cdef cppclass Timer nogil:
         # int64_t now()
         # VoidPromise atTime(TimePoint time)
         VoidPromise afterDelay(Duration delay)
+    cdef cppclass TimerImpl(Timer) nogil:
+        TimerImpl(TimePoint startTime)
+        Maybe[TimePoint] nextEvent()
+        Maybe[uint64_t] timeoutToNextEvent(TimePoint start, Duration unit, uint64_t max)
+        void advanceTo(TimePoint newTime)
 
 cdef inline Duration Nanoseconds(int64_t nanos):
     return NANOSECONDS * nanos
@@ -542,4 +553,5 @@ cdef extern from "capnp/helpers/asyncProvider.h":
         void (*ar)(int, void (*cb)(void* data), void* data),
         void (*rr)(int),
         void (*aw)(int, void (*cb)(void* data), void* data),
-        void (*rw)(int))
+        void (*rw)(int),
+        Timer *timer)

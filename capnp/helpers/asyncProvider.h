@@ -6,7 +6,8 @@ public:
   PyLowLevelAsyncIoProvider(void (*ar)(int, void (*cb)(void* data), void* data),
                             void (*rr)(int),
                             void (*aw)(int, void (*cb)(void* data), void* data),
-                            void (*rw)(int));
+                            void (*rw)(int),
+                            kj::Timer* timer);
 
   kj::Own<kj::AsyncInputStream> wrapInputFd(Fd fd, uint flags = 0);
   kj::Own<kj::AsyncOutputStream> wrapOutputFd(Fd fd, uint flags = 0);
@@ -21,4 +22,5 @@ public:
   void (*remove_reader)(int);
   void (*add_writer)(int, void (*cb)(void* data), void* data);
   void (*remove_writer)(int);
+  kj::Timer *timer;
 };

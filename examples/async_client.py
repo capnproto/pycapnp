@@ -26,15 +26,18 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
 
 
 async def myreader(client, reader):
-    while True:
+    while not reader.at_eof():
         data = await reader.read(4096)
         client.write(data)
 
 
-async def mywriter(client, writer):
-    while True:
-        data = await client.read(4096)
-        writer.write(data.tobytes())
+async def mywriter(client, writer, reader):
+    while not reader.at_eof():
+        try:
+            data = await asyncio.wait_for(client.read(4096), timeout=2)
+            writer.write(data.tobytes())
+        except asyncio.TimeoutError:
+            continue
 
 
 async def background(cap):
@@ -64,7 +67,7 @@ async def main(host):
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     # Assemble reader and writer tasks, run in the background
-    coroutines = [myreader(client, reader), mywriter(client, writer)]
+    coroutines = [myreader(client, reader), mywriter(client, writer, reader)]
     asyncio.gather(*coroutines, return_exceptions=True)
 
     # Start background task for subscriber
