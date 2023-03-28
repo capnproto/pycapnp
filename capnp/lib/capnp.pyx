@@ -2041,7 +2041,6 @@ def poll_once():
     """
     Poll libcapnp event loop once
     """
-    print("poll_once")
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
     helpers.pollWaitScope(deref(loop.waitScope))
 
@@ -2117,6 +2116,20 @@ cdef class _Promise:
 
         return ret
 
+    async def a_wait(self):
+        """
+        Asyncio version of wait().
+        Required when using asyncio for socket communication.
+
+        Will still work with non-asyncio socket communication, but requires async handling of the function call.
+        """
+        if self.is_consumed:
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
+
+        print("await called")
+        return await to_asyncio(self)
+
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
             raise KjException(
@@ -2184,6 +2197,20 @@ cdef class _VoidPromise:
         helpers.waitVoidPromise(self.thisptr, deref(self._event_loop.waitScope))
 
         self.is_consumed = True
+
+    async def a_wait(self):
+        """
+        Asyncio version of wait().
+        Required when using asyncio for socket communication.
+
+        Will still work with non-asyncio socket communication, but requires async handling of the function call.
+        """
+        if self.is_consumed:
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
+
+        print("await called")
+        return await to_asyncio(self.as_pypromise())
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         if self.is_consumed:
@@ -2650,6 +2677,9 @@ cdef class TwoPartyClient:
             Py_INCREF(self._pipe)
         Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
+    def shutdown(self):
+        del self.thisptr
+
     async def read(self, bufsize):
         """
         libcapnp reader (asyncio sockets only)
@@ -2684,6 +2714,7 @@ cdef class TwoPartyClient:
         del self.thisptr
 
     cpdef _connect(self, host_string):
+        # TODO: Make async
         if host_string.startswith('unix:'):
             path = host_string[5:]
             sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)

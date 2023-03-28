@@ -31,13 +31,11 @@ async def background(cap):
 
 
 async def main(host):
-    # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
     client = capnp.TwoPartyClient(host)
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     # Start background task for subscriber
-    tasks = [background(cap)]
-    final = asyncio.gather(*tasks, return_exceptions=True)
+    asyncio.create_task(background(cap))
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
@@ -47,7 +45,8 @@ async def main(host):
     print("main: {}".format(time.time()))
     await cap.longRunning().a_wait()
     print("main: {}".format(time.time()))
-
+    # Shut down the client, so that the background task gets terminated
+    client.shutdown()
 
 if __name__ == "__main__":
     asyncio.run(main(parse_args().host))
