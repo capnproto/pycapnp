@@ -15,25 +15,17 @@ logger.setLevel(logging.DEBUG)
 
 class Server:
     async def myreader(self):
-        while self.retry:
-            try:
-                # Must be a wait_for so we don't block on read()
-                data = await asyncio.wait_for(self.reader.read(4096), timeout=0.1)
-            except asyncio.TimeoutError:
-                logger.debug("myreader timeout.")
-                continue
-            except Exception as err:
-                logger.error("Unknown myreader err: %s", err)
-                return False
+        while not self.reader.at_eof():
+            data = await self.reader.read(4096)
             await self.server.write(data)
         logger.debug("myreader done.")
         return True
 
     async def mywriter(self):
-        while self.retry:
+        while not self.reader.at_eof():
             try:
                 # Must be a wait_for so we don't block on read()
-                data = await asyncio.wait_for(self.server.read(4096), timeout=0.1)
+                data = await asyncio.wait_for(self.server.read(4096), timeout=200)
                 self.writer.write(data.tobytes())
             except asyncio.TimeoutError:
                 logger.debug("mywriter timeout.")
@@ -54,14 +46,6 @@ class Server:
         # Assemble reader and writer tasks, run in the background
         coroutines = [self.myreader(), self.mywriter()]
         tasks = asyncio.gather(*coroutines, return_exceptions=True)
-
-        while True:
-            self.server.poll_once()
-            # Check to see if reader has been sent an eof (disconnect)
-            if self.reader.at_eof():
-                self.retry = False
-                break
-            await asyncio.sleep(0.01)
 
         # Make wait for reader/writer to finish (prevent possible resource leaks)
         await tasks

@@ -2299,7 +2299,7 @@ cdef class _RemotePromise:
                 "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
         print("await called")
-        await to_asyncio(self.as_pypromise())
+        return await to_asyncio(self.as_pypromise())
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         if self.is_consumed:
