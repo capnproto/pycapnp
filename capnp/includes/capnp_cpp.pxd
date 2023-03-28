@@ -82,7 +82,7 @@ cdef extern from "kj/string-tree.h" namespace " ::kj":
 
 cdef extern from "kj/common.h" namespace " ::kj":
     cdef cppclass Maybe[T] nogil:
-        pass
+        T& orDefault(T&)
     cdef cppclass ArrayPtr[T] nogil:
         ArrayPtr()
         ArrayPtr(T *, size_t size)

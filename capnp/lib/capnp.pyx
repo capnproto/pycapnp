@@ -10,7 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
@@ -1771,51 +1771,84 @@ cdef class _DynamicObjectBuilder:
     cpdef as_reader(self):
         return _DynamicObjectReader()._init(self.thisptr.asReader(), self._parent)
 
-cdef void call_soon(void (*cb)(void* data), void* data) with gil:
+cdef object call_soon(void (*cb)(void* data), void* data) with gil:
     def callback():
         cb(data)
     loop = asyncio.get_running_loop()
-    loop.call_soon(callback)
+    return loop.call_soon(callback)
+
+cdef object call_later(double delay, void (*cb)(void* data), void* data) with gil:
+    def callback():
+        print("call later callback")
+        cb(data)
+    loop = asyncio.get_running_loop()
+    print("call later scheduled")
+    return loop.call_later(delay, callback)
 
 cdef void kjloop_runnable_callback(void* data):
     cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
-    print(f"runnable callback {port.runnable}")
-    if port.runnable:
-        port.kjLoop.run()
-        assert not port.runnable
+    print(f"runnable callback")
+    assert port.runHandle is not None
+    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
+    port.kjLoop.run()
+
+cdef void kjloop_advance_callback(void* data):
+    cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
+    print(f"advance callback")
+    assert port.runHandle is not None
+    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
 
 cdef cppclass AsyncIoEventPort(EventPort):
     int c
     EventLoop *kjLoop
-    cbool runnable
     TimerImpl *timerImpl;
+    object runHandle;
 
     __init__():
         this.c = 0
-        this.runnable = False
         this.kjLoop = new EventLoop(deref(this))
         this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
+        this.runHandle = None
         print(f"port initializing")
 
     __dealloc__():
         del this.timerImpl
+        del this.kjLoop
 
     cbool wait() with gil:
         # TODO: Implement
-        print("wait invoked")
+        print("---------------------------------- wait invoked")
         return False
 
     cbool poll() with gil:
         # TODO: Implement
-        print(f"poll invoked {this.c}")
+        print(f"----------------------------------poll invoked {this.c}")
         this.c = this.c + 1
         return False
 
     void setRunnable(cbool runnable) with gil:
         print(f"setRunnable invoked {runnable}")
-        this.runnable = runnable
         if runnable:
-            call_soon(kjloop_runnable_callback, <void*>this)
+            if this.runHandle is not None:
+                # If a timer was running, cancel it and schedule a run immediately
+                # The timer will be re-scheduled once the kj loop becomes un-runnable again.
+                this.runHandle.cancel()
+            this.runHandle = call_soon(kjloop_runnable_callback, <void*>this)
+        else:
+            assert this.runHandle is not None
+            this.runHandle.cancel()
+            this.scheduleAdvance()
+
+    void scheduleAdvance() with gil:
+        cdef uint64_t nextEvent = this.timerImpl.timeoutToNextEvent(
+            systemPreciseMonotonicClock().now(), MILLISECONDS, -1).orDefault(-1)
+        if nextEvent == -1:
+            print("no next event")
+            this.runHandle = None
+        else:
+            seconds = <double>nextEvent / 1000
+            print(f"next event {nextEvent} {seconds}")
+            this.runHandle = call_later(seconds, kjloop_advance_callback, <void*>this)
 
     EventLoop *getKjLoop():
         return this.kjLoop
