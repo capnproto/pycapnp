@@ -1799,13 +1799,11 @@ cdef void kjloop_advance_callback(void* data):
     port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
 
 cdef cppclass AsyncIoEventPort(EventPort):
-    int c
     EventLoop *kjLoop
     TimerImpl *timerImpl;
     object runHandle;
 
     __init__():
-        this.c = 0
         this.kjLoop = new EventLoop(deref(this))
         this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
         this.runHandle = None
@@ -1822,8 +1820,7 @@ cdef cppclass AsyncIoEventPort(EventPort):
 
     cbool poll() with gil:
         # TODO: Implement
-        print(f"----------------------------------poll invoked {this.c}")
-        this.c = this.c + 1
+        print(f"----------------------------------poll invoked")
         return False
 
     void setRunnable(cbool runnable) with gil:
