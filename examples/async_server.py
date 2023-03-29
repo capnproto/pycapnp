@@ -38,10 +38,12 @@ given address/port ADDRESS. """
 
     return parser.parse_args()
 
+
 async def main():
     address = parse_args().address
     server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl())
     await asyncio._get_running_loop().create_future()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

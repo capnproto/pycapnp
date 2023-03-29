@@ -34,7 +34,6 @@ at the given address and does some RPCs"
 
 
 async def main(host):
-
     # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
     client = capnp.TwoPartyClient(host)
 

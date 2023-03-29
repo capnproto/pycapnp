@@ -200,7 +200,11 @@ import Cython  # noqa: E402
 extensions = [
     Extension(
         "*",
-        ["capnp/helpers/capabilityHelper.cpp", "capnp/helpers/asyncProvider.cpp", "capnp/lib/*.pyx"],
+        [
+            "capnp/helpers/capabilityHelper.cpp",
+            "capnp/helpers/asyncProvider.cpp",
+            "capnp/lib/*.pyx",
+        ],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         language="c++",

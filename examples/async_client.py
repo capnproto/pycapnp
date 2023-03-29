@@ -7,6 +7,7 @@ import capnp
 
 import thread_capnp
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         usage="Connects to the Example thread server \
@@ -22,6 +23,7 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
 
     def status(self, value, **kwargs):
         print("status: {}".format(time.time()))
+
 
 async def background(cap):
     subscriber = StatusSubscriber()
@@ -46,6 +48,7 @@ async def main(host):
     print("main: {}".format(time.time()))
     # Shut down the client, so that the background task gets terminated
     client.shutdown()
+
 
 if __name__ == "__main__":
     asyncio.run(main(parse_args().host))
