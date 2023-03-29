@@ -2,7 +2,6 @@
 
 import argparse
 import asyncio
-import socket
 import capnp
 
 import calculator_capnp
@@ -24,19 +23,6 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
         return pow(params[0], params[1])
 
 
-async def myreader(client, reader):
-    while True:
-        data = await reader.read(4096)
-        client.write(data)
-
-
-async def mywriter(client, writer):
-    while True:
-        data = await client.read(4096)
-        writer.write(data.tobytes())
-        await writer.drain()
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
         usage="Connects to the Calculator server \
@@ -48,27 +34,9 @@ at the given address and does some RPCs"
 
 
 async def main(host):
-    host = host.split(":")
-    addr = host[0]
-    port = host[1]
-    # Handle both IPv4 and IPv6 cases
-    try:
-        print("Try IPv4")
-        reader, writer = await asyncio.open_connection(
-            addr, port, family=socket.AF_INET
-        )
-    except Exception:
-        print("Try IPv6")
-        reader, writer = await asyncio.open_connection(
-            addr, port, family=socket.AF_INET6
-        )
 
     # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
-    client = capnp.TwoPartyClient()
-
-    # Assemble reader and writer tasks, run in the background
-    coroutines = [myreader(client, reader), mywriter(client, writer)]
-    asyncio.gather(*coroutines, return_exceptions=True)
+    client = capnp.TwoPartyClient(host)
 
     # Bootstrap the Calculator interface
     calculator = client.bootstrap().cast_as(calculator_capnp.Calculator)
