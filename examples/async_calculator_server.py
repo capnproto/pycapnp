@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import logging
-import socket
 
 import capnp
 import calculator_capnp
@@ -139,7 +138,7 @@ given address/port ADDRESS. """
 
 async def main():
     address = parse_args().address
-    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())
+    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl()) # noqa: F841
     await asyncio._get_running_loop().create_future()
 
 

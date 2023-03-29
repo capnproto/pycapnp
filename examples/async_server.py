@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import logging
-import socket
 
 import capnp
 import thread_capnp
@@ -41,7 +40,7 @@ given address/port ADDRESS. """
 
 async def main():
     address = parse_args().address
-    server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl())
+    server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl()) # noqa: F841
     await asyncio._get_running_loop().create_future()
 
 
