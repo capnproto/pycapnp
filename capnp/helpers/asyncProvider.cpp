@@ -3,7 +3,6 @@
 
 #include <kj/debug.h>
 #include <fcntl.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <kj/async.h>
 #include <kj/async-io.h>
@@ -17,6 +16,8 @@
 #include<iostream>
 
 #include "capnp/helpers/asyncProvider.h"
+
+using namespace kj;
 
 static void setNonblocking(int fd) {
   int flags;

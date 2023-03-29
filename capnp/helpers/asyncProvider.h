@@ -1,6 +1,8 @@
 #include <kj/async.h>
 #include <kj/async-io.h>
 
+using namespace kj;
+
 class PyLowLevelAsyncIoProvider final: public kj::LowLevelAsyncIoProvider {
 public:
   PyLowLevelAsyncIoProvider(void (*ar)(int, void (*cb)(void* data), void* data),
