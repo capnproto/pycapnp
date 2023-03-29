@@ -134,7 +134,6 @@ private:
     }
 
     void readDone() {
-      std::cout<<"The Value of 'fd' is "<<ofd.fd<<"\n";
       std::cout.flush();
       fulfiller.fulfill();
     }
@@ -163,7 +162,6 @@ private:
     }
 
     void writeDone() {
-      std::cout<<"The Value of 'fd' is "<<ofd.fd<<"\n";
       std::cout.flush();
       fulfiller.fulfill();
     }

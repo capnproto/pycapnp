@@ -21,7 +21,7 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
     """An implementation of the StatusSubscriber interface"""
 
     def status(self, value, **kwargs):
-        print("\n\nstatus: {}\n\n".format(time.time()))
+        print("status: {}".format(time.time()))
 
 async def background(cap):
     subscriber = StatusSubscriber()

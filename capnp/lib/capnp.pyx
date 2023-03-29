@@ -1779,22 +1779,18 @@ cdef object call_soon(void (*cb)(void* data), void* data) with gil:
 
 cdef object call_later(double delay, void (*cb)(void* data), void* data) with gil:
     def callback():
-        print("call later callback")
         cb(data)
     loop = asyncio.get_running_loop()
-    print("call later scheduled")
     return loop.call_later(delay, callback)
 
 cdef void kjloop_runnable_callback(void* data):
     cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
-    print(f"runnable callback")
     assert port.runHandle is not None
     port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
     port.kjLoop.run()
 
 cdef void kjloop_advance_callback(void* data):
     cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
-    print(f"advance callback")
     assert port.runHandle is not None
     port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
 
@@ -1807,24 +1803,21 @@ cdef cppclass AsyncIoEventPort(EventPort):
         this.kjLoop = new EventLoop(deref(this))
         this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
         this.runHandle = None
-        print(f"port initializing")
 
     __dealloc__():
         del this.timerImpl
         del this.kjLoop
 
     cbool wait() with gil:
-        # TODO: Implement
-        print("---------------------------------- wait invoked")
-        return False
+        raise KjException("Currently you cannot wait for promises while pycapnp is running in asyncio mode. " +
+                          "You should instead use a_wait(). If you have a use-case to start the asyncio loop " +
+                          "using wait(), please report")
 
     cbool poll() with gil:
-        # TODO: Implement
-        print(f"----------------------------------poll invoked")
-        return False
+        raise KjException("Currently you cannot poll promises while pycapnp is running in asyncio mode. " +
+                          "If you have a use-case to poll the asyncio loop using poll(), please report")
 
     void setRunnable(cbool runnable) with gil:
-        print(f"setRunnable invoked {runnable}")
         if runnable:
             if this.runHandle is not None:
                 # If a timer was running, cancel it and schedule a run immediately
@@ -1840,11 +1833,9 @@ cdef cppclass AsyncIoEventPort(EventPort):
         cdef uint64_t nextEvent = this.timerImpl.timeoutToNextEvent(
             systemPreciseMonotonicClock().now(), MILLISECONDS, -1).orDefault(-1)
         if nextEvent == -1:
-            print("no next event")
             this.runHandle = None
         else:
             seconds = <double>nextEvent / 1000
-            print(f"next event {nextEvent} {seconds}")
             this.runHandle = call_later(seconds, kjloop_advance_callback, <void*>this)
 
     EventLoop *getKjLoop():
@@ -1855,30 +1846,24 @@ cdef cppclass AsyncIoEventPort(EventPort):
 
 
 cdef void add_reader(int fd, void (*cb)(void* data), void* data) with gil:
-    print(f"add_reader invoked {fd}")
     loop = asyncio.get_running_loop()
     def callback():
-        print("call back invoked")
         cb(data)
 
     loop.add_reader(fd, callback)
 
 cdef void remove_reader(int fd) with gil:
-    print(f"remove_reader invoked {fd}")
     loop = asyncio.get_running_loop()
     loop.remove_reader(fd)
 
 cdef void add_writer(int fd, void (*cb)(void* data), void* data) with gil:
-    print(f"add_writer invoked {fd}")
     loop = asyncio.get_running_loop()
     def callback():
-        print("call back invoked")
         cb(data)
 
     loop.add_writer(fd, callback)
 
 cdef void remove_writer(int fd) with gil:
-    print(f"remove_writer invoked {fd}")
     loop = asyncio.get_running_loop()
     loop.remove_writer(fd)
 
@@ -1895,25 +1880,16 @@ cdef class _EventLoop:
         self._init()
 
     cdef _init(self) except +reraise_kj_exception:
-        print("init")
         try:
             loop = asyncio.get_running_loop()
-            print("with loop")
-            print("a")
             self.customPort = new AsyncIoEventPort()
-            print("b")
             kjLoop = self.customPort.getKjLoop()
-            print("c")
             self.lowLevelProvider = makePyLowLevelAsyncIoProvider(&add_reader, &remove_reader,
                                                                   &add_writer, &remove_writer,
                                                                   self.customPort.getTimer())
-            print("d")
             self.waitScope = new WaitScope(deref(kjLoop))
-            print("e")
             self.provider = newAsyncIoProvider(deref(self.lowLevelProvider))
-            print("f")
         except RuntimeError:
-            print("normal context")
             ptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
             self.lowLevelProvider = move(ptr.lowLevelProvider)
             self.provider = move(ptr.provider)
@@ -1924,7 +1900,6 @@ cdef class _EventLoop:
         self._remove()
 
     cpdef _remove(self) except +reraise_kj_exception:
-        print("remove called")
         if not self.customPort == NULL:
             # If we have a custom port, the waitscope is not owned by provider, we have to delete it manually
             del self.waitScope
@@ -1971,7 +1946,6 @@ cdef class _Timer:
         return self
 
     cpdef after_delay(self, time) except +reraise_kj_exception:
-        print("after delay")
         return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Nanoseconds(time)))
 
 
@@ -2135,7 +2109,6 @@ cdef class _Promise:
             raise KjException(
                 "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
-        print("await called")
         return await to_asyncio(self)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
@@ -2217,7 +2190,6 @@ cdef class _VoidPromise:
             raise KjException(
                 "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
-        print("await called")
         return await to_asyncio(self.as_pypromise())
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
@@ -2270,20 +2242,16 @@ cdef to_asyncio(_Promise promise):
     loop = asyncio.get_running_loop()
     fut = loop.create_future()
     def cont(res):
-        print(f"Continuation called with {res}")
         if not fut.cancelled():
             fut.set_result(res)
     def exc(err):
-        print(f"Exception received {type(err)} {err}")
         if not fut.cancelled():
             fut.set_exception(err)
     promise2 = promise.then(cont, error_func=exc)
     # Attach to promise to the future, so that it doesn't get destroyed
     fut.kjpromise = promise2
     def done(fut):
-        print(f"done arg {fut}")
         if fut.cancelled():
-            print(f"future cancelled")
             fut.kjpromise.cancel()
     fut.add_done_callback(done)
     return fut
@@ -2333,7 +2301,6 @@ cdef class _RemotePromise:
             raise KjException(
                 "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
-        print("await called")
         return await to_asyncio(self.as_pypromise())
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
@@ -2695,7 +2662,6 @@ cdef class TwoPartyClient:
         :param bufsize: Buffer size to read from the libcapnp library
         """
 
-        print("read called")
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, bufsize)
         cdef _Promise prom = _Promise()._init(
@@ -2809,7 +2775,6 @@ cdef class TwoPartyServer:
 
         :param bufsize: Buffer size to read from the libcapnp library
         """
-        print("read called")
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, bufsize)
         cdef _Promise prom = _Promise()._init(
