@@ -40,7 +40,7 @@ given address/port ADDRESS. """
 
 async def main():
     address = parse_args().address
-    server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl()) # noqa: F841
+    server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl())  # noqa: F841
     await asyncio._get_running_loop().create_future()
 
 
