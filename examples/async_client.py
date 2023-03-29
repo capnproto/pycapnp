@@ -4,7 +4,6 @@ import asyncio
 import argparse
 import time
 import capnp
-import socket
 
 import thread_capnp
 

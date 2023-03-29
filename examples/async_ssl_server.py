@@ -37,7 +37,7 @@ class ExampleImpl(thread_capnp.Example.Server):
 
 class Server:
     async def myreader(self):
-        while self.retry:
+        while not self.reader.at_eof():
             try:
                 # Must be a wait_for so we don't block on read()
                 data = await asyncio.wait_for(self.reader.read(4096), timeout=0.1)
@@ -52,7 +52,7 @@ class Server:
         return True
 
     async def mywriter(self):
-        while self.retry:
+        while not self.reader.at_eof():
             try:
                 # Must be a wait_for so we don't block on read()
                 data = await asyncio.wait_for(self.server.read(4096), timeout=0.1)
@@ -71,19 +71,10 @@ class Server:
         self.server = capnp.TwoPartyServer(bootstrap=ExampleImpl())
         self.reader = reader
         self.writer = writer
-        self.retry = True
 
         # Assemble reader and writer tasks, run in the background
         coroutines = [self.myreader(), self.mywriter()]
         tasks = asyncio.gather(*coroutines, return_exceptions=True)
-
-        while True:
-            self.server.poll_once()
-            # Check to see if reader has been sent an eof (disconnect)
-            if self.reader.at_eof():
-                self.retry = False
-                break
-            await asyncio.sleep(0.01)
 
         # Make wait for reader/writer to finish (prevent possible resource leaks)
         await tasks

@@ -1889,6 +1889,8 @@ cdef class _EventLoop:
     cdef Own[AsyncIoProvider] provider
     cdef WaitScope * waitScope
 
+    cdef AsyncIoEventPort *customPort
+
     def __init__(self):
         self._init()
 
@@ -1898,13 +1900,13 @@ cdef class _EventLoop:
             loop = asyncio.get_running_loop()
             print("with loop")
             print("a")
-            test = new AsyncIoEventPort()
+            self.customPort = new AsyncIoEventPort()
             print("b")
-            kjLoop = test.getKjLoop()
+            kjLoop = self.customPort.getKjLoop()
             print("c")
             self.lowLevelProvider = makePyLowLevelAsyncIoProvider(&add_reader, &remove_reader,
                                                                   &add_writer, &remove_writer,
-                                                                  test.getTimer())
+                                                                  self.customPort.getTimer())
             print("d")
             self.waitScope = new WaitScope(deref(kjLoop))
             print("e")
@@ -1919,11 +1921,17 @@ cdef class _EventLoop:
             del ptr
 
     def __dealloc__(self):
-        del self.waitScope
+        self._remove()
 
     cpdef _remove(self) except +reraise_kj_exception:
-        del self.waitScope
+        print("remove called")
+        if not self.customPort == NULL:
+            # If we have a custom port, the waitscope is not owned by provider, we have to delete it manually
+            del self.waitScope
+            del self.customPort
         self.waitScope = NULL
+        self.provider = Own[AsyncIoProvider]()
+        self.lowLevelProvider = Own[LowLevelAsyncIoProvider]()
 
     cdef TwoWayPipe makeTwoWayPipe(self):
         return deref(self.provider).newTwoWayPipe()

@@ -48,6 +48,7 @@ cdef extern from "kj/exception.h" namespace " ::kj":
 
 cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T] nogil:
+        Own()
         T& operator*()
         T* get()
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(
