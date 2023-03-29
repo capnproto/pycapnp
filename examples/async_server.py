@@ -25,7 +25,6 @@ class ExampleImpl(thread_capnp.Example.Server):
         )
 
     def longRunning(self, **kwargs):
-        print("\nlong running\n")
         return capnp.getTimer().after_delay(11 * 10**8)
 
 

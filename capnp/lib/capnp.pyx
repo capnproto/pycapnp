@@ -2696,7 +2696,6 @@ cdef class TwoPartyClient:
         """
 
         print("read called")
-        # TODO: is this a memory leak?
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, bufsize)
         cdef _Promise prom = _Promise()._init(
@@ -2811,7 +2810,6 @@ cdef class TwoPartyServer:
         :param bufsize: Buffer size to read from the libcapnp library
         """
         print("read called")
-        # TODO: is this a memory leak?
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, bufsize)
         cdef _Promise prom = _Promise()._init(
@@ -2861,6 +2859,8 @@ cdef class TwoPartyServer:
         del self._task_set
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
+        if self._task_set != NULL:
+            raise KjException("Currently, you can only call on_disconnect on a server without an internal socket")
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
     def poll_once(self):

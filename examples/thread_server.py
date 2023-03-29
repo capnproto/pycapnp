@@ -2,7 +2,6 @@
 
 import argparse
 import capnp
-import time
 
 import thread_capnp
 
@@ -38,9 +37,7 @@ def main():
     address = parse_args().address
 
     server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl())
-    while True:
-        server.poll_once()
-        time.sleep(0.001)
+    server.run_forever()
 
 
 if __name__ == "__main__":
