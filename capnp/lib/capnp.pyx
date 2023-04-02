@@ -1771,25 +1771,13 @@ cdef class _DynamicObjectBuilder:
     cpdef as_reader(self):
         return _DynamicObjectReader()._init(self.thisptr.asReader(), self._parent)
 
-cdef object call_soon(void (*cb)(void* data), void* data) with gil:
-    def callback():
-        cb(data)
-    loop = asyncio.get_running_loop()
-    return loop.call_soon(callback)
-
-cdef object call_later(double delay, void (*cb)(void* data), void* data) with gil:
-    def callback():
-        cb(data)
-    loop = asyncio.get_running_loop()
-    return loop.call_later(delay, callback)
-
-cdef void kjloop_runnable_callback(void* data):
+cdef void kjloop_runnable_callback(void* data) with gil:
     cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
     assert port.runHandle is not None
     port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
     port.kjLoop.run()
 
-cdef void kjloop_advance_callback(void* data):
+cdef void kjloop_advance_callback(void* data) with gil:
     cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
     assert port.runHandle is not None
     port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
@@ -1797,12 +1785,14 @@ cdef void kjloop_advance_callback(void* data):
 cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *kjLoop
     TimerImpl *timerImpl;
+    object asyncioLoop;
     object runHandle;
 
-    __init__():
+    __init__(object asyncioLoop):
         this.kjLoop = new EventLoop(deref(this))
         this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
         this.runHandle = None
+        this.asyncioLoop = asyncioLoop
 
     __dealloc__():
         del this.timerImpl
@@ -1823,7 +1813,8 @@ cdef cppclass AsyncIoEventPort(EventPort):
                 # If a timer was running, cancel it and schedule a run immediately
                 # The timer will be re-scheduled once the kj loop becomes un-runnable again.
                 this.runHandle.cancel()
-            this.runHandle = call_soon(kjloop_runnable_callback, <void*>this)
+            us = <void*>this;
+            this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
         else:
             assert this.runHandle is not None
             this.runHandle.cancel()
@@ -1836,7 +1827,8 @@ cdef cppclass AsyncIoEventPort(EventPort):
             this.runHandle = None
         else:
             seconds = <double>nextEvent / 1000
-            this.runHandle = call_later(seconds, kjloop_advance_callback, <void*>this)
+            us = <void*>this;
+            this.runHandle = this.asyncioLoop.call_later(seconds, kjloop_advance_callback(us))
 
     EventLoop *getKjLoop():
         return this.kjLoop
@@ -1846,26 +1838,16 @@ cdef cppclass AsyncIoEventPort(EventPort):
 
 
 cdef void add_reader(int fd, void (*cb)(void* data), void* data) with gil:
-    loop = asyncio.get_running_loop()
-    def callback():
-        cb(data)
-
-    loop.add_reader(fd, callback)
+    asyncio.get_running_loop().add_reader(fd, lambda: cb(data))
 
 cdef void remove_reader(int fd) with gil:
-    loop = asyncio.get_running_loop()
-    loop.remove_reader(fd)
+    asyncio.get_running_loop().remove_reader(fd)
 
 cdef void add_writer(int fd, void (*cb)(void* data), void* data) with gil:
-    loop = asyncio.get_running_loop()
-    def callback():
-        cb(data)
-
-    loop.add_writer(fd, callback)
+    asyncio.get_running_loop().add_writer(fd, lambda: cb(data))
 
 cdef void remove_writer(int fd) with gil:
-    loop = asyncio.get_running_loop()
-    loop.remove_writer(fd)
+    asyncio.get_running_loop().remove_writer(fd)
 
 from libcpp.utility cimport move
 
@@ -1882,13 +1864,14 @@ cdef class _EventLoop:
     cdef _init(self) except +reraise_kj_exception:
         try:
             loop = asyncio.get_running_loop()
-            self.customPort = new AsyncIoEventPort()
+            self.customPort = new AsyncIoEventPort(loop)
             kjLoop = self.customPort.getKjLoop()
             self.lowLevelProvider = makePyLowLevelAsyncIoProvider(&add_reader, &remove_reader,
                                                                   &add_writer, &remove_writer,
                                                                   self.customPort.getTimer())
             self.waitScope = new WaitScope(deref(kjLoop))
             self.provider = newAsyncIoProvider(deref(self.lowLevelProvider))
+            # TODO: Automatically shutdown when the asyncio loop gets closed
         except RuntimeError:
             ptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
             self.lowLevelProvider = move(ptr.lowLevelProvider)
@@ -2248,7 +2231,7 @@ cdef to_asyncio(_Promise promise):
         if not fut.cancelled():
             fut.set_exception(err)
     promise2 = promise.then(cont, error_func=exc)
-    # Attach to promise to the future, so that it doesn't get destroyed
+    # Attach the promise to the future, so that it doesn't get destroyed
     fut.kjpromise = promise2
     def done(fut):
         if fut.cancelled():
