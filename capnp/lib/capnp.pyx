@@ -1828,7 +1828,7 @@ cdef cppclass AsyncIoEventPort(EventPort):
         else:
             seconds = <double>nextEvent / 1000
             us = <void*>this;
-            this.runHandle = this.asyncioLoop.call_later(seconds, kjloop_advance_callback(us))
+            this.runHandle = this.asyncioLoop.call_later(seconds, lambda: kjloop_advance_callback(us))
 
     EventLoop *getKjLoop():
         return this.kjLoop
