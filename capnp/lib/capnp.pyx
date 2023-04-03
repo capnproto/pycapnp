@@ -10,7 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, PyFdListener
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
@@ -1782,21 +1782,42 @@ cdef void kjloop_advance_callback(void* data) with gil:
     assert port.runHandle is not None
     port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
 
+cdef cppclass AsyncIoPyFdListener(PyFdListener):
+    object loop
+
+    __init__(object loop):
+        this.loop = loop
+
+    void add_reader(int fd, void (*cb)(void* data), void* data) with gil:
+        this.loop.add_reader(fd, lambda: cb(data))
+
+    void remove_reader(int fd) with gil:
+        this.loop.remove_reader(fd)
+
+    void add_writer(int fd, void (*cb)(void* data), void* data) with gil:
+        this.loop.add_writer(fd, lambda: cb(data))
+
+    void remove_writer(int fd) with gil:
+        this.loop.remove_writer(fd)
+
 cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *kjLoop
     TimerImpl *timerImpl;
+    AsyncIoPyFdListener *fdListener
     object asyncioLoop;
     object runHandle;
 
     __init__(object asyncioLoop):
         this.kjLoop = new EventLoop(deref(this))
         this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
+        this.fdListener = new AsyncIoPyFdListener(asyncioLoop)
         this.runHandle = None
         this.asyncioLoop = asyncioLoop
 
     __dealloc__():
         del this.timerImpl
         del this.kjLoop
+        del this.fdListener
 
     cbool wait() with gil:
         raise KjException("Currently you cannot wait for promises while pycapnp is running in asyncio mode. " +
@@ -1836,18 +1857,8 @@ cdef cppclass AsyncIoEventPort(EventPort):
     Timer *getTimer():
         return this.timerImpl;
 
-
-cdef void add_reader(int fd, void (*cb)(void* data), void* data) with gil:
-    asyncio.get_running_loop().add_reader(fd, lambda: cb(data))
-
-cdef void remove_reader(int fd) with gil:
-    asyncio.get_running_loop().remove_reader(fd)
-
-cdef void add_writer(int fd, void (*cb)(void* data), void* data) with gil:
-    asyncio.get_running_loop().add_writer(fd, lambda: cb(data))
-
-cdef void remove_writer(int fd) with gil:
-    asyncio.get_running_loop().remove_writer(fd)
+    PyFdListener *getFdListener():
+        return this.fdListener
 
 from libcpp.utility cimport move
 
@@ -1866,8 +1877,7 @@ cdef class _EventLoop:
             loop = asyncio.get_running_loop()
             self.customPort = new AsyncIoEventPort(loop)
             kjLoop = self.customPort.getKjLoop()
-            self.lowLevelProvider = makePyLowLevelAsyncIoProvider(&add_reader, &remove_reader,
-                                                                  &add_writer, &remove_writer,
+            self.lowLevelProvider = makePyLowLevelAsyncIoProvider(self.customPort.getFdListener(),
                                                                   self.customPort.getTimer())
             self.waitScope = new WaitScope(deref(kjLoop))
             self.provider = newAsyncIoProvider(deref(self.lowLevelProvider))

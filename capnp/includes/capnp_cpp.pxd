@@ -547,12 +547,14 @@ cdef extern from "kj/async.h" namespace " ::kj":
     PyPromiseArray joinPromises(Array[PyPromise]) nogil
 
 cdef extern from "capnp/helpers/asyncProvider.h":
+    cdef cppclass PyFdListener:
+        void add_reader(int, void (*cb)(void* data), void* data) with gil
+        void remove_reader(int) with  gil
+        void add_writer(int, void (*cb)(void* data), void* data) with gil
+        void remove_writer(int) with gil
     cdef cppclass PyLowLevelAsyncIoProvider(LowLevelAsyncIoProvider):
         pass
 
     Own[LowLevelAsyncIoProvider] makePyLowLevelAsyncIoProvider" ::kj::heap<PyLowLevelAsyncIoProvider>"(
-        void (*ar)(int, void (*cb)(void* data), void* data),
-        void (*rr)(int),
-        void (*aw)(int, void (*cb)(void* data), void* data),
-        void (*rw)(int),
+        PyFdListener *fdListener,
         Timer *timer)

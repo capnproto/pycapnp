@@ -66,19 +66,15 @@ static constexpr uint NEW_FD_FLAGS =
 class OwnedFileDescriptor {
 public:
   OwnedFileDescriptor(int fd, uint flags,
-                      void (*ar)(int, void (*cb)(void* data), void* data),
-                      void (*rr)(int),
-                      void (*aw)(int, void (*cb)(void* data), void* data),
-                      void (*rw)(int))
-    : fd(applyFlags(fd, flags)), flags(flags),
-      add_reader(ar), remove_reader(rr), add_writer(ar), remove_writer(rw) {
+                      PyFdListener *fdListener)
+    : fd(applyFlags(fd, flags)), flags(flags), fdListener(fdListener) {
     readRegistered = false;
     writeRegistered = false;
   }
 
   ~OwnedFileDescriptor() noexcept(false) {
-    remove_reader(fd);
-    remove_writer(fd);
+    fdListener->remove_reader(fd);
+    fdListener->remove_writer(fd);
 
     // Don't use KJ_SYSCALL() here because close() should not be repeated on EINTR.
     if ((flags & kj::LowLevelAsyncIoProvider::TAKE_OWNERSHIP) && close(fd) < 0) {
@@ -104,10 +100,7 @@ public:
 protected:
   const int fd;
   uint flags;
-  void (*add_reader)(int, void (*cb)(void* data), void* data);
-  void (*remove_reader)(int);
-  void (*add_writer)(int, void (*cb)(void* data), void* data);
-  void (*remove_writer)(int);
+  PyFdListener *fdListener;
 
 private:
   bool readRegistered;
@@ -117,12 +110,12 @@ private:
   public:
     ReadPromiseAdapter(kj::PromiseFulfiller<void>& fulfiller, OwnedFileDescriptor& ofd)
       : fulfiller(fulfiller), ofd(ofd) {
-      ofd.add_reader(ofd.fd, &readCallback, (void*)this);
+      ofd.fdListener->add_reader(ofd.fd, &readCallback, (void*)this);
       ofd.readRegistered = true;
     }
 
     ~ReadPromiseAdapter() {
-      ofd.remove_reader(ofd.fd);
+      ofd.fdListener->remove_reader(ofd.fd);
       ofd.readRegistered = false;
     }
 
@@ -145,12 +138,12 @@ private:
   public:
     WritePromiseAdapter(kj::PromiseFulfiller<void>& fulfiller, OwnedFileDescriptor& ofd)
       : fulfiller(fulfiller), ofd(ofd) {
-      ofd.add_writer(ofd.fd, &writeCallback, (void*)this);
+      ofd.fdListener->add_writer(ofd.fd, &writeCallback, (void*)this);
       ofd.writeRegistered = true;
     }
 
     ~WritePromiseAdapter() {
-      ofd.remove_writer(ofd.fd);
+      ofd.fdListener->remove_writer(ofd.fd);
       ofd.writeRegistered = false;
     }
 
@@ -178,12 +171,8 @@ class PyIoStream: public OwnedFileDescriptor, public kj::AsyncIoStream {
   // TODO(cleanup):  Allow better code sharing between the two.
 
 public:
-  PyIoStream(int fd, uint flags,
-    void (*ar)(int, void (*cb)(void* data), void* data),
-    void (*rr)(int),
-    void (*aw)(int, void (*cb)(void* data), void* data),
-    void (*rw)(int))
-    : OwnedFileDescriptor(fd, flags, ar, rr, aw, rw) {}
+  PyIoStream(int fd, uint flags, PyFdListener *fdListener)
+    : OwnedFileDescriptor(fd, flags, fdListener) {}
   virtual ~PyIoStream() noexcept(false) {}
 
   kj::Promise<size_t> read(void* buffer, size_t minBytes, size_t maxBytes) override {
@@ -340,12 +329,8 @@ class PyConnectionReceiver final: public kj::ConnectionReceiver, public OwnedFil
   // Like PyIoStream but for ConnectionReceiver.  This is also largely copied from kj/async-io.c++.
 
 public:
-  PyConnectionReceiver(int fd, uint flags,
-    void (*ar)(int, void (*cb)(void* data), void* data),
-    void (*rr)(int),
-    void (*aw)(int, void (*cb)(void* data), void* data),
-    void (*rw)(int))
-    : OwnedFileDescriptor(fd, flags, ar, rr, aw, rw) {}
+  PyConnectionReceiver(int fd, uint flags, PyFdListener *fdListener)
+    : OwnedFileDescriptor(fd, flags, fdListener) {}
 
   kj::Promise<kj::Own<kj::AsyncIoStream>> accept() override {
     int newFd;
@@ -358,9 +343,7 @@ public:
 #endif
 
     if (newFd >= 0) {
-      return kj::Own<kj::AsyncIoStream>(kj::heap<PyIoStream>(newFd, NEW_FD_FLAGS,
-                                                             add_reader, remove_reader,
-                                                             add_writer, remove_writer));
+      return kj::Own<kj::AsyncIoStream>(kj::heap<PyIoStream>(newFd, NEW_FD_FLAGS, fdListener));
     } else {
       int error = errno;
 
@@ -412,21 +395,18 @@ public:
   }
 };
 
-PyLowLevelAsyncIoProvider::PyLowLevelAsyncIoProvider(void (*ar)(int, void (*cb)(void* data), void* data),
-                                                     void (*rr)(int),
-                                                     void (*aw)(int, void (*cb)(void* data), void* data),
-                                                     void (*rw)(int),
+PyLowLevelAsyncIoProvider::PyLowLevelAsyncIoProvider(PyFdListener *fdListener,
                                                      kj::Timer* t) :
-  add_reader(ar), remove_reader(rr), add_writer(ar), remove_writer(rw), timer(t) {}
+  fdListener(fdListener), timer(t) {}
 
 kj::Own<kj::AsyncInputStream> PyLowLevelAsyncIoProvider::wrapInputFd(int fd, uint flags) {
-  return kj::heap<PyIoStream>(fd, flags, add_reader, remove_reader, add_writer, remove_writer);
+  return kj::heap<PyIoStream>(fd, flags, fdListener);
 }
 kj::Own<kj::AsyncOutputStream> PyLowLevelAsyncIoProvider::wrapOutputFd(int fd, uint flags) {
-  return kj::heap<PyIoStream>(fd, flags, add_reader, remove_reader, add_writer, remove_writer);
+  return kj::heap<PyIoStream>(fd, flags, fdListener);
 }
 kj::Own<kj::AsyncIoStream> PyLowLevelAsyncIoProvider::wrapSocketFd(int fd, uint flags) {
-  return kj::heap<PyIoStream>(fd, flags, add_reader, remove_reader, add_writer, remove_writer);
+  return kj::heap<PyIoStream>(fd, flags, fdListener);
 }
 kj::Promise<kj::Own<kj::AsyncIoStream>> PyLowLevelAsyncIoProvider::wrapConnectingSocketFd(
       int fd, const struct sockaddr* addr, uint addrlen, uint flags) {
@@ -448,7 +428,7 @@ kj::Promise<kj::Own<kj::AsyncIoStream>> PyLowLevelAsyncIoProvider::wrapConnectin
     }
   }
 
-  auto result = kj::heap<PyIoStream>(fd, flags, add_reader, remove_reader, add_writer, remove_writer);
+  auto result = kj::heap<PyIoStream>(fd, flags, fdListener);
   auto connected = result->onWritable();
   return connected.then(kj::mvCapture(result,
       [fd](kj::Own<kj::AsyncIoStream>&& stream) {
@@ -464,14 +444,14 @@ kj::Promise<kj::Own<kj::AsyncIoStream>> PyLowLevelAsyncIoProvider::wrapConnectin
 
 #if CAPNP_VERSION < 7000
 kj::Own<kj::ConnectionReceiver> PyLowLevelAsyncIoProvider::wrapListenSocketFd(int fd, uint flags) {
-  return kj::heap<PyConnectionReceiver>(fd, flags, add_reader, remove_reader, add_writer, remove_writer);
+  return kj::heap<PyConnectionReceiver>(fd, flags, fdListener);
 }
 #else
 kj::Own<kj::ConnectionReceiver> PyLowLevelAsyncIoProvider::wrapListenSocketFd(int fd,
     kj::LowLevelAsyncIoProvider::NetworkFilter& filter, uint flags) {
   // TODO(soon): TODO(security): Actually use `filter`. Currently no API is exposed to set a
   //   filter so it's not important yet.
-  return kj::heap<PyConnectionReceiver>(fd, flags, add_reader, remove_reader, add_writer, remove_writer);
+  return kj::heap<PyConnectionReceiver>(fd, flags, fdListener);
 }
 #endif
 
