@@ -32,7 +32,7 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
 async def myreader(client, reader):
     while True:
         data = await reader.read(4096)
-        client.write(data)
+        await client.write(data)
 
 
 async def mywriter(client, writer):

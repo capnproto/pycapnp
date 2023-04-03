@@ -2657,17 +2657,18 @@ cdef class TwoPartyClient:
         array.resize(read_buffer, read_size_actual)
         return read_buffer
 
-    def write(self, data):
+    async def write(self, data):
         """
         libcapnp writer (asyncio sockets only)
 
         :param data: Buffer to write to the libcapnp library
         """
         cdef array.array write_buffer = array.array('b', data)
-        deref(self._pipe._pipe.ends[1]).write(
-            write_buffer.data.as_voidptr,
-            len(data)
-        ).wait(deref(self._pipe._event_loop.waitScope))
+        await _VoidPromise()._init(
+            deref(self._pipe._pipe.ends[1]).write(
+                write_buffer.data.as_voidptr,
+                len(data)
+            )).a_wait()
 
     def __dealloc__(self):
         del self.thisptr
@@ -2777,10 +2778,11 @@ cdef class TwoPartyServer:
         :param data: Buffer to write to the libcapnp library
         """
         cdef array.array write_buffer = array.array('b', data)
-        deref(self._pipe._pipe.ends[1]).write(
-            write_buffer.data.as_voidptr,
-            len(data)
-        ).wait(deref(self._pipe._event_loop.waitScope))
+        await _VoidPromise()._init(
+            deref(self._pipe._pipe.ends[1]).write(
+                write_buffer.data.as_voidptr,
+                len(data)
+            )).a_wait()
 
     cpdef _connect(self, host_string, bootstrap, traversal_limit_in_words, nesting_limit):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)

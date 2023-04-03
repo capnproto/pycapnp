@@ -33,7 +33,7 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
 async def myreader(client, reader):
     while True:
         data = await reader.read(4096)
-        client.write(data)
+        await client.write(data)
 
 
 async def mywriter(client, writer):

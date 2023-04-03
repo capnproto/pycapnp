@@ -39,7 +39,7 @@ async def myreader(client, reader):
             data = await asyncio.wait_for(reader.read(4096), timeout=1.0)
         except asyncio.TimeoutError:
             continue
-        client.write(data)
+        await client.write(data)
 
 
 async def mywriter(client, writer):
