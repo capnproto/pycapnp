@@ -2126,6 +2126,9 @@ cdef class _Promise:
         return ret
 
     cpdef cancel(self, numParents=1) except +reraise_kj_exception:
+        # TODO: Improve the cancellation. Do parent promises really need to be kept around?
+        #       It seems like parent promises become invalid as soon as `then` (or similar) is
+        #       called, and we could just delete their `thisptr` at that point.
         if numParents > 0 and hasattr(self._parent, 'cancel'):
             self._parent.cancel(numParents - 1)
 
