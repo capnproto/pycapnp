@@ -2833,13 +2833,11 @@ cdef class TwoPartyServer:
         return poll_once()
 
     async def poll_forever(self):
-        """
+        """Deprecated. Do not use.
         Poll libcapnp library forever (asyncio)
         """
-        # TODO: Should probably be removed
-        while True:
-            poll_once()
-            await asyncio.sleep(0.01)
+        raise KjException("This functionality has been removed. If you wish to wait forever, use \n" +
+                          "'await asyncio._get_running_loop().create_future()'")
 
     cpdef run_forever(self):
         if self.port_promise is None:
