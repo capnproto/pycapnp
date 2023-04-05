@@ -1908,27 +1908,17 @@ cdef class _EventLoop:
         return deref(self.lowLevelProvider).wrapSocketFd(fd)
 
 
-cdef _EventLoop C_DEFAULT_EVENT_LOOP
-
-_C_DEFAULT_EVENT_LOOP_LOCAL = None
-_THREAD_LOCAL_EVENT_LOOPS = []
+_C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
 
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
-    'Optimization for not having to deal with threadlocal event loops unless we need to'
-    global C_DEFAULT_EVENT_LOOP
-    if C_DEFAULT_EVENT_LOOP is not None:
-        return C_DEFAULT_EVENT_LOOP
-    elif _C_DEFAULT_EVENT_LOOP_LOCAL is not None:
-        loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
-        if loop is not None:
-            return <_EventLoop>_C_DEFAULT_EVENT_LOOP_LOCAL.loop
-        else:
-            _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
-            return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
+    global C_DEFAULT_EVENT_LOOP_LOCAL
+    loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
+    if loop is not None:
+        return <_EventLoop>_C_DEFAULT_EVENT_LOOP_LOCAL.loop
     else:
-        C_DEFAULT_EVENT_LOOP = _EventLoop()
-        return C_DEFAULT_EVENT_LOOP
+        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
+        return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
 
 cdef class _Timer:
@@ -1949,59 +1939,14 @@ def getTimer():
     return _Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().lowLevelProvider.get()))
 
 
-cpdef remove_event_loop(ignore_errors=False):
-    '''Remove the global event loop'''
-    global C_DEFAULT_EVENT_LOOP
-    global _THREAD_LOCAL_EVENT_LOOPS
+cpdef remove_event_loop():
+    '''Remove the event loop'''
     global _C_DEFAULT_EVENT_LOOP_LOCAL
 
-    if C_DEFAULT_EVENT_LOOP:
-        try:
-            C_DEFAULT_EVENT_LOOP._remove()
-        except Exception as e:
-            if isinstance(ignore_errors, Exception):
-                if isinstance(e, ignore_errors):
-                    ignore_errors = True
-            if ignore_errors is True:
-                pass
-            else:
-                raise
-        C_DEFAULT_EVENT_LOOP = None
-    if len(_THREAD_LOCAL_EVENT_LOOPS) > 0:
-        for loop in _THREAD_LOCAL_EVENT_LOOPS:
-            try:
-                loop._remove()
-            except Exception as e:
-                if isinstance(ignore_errors, Exception):
-                    if isinstance(e, ignore_errors):
-                        ignore_errors = True
-                if ignore_errors is True:
-                    pass
-                else:
-                    raise
-        _THREAD_LOCAL_EVENT_LOOPS = []
-        _C_DEFAULT_EVENT_LOOP_LOCAL = None
-
-
-cpdef create_event_loop(threaded=True):
-    '''Create a new global event loop. This will not remove the previous
-    EventLoop for you, so make sure to do that first'''
-    global C_DEFAULT_EVENT_LOOP
-    global _C_DEFAULT_EVENT_LOOP_LOCAL
-    if threaded:
-        if _C_DEFAULT_EVENT_LOOP_LOCAL is None:
-            _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
-        loop = _EventLoop()
-        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = loop
-        _THREAD_LOCAL_EVENT_LOOPS.append(loop)
-    else:
-        C_DEFAULT_EVENT_LOOP = _EventLoop()
-
-
-cpdef reset_event_loop(ignore_errors=False, threaded=True):
-    '''Removes event loop, then creates a new one. See remove_event_loop and create_event_loop for more details.'''
-    remove_event_loop(ignore_errors)
-    create_event_loop(threaded)
+    loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
+    if loop is not None:
+        loop._remove()
+        del _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
 
 def wait_forever():
