@@ -18,6 +18,8 @@ from cpython.exc cimport PyErr_Clear
 from cython.operator cimport dereference as deref
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
+from libcpp.utility cimport move
+
 
 import array
 import asyncio
@@ -137,16 +139,13 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
 
 
 cdef api convert_array_pyobject(PyArray & arr) with gil:
-    return [<object>arr[i] for i in range(arr.size())]
+    return [<object>arr[i].get().obj for i in range(arr.size())]
 
 
-cdef api PyPromise * extract_promise(object obj) with gil:
+cdef api Promise[Own[PyRefCounter]] * extract_promise(object obj) with gil:
     if type(obj) is _Promise:
         promise = <_Promise>obj
-
         ret = new PyPromise(promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>promise)))
-        Py_DECREF(obj)
-
         return ret
 
     return NULL
@@ -1860,8 +1859,6 @@ cdef cppclass AsyncIoEventPort(EventPort):
     PyFdListener *getFdListener():
         return this.fdListener
 
-from libcpp.utility cimport move
-
 cdef class _EventLoop:
     cdef Own[LowLevelAsyncIoProvider] lowLevelProvider
     cdef Own[AsyncIoProvider] provider
@@ -1936,7 +1933,7 @@ def getTimer():
     """
     Get libcapnp event loop timer
     """
-    return _Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().lowLevelProvider.get()))
+    return _Timer()._init(&C_DEFAULT_EVENT_LOOP_GETTER().lowLevelProvider.get().getTimer())
 
 
 cpdef remove_event_loop():
@@ -1954,7 +1951,8 @@ def wait_forever():
     Use libcapnp event loop to poll/wait forever
     """
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-    helpers.waitNeverDone(deref(loop.waitScope))
+    with nogil:
+        helpers.waitNeverDone(deref(loop.waitScope))
 
 
 def poll_once():
@@ -1962,7 +1960,8 @@ def poll_once():
     Poll libcapnp event loop once
     """
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-    helpers.pollWaitScope(deref(loop.waitScope))
+    with nogil:
+        loop.waitScope.poll()
 
 
 cdef class _CallContext:
@@ -2027,10 +2026,9 @@ cpdef _promise_then(PromiseTypes self, func, error_func, num_args) except +rerai
         if args_length - defaults_length != num_args:
             raise KjException(f'Function passed to `then` call must take exactly {num_args} arguments')
 
-    cdef _Promise new_promise = _Promise()._init(
-        helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-    return _Promise()._init(new_promise.thisptr.attach(
-        capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+    return _Promise()._init(
+        helpers.then(deref(self.thisptr), capnp.makePyRefCounter(<PyObject *>func),
+                     capnp.makePyRefCounter(<PyObject *>error_func)), self)
 
 cdef _promise_to_asyncio(PromiseTypes promise):
     _promise_check_consumed(promise)
@@ -2064,8 +2062,7 @@ cdef class _Promise:
         else:
             self.is_consumed = False
             self._obj = obj
-            Py_INCREF(obj) # TODO: MEM: fix leak
-            self.thisptr = new PyPromise(<PyObject *>obj)
+            self.thisptr = new PyPromise(capnp.makePyRefCounter(<PyObject *>obj))
 
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
@@ -2080,12 +2077,13 @@ cdef class _Promise:
 
     cpdef wait(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
-        ret = <object>helpers.waitPyPromise(self.thisptr, deref(self._event_loop.waitScope))
-        Py_DECREF(ret)
+        cdef Own[PyRefCounter] ret
+        with nogil:
+            ret = move(self.thisptr.wait(deref(self._event_loop.waitScope)))
 
         self.is_consumed = True
 
-        return ret
+        return <object>ret.get().obj
 
     async def a_wait(self):
         """
@@ -2131,7 +2129,8 @@ cdef class _VoidPromise:
 
     cpdef wait(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
-        helpers.waitVoidPromise(self.thisptr, deref(self._event_loop.waitScope))
+        with nogil:
+            self.thisptr.wait(deref(self._event_loop.waitScope))
 
         self.is_consumed = True
 
@@ -2184,8 +2183,9 @@ cdef class _RemotePromise:
         del self.thisptr
 
     cpdef _wait(self) except +reraise_kj_exception:
-        return _Response()._init_childptr(
-            helpers.waitRemote(self.thisptr, deref(self._event_loop.waitScope)), self._parent)
+        with nogil:
+            response = helpers.waitRemote(self.thisptr, deref(self._event_loop.waitScope))
+        return _Response()._init_childptr(response, self._parent)
 
     def wait(self):
         """Wait on the promise. This will block until the promise has completed."""
@@ -2531,6 +2531,7 @@ cdef class TwoPartyClient:
 
     def shutdown(self):
         del self.thisptr
+        self.thisptr = NULL
 
     async def read(self, bufsize):
         """
@@ -2562,7 +2563,8 @@ cdef class TwoPartyClient:
             )).a_wait()
 
     def __dealloc__(self):
-        del self.thisptr
+        if not self.thisptr == NULL:
+            del self.thisptr
 
     cpdef _connect(self, host_string):
         # TODO: Make async

@@ -62,8 +62,8 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Promise()
         Promise(Promise)
         Promise(T)
-        T wait(WaitScope)
-        bool poll(WaitScope)
+        T wait(WaitScope) except +reraise_kj_exception
+        bool poll(WaitScope) except +reraise_kj_exception
         # ForkedPromise<T> fork()
         # Promise<T> exclusiveJoin(Promise<T>&& other)
         # Promise[T] eagerlyEvaluate()
@@ -74,7 +74,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
 
-ctypedef Promise[PyObject *] PyPromise
+ctypedef Promise[Own[PyRefCounter]] PyPromise
 ctypedef Promise[void] VoidPromise
 
 cdef extern from "kj/string-tree.h" namespace " ::kj":
@@ -102,9 +102,9 @@ cdef extern from "kj/array.h" namespace " ::kj":
         T& add(T&)
         Array[T] finish()
 
-    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<PyObject *> >"(size_t) nogil
+    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<Own<PyRefCounter>> >"(size_t) nogil
 
-    ctypedef Array[PyObject *] PyArray' ::kj::Array<PyObject *>'
+    ctypedef Array[Own[PyRefCounter]] PyArray' ::kj::Array<kj::Own<PyRefCounter>>'
 
 ctypedef Promise[PyArray] PyPromiseArray
 
@@ -538,6 +538,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
         void run()
     cdef cppclass WaitScope nogil:
         WaitScope(EventLoop &)
+        void poll()
     cdef cppclass PromiseFulfiller nogil:
         void fulfill()
     cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>" nogil:

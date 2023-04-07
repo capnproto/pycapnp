@@ -3,7 +3,7 @@ from capnp.includes.capnp_cpp cimport (
     RemotePromise, DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue,
     Capability, RpcSystem, MessageBuilder, MessageReader, TwoPartyVatNetwork, AnyPointer,
     DynamicStruct_Builder, WaitScope, AsyncIoContext, StringPtr, TaskSet, Timer,
-    LowLevelAsyncIoProvider, AsyncIoProvider
+    LowLevelAsyncIoProvider, AsyncIoProvider, Own, PyRefCounter
 )
 
 from capnp.includes.schema_cpp cimport ByteArray
@@ -21,9 +21,9 @@ cdef extern from "capnp/helpers/fixMaybe.h":
 cdef extern from "capnp/helpers/capabilityHelper.h":
     # PyPromise evalLater(EventLoop &, PyObject * func)
     # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise then(PyPromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise then(RemotePromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise then(VoidPromise & promise, PyObject * func, PyObject * error_func)
+    PyPromise then(PyPromise & promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
+    PyPromise then(RemotePromise & promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
+    PyPromise then(VoidPromise & promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
     PyPromise then(PyPromiseArray & promise)
     DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)
     DynamicValue.Reader new_server(InterfaceSchema&, PyObject *)
@@ -43,10 +43,5 @@ cdef extern from "capnp/helpers/serialize.h":
     ByteArray messageToPackedBytes(MessageBuilder &, size_t wordCount)
 
 cdef extern from "capnp/helpers/asyncHelper.h":
-    void waitNeverDone(WaitScope&)
-    void pollWaitScope(WaitScope&)
-    Response * waitRemote(RemotePromise *, WaitScope&)
-    bool pollRemote(RemotePromise *, WaitScope&)
-    PyObject * waitPyPromise(PyPromise *, WaitScope&)
-    void waitVoidPromise(VoidPromise *, WaitScope&)
-    Timer * getTimer(LowLevelAsyncIoProvider *) except +reraise_kj_exception
+    void waitNeverDone(WaitScope&) except +reraise_kj_exception nogil
+    Response * waitRemote(RemotePromise *, WaitScope&) except +reraise_kj_exception nogil

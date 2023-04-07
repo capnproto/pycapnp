@@ -52,7 +52,7 @@ void acceptLoop(kj::TaskSet & tasks, capnp::Capability::Client client, kj::Own<k
   })));
 }
 
-kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Client client, kj::AsyncIoProvider * provider, kj::StringPtr bindAddress, capnp::ReaderOptions & opts) {
+kj::Promise<kj::Own<PyRefCounter>> connectServer(kj::TaskSet & tasks, capnp::Capability::Client client, kj::AsyncIoProvider * provider, kj::StringPtr bindAddress, capnp::ReaderOptions & opts) {
     auto paf = kj::newPromiseAndFulfiller<unsigned int>();
     auto portPromise = paf.promise.fork();
 
@@ -65,5 +65,6 @@ kj::Promise<PyObject *> connectServer(kj::TaskSet & tasks, capnp::Capability::Cl
       acceptLoop(tasks, client, kj::mv(listener), opts);
     })));
 
-    return portPromise.addBranch().then([&](unsigned int port) { return PyLong_FromUnsignedLong(port); });
+    return portPromise.addBranch().then([&](unsigned int port) {
+      return kj::heap<PyRefCounter>(PyLong_FromUnsignedLong(port)); });
 }
