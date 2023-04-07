@@ -317,7 +317,7 @@ ctypedef fused PromiseTypes:
     _Promise
     _RemotePromise
     _VoidPromise
-    PromiseFulfillerPair
+    # PromiseFulfillerPair
 
 
 cdef extern from "Python.h":
@@ -1997,6 +1997,60 @@ cdef class _CallContext:
         promise.is_consumed = True
         return promise
 
+cdef void _promise_check_consumed(PromiseTypes promise):
+    if promise.is_consumed:
+        raise KjException(
+            "Promise was already used in a consuming operation. You can no longer use this Promise object")
+
+cpdef _promise_cancel(PromiseTypes self, numParents=1) except +reraise_kj_exception:
+    # TODO: Improve the cancellation. Do parent promises really need to be kept around?
+    #       It seems like parent promises become invalid as soon as `then` (or similar) is
+    #       called, and we could just delete their `thisptr` at that point.
+    if numParents > 0 and hasattr(self._parent, 'cancel'):
+        self._parent.cancel(numParents - 1)
+
+    self.is_consumed = True
+    del self.thisptr
+    self.thisptr = NULL
+
+cpdef _promise_then(PromiseTypes self, func, error_func, num_args) except +reraise_kj_exception:
+    _promise_check_consumed(self)
+
+    argspec = None
+    try:
+        argspec = _inspect.getfullargspec(func)
+    except (TypeError, ValueError):
+        pass
+    if argspec:
+        args_length = len(argspec.args) if argspec.args else 0
+        defaults_length = len(argspec.defaults) if argspec.defaults else 0
+        if args_length - defaults_length != num_args:
+            raise KjException(f'Function passed to `then` call must take exactly {num_args} arguments')
+
+    cdef _Promise new_promise = _Promise()._init(
+        helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
+    return _Promise()._init(new_promise.thisptr.attach(
+        capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+
+cdef _promise_to_asyncio(PromiseTypes promise):
+    _promise_check_consumed(promise)
+
+    loop = asyncio.get_running_loop()
+    fut = loop.create_future()
+    def cont(res):
+        if not fut.cancelled():
+            fut.set_result(res)
+    def exc(err):
+        if not fut.cancelled():
+            fut.set_exception(err)
+    promise2 = promise.then(cont, exc)
+    # Attach the promise to the future, so that it doesn't get destroyed
+    fut.kjpromise = promise2
+    def done(fut):
+        if fut.cancelled():
+            fut.kjpromise.cancel()
+    fut.add_done_callback(done)
+    return fut
 
 cdef class _Promise:
     cdef PyPromise * thisptr
@@ -2025,10 +2079,7 @@ cdef class _Promise:
         del self.thisptr
 
     cpdef wait(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
+        _promise_check_consumed(self)
         ret = <object>helpers.waitPyPromise(self.thisptr, deref(self._event_loop.waitScope))
         Py_DECREF(ret)
 
@@ -2043,53 +2094,20 @@ cdef class _Promise:
 
         Will still work with non-asyncio socket communication, but requires async handling of the function call.
         """
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        return await to_asyncio(self)
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        argspec = None
-        try:
-            argspec = _inspect.getfullargspec(func)
-        except (TypeError, ValueError):
-            pass
-        if argspec:
-            args_length = len(argspec.args) if argspec.args else 0
-            defaults_length = len(argspec.defaults) if argspec.defaults else 0
-            if args_length - defaults_length != 1:
-                raise KjException('Function passed to `then` call must take exactly one argument')
-
-        cdef _Promise new_promise = _Promise()._init(
-            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(
-            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        return await _promise_to_asyncio(self)
 
     def attach(self, *args):
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
+        _promise_check_consumed(self)
         ret = _Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
         self.is_consumed = True
 
         return ret
 
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        # TODO: Improve the cancellation. Do parent promises really need to be kept around?
-        #       It seems like parent promises become invalid as soon as `then` (or similar) is
-        #       called, and we could just delete their `thisptr` at that point.
-        if numParents > 0 and hasattr(self._parent, 'cancel'):
-            self._parent.cancel(numParents - 1)
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        return _promise_then(self, func, error_func, 1)
 
-        self.is_consumed = True
-        del self.thisptr
-        self.thisptr = NULL
+    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
+        return _promise_cancel(self, numParents)
 
 
 cdef class _VoidPromise:
@@ -2112,10 +2130,7 @@ cdef class _VoidPromise:
         del self.thisptr
 
     cpdef wait(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
+        _promise_check_consumed(self)
         helpers.waitVoidPromise(self.thisptr, deref(self._event_loop.waitScope))
 
         self.is_consumed = True
@@ -2127,75 +2142,26 @@ cdef class _VoidPromise:
 
         Will still work with non-asyncio socket communication, but requires async handling of the function call.
         """
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        return await to_asyncio(self.as_pypromise())
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        argspec = None
-        try:
-            argspec = _inspect.getfullargspec(func)
-        except (TypeError, ValueError):
-            pass
-        if argspec:
-            args_length = len(argspec.args) if argspec.args else 0
-            defaults_length = len(argspec.defaults) if argspec.defaults else 0
-            if args_length - defaults_length != 0:
-                raise KjException('Function passed to `then` call must take no arguments')
-
-        cdef _Promise new_promise = _Promise()._init(
-            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(
-            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+        # TODO: Is keeping a separate _VoidPromise class really worth it? Does it make things faster?
+        return await _promise_to_asyncio[_Promise](self.as_pypromise())
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
+        _promise_check_consumed(self)
         return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     def attach(self, *args):
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
+        _promise_check_consumed(self)
         ret = _VoidPromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
         self.is_consumed = True
 
         return ret
 
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        return _promise_then(self, func, error_func, 0)
+
     cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        if numParents > 0 and hasattr(self._parent, 'cancel'):
-            self._parent.cancel(numParents - 1)
+        return _promise_cancel(self, numParents)
 
-        self.is_consumed = True
-        del self.thisptr
-        self.thisptr = NULL
-
-
-cdef to_asyncio(_Promise promise):
-    loop = asyncio.get_running_loop()
-    fut = loop.create_future()
-    def cont(res):
-        if not fut.cancelled():
-            fut.set_result(res)
-    def exc(err):
-        if not fut.cancelled():
-            fut.set_exception(err)
-    promise2 = promise.then(cont, error_func=exc)
-    # Attach the promise to the future, so that it doesn't get destroyed
-    fut.kjpromise = promise2
-    def done(fut):
-        if fut.cancelled():
-            fut.kjpromise.cancel()
-    fut.add_done_callback(done)
-    return fut
 
 
 cdef class _RemotePromise:
@@ -2238,39 +2204,11 @@ cdef class _RemotePromise:
 
         Will still work with non-asyncio socket communication, but requires async handling of the function call.
         """
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        return await to_asyncio(self.as_pypromise())
+        return await _promise_to_asyncio(self)
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
+        _promise_check_consumed(self)
         return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        """Promise pipelining, use to queue up operations on a promise before executing the promise."""
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        argspec = None
-        try:
-            argspec = _inspect.getfullargspec(func)
-        except (TypeError, ValueError):
-            pass
-        if argspec:
-            args_length = len(argspec.args) if argspec.args else 0
-            defaults_length = len(argspec.defaults) if argspec.defaults else 0
-            if args_length - defaults_length != 1:
-                raise KjException('Function passed to `then` call must take exactly one argument')
-
-        cdef _Promise new_promise = _Promise()._init(
-            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(
-            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
 
     cpdef _get(self, field) except +reraise_kj_exception:
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
@@ -2303,13 +2241,11 @@ cdef class _RemotePromise:
     def to_dict(self, verbose=False, ordered=False):
         return _to_dict(self, verbose, ordered)
 
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        if numParents > 0 and hasattr(self._parent, 'cancel'):
-            self._parent.cancel(numParents - 1)
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        return _promise_then(self, func, error_func, 1)
 
-        self.is_consumed = True
-        del self.thisptr
-        self.thisptr = NULL
+    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
+        return _promise_cancel(self, numParents)
 
     # def attach(self, *args):
     #     if self.is_consumed:
@@ -2608,7 +2544,7 @@ cdef class TwoPartyClient:
         cdef _Promise prom = _Promise()._init(
             helpers.wrapSizePromise(
                 self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-        read_size_actual = await to_asyncio(prom)
+        read_size_actual = await prom.a_wait()
         array.resize(read_buffer, read_size_actual)
         return read_buffer
 
@@ -2722,7 +2658,7 @@ cdef class TwoPartyServer:
         cdef _Promise prom = _Promise()._init(
             helpers.wrapSizePromise(
                 self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-        read_size_actual = await to_asyncio(prom)
+        read_size_actual = await prom.a_wait()
         array.resize(read_buffer, read_size_actual)
         return read_buffer
 
