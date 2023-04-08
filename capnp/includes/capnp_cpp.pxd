@@ -51,15 +51,14 @@ cdef extern from "kj/memory.h" namespace " ::kj":
         Own()
         T& operator*()
         T* get()
+    Own[T] heap[T](...)
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(
         AsyncIoStream& stream, Side, ReaderOptions)
     Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(
         PromiseFulfillerPair&)
-    Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass Promise[T] nogil:
-        Promise()
         Promise(Promise)
         Promise(T)
         T wait(WaitScope) except +reraise_kj_exception

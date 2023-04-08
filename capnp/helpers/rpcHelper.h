@@ -66,5 +66,5 @@ kj::Promise<kj::Own<PyRefCounter>> connectServer(kj::TaskSet & tasks, capnp::Cap
     })));
 
     return portPromise.addBranch().then([&](unsigned int port) {
-      return kj::heap<PyRefCounter>(PyLong_FromUnsignedLong(port)); });
+      return stealPyRef(PyLong_FromUnsignedLong(port)); });
 }

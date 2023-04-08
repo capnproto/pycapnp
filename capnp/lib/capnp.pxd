@@ -159,7 +159,6 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
 
 cdef api object wrap_dynamic_struct_reader(Response & r) with gil
-cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil
 cdef api Promise[void] * call_server_method(
     PyObject * _server, char * _method_name, CallContext & _context) except * with gil
 cdef api convert_array_pyobject(PyArray & arr) with gil

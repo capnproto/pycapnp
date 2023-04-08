@@ -46,6 +46,12 @@ public:
   }
 };
 
+inline kj::Own<PyRefCounter> stealPyRef(PyObject* o) {
+  auto ret = kj::heap<PyRefCounter>(o);
+  Py_DECREF(o);
+  return ret;
+}
+
 ::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> & promise);
 
 inline ::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(kj::Promise<void> & promise) {
@@ -65,7 +71,7 @@ void reraise_kj_exception();
 void check_py_error();
 
 inline kj::Promise<kj::Own<PyRefCounter>> wrapSizePromise(kj::Promise<size_t> promise) {
-  return promise.then([](size_t response) { return kj::heap<PyRefCounter>(PyLong_FromSize_t(response)); } );
+  return promise.then([](size_t response) { return stealPyRef(PyLong_FromSize_t(response)); } );
 }
 
 ::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Own<PyRefCounter>> & promise,

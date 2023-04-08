@@ -60,14 +60,9 @@ cdef api object wrap_dynamic_struct_reader(Response & r) with gil:
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
 
 
-cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil:
+cdef api object wrap_remote_call(object func, Response & r) with gil:
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
-
-    func_obj = <object>func
-    ret = func_obj(response)
-    Py_INCREF(ret)
-    return <PyObject *>ret
-
+    return func(response)
 
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
@@ -138,14 +133,14 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
     return NULL
 
 
-cdef api convert_array_pyobject(PyArray & arr) with gil:
+cdef api object convert_array_pyobject(PyArray & arr) with gil:
     return [<object>arr[i].get().obj for i in range(arr.size())]
 
 
 cdef api Promise[Own[PyRefCounter]] * extract_promise(object obj) with gil:
     if type(obj) is _Promise:
         promise = <_Promise>obj
-        ret = new PyPromise(promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>promise)))
+        ret = new PyPromise(promise.thisptr.attach(capnp.heap[PyRefCounter](<PyObject *>promise)))
         return ret
 
     return NULL
@@ -2012,7 +2007,7 @@ cpdef _promise_cancel(PromiseTypes self, numParents=1) except +reraise_kj_except
     del self.thisptr
     self.thisptr = NULL
 
-cpdef _promise_then(PromiseTypes self, func, error_func, num_args) except +reraise_kj_exception:
+cdef _promise_then(PromiseTypes self, func, error_func, num_args) except +reraise_kj_exception:
     _promise_check_consumed(self)
 
     argspec = None
@@ -2027,23 +2022,21 @@ cpdef _promise_then(PromiseTypes self, func, error_func, num_args) except +rerai
             raise KjException(f'Function passed to `then` call must take exactly {num_args} arguments')
 
     return _Promise()._init(
-        helpers.then(deref(self.thisptr), capnp.makePyRefCounter(<PyObject *>func),
-                     capnp.makePyRefCounter(<PyObject *>error_func)), self)
+        helpers.then(deref(self.thisptr), capnp.heap[PyRefCounter](<PyObject *>func),
+                     capnp.heap[PyRefCounter](<PyObject *>error_func)), self)
 
 cdef _promise_to_asyncio(PromiseTypes promise):
     _promise_check_consumed(promise)
 
-    loop = asyncio.get_running_loop()
-    fut = loop.create_future()
+    fut = asyncio.get_running_loop().create_future()
     def cont(res):
         if not fut.cancelled():
             fut.set_result(res)
     def exc(err):
         if not fut.cancelled():
             fut.set_exception(err)
-    promise2 = promise.then(cont, exc)
     # Attach the promise to the future, so that it doesn't get destroyed
-    fut.kjpromise = promise2
+    fut.kjpromise = promise.then(cont, exc)
     def done(fut):
         if fut.cancelled():
             fut.kjpromise.cancel()
@@ -2061,7 +2054,7 @@ cdef class _Promise:
             self.is_consumed = True
         else:
             self.is_consumed = False
-            self.thisptr = new PyPromise(capnp.makePyRefCounter(<PyObject *>obj))
+            self.thisptr = new PyPromise(capnp.heap[PyRefCounter](<PyObject *>obj))
 
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
@@ -2093,9 +2086,12 @@ cdef class _Promise:
         """
         return await _promise_to_asyncio(self)
 
+    def __await__(self):
+        return _promise_to_asyncio(self).__await__()
+
     def attach(self, *args):
         _promise_check_consumed(self)
-        ret = _Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
+        ret = _Promise()._init(self.thisptr.attach(capnp.heap[PyRefCounter](<PyObject *>args)), self)
         self.is_consumed = True
 
         return ret
@@ -2143,13 +2139,16 @@ cdef class _VoidPromise:
         # TODO: Is keeping a separate _VoidPromise class really worth it? Does it make things faster?
         return await _promise_to_asyncio[_Promise](self.as_pypromise())
 
+    def __await__(self):
+        return _promise_to_asyncio(self).__await__()
+
     cpdef as_pypromise(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
         return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
 
     def attach(self, *args):
         _promise_check_consumed(self)
-        ret = _VoidPromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
+        ret = _VoidPromise()._init(self.thisptr.attach(capnp.heap[PyRefCounter](<PyObject *>args)), self)
         self.is_consumed = True
 
         return ret
@@ -2204,6 +2203,9 @@ cdef class _RemotePromise:
         Will still work with non-asyncio socket communication, but requires async handling of the function call.
         """
         return await _promise_to_asyncio(self)
+
+    def __await__(self):
+        return _promise_to_asyncio(self).__await__()
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
