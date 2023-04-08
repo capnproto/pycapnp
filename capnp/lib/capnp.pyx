@@ -2053,7 +2053,7 @@ cdef _promise_to_asyncio(PromiseTypes promise):
 cdef class _Promise:
     cdef PyPromise * thisptr
     cdef public bint is_consumed
-    cdef public object _parent, _obj
+    cdef public object _parent
     cdef _EventLoop _event_loop
 
     def __init__(self, obj=None):
@@ -2061,7 +2061,6 @@ cdef class _Promise:
             self.is_consumed = True
         else:
             self.is_consumed = False
-            self._obj = obj
             self.thisptr = new PyPromise(capnp.makePyRefCounter(<PyObject *>obj))
 
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()

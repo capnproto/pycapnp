@@ -60,25 +60,19 @@ void check_py_error() {
 
 kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> arg) {
     GILAcquire gil;
-    auto arg_promise = extract_promise(arg->obj);
+    PyObject * result = PyObject_CallFunctionObjArgs(func->obj, arg->obj, NULL);
 
-    if(arg_promise == NULL) {
-      PyObject * result = PyObject_CallFunctionObjArgs(func->obj, arg->obj, NULL);
+    check_py_error();
 
-      check_py_error();
-
-      auto promise = extract_promise(result);
-      if(promise != NULL)
-        return kj::mv(*promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
-      auto remote_promise = extract_remote_promise(result);
-      if(remote_promise != NULL)
-        return convert_to_pypromise(*remote_promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
-      return kj::heap<PyRefCounter>(result);
+    auto promise = extract_promise(result);
+    if (promise != NULL) {
+      return kj::mv(*promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
     }
-    else {
-      return arg_promise->then([&](kj::Own<PyRefCounter> new_arg){
-        return wrapPyFunc(kj::mv(func), kj::mv(new_arg)); });// TODO: delete arg_promise?
+    auto remote_promise = extract_remote_promise(result);
+    if (remote_promise != NULL) {
+      return convert_to_pypromise(*remote_promise); // TODO: delete promise, see incref of containing promise in capnp.pyx
     }
+    return kj::heap<PyRefCounter>(result);
 }
 
 kj::Promise<kj::Own<PyRefCounter>> wrapPyFuncNoArg(kj::Own<PyRefCounter> func) {

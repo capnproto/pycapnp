@@ -68,12 +68,6 @@ inline kj::Promise<kj::Own<PyRefCounter>> wrapSizePromise(kj::Promise<size_t> pr
   return promise.then([](size_t response) { return kj::heap<PyRefCounter>(PyLong_FromSize_t(response)); } );
 }
 
-kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> arg);
-
-kj::Promise<kj::Own<PyRefCounter>> wrapPyFuncNoArg(kj::Own<PyRefCounter> func);
-
-kj::Promise<kj::Own<PyRefCounter>> wrapRemoteCall(kj::Own<PyRefCounter> func, capnp::Response<capnp::DynamicStruct> & arg);
-
 ::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Own<PyRefCounter>> & promise,
                                           kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func);
 ::kj::Promise<kj::Own<PyRefCounter>> then(::capnp::RemotePromise< ::capnp::DynamicStruct> & promise,
