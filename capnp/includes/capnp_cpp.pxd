@@ -528,9 +528,9 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventPort:
-        bool wait() with gil
-        bool poll() with gil
-        void setRunnable(bool runnable) with gil
+        bool wait() except* with gil
+        bool poll() except* with gil
+        void setRunnable(bool runnable) except* with gil
     cdef cppclass EventLoop nogil:
         EventLoop()
         EventLoop(EventPort &)

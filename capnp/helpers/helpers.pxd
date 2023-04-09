@@ -21,16 +21,16 @@ cdef extern from "capnp/helpers/fixMaybe.h":
 cdef extern from "capnp/helpers/capabilityHelper.h":
     # PyPromise evalLater(EventLoop &, PyObject * func)
     # PyPromise there(EventLoop & loop, PyPromise & promise, PyObject * func, PyObject * error_func)
-    PyPromise then(PyPromise & promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
-    PyPromise then(RemotePromise & promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
-    PyPromise then(VoidPromise & promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
+    PyPromise then(Own[PyPromise] promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
+    PyPromise then(Own[RemotePromise] promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
+    PyPromise then(Own[VoidPromise] promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
     PyPromise then(PyPromiseArray & promise)
     DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)
     DynamicValue.Reader new_server(InterfaceSchema&, PyObject *)
     Capability.Client server_to_client(InterfaceSchema&, PyObject *)
-    PyPromise convert_to_pypromise(RemotePromise&)
-    PyPromise convert_to_pypromise(VoidPromise&)
-    VoidPromise convert_to_voidpromise(PyPromise&)
+    PyPromise convert_to_pypromise(Own[RemotePromise])
+    PyPromise convert_to_pypromise(Own[VoidPromise])
+    VoidPromise convert_to_voidpromise(Own[PyPromise])
     PyPromise wrapSizePromise(Promise[size_t])
     void init_capnp_api()
 
@@ -44,4 +44,4 @@ cdef extern from "capnp/helpers/serialize.h":
 
 cdef extern from "capnp/helpers/asyncHelper.h":
     void waitNeverDone(WaitScope&) except +reraise_kj_exception nogil
-    Response * waitRemote(RemotePromise *, WaitScope&) except +reraise_kj_exception nogil
+    Response * waitRemote(Own[RemotePromise], WaitScope&) except +reraise_kj_exception nogil

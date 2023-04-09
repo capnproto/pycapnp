@@ -81,7 +81,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
             elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             else:
                 try:
                     warning_msg = (
@@ -94,9 +94,9 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
 
         if ret is not None:
             if type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             else:
                 try:
                     warning_msg = (
@@ -117,7 +117,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
             elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             if not isinstance(ret, tuple):
                 ret = (ret,)
             names = _find_field_order(context.results.schema.node.struct)
@@ -140,7 +140,7 @@ cdef api object convert_array_pyobject(PyArray & arr) with gil:
 cdef api Promise[Own[PyRefCounter]] * extract_promise(object obj) with gil:
     if type(obj) is _Promise:
         promise = <_Promise>obj
-        ret = new PyPromise(promise.thisptr.attach(capnp.heap[PyRefCounter](<PyObject *>promise)))
+        ret = new PyPromise(promise.thisptr.get().attach(capnp.heap[PyRefCounter](<PyObject *>promise)))
         return ret
 
     return NULL
@@ -149,9 +149,7 @@ cdef api Promise[Own[PyRefCounter]] * extract_promise(object obj) with gil:
 cdef api RemotePromise * extract_remote_promise(object obj) with gil:
     if type(obj) is _RemotePromise:
         promise = <_RemotePromise>obj
-        promise.is_consumed = True
-
-        return promise.thisptr # TODO:MEMORY: fix this leak
+        return promise.thisptr.get() # TODO:MEMORY: fix this leak
 
     return NULL
 
@@ -1813,16 +1811,16 @@ cdef cppclass AsyncIoEventPort(EventPort):
         del this.kjLoop
         del this.fdListener
 
-    cbool wait() with gil:
+    cbool wait() except* with gil:
         raise KjException("Currently you cannot wait for promises while pycapnp is running in asyncio mode. " +
                           "You should instead use a_wait(). If you have a use-case to start the asyncio loop " +
                           "using wait(), please report")
 
-    cbool poll() with gil:
+    cbool poll() except* with gil:
         raise KjException("Currently you cannot poll promises while pycapnp is running in asyncio mode. " +
                           "If you have a use-case to poll the asyncio loop using poll(), please report")
 
-    void setRunnable(cbool runnable) with gil:
+    void setRunnable(cbool runnable) except* with gil:
         if runnable:
             if this.runHandle is not None:
                 # If a timer was running, cancel it and schedule a run immediately
@@ -1988,26 +1986,14 @@ cdef class _CallContext:
 
     cpdef tail_call(self, _Request tailRequest):
         promise = _VoidPromise()._init(self.thisptr.tailCall(moveRequest(deref(tailRequest.thisptr_child))))
-        promise.is_consumed = True
         return promise
 
-cdef void _promise_check_consumed(PromiseTypes promise):
-    if promise.is_consumed:
+cdef void _promise_check_consumed(PromiseTypes promise) except*:
+    if promise.thisptr.get() == NULL:
         raise KjException(
             "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
-cpdef _promise_cancel(PromiseTypes self, numParents=1) except +reraise_kj_exception:
-    # TODO: Improve the cancellation. Do parent promises really need to be kept around?
-    #       It seems like parent promises become invalid as soon as `then` (or similar) is
-    #       called, and we could just delete their `thisptr` at that point.
-    if numParents > 0 and hasattr(self._parent, 'cancel'):
-        self._parent.cancel(numParents - 1)
-
-    self.is_consumed = True
-    del self.thisptr
-    self.thisptr = NULL
-
-cdef _promise_then(PromiseTypes self, func, error_func, num_args) except +reraise_kj_exception:
+cdef _promise_then(PromiseTypes self, func, error_func, num_args, attach=None) except +reraise_kj_exception:
     _promise_check_consumed(self)
 
     argspec = None
@@ -2022,59 +2008,42 @@ cdef _promise_then(PromiseTypes self, func, error_func, num_args) except +rerais
             raise KjException(f'Function passed to `then` call must take exactly {num_args} arguments')
 
     return _Promise()._init(
-        helpers.then(deref(self.thisptr), capnp.heap[PyRefCounter](<PyObject *>func),
-                     capnp.heap[PyRefCounter](<PyObject *>error_func)), self)
+        helpers.then(move(self.thisptr), capnp.heap[PyRefCounter](<PyObject *>func),
+                     capnp.heap[PyRefCounter](<PyObject *>error_func))
+        .attach(capnp.heap[PyRefCounter](<PyObject *> attach)))
 
 cdef _promise_to_asyncio(PromiseTypes promise):
     _promise_check_consumed(promise)
 
     fut = asyncio.get_running_loop().create_future()
-    def cont(res):
-        if not fut.cancelled():
-            fut.set_result(res)
-    def exc(err):
-        if not fut.cancelled():
-            fut.set_exception(err)
     # Attach the promise to the future, so that it doesn't get destroyed
-    fut.kjpromise = promise.then(cont, exc)
-    def done(fut):
-        if fut.cancelled():
-            fut.kjpromise.cancel()
-    fut.add_done_callback(done)
+    fut.kjpromise = promise.then(
+        lambda res: fut.set_result(res)    if not fut.cancelled() else None,
+        lambda err: fut.set_exception(err) if not fut.cancelled() else None)
+    del promise
+    fut.add_done_callback(
+        lambda fut: fut.kjpromise.cancel() if fut.cancelled() else None)
     return fut
 
 cdef class _Promise:
-    cdef PyPromise * thisptr
-    cdef public bint is_consumed
-    cdef public object _parent
+    cdef Own[PyPromise] thisptr
     cdef _EventLoop _event_loop
 
     def __init__(self, obj=None):
-        if obj is None:
-            self.is_consumed = True
-        else:
-            self.is_consumed = False
-            self.thisptr = new PyPromise(capnp.heap[PyRefCounter](<PyObject *>obj))
-
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        if obj is not None:
+            self.thisptr = capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
-    cdef _init(self, PyPromise other, parent=None):
-        self.is_consumed = False
-        self.thisptr = new PyPromise(movePromise(other))
-        self._parent = parent
+    cdef _init(self, PyPromise other):
+        self.thisptr = capnp.heap[PyPromise](movePromise(other))
         return self
-
-    def __dealloc__(self):
-        del self.thisptr
 
     cpdef wait(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
+        cdef Own[PyPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
         cdef Own[PyRefCounter] ret
         with nogil:
-            ret = move(self.thisptr.wait(deref(self._event_loop.waitScope)))
-
-        self.is_consumed = True
-
+            ret = move(prom.get().wait(deref(self._event_loop.waitScope)))
         return <object>ret.get().obj
 
     async def a_wait(self):
@@ -2089,45 +2058,29 @@ cdef class _Promise:
     def __await__(self):
         return _promise_to_asyncio(self).__await__()
 
-    def attach(self, *args):
-        _promise_check_consumed(self)
-        ret = _Promise()._init(self.thisptr.attach(capnp.heap[PyRefCounter](<PyObject *>args)), self)
-        self.is_consumed = True
-
-        return ret
-
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         return _promise_then(self, func, error_func, 1)
 
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        return _promise_cancel(self, numParents)
+    cpdef cancel(self) except +reraise_kj_exception:
+        self.thisptr = Own[PyPromise]()
 
 
 cdef class _VoidPromise:
-    cdef VoidPromise * thisptr
-    cdef public bint is_consumed
-    cdef public object _parent
+    cdef Own[VoidPromise] thisptr
     cdef _EventLoop _event_loop
 
     def __init__(self):
-        self.is_consumed = True
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
-    cdef _init(self, VoidPromise other, parent=None):
-        self.is_consumed = False
-        self.thisptr = new VoidPromise(moveVoidPromise(other))
-        self._parent = parent
+    cdef _init(self, VoidPromise other):
+        self.thisptr = capnp.heap[VoidPromise](moveVoidPromise(other))
         return self
-
-    def __dealloc__(self):
-        del self.thisptr
 
     cpdef wait(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
+        cdef Own[VoidPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
         with nogil:
-            self.thisptr.wait(deref(self._event_loop.waitScope))
-
-        self.is_consumed = True
+            prom.get().wait(deref(self._event_loop.waitScope))
 
     async def a_wait(self):
         """
@@ -2144,56 +2097,40 @@ cdef class _VoidPromise:
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
-        return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
-
-    def attach(self, *args):
-        _promise_check_consumed(self)
-        ret = _VoidPromise()._init(self.thisptr.attach(capnp.heap[PyRefCounter](<PyObject *>args)), self)
-        self.is_consumed = True
-
-        return ret
+        return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr)))
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
         return _promise_then(self, func, error_func, 0)
 
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        return _promise_cancel(self, numParents)
+    cpdef cancel(self) except +reraise_kj_exception:
+        self.thisptr = Own[VoidPromise]()
 
 
 
 cdef class _RemotePromise:
-    cdef RemotePromise * thisptr
-    cdef public bint is_consumed
-    cdef public object _parent
+    cdef object _parent
+    """A pointer to a parent object that needs to be kept alive for this promise to function.
+    Note that _Promise and _VoidPromise don't have such pointer. The reason is that in _RemotePromise
+    the parent pointer needs to be passed around through _RemotePromise._get. If an object needs to
+    be kept alive in _Promise or _VoidPromise, it can be attached to the underlying C++ promise."""
+
+    cdef Own[RemotePromise] thisptr
     cdef _EventLoop _event_loop
 
     def __init__(self):
-        self.is_consumed = True
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
-    cdef _init(self, RemotePromise other, parent):
-        self.is_consumed = False
-        self.thisptr = new RemotePromise(moveRemotePromise(other))
+    cdef _init(self, RemotePromise other, object parent=None):
+        self.thisptr = capnp.heap[RemotePromise](moveRemotePromise(other))
         self._parent = parent
         return self
 
-    def __dealloc__(self):
-        del self.thisptr
-
-    cpdef _wait(self) except +reraise_kj_exception:
-        with nogil:
-            response = helpers.waitRemote(self.thisptr, deref(self._event_loop.waitScope))
-        return _Response()._init_childptr(response, self._parent)
-
-    def wait(self):
+    cpdef wait(self) except +reraise_kj_exception:
         """Wait on the promise. This will block until the promise has completed."""
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        ret = self._wait()
-        self.is_consumed = True
-        return ret
+        _promise_check_consumed(self)
+        with nogil:
+            response = helpers.waitRemote(move(self.thisptr), deref(self._event_loop.waitScope))
+        return _Response()._init_childptr(response, None)
 
     async def a_wait(self):
         """
@@ -2209,17 +2146,19 @@ cdef class _RemotePromise:
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
-        return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
+        return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr))
+                                .attach(capnp.heap[PyRefCounter](<PyObject *>self._parent)))
 
     cpdef _get(self, field) except +reraise_kj_exception:
-        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
+        _promise_check_consumed(self)
+        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get().get(field)).getType()
         if type == capnp.TYPE_CAPABILITY:
             return _DynamicCapabilityClient()._init(
-                (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+                (<C_DynamicValue.Pipeline>self.thisptr.get().get(field)).asCapability(), self._parent)
         elif type == capnp.TYPE_STRUCT:
             return _DynamicStructPipeline()._init(
                 new C_DynamicStruct.Pipeline(
-                    (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
+                    (<C_DynamicValue.Pipeline>self.thisptr.get().get(field)).asStruct()), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
             raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
@@ -2234,7 +2173,8 @@ cdef class _RemotePromise:
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
-            return _StructSchema()._init_child(self.thisptr.getSchema())
+            _promise_check_consumed(self)
+            return _StructSchema()._init_child(self.thisptr.get().getSchema())
 
     def __dir__(self):
         return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
@@ -2243,20 +2183,10 @@ cdef class _RemotePromise:
         return _to_dict(self, verbose, ordered)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        return _promise_then(self, func, error_func, 1)
+        return _promise_then(self, func, error_func, 1, attach=self._parent)
 
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        return _promise_cancel(self, numParents)
-
-    # def attach(self, *args):
-    #     if self.is_consumed:
-    #         raise KjException(
-    #             "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-    #     ret = _RemotePromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
-    #     self.is_consumed = True
-
-    #     return ret
+    cpdef cancel(self) except +reraise_kj_exception:
+        self.thisptr = Own[RemotePromise]()
 
 
 cpdef join_promises(promises) except +reraise_kj_exception:
@@ -2276,7 +2206,6 @@ cpdef join_promises(promises) except +reraise_kj_exception:
             raise KjException(
                 "One of the promises passed to `join_promises` had a non promise value of: {}".format(promise))
         heap.add(movePromise(deref(pyPromise.thisptr)))
-        pyPromise.is_consumed = True
 
     return _Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
 
@@ -2340,7 +2269,7 @@ cdef class _DynamicCapabilityServer:
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
-    cdef public object _server, _parent, _cached_schema
+    cdef public object _parent, _cached_schema
 
     cdef _init(self, C_DynamicCapability.Client other, object parent):
         self.thisptr = other
@@ -2355,7 +2284,7 @@ cdef class _DynamicCapabilityClient:
             s = schema
 
         self.thisptr = helpers.new_client(s.thisptr, <PyObject *>server)
-        self._server = server
+        self._parent = server
         return self
 
     cpdef _find_method_args(self, method_name):
@@ -2487,7 +2416,7 @@ cdef class _TwoPartyVatNetwork:
         return self
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
-        return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
+        return _VoidPromise()._init(deref(self.thisptr).onDisconnect())
 
 
 cdef class TwoPartyClient:

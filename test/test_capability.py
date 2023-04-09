@@ -284,6 +284,21 @@ def test_cancel():
     with pytest.raises(Exception):
         remote.wait()
 
+    req = client.foo(5)
+    trans = req.then(lambda x: 5)
+    req.cancel() # Cancel a promise that was already consumed
+    assert trans.wait() == 5
+
+    req = client.foo(5)
+    req.cancel()
+    with pytest.raises(Exception):
+        trans = req.then(lambda x: 5)
+
+    req = client.foo(5)
+    assert req.wait().x == '26'
+    with pytest.raises(Exception):
+        req.wait()
+
 
 def test_timer():
     global test_timer_var
