@@ -365,6 +365,27 @@ def test_then_args():
         client.foo(i=5).then(lambda x, y: 1)
 
 
+class PromiseJoinServer(capability.TestPipeline.Server):
+    def getCap(self, n, inCap, _context, **kwargs):
+        def _then(response):
+            _results = _context.results
+            _results.s = response.x + "_bar"
+            _results.outBox.cap = inCap
+
+        return (inCap.foo(i=n)
+                .then(lambda res: capnp.Promise(int(res.x))) # Make sure that Promise is flattened
+                .then(lambda x: inCap.foo(i=x+1)) # Make sure that RemotePromise is flattened
+                .then(_then))
+
+
+def test_promise_joining():
+    client = capability.TestPipeline._new_client(PromiseJoinServer())
+    foo_client = capability.TestInterface._new_client(Server())
+
+    remote = client.getCap(n=5, inCap=foo_client)
+    assert remote.wait().s == '136_bar'
+
+
 class ExtendsServer(Server):
     def qux(self, **kwargs):
         pass

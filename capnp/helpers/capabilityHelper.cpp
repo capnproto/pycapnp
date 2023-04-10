@@ -61,18 +61,8 @@ void check_py_error() {
 inline kj::Promise<kj::Own<PyRefCounter>> maybeUnwrapPromise(PyObject * result) {
   check_py_error();
   auto promise = extract_promise(result);
-  if (promise != NULL) {
-    Py_DECREF(result);
-    auto ret(kj::mv(*promise));
-    return ret;
-  }
-  auto remote_promise = extract_remote_promise(result);
-  if (remote_promise != NULL) {
-    auto ret = convert_to_pypromise(kj::heap<capnp::RemotePromise<capnp::DynamicStruct>>(kj::mv(*remote_promise)));
-    Py_DECREF(result);
-    return ret;
-  }
-  return stealPyRef(result);
+  Py_DECREF(result);
+  return kj::mv(*promise);
 }
 
 kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> arg) {

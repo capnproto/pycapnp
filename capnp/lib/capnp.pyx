@@ -60,7 +60,7 @@ cdef api object wrap_dynamic_struct_reader(Response & r) with gil:
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
 
 
-cdef api object wrap_remote_call(object func, Response & r) with gil:
+cdef api object wrap_remote_call(object func, Response & r):
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
     return func(response)
 
@@ -137,21 +137,13 @@ cdef api object convert_array_pyobject(PyArray & arr) with gil:
     return [<object>arr[i].get().obj for i in range(arr.size())]
 
 
-cdef api Promise[Own[PyRefCounter]] * extract_promise(object obj) with gil:
+cdef api Own[Promise[Own[PyRefCounter]]] extract_promise(object obj):
     if type(obj) is _Promise:
-        promise = <_Promise>obj
-        ret = new PyPromise(promise.thisptr.get().attach(capnp.heap[PyRefCounter](<PyObject *>promise)))
-        return ret
-
-    return NULL
-
-
-cdef api RemotePromise * extract_remote_promise(object obj) with gil:
-    if type(obj) is _RemotePromise:
-        promise = <_RemotePromise>obj
-        return promise.thisptr.get() # TODO:MEMORY: fix this leak
-
-    return NULL
+        return move((<_Promise>obj).thisptr)
+    elif type(obj) is _RemotePromise:
+        return capnp.heap[PyPromise](helpers.convert_to_pypromise(move((<_RemotePromise>obj).thisptr)))
+    else:
+        return capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
