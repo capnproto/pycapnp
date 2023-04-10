@@ -141,7 +141,8 @@ cdef api Own[Promise[Own[PyRefCounter]]] extract_promise(object obj):
     if type(obj) is _Promise:
         return move((<_Promise>obj).thisptr)
     elif type(obj) is _RemotePromise:
-        return capnp.heap[PyPromise](helpers.convert_to_pypromise(move((<_RemotePromise>obj).thisptr)))
+        return capnp.heap[PyPromise](helpers.convert_to_pypromise(move((<_RemotePromise>obj).thisptr))
+                                     .attach(capnp.heap[PyRefCounter](<PyObject *>(<_RemotePromise>obj)._parent)))
     else:
         return capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
