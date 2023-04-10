@@ -1773,16 +1773,16 @@ cdef cppclass AsyncIoPyFdListener(PyFdListener):
     __init__(object loop):
         this.loop = loop
 
-    void add_reader(int fd, void (*cb)(void* data), void* data) with gil:
+    void add_reader(int fd, void (*cb)(void* data), void* data) except* with gil:
         this.loop.add_reader(fd, lambda: cb(data))
 
-    void remove_reader(int fd) with gil:
+    void remove_reader(int fd) except* with gil:
         this.loop.remove_reader(fd)
 
-    void add_writer(int fd, void (*cb)(void* data), void* data) with gil:
+    void add_writer(int fd, void (*cb)(void* data), void* data) except* with gil:
         this.loop.add_writer(fd, lambda: cb(data))
 
-    void remove_writer(int fd) with gil:
+    void remove_writer(int fd) except* with gil:
         this.loop.remove_writer(fd)
 
 cdef cppclass AsyncIoEventPort(EventPort):
