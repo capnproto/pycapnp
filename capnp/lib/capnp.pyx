@@ -1812,7 +1812,7 @@ cdef cppclass AsyncIoEventPort(EventPort):
 
     cbool wait() except* with gil:
         raise KjException("Currently you cannot wait for promises while pycapnp is running in asyncio mode. " +
-                          "You should instead use a_wait(). If you have a use-case to start the asyncio loop " +
+                          "You should instead use 'await'. If you have a use-case to start the asyncio loop " +
                           "using wait(), please report")
 
     cbool poll() except* with gil:
@@ -2104,7 +2104,7 @@ cdef class _VoidPromise:
         return await _promise_to_asyncio[_Promise](self.as_pypromise())
 
     def __await__(self):
-        return _promise_to_asyncio(self).__await__()
+        return _promise_to_asyncio[_Promise](self.as_pypromise()).__await__()
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
@@ -2472,10 +2472,9 @@ cdef class TwoPartyClient:
 
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, bufsize)
-        cdef _Promise prom = _Promise()._init(
+        read_size_actual = await _Promise()._init(
             helpers.wrapSizePromise(
                 self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-        read_size_actual = await prom.a_wait()
         array.resize(read_buffer, read_size_actual)
         return read_buffer
 
@@ -2490,7 +2489,7 @@ cdef class TwoPartyClient:
             deref(self._pipe._pipe.ends[1]).write(
                 write_buffer.data.as_voidptr,
                 len(data)
-            )).a_wait()
+            ))
 
     def __dealloc__(self):
         if not self.thisptr == NULL:
@@ -2577,10 +2576,9 @@ cdef class TwoPartyServer:
         """
         cdef array.array read_buffer = array.array('b', [])
         array.resize(read_buffer, bufsize)
-        cdef _Promise prom = _Promise()._init(
+        read_size_actual = await _Promise()._init(
             helpers.wrapSizePromise(
                 self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-        read_size_actual = await prom.a_wait()
         array.resize(read_buffer, read_size_actual)
         return read_buffer
 
@@ -2595,7 +2593,7 @@ cdef class TwoPartyServer:
             deref(self._pipe._pipe.ends[1]).write(
                 write_buffer.data.as_voidptr,
                 len(data)
-            )).a_wait()
+            ))
 
     cpdef _connect(self, host_string, bootstrap, traversal_limit_in_words, nesting_limit):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)

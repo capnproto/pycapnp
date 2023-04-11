@@ -45,8 +45,7 @@ async def mywriter(client, writer):
 
 async def background(cap):
     subscriber = StatusSubscriber()
-    promise = cap.subscribeStatus(subscriber)
-    await promise.a_wait()
+    await cap.subscribeStatus(subscriber)
 
 
 async def main(host):
@@ -85,11 +84,11 @@ async def main(host):
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
 
 

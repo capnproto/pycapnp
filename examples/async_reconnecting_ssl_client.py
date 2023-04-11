@@ -56,7 +56,7 @@ async def mywriter(client, writer):
 async def watch_connection(cap):
     while True:
         try:
-            await asyncio.wait_for(cap.alive().a_wait(), timeout=5)
+            await asyncio.wait_for(cap.alive(), timeout=5)
             await asyncio.sleep(1)
         except asyncio.TimeoutError:
             print("Watch timeout!")
@@ -66,8 +66,7 @@ async def watch_connection(cap):
 
 async def background(cap):
     subscriber = StatusSubscriber()
-    promise = cap.subscribeStatus(subscriber)
-    await promise.a_wait()
+    await cap.subscribeStatus(subscriber)
 
 
 async def main(host):
@@ -114,11 +113,11 @@ async def main(host):
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
 
     for task in overalltasks:

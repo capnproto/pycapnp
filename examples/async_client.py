@@ -27,8 +27,7 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
 
 async def background(cap):
     subscriber = StatusSubscriber()
-    promise = cap.subscribeStatus(subscriber)
-    await promise.a_wait()
+    await cap.subscribeStatus(subscriber)
 
 
 async def main(host):
@@ -36,21 +35,22 @@ async def main(host):
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     # Start background task for subscriber
-    b = asyncio.create_task(background(cap))
+    asyncio.create_task(background(cap))
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-
-    b.cancel()
 
 
 if __name__ == "__main__":
     asyncio.run(main(parse_args().host))
 
-    asyncio.run(main(parse_args().host)) # Test that we can run multiple asyncio loops in sequence
+    # Test that we can run multiple asyncio loops in sequence. This is particularly tricky, because
+    # main contains a background task that we never cancel. The entire loop gets cleaned up anyways,
+    # and we can start a new loop.
+    asyncio.run(main(parse_args().host))
