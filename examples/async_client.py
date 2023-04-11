@@ -36,7 +36,7 @@ async def main(host):
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     # Start background task for subscriber
-    asyncio.create_task(background(cap))
+    b = asyncio.create_task(background(cap))
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
@@ -46,9 +46,11 @@ async def main(host):
     print("main: {}".format(time.time()))
     await cap.longRunning().a_wait()
     print("main: {}".format(time.time()))
-    # Shut down the client, so that the background task gets terminated
-    client.shutdown()
+
+    b.cancel()
 
 
 if __name__ == "__main__":
     asyncio.run(main(parse_args().host))
+
+    asyncio.run(main(parse_args().host)) # Test that we can run multiple asyncio loops in sequence

@@ -34,6 +34,7 @@ import sys as _sys
 import threading as _threading
 import traceback as _traceback
 import warnings as _warnings
+import weakref as _weakref
 
 from types import ModuleType as _ModuleType
 from operator import attrgetter as _attrgetter
@@ -141,8 +142,11 @@ cdef api Own[Promise[Own[PyRefCounter]]] extract_promise(object obj):
     if type(obj) is _Promise:
         return move((<_Promise>obj).thisptr)
     elif type(obj) is _RemotePromise:
+        parent = (<_RemotePromise>obj)._parent
+        # We don't need parent anymore. Setting to none allows quicker garbage collection
+        (<_RemotePromise>obj)._parent = None
         return capnp.heap[PyPromise](helpers.convert_to_pypromise(move((<_RemotePromise>obj).thisptr))
-                                     .attach(capnp.heap[PyRefCounter](<PyObject *>(<_RemotePromise>obj)._parent)))
+                                     .attach(capnp.heap[PyRefCounter](<PyObject *>parent)))
     else:
         return capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
@@ -1777,13 +1781,15 @@ cdef cppclass AsyncIoPyFdListener(PyFdListener):
         this.loop.add_reader(fd, lambda: cb(data))
 
     void remove_reader(int fd) except* with gil:
-        this.loop.remove_reader(fd)
+        try: this.loop.remove_reader(fd)
+        except RuntimeError: pass # In case the loop was already closed
 
     void add_writer(int fd, void (*cb)(void* data), void* data) except* with gil:
         this.loop.add_writer(fd, lambda: cb(data))
 
     void remove_writer(int fd) except* with gil:
-        this.loop.remove_writer(fd)
+        try: this.loop.remove_writer(fd)
+        except RuntimeError: pass # In case the loop was already closed
 
 cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *kjLoop
@@ -1845,7 +1851,17 @@ cdef cppclass AsyncIoEventPort(EventPort):
     PyFdListener *getFdListener():
         return this.fdListener
 
+def _asyncio_close_patch(loop, oldclose, kjloop):
+    # The purpose of patching the asyncio close() function is to set up the kj-loop to be closed as well.
+    # We replace the event loop getter with a weakref, such that it can be destroyed when all other
+    # references to it are gone. Then, if a new asyncio loop ever gets started, a new kj-loop can also be
+    # started.
+    _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _weakref.ref(kjloop)
+    loop.close = oldclose()
+    return oldclose()
+
 cdef class _EventLoop:
+    cdef object __weakref__ # Needed to make this class weak-referenceable
     cdef Own[LowLevelAsyncIoProvider] lowLevelProvider
     cdef Own[AsyncIoProvider] provider
     cdef WaitScope * waitScope
@@ -1864,7 +1880,7 @@ cdef class _EventLoop:
                                                                   self.customPort.getTimer())
             self.waitScope = new WaitScope(deref(kjLoop))
             self.provider = newAsyncIoProvider(deref(self.lowLevelProvider))
-            # TODO: Automatically shutdown when the asyncio loop gets closed
+            loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
         except RuntimeError:
             ptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
             self.lowLevelProvider = move(ptr.lowLevelProvider)
@@ -1873,16 +1889,10 @@ cdef class _EventLoop:
             del ptr
 
     def __dealloc__(self):
-        self._remove()
-
-    cpdef _remove(self) except +reraise_kj_exception:
         if not self.customPort == NULL:
             # If we have a custom port, the waitscope is not owned by provider, we have to delete it manually
             del self.waitScope
             del self.customPort
-        self.waitScope = NULL
-        self.provider = Own[AsyncIoProvider]()
-        self.lowLevelProvider = Own[LowLevelAsyncIoProvider]()
 
     cdef TwoWayPipe makeTwoWayPipe(self):
         return deref(self.provider).newTwoWayPipe()
@@ -1897,9 +1907,20 @@ _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
     global C_DEFAULT_EVENT_LOOP_LOCAL
     loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
-    if loop is not None:
-        return <_EventLoop>_C_DEFAULT_EVENT_LOOP_LOCAL.loop
+    if type(loop) is _EventLoop:
+        return loop
+    elif type(loop) is _weakref.ref:
+        loop = loop()
+        if loop is not None:
+            raise RuntimeError(
+                "The capnproto event loop associated to an already closed Python asyncio event loop is " +
+                "still running, because not all I/O events associated to it have terminated. If you wish " +
+                " to start a new loop, make sure that all previous events are cleaned up.")
+        else:
+            _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
+            return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
     else:
+        assert loop is None
         _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
         return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
@@ -2020,10 +2041,8 @@ cdef _promise_to_asyncio(PromiseTypes promise):
 
 cdef class _Promise:
     cdef Own[PyPromise] thisptr
-    cdef _EventLoop _event_loop
 
     def __init__(self, obj=None):
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         if obj is not None:
             self.thisptr = capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
@@ -2035,8 +2054,9 @@ cdef class _Promise:
         _promise_check_consumed(self)
         cdef Own[PyPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
         cdef Own[PyRefCounter] ret
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         with nogil:
-            ret = move(prom.get().wait(deref(self._event_loop.waitScope)))
+            ret = move(prom.get().wait(deref(loop.waitScope)))
         return <object>ret.get().obj
 
     async def a_wait(self):
@@ -2060,10 +2080,7 @@ cdef class _Promise:
 
 cdef class _VoidPromise:
     cdef Own[VoidPromise] thisptr
-    cdef _EventLoop _event_loop
 
-    def __init__(self):
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
     cdef _init(self, VoidPromise other):
         self.thisptr = capnp.heap[VoidPromise](moveVoidPromise(other))
@@ -2072,8 +2089,9 @@ cdef class _VoidPromise:
     cpdef wait(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
         cdef Own[VoidPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         with nogil:
-            prom.get().wait(deref(self._event_loop.waitScope))
+            prom.get().wait(deref(loop.waitScope))
 
     async def a_wait(self):
         """
@@ -2108,10 +2126,6 @@ cdef class _RemotePromise:
     be kept alive in _Promise or _VoidPromise, it can be attached to the underlying C++ promise."""
 
     cdef Own[RemotePromise] thisptr
-    cdef _EventLoop _event_loop
-
-    def __init__(self):
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
 
     cdef _init(self, RemotePromise other, object parent=None):
         self.thisptr = capnp.heap[RemotePromise](moveRemotePromise(other))
@@ -2121,8 +2135,9 @@ cdef class _RemotePromise:
     cpdef wait(self) except +reraise_kj_exception:
         """Wait on the promise. This will block until the promise has completed."""
         _promise_check_consumed(self)
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
         with nogil:
-            response = helpers.waitRemote(move(self.thisptr), deref(self._event_loop.waitScope))
+            response = helpers.waitRemote(move(self.thisptr), deref(loop.waitScope))
         return _Response()._init_childptr(response, None)
 
     async def a_wait(self):
@@ -2139,8 +2154,10 @@ cdef class _RemotePromise:
 
     cpdef as_pypromise(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
+        parent = self._parent
+        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
         return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr))
-                                .attach(capnp.heap[PyRefCounter](<PyObject *>self._parent)))
+                                .attach(capnp.heap[PyRefCounter](<PyObject *>parent)))
 
     cpdef _get(self, field) except +reraise_kj_exception:
         _promise_check_consumed(self)
@@ -2176,10 +2193,13 @@ cdef class _RemotePromise:
         return _to_dict(self, verbose, ordered)
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        return _promise_then(self, func, error_func, 1, attach=self._parent)
+        parent = self._parent
+        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
+        return _promise_then(self, func, error_func, 1, attach=parent)
 
     cpdef cancel(self) except +reraise_kj_exception:
         self.thisptr = Own[RemotePromise]()
+        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
 
 
 cpdef join_promises(promises) except +reraise_kj_exception:
@@ -2425,8 +2445,6 @@ cdef class TwoPartyClient:
     """
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
-    cdef public object _orig_stream
-    cdef public _AsyncIoStream _stream
     cdef public _TwoWayPipe _pipe
 
     def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
@@ -2435,26 +2453,15 @@ cdef class TwoPartyClient:
 
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
-        self._orig_stream = socket
-        if self._orig_stream:
-            self._stream = _FdAsyncIoStream(socket.fileno())
-            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.CLIENT, opts)
+        if socket:
+            stream = _FdAsyncIoStream(socket.detach())
+            self._network = _TwoPartyVatNetwork()._init(stream, capnp.CLIENT, opts)
         else:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
             self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.CLIENT, opts)
 
         self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
-        if self._orig_stream:
-            Py_INCREF(self._orig_stream)
-            Py_INCREF(self._stream)
-        else:
-            Py_INCREF(self._pipe)
-        Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
-
-    def shutdown(self):
-        del self.thisptr
-        self.thisptr = NULL
 
     async def read(self, bufsize):
         """
@@ -2527,8 +2534,6 @@ cdef class TwoPartyServer:
     """
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
-    cdef public object _orig_stream, _disconnect_promise
-    cdef public _AsyncIoStream _stream
     cdef public _TwoWayPipe _pipe
     cdef object _port
     cdef public object port_promise, _bootstrap
@@ -2546,11 +2551,10 @@ cdef class TwoPartyServer:
             self._connect(socket, bootstrap, traversal_limit_in_words, nesting_limit)
             return
 
-        self._orig_stream = socket
-        if self._orig_stream:
-            self._stream = _FdAsyncIoStream(socket.fileno())
+        if socket:
+            stream = _FdAsyncIoStream(socket.detach())
             self._network = _TwoPartyVatNetwork()._init(
-                self._stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
+                stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
         else:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
@@ -2564,13 +2568,6 @@ cdef class TwoPartyServer:
             schema = bootstrap.schema
             self.thisptr = new RpcSystem(makeRpcServerBootstrap(
                 deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
-
-        Py_INCREF(self._orig_stream)
-        Py_INCREF(self._stream)
-        Py_INCREF(self._pipe)
-        Py_INCREF(self._bootstrap)
-        Py_INCREF(self._network)
-        self._disconnect_promise = self.on_disconnect().then(self._decref)
 
     async def read(self, bufsize):
         """
@@ -2608,20 +2605,12 @@ cdef class TwoPartyServer:
         self._task_set = new capnp.TaskSet(self._error_handler)
 
         self._bootstrap = bootstrap
-        Py_INCREF(self._bootstrap)
         schema = bootstrap.schema
         self.port_promise = _Promise()._init(
             helpers.connectServer(
                 deref(self._task_set),
                 helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap),
                 loop.provider.get(), temp_string, opts))
-
-    def _decref(self):
-        Py_DECREF(self._bootstrap)
-        Py_INCREF(self._pipe)
-        Py_DECREF(self._orig_stream)
-        Py_DECREF(self._stream)
-        Py_DECREF(self._network)
 
     def __dealloc__(self):
         del self.thisptr
@@ -2665,6 +2654,7 @@ cdef class TwoPartyServer:
 
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
+    cdef _EventLoop _event_loop # We hold a pointer to the event loop here, to ensure it remains alive
 
 
 cdef class _TwoWayPipe:
@@ -2681,7 +2671,9 @@ cdef class _TwoWayPipe:
 
 
 cdef class _FdAsyncIoStream(_AsyncIoStream):
-    cdef _EventLoop _event_loop
+    """Wraps a socket for usage with pycapnp.
+    Note that this class will own the socket. The socket is closed when this class no longer exist.
+    If you get the socket fd by opening a socket from Python, you need to detach it by calling socket.detach()."""
 
     def __init__(self, int fd):
         self._init(fd)
@@ -2689,11 +2681,6 @@ cdef class _FdAsyncIoStream(_AsyncIoStream):
     cdef _init(self, int fd) except +reraise_kj_exception:
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = self._event_loop.wrapSocketFd(fd)
-
-
-cdef class PyAsyncIoStream(_AsyncIoStream):
-    def __init__(self, int fd):
-        pass
 
 
 cdef class PromiseFulfillerPair:
@@ -3373,9 +3360,11 @@ class _InterfaceModule(object):
         self.Server = type(name + '.Server', (_DynamicCapabilityServer,), {'__init__': server_init, 'schema':schema})
 
     def _new_client(self, server):
+        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
         return _DynamicCapabilityClient()._init_vals(self.schema, server)
 
     def _new_server(self, server):
+        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
         return _DynamicCapabilityServer(self.schema, server)
 
 
