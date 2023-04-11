@@ -10,8 +10,6 @@ import pytest
 
 import capnp
 
-from capnp.lib.capnp import KjException
-
 import test_capability_capnp
 
 
