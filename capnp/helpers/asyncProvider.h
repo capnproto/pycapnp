@@ -9,6 +9,7 @@ public:
   virtual void remove_reader(int) = 0;
   virtual void add_writer(int, void (*cb)(void* data), void* data) = 0;
   virtual void remove_writer(int) = 0;
+  virtual Canceler* getCanceler() = 0;
 };
 
 class PyLowLevelAsyncIoProvider final: public kj::LowLevelAsyncIoProvider {

@@ -88,13 +88,13 @@ public:
   kj::Promise<void> onReadable() {
     // TODO: Detect if fd is already readable and return kj::READY_NOW immediately
     KJ_REQUIRE(readRegistered == false, "Must wait for previous event to complete.");
-    return kj::newAdaptedPromise<void, ReadPromiseAdapter>(*this);
+    return fdListener->getCanceler()->wrap(kj::newAdaptedPromise<void, ReadPromiseAdapter>(*this));
   }
 
   kj::Promise<void> onWritable() {
     // TODO: Detect if fd is already readable and return kj::READY_NOW immediately
     KJ_REQUIRE(writeRegistered == false, "Must wait for previous event to complete.");
-    return kj::newAdaptedPromise<void, WritePromiseAdapter>(*this);
+    return fdListener->getCanceler()->wrap(kj::newAdaptedPromise<void, WritePromiseAdapter>(*this));
   }
 
 protected:
@@ -128,7 +128,6 @@ private:
     }
 
     void readDone() {
-      std::cout.flush();
       fulfiller.fulfill();
     }
 
@@ -156,7 +155,6 @@ private:
     }
 
     void writeDone() {
-      std::cout.flush();
       fulfiller.fulfill();
     }
 

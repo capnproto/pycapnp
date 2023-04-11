@@ -73,6 +73,14 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
 
+    cdef cppclass Canceler nogil:
+        Canceler()
+        Promise[T] wrap[T](Promise[T] promise)
+        void cancel(StringPtr cancelReason)
+        void cancel(Exception& exception)
+        void release()
+        bool isEmpty()
+
 ctypedef Promise[Own[PyRefCounter]] PyPromise
 ctypedef Promise[void] VoidPromise
 
@@ -552,6 +560,7 @@ cdef extern from "capnp/helpers/asyncProvider.h":
         void remove_reader(int) except* with gil
         void add_writer(int, void (*cb)(void* data), void* data) except* with gil
         void remove_writer(int) except* with gil
+        Canceler* getCanceler()
     cdef cppclass PyLowLevelAsyncIoProvider(LowLevelAsyncIoProvider):
         pass
 

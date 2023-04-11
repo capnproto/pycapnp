@@ -10,7 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, PyFdListener
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, PyFdListener, Canceler
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
@@ -1773,9 +1773,14 @@ cdef void kjloop_advance_callback(void* data) with gil:
 
 cdef cppclass AsyncIoPyFdListener(PyFdListener):
     object loop
+    Canceler* canceler
 
     __init__(object loop):
         this.loop = loop
+        this.canceler = new Canceler()
+
+    __dealloc__():
+        del this.canceler
 
     void add_reader(int fd, void (*cb)(void* data), void* data) except* with gil:
         this.loop.add_reader(fd, lambda: cb(data))
@@ -1790,6 +1795,9 @@ cdef cppclass AsyncIoPyFdListener(PyFdListener):
     void remove_writer(int fd) except* with gil:
         try: this.loop.remove_writer(fd)
         except RuntimeError: pass # In case the loop was already closed
+
+    Canceler* getCanceler():
+        return this.canceler
 
 cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *kjLoop
@@ -1851,11 +1859,13 @@ cdef cppclass AsyncIoEventPort(EventPort):
     PyFdListener *getFdListener():
         return this.fdListener
 
-def _asyncio_close_patch(loop, oldclose, kjloop):
+def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
     # The purpose of patching the asyncio close() function is to set up the kj-loop to be closed as well.
     # We replace the event loop getter with a weakref, such that it can be destroyed when all other
     # references to it are gone. Then, if a new asyncio loop ever gets started, a new kj-loop can also be
     # started.
+    deref(deref(kjloop.customPort.getFdListener()).getCanceler()).cancel(
+        capnp.StringPtr("The Python asyncio loop was closed, no more I/O can be performed."))
     _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _weakref.ref(kjloop)
     loop.close = oldclose()
     return oldclose()
