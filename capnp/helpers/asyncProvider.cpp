@@ -223,12 +223,10 @@ public:
     KJ_SYSCALL(shutdown(fd, SHUT_WR));
   }
 
-#if CAPNP_VERSION >= 8000
   kj::Promise<void> whenWriteDisconnected() override {
     // TODO(someday): Implement using UV_DISCONNECT?
     return kj::NEVER_DONE;
   }
-#endif
 
 private:
   kj::Promise<size_t> tryReadInternal(void* buffer, size_t minBytes, size_t maxBytes,
@@ -440,18 +438,12 @@ kj::Promise<kj::Own<kj::AsyncIoStream>> PyLowLevelAsyncIoProvider::wrapConnectin
       }));
 }
 
-#if CAPNP_VERSION < 7000
-kj::Own<kj::ConnectionReceiver> PyLowLevelAsyncIoProvider::wrapListenSocketFd(int fd, uint flags) {
-  return kj::heap<PyConnectionReceiver>(fd, flags, fdListener);
-}
-#else
 kj::Own<kj::ConnectionReceiver> PyLowLevelAsyncIoProvider::wrapListenSocketFd(int fd,
     kj::LowLevelAsyncIoProvider::NetworkFilter& filter, uint flags) {
   // TODO(soon): TODO(security): Actually use `filter`. Currently no API is exposed to set a
   //   filter so it's not important yet.
   return kj::heap<PyConnectionReceiver>(fd, flags, fdListener);
 }
-#endif
 
 kj::Timer& PyLowLevelAsyncIoProvider::getTimer() {
   return *timer;
