@@ -2464,7 +2464,7 @@ cdef class TwoPartyClient:
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         if socket:
-            stream = _FdAsyncIoStream(socket.detach())
+            stream = _FdAsyncIoStream(socket)
             self._network = _TwoPartyVatNetwork()._init(stream, capnp.CLIENT, opts)
         else:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
@@ -2561,7 +2561,7 @@ cdef class TwoPartyServer:
             return
 
         if socket:
-            stream = _FdAsyncIoStream(socket.detach())
+            stream = _FdAsyncIoStream(socket)
             self._network = _TwoPartyVatNetwork()._init(
                 stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
         else:
@@ -2680,15 +2680,23 @@ cdef class _TwoWayPipe:
 
 cdef class _FdAsyncIoStream(_AsyncIoStream):
     """Wraps a socket for usage with pycapnp.
-    Note that this class will own the socket. The socket is closed when this class no longer exist.
-    If you get the socket fd by opening a socket from Python, you need to detach it by calling socket.detach()."""
+    Note that this class does not own the socket. Instead, it receives the fileno from a python object,
+    which will continue to own it. This object is kept alive as long as this class is alive. Ultimately,
+    the python object is responsible for closing."""
+    cdef object _socket
 
-    def __init__(self, int fd):
-        self._init(fd)
+    def __init__(self, object socket):
+        self._socket = socket
+        self._init(socket.fileno())
 
     cdef _init(self, int fd) except +reraise_kj_exception:
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = self._event_loop.wrapSocketFd(fd)
+
+    def __dealloc__(self):
+        # The AsyncIoStream must be destroyed before self._socket is removed, to ensure the socket is still
+        # open when the destructor is called. Therefore, we do this manually to have control over the ordering
+        self.thisptr = Own[AsyncIoStream]()
 
 
 cdef class PromiseFulfillerPair:
