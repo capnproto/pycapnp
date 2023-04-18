@@ -48,7 +48,7 @@ def parse_args():
 
 
 async def main():
-    host, port = parse_args().address.split(':')
+    host, port = parse_args().address.split(":")
 
     # Setup SSL context
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -58,7 +58,8 @@ async def main():
     )
 
     server = await capnp.AsyncIoStream.create_server(
-        new_connection, host, port, ssl=ctx)
+        new_connection, host, port, ssl=ctx
+    )
 
     async with server:
         await server.serve_forever()

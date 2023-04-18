@@ -31,7 +31,7 @@ async def background(cap):
 
 
 async def main(host):
-    host, port = host.split(':')
+    host, port = host.split(":")
     connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
     client = capnp.TwoPartyClient(connection)
     cap = client.bootstrap().cast_as(thread_capnp.Example)

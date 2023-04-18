@@ -34,7 +34,7 @@ at the given address and does some RPCs"
 
 
 async def main(host):
-    host, port = parse_args().host.split(':')
+    host, port = parse_args().host.split(":")
     connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
     client = capnp.TwoPartyClient(connection)
 

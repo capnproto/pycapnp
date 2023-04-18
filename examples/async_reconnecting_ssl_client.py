@@ -58,7 +58,9 @@ async def main(host):
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     # Start watcher to restart socket connection if it is lost and subscriber background task
-    background_tasks = asyncio.gather(background(cap), watch_connection(cap), return_exceptions=True)
+    background_tasks = asyncio.gather(
+        background(cap), watch_connection(cap), return_exceptions=True
+    )
 
     # Run blocking tasks
     print("main: {}".format(time.time()))

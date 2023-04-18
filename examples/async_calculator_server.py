@@ -142,7 +142,7 @@ given address/port ADDRESS. """
 
 
 async def main():
-    host, port = parse_args().address.split(':')
+    host, port = parse_args().address.split(":")
     server = await capnp.AsyncIoStream.create_server(new_connection, host, port)
     async with server:
         await server.serve_forever()
