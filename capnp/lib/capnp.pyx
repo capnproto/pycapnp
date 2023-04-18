@@ -2718,6 +2718,10 @@ cdef class DummyBaseClass:
     pass
 
 cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
+    # TODO: Temporary. Needed due to a missing __slots__ definitions in BufferedProtocol on Python 3.7.
+    #       See https://github.com/python/cpython/issues/79575. Can be removed once Python 3.7 is unsupported.
+    cdef dict __dict__
+
     cdef object transport
     cdef object connected_callback
     cdef object callback_arg
