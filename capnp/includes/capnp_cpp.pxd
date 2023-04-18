@@ -110,7 +110,7 @@ cdef extern from "kj/array.h" namespace " ::kj":
         T& add(T&)
         Array[T] finish()
 
-    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<Own<PyRefCounter>> >"(size_t) nogil
+    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<kj::Own<PyRefCounter>> >"(size_t) nogil
 
     ctypedef Array[Own[PyRefCounter]] PyArray' ::kj::Array<kj::Own<PyRefCounter>>'
 
@@ -558,20 +558,6 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Own[VoidPromiseFulfiller] fulfiller
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"() nogil
     PyPromiseArray joinPromises(Array[PyPromise]) nogil
-
-cdef extern from "capnp/helpers/asyncProvider.h":
-    cdef cppclass PyFdListener:
-        void add_reader(int, void (*cb)(void* data), void* data) except* with gil
-        void remove_reader(int) except* with gil
-        void add_writer(int, void (*cb)(void* data), void* data) except* with gil
-        void remove_writer(int) except* with gil
-        Canceler* getCanceler()
-    cdef cppclass PyLowLevelAsyncIoProvider(LowLevelAsyncIoProvider):
-        pass
-
-    Own[LowLevelAsyncIoProvider] makePyLowLevelAsyncIoProvider" ::kj::heap<PyLowLevelAsyncIoProvider>"(
-        PyFdListener *fdListener,
-        Timer *timer)
 
 cdef extern from "capnp/helpers/capabilityHelper.h":
     cdef cppclass PyAsyncIoStream(AsyncIoStream):

@@ -10,7 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, PyFdListener, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
@@ -1771,52 +1771,21 @@ cdef void kjloop_advance_callback(void* data) with gil:
     assert port.runHandle is not None
     port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
 
-cdef cppclass AsyncIoPyFdListener(PyFdListener):
-    object loop
-    Canceler* canceler
-
-    __init__(object loop):
-        this.loop = loop
-        this.canceler = new Canceler()
-
-    __dealloc__():
-        del this.canceler
-
-    void add_reader(int fd, void (*cb)(void* data), void* data) except* with gil:
-        this.loop.add_reader(fd, lambda: cb(data))
-
-    void remove_reader(int fd) except* with gil:
-        try: this.loop.remove_reader(fd)
-        except RuntimeError: pass # In case the loop was already closed
-
-    void add_writer(int fd, void (*cb)(void* data), void* data) except* with gil:
-        this.loop.add_writer(fd, lambda: cb(data))
-
-    void remove_writer(int fd) except* with gil:
-        try: this.loop.remove_writer(fd)
-        except RuntimeError: pass # In case the loop was already closed
-
-    Canceler* getCanceler():
-        return this.canceler
-
 cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *kjLoop
     TimerImpl *timerImpl;
-    AsyncIoPyFdListener *fdListener
     object asyncioLoop;
     object runHandle;
 
     __init__(object asyncioLoop):
         this.kjLoop = new EventLoop(deref(this))
         this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
-        this.fdListener = new AsyncIoPyFdListener(asyncioLoop)
         this.runHandle = None
         this.asyncioLoop = asyncioLoop
 
     __dealloc__():
         del this.timerImpl
         del this.kjLoop
-        del this.fdListener
 
     cbool wait() except* with gil:
         raise KjException("Currently you cannot wait for promises while pycapnp is running in asyncio mode. " +
@@ -1856,16 +1825,11 @@ cdef cppclass AsyncIoEventPort(EventPort):
     Timer *getTimer():
         return this.timerImpl;
 
-    PyFdListener *getFdListener():
-        return this.fdListener
-
 def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
     # The purpose of patching the asyncio close() function is to set up the kj-loop to be closed as well.
     # We replace the event loop getter with a weakref, such that it can be destroyed when all other
     # references to it are gone. Then, if a new asyncio loop ever gets started, a new kj-loop can also be
     # started.
-    deref(deref(kjloop.customPort.getFdListener()).getCanceler()).cancel(
-        capnp.StringPtr("The Python asyncio loop was closed, no more I/O can be performed."))
     _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _weakref.ref(kjloop)
     loop.close = oldclose()
     return oldclose()
@@ -1875,6 +1839,7 @@ cdef class _EventLoop:
     cdef Own[LowLevelAsyncIoProvider] lowLevelProvider
     cdef Own[AsyncIoProvider] provider
     cdef WaitScope * waitScope
+    cdef Timer* timer
     cdef readonly in_asyncio_mode
 
     cdef AsyncIoEventPort *customPort
@@ -1887,10 +1852,8 @@ cdef class _EventLoop:
             loop = asyncio.get_running_loop()
             self.customPort = new AsyncIoEventPort(loop)
             kjLoop = self.customPort.getKjLoop()
-            self.lowLevelProvider = makePyLowLevelAsyncIoProvider(self.customPort.getFdListener(),
-                                                                  self.customPort.getTimer())
             self.waitScope = new WaitScope(deref(kjLoop))
-            self.provider = newAsyncIoProvider(deref(self.lowLevelProvider))
+            self.timer = self.customPort.getTimer()
             loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
             self.in_asyncio_mode = True
         except RuntimeError:
@@ -1898,6 +1861,7 @@ cdef class _EventLoop:
             self.lowLevelProvider = move(ptr.lowLevelProvider)
             self.provider = move(ptr.provider)
             self.waitScope = &ptr.waitScope
+            self.timer = &self.lowLevelProvider.get().getTimer()
             del ptr
             self.in_asyncio_mode = False
 
@@ -1908,9 +1872,13 @@ cdef class _EventLoop:
             del self.customPort
 
     cdef TwoWayPipe makeTwoWayPipe(self):
+        if self.in_asyncio_mode:
+            raise RuntimeError("Cannot call makeTwoWayPipe in asyncio mode")
         return deref(self.provider).newTwoWayPipe()
 
     cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
+        if self.in_asyncio_mode:
+            raise RuntimeError("Cannot call wrapSocketFd in asyncio mode")
         return deref(self.lowLevelProvider).wrapSocketFd(fd)
 
 
@@ -1953,7 +1921,7 @@ def getTimer():
     """
     Get libcapnp event loop timer
     """
-    return _Timer()._init(&C_DEFAULT_EVENT_LOOP_GETTER().lowLevelProvider.get().getTimer())
+    return _Timer()._init(C_DEFAULT_EVENT_LOOP_GETTER().timer)
 
 
 cpdef remove_event_loop():
