@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import ssl
+import socket
 
 import capnp
 import calculator_capnp
@@ -155,9 +156,17 @@ async def main():
         os.path.join(this_dir, "selfsigned.key"),
     )
 
-    server = await capnp.AsyncIoStream.create_server(
-        new_connection, host, port, ssl=ctx
-    )
+    # Handle both IPv4 and IPv6 cases
+    try:
+        print("Try IPv4")
+        server = await capnp.AsyncIoStream.create_server(
+            new_connection, host, port, ssl=ctx, family=socket.AF_INET
+        )
+    except Exception:
+        print("Try IPv6")
+        server = await capnp.AsyncIoStream.create_server(
+            new_connection, host, port, ssl=ctx, family=socket.AF_INET6
+        )
 
     async with server:
         await server.serve_forever()

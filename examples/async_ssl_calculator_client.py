@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import os
 import ssl
+import socket
 
 import capnp
 import calculator_capnp
@@ -45,7 +46,19 @@ async def main(host):
     ctx = ssl.create_default_context(
         ssl.Purpose.SERVER_AUTH, cafile=os.path.join(this_dir, "selfsigned.cert")
     )
-    stream = await capnp.AsyncIoStream.create_connection(addr, port, ssl=ctx)
+
+    # Handle both IPv4 and IPv6 cases
+    try:
+        print("Try IPv4")
+        stream = await capnp.AsyncIoStream.create_connection(
+            addr, port, ssl=ctx, family=socket.AF_INET
+        )
+    except Exception:
+        print("Try IPv6")
+        stream = await capnp.AsyncIoStream.create_connection(
+            addr, port, ssl=ctx, family=socket.AF_INET6
+        )
+
     client = capnp.TwoPartyClient(stream)
 
     # Bootstrap the Calculator interface
