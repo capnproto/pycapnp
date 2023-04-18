@@ -2758,9 +2758,11 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
 
         # TODO: BUG. We want to immediately pause reading, but Python's transport implementation does not
         #       allow this. See https://github.com/python/cpython/issues/103607.
-        #       As a workaround, we schedule the pausing for later. This is technically not correct,
-        #       because a read might happen in the short window between the connection being made and the
-        #       reading being paused. This behavior has not been observed yet though.
+        #       As a workaround, in addition to pausing now, we also schedule the pausing for later.
+        #       This is technically not correct, because a read might happen in the short window between
+        #       the connection being made and the reading being paused. This behavior has not been
+        #       observed yet though.
+        transport.pause_reading()
         asyncio.get_running_loop().call_soon(lambda: transport.pause_reading())
 
         self.write_paused = False
