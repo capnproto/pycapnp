@@ -1,6 +1,7 @@
 #pragma once
 
 #include "capnp/dynamic.h"
+#include <kj/async-io.h>
 #include <stdexcept>
 #include "Python.h"
 
@@ -112,6 +113,32 @@ inline capnp::DynamicValue::Reader new_server(capnp::InterfaceSchema & schema, P
 
 inline capnp::Capability::Client server_to_client(capnp::InterfaceSchema & schema, PyObject * server) {
   return kj::heap<PythonInterfaceDynamicImpl>(schema, server);
+}
+
+class PyAsyncIoStream: public kj::AsyncIoStream {
+public:
+  kj::Own<PyRefCounter> protocol;
+
+  PyAsyncIoStream(kj::Own<PyRefCounter> protocol) : protocol(kj::mv(protocol)) {}
+  ~PyAsyncIoStream();
+
+  kj::Promise<size_t> tryRead(void* buffer, size_t minBytes, size_t maxBytes);
+
+  kj::Promise<void> write(const void* buffer, size_t size);
+
+  kj::Promise<void> write(kj::ArrayPtr<const kj::ArrayPtr<const kj::byte>> pieces);
+
+  kj::Promise<void> whenWriteDisconnected();
+
+  void shutdownWrite();
+};
+
+template <typename T>
+inline void rejectDisconnected(kj::PromiseFulfiller<T>& fulfiller, kj::StringPtr message) {
+  fulfiller.reject(KJ_EXCEPTION(DISCONNECTED, message));
+}
+inline void rejectVoidDisconnected(kj::PromiseFulfiller<void>& fulfiller, kj::StringPtr message) {
+  fulfiller.reject(KJ_EXCEPTION(DISCONNECTED, message));
 }
 
 void init_capnp_api();

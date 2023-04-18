@@ -10,9 +10,9 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, PyFdListener, Canceler
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, makePyLowLevelAsyncIoProvider, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, PyFdListener, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller
 
-from cpython cimport array, Py_buffer, PyObject_CheckBuffer
+from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
 from cpython.exc cimport PyErr_Clear
 from cython.operator cimport dereference as deref
@@ -1875,6 +1875,7 @@ cdef class _EventLoop:
     cdef Own[LowLevelAsyncIoProvider] lowLevelProvider
     cdef Own[AsyncIoProvider] provider
     cdef WaitScope * waitScope
+    cdef readonly in_asyncio_mode
 
     cdef AsyncIoEventPort *customPort
 
@@ -1891,12 +1892,14 @@ cdef class _EventLoop:
             self.waitScope = new WaitScope(deref(kjLoop))
             self.provider = newAsyncIoProvider(deref(self.lowLevelProvider))
             loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
+            self.in_asyncio_mode = True
         except RuntimeError:
             ptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
             self.lowLevelProvider = move(ptr.lowLevelProvider)
             self.provider = move(ptr.provider)
             self.waitScope = &ptr.waitScope
             del ptr
+            self.in_asyncio_mode = False
 
     def __dealloc__(self):
         if not self.customPort == NULL:
@@ -2459,17 +2462,23 @@ cdef class TwoPartyClient:
 
     def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
         if isinstance(socket, basestring):
+            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
+                raise RuntimeError("Pycapnp is in asyncio mode. Pass a AsyncIoStream")
             socket = self._connect(socket)
 
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
-        if socket:
-            stream = _FdAsyncIoStream(socket)
-            self._network = _TwoPartyVatNetwork()._init(stream, capnp.CLIENT, opts)
-        else:
+        if socket is None:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
             self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.CLIENT, opts)
+        elif isinstance(socket, _AsyncIoStream):
+            self._network = _TwoPartyVatNetwork()._init(socket, capnp.CLIENT, opts)
+        elif isinstance(socket, _socket.socket):
+            stream = _FdAsyncIoStream(socket)
+            self._network = _TwoPartyVatNetwork()._init(stream, capnp.CLIENT, opts)
+        else:
+            raise ValueError(f"Argument socket should be a string, socket, AsyncIoStream or None, was {type(socket)}")
 
         self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
 
@@ -2505,17 +2514,14 @@ cdef class TwoPartyClient:
         if not self.thisptr == NULL:
             del self.thisptr
 
-    cpdef _connect(self, host_string):
-        # TODO: Make async
+    def _connect(self, host_string):
         if host_string.startswith('unix:'):
             path = host_string[5:]
             sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
             sock.connect(path)
         else:
             host, port = host_string.split(':')
-
             sock = _socket.create_connection((host, port))
-
             # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
             # neccessary, but it speeds things up.
             sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
@@ -2557,18 +2563,27 @@ cdef class TwoPartyServer:
         self._bootstrap = None
 
         if isinstance(socket, basestring):
+            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
+                raise RuntimeError("Pycapnp is in asyncio mode. Please start an asyncio server using"
+                                   "TwoPartyClient.create_server and pass any resulting connection to this class.")
             self._connect(socket, bootstrap, traversal_limit_in_words, nesting_limit)
             return
 
-        if socket:
+        opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
+        if isinstance(socket, _AsyncIoStream):
+            self._network = _TwoPartyVatNetwork()._init(socket, capnp.SERVER, opts)
+        elif isinstance(socket, _socket.socket):
+            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
+                raise RuntimeError("Pycapnp is in asyncio mode. Please pass an AsyncIoStream instance.")
             stream = _FdAsyncIoStream(socket)
-            self._network = _TwoPartyVatNetwork()._init(
-                stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
-        else:
+            self._network = _TwoPartyVatNetwork()._init(stream, capnp.SERVER, opts)
+        elif socket is None:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
             self._network = _TwoPartyVatNetwork()._init_pipe(
-                self._pipe, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
+                self._pipe, capnp.SERVER, opts)
+        else:
+            raise KjException("Unexpected typ for socket in TwoPartyServer")
 
         self._port = 0
 
@@ -2664,6 +2679,259 @@ cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
     cdef _EventLoop _event_loop # We hold a pointer to the event loop here, to ensure it remains alive
 
+    @staticmethod
+    async def create_connection(host = None, port = None, **kwargs):
+        """Create a TCP connection.
+
+        All parameters given to this function are passed to `asyncio.get_running_loop().create_connection()`.
+        See that function for documentation on the possible arguments.
+        """
+        cdef _AsyncIoStream self = _AsyncIoStream()
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop = asyncio.get_running_loop()
+        transport, protocol = await loop.create_connection(
+            lambda: _PyAsyncIoStreamProtocol(), host, port, **kwargs)
+        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        return self
+
+    @staticmethod
+    async def create_unix_connection(path = None, **kwargs):
+        """Create a Unix socket connection.
+
+        All parameters given to this function are passed to `asyncio.get_running_loop().create_unix_connection()`.
+        See that function for documentation on the possible arguments.
+        """
+        cdef _AsyncIoStream self = _AsyncIoStream()
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop = asyncio.get_running_loop()
+        transport, protocol = await loop.create_unix_connection(
+            lambda: _PyAsyncIoStreamProtocol(), path, **kwargs)
+        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        return self
+
+    @staticmethod
+    def _connect(callback):
+        cdef _AsyncIoStream self = _AsyncIoStream()
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop = asyncio.get_running_loop()
+        protocol = _PyAsyncIoStreamProtocol(callback, self)
+        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        return protocol
+
+    @staticmethod
+    async def create_server(callback, host = None, port = None, **kwargs):
+        """Create a TCP connection server.
+
+        The `callback` parameter will be called whenever a new connection is made. It receives a `AsyncIoStream`
+        instance as its only argument. If the result of `callback` is a coroutine, it will be scheduled as a task.
+
+        This function behaves similarly to `asyncio.get_running_loop().create_server()`. All arguments except
+        for `callback` will be passed directly to that function, and the server returned is similar as well.
+        See that function for documentation on the possible arguments.
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.create_server(lambda: _AsyncIoStream._connect(callback), host, port, **kwargs)
+
+    @staticmethod
+    async def create_unix_server(callback, path = None, **kwargs):
+        """Create a unix connection server.
+
+        The `callback` parameter will be called whenever a new connection is made. It receives a `AsyncIoStream`
+        instance as its only argument. If the result of `callback` is a coroutine, it will be scheduled as a task.
+
+        This function behaves similarly to `asyncio.get_running_loop().create_server()`. All arguments except
+        for `callback` will be passed directly to that function, and the server returned is similar as well.
+        See that function for documentation on the possible arguments.
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.create_unix_server(lambda: _AsyncIoStream._connect(callback), path, **kwargs)
+
+cdef class DummyBaseClass:
+    pass
+
+cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
+    cdef object transport
+    cdef object connected_callback
+    cdef object callback_arg
+
+    # State for reading data from the transport
+    cdef char* read_buffer
+    cdef size_t read_min_bytes
+    cdef size_t read_max_bytes
+    cdef size_t read_already_read
+    cdef PromiseFulfiller[size_t]* read_fulfiller
+    cdef cbool read_eof
+
+    # TODO: Temporary. This is an overflow buffer, which is needed for a blatant violation of the protocol
+    #       by the SSL transport implementation. See https://github.com/python/cpython/issues/89322, fixed in
+    #       Python 3.11. This bug causes the SSL transport to force data upon us even when we've asked it
+    #       to pause sending us data. Therefore, we have to store the data in a overflow buffer.
+    #       This can be removed once Python < 3.11 is no longer supported.
+    cdef bytearray read_overflow_buffer
+    cdef bytearray read_overflow_buffer_current
+
+    # State for writing data to the transport
+    cdef cbool write_paused
+    cdef cbool write_in_progress
+    cdef ArrayPtr[const ArrayPtr[const uint8_t]] write_pieces
+    cdef size_t write_index
+    cdef VoidPromiseFulfiller* write_fulfiller
+
+    def __init__(self, connected_callback = None, callback_arg = None):
+        self.connected_callback = connected_callback
+        self.callback_arg = callback_arg
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+        # TODO: BUG. We want to immediately pause reading, but Python's transport implementation does not
+        #       allow this. See https://github.com/python/cpython/issues/103607.
+        #       As a workaround, we schedule the pausing for later. This is technically not correct,
+        #       because a read might happen in the short window between the connection being made and the
+        #       reading being paused. This behavior has not been observed yet though.
+        asyncio.get_running_loop().call_soon(lambda: transport.pause_reading())
+
+        self.write_paused = False
+        self.write_in_progress = False
+        self.read_eof = False
+        self.read_overflow_buffer = bytearray()
+        if self.connected_callback is not None:
+            callback_res = self.connected_callback(self.callback_arg)
+            if asyncio.iscoroutine(callback_res):
+                asyncio.get_running_loop().create_task(callback_res)
+            self.connected_callback = None
+            self.callback_arg = None
+
+    def connection_lost(self, exc):
+        if self.read_fulfiller != NULL:
+            capnp.rejectDisconnected[size_t](deref(self.read_fulfiller), StringPtr(str(exc)))
+            self.read_buffer = NULL
+            self.read_fulfiller = NULL
+        if self.write_fulfiller != NULL:
+            capnp.rejectVoidDisconnected(deref(self.write_fulfiller), StringPtr(str(exc)))
+            self.write_reset()
+            self.write_paused = True
+        self.transport = None
+
+    def get_buffer(self, size_hint):
+        if self.read_buffer == NULL: # Should not happen, but for SSL it does, see comment above
+            assert size_hint > 0
+            self.read_overflow_buffer_current = bytearray(size_hint)
+            return self.read_overflow_buffer_current
+        else:
+            return memoryview.PyMemoryView_FromMemory(self.read_buffer, self.read_max_bytes, buffer.PyBUF_WRITE)
+
+    def buffer_updated(self, size):
+        if self.read_buffer == NULL: # Should not happen, but for SSL it does, see comment above
+            self.read_overflow_buffer.extend(self.read_overflow_buffer_current[0:size])
+        else:
+            self.read_buffer += size
+            self.read_min_bytes -= size
+            self.read_max_bytes -= size
+            self.read_already_read += size
+            if self.read_min_bytes <= 0:
+                self.read_fulfiller.fulfill(move(self.read_already_read))
+                self.read_reset()
+
+    def pause_writing(self):
+        self.write_paused = True
+
+    def resume_writing(self):
+        self.write_paused = False
+        self.write_loop()
+
+    def eof_received(self):
+        self.read_eof = True
+        if self.read_buffer != NULL:
+            self.read_fulfiller.fulfill(move(self.read_already_read))
+            self.read_reset()
+
+    cdef write_loop(self):
+        if not self.write_in_progress: return
+        cdef const ArrayPtr[const uint8_t]* piece
+        for i in range(self.write_index, self.write_pieces.size()):
+            if self.write_paused:
+                self.write_index = i
+                break
+            piece = &self.write_pieces[i]
+            view = memoryview.PyMemoryView_FromMemory(<char*>piece.begin(), piece.size(), buffer.PyBUF_READ)
+            self.transport.write(view)
+        if not self.write_paused:
+            self.write_fulfiller.fulfill()
+            self.write_reset()
+
+    cdef read_reset(self):
+        self.transport.pause_reading()
+        self.read_buffer = NULL
+        self.read_fulfiller = NULL
+
+    cdef write_reset(self):
+        self.write_in_progress = False
+        self.write_fulfiller = NULL
+
+
+cdef api void _asyncio_stream_write_start(
+    object thisptr, ArrayPtr[const ArrayPtr[const uint8_t]] pieces,
+    VoidPromiseFulfiller& fulfiller) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is None or self.transport.is_closing():
+        capnp.rejectVoidDisconnected(fulfiller, StringPtr("Socket is closing."))
+        return
+    self.write_pieces = pieces
+    self.write_index = 0
+    self.write_fulfiller = &fulfiller
+    self.write_in_progress = True
+    self.write_loop()
+
+cdef api void _asyncio_stream_write_stop(object thisptr):
+    (<_PyAsyncIoStreamProtocol>thisptr).write_reset()
+
+cdef api void _asyncio_stream_read_start(
+    object thisptr, void* buffer, size_t min_bytes, size_t max_bytes,
+    PromiseFulfiller[size_t]& fulfiller) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is None or self.transport.is_closing():
+        capnp.rejectDisconnected(fulfiller, StringPtr("Socket is closing"))
+        return
+    if self.read_eof:
+        self.read_fulfiller.fulfill(0)
+        return
+    self.read_buffer = <char*>buffer
+    self.read_min_bytes = min_bytes
+    self.read_max_bytes = max_bytes
+    self.read_already_read = 0
+    self.read_fulfiller = &fulfiller
+
+    # Begin of draining the overflow buffer, which is created because of a bug in SSL, see comment above.
+    # Can be removed once Python < 3.11 is not longer supported.
+    if self.read_overflow_buffer:
+        to_copy = min(len(self.read_overflow_buffer), max_bytes)
+        memcpy(buffer, <char*>self.read_overflow_buffer, to_copy)
+        del self.read_overflow_buffer[:to_copy]
+        self.read_buffer += to_copy
+        self.read_min_bytes -= to_copy
+        self.read_max_bytes -= to_copy
+        self.read_already_read += to_copy
+        if self.read_min_bytes <= 0:
+            self.read_fulfiller.fulfill(move(self.read_already_read))
+            self.read_reset()
+            return # resume_reading no longer needed
+    # End of draining the overflow buffer.
+
+    self.transport.resume_reading()
+
+cdef api void _asyncio_stream_read_stop(object thisptr):
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is not None: self.read_reset()
+
+cdef api void _asyncio_stream_shutdown_write(object thisptr) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is not None and self.transport.can_write_eof():
+        self.transport.write_eof()
+
+cdef api void _asyncio_stream_close(object thisptr) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is not None: self.transport.close()
 
 cdef class _TwoWayPipe:
     cdef _EventLoop _event_loop

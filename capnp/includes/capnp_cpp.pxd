@@ -94,6 +94,7 @@ cdef extern from "kj/common.h" namespace " ::kj":
     cdef cppclass ArrayPtr[T] nogil:
         ArrayPtr()
         ArrayPtr(T *, size_t size)
+        T* begin()
         size_t size()
         T& operator[](size_t index)
 
@@ -546,11 +547,15 @@ cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass WaitScope nogil:
         WaitScope(EventLoop &)
         void poll()
-    cdef cppclass PromiseFulfiller nogil:
+    cdef cppclass PromiseFulfiller[T] nogil:
+        void fulfill(T&& value)
+        void reject(Exception&& exception)
+    cdef cppclass VoidPromiseFulfiller"::kj::PromiseFulfiller<void>" nogil:
         void fulfill()
+        void reject(Exception&& exception)
     cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>" nogil:
         VoidPromise promise
-        Own[PromiseFulfiller] fulfiller
+        Own[VoidPromiseFulfiller] fulfiller
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"() nogil
     PyPromiseArray joinPromises(Array[PyPromise]) nogil
 
@@ -567,3 +572,9 @@ cdef extern from "capnp/helpers/asyncProvider.h":
     Own[LowLevelAsyncIoProvider] makePyLowLevelAsyncIoProvider" ::kj::heap<PyLowLevelAsyncIoProvider>"(
         PyFdListener *fdListener,
         Timer *timer)
+
+cdef extern from "capnp/helpers/capabilityHelper.h":
+    cdef cppclass PyAsyncIoStream(AsyncIoStream):
+        PyAsyncIoStream(PyObject* thisptr)
+    void rejectDisconnected[T](PromiseFulfiller[T]& fulfiller, StringPtr message)
+    void rejectVoidDisconnected(VoidPromiseFulfiller& fulfiller, StringPtr message)

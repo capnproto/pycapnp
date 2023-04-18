@@ -125,6 +125,11 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
         return OperatorImpl(op)
 
 
+async def new_connection(stream):
+    server = capnp.TwoPartyServer(stream, bootstrap=CalculatorImpl())
+    await server.on_disconnect()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         usage="""Runs the server bound to the\
@@ -137,9 +142,10 @@ given address/port ADDRESS. """
 
 
 async def main():
-    address = parse_args().address
-    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())  # noqa: F841
-    await asyncio._get_running_loop().create_future()
+    host, port = parse_args().address.split(':')
+    server = await capnp.AsyncIoStream.create_server(new_connection, host, port)
+    async with server:
+        await server.serve_forever()
 
 
 if __name__ == "__main__":

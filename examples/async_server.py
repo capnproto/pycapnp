@@ -26,6 +26,9 @@ class ExampleImpl(thread_capnp.Example.Server):
     def longRunning(self, **kwargs):
         return capnp.getTimer().after_delay(11 * 10**8)
 
+async def new_connection(stream):
+    server = capnp.TwoPartyServer(stream, bootstrap=ExampleImpl())
+    await server.on_disconnect()
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -39,10 +42,10 @@ given address/port ADDRESS. """
 
 
 async def main():
-    address = parse_args().address
-    server = capnp.TwoPartyServer(address, bootstrap=ExampleImpl())  # noqa: F841
-    await asyncio._get_running_loop().create_future()
-
+    host, port = parse_args().address.split(':')
+    server = await capnp.AsyncIoStream.create_server(new_connection, host, port)
+    async with server:
+        await server.serve_forever()
 
 if __name__ == "__main__":
     asyncio.run(main())

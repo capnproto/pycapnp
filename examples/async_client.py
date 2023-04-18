@@ -31,7 +31,9 @@ async def background(cap):
 
 
 async def main(host):
-    client = capnp.TwoPartyClient(host)
+    host, port = host.split(':')
+    connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
+    client = capnp.TwoPartyClient(connection)
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     # Start background task for subscriber
@@ -48,9 +50,10 @@ async def main(host):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(parse_args().host))
+    args = parse_args()
+    asyncio.run(main(args.host))
 
     # Test that we can run multiple asyncio loops in sequence. This is particularly tricky, because
     # main contains a background task that we never cancel. The entire loop gets cleaned up anyways,
     # and we can start a new loop.
-    asyncio.run(main(parse_args().host))
+    asyncio.run(main(args.host))

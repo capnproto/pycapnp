@@ -143,6 +143,66 @@ kj::Promise<void> PythonInterfaceDynamicImpl::call(capnp::InterfaceSchema::Metho
     return ret;
 };
 
+
+class ReadPromiseAdapter {
+public:
+  ReadPromiseAdapter(kj::PromiseFulfiller<size_t>& fulfiller, PyObject* protocol,
+                     void* buffer, size_t minBytes, size_t maxBytes)
+    : protocol(protocol) {
+    _asyncio_stream_read_start(protocol, buffer, minBytes, maxBytes, fulfiller);
+  }
+
+  ~ReadPromiseAdapter() {
+    _asyncio_stream_read_stop(protocol);
+  }
+
+private:
+  PyObject* protocol;
+};
+
+
+class WritePromiseAdapter {
+public:
+  WritePromiseAdapter(kj::PromiseFulfiller<void>& fulfiller, PyObject* protocol,
+                      kj::ArrayPtr<const kj::ArrayPtr<const kj::byte>> pieces)
+    : protocol(protocol) {
+    _asyncio_stream_write_start(protocol, pieces, fulfiller);
+  }
+
+  ~WritePromiseAdapter() {
+    _asyncio_stream_write_stop(protocol);
+  }
+
+private:
+  PyObject* protocol;
+
+};
+
+PyAsyncIoStream::~PyAsyncIoStream() {
+  _asyncio_stream_close(protocol->obj);
+}
+
+kj::Promise<size_t> PyAsyncIoStream::tryRead(void* buffer, size_t minBytes, size_t maxBytes) {
+  return kj::newAdaptedPromise<size_t, ReadPromiseAdapter>(protocol->obj, buffer, minBytes, maxBytes);
+}
+
+kj::Promise<void> PyAsyncIoStream::write(const void* buffer, size_t size) {
+  KJ_UNIMPLEMENTED("No use-case AsyncIoStream::write was found yet.");
+}
+
+kj::Promise<void> PyAsyncIoStream::write(kj::ArrayPtr<const kj::ArrayPtr<const kj::byte>> pieces) {
+  return kj::newAdaptedPromise<void, WritePromiseAdapter>(protocol->obj, pieces);
+}
+
+kj::Promise<void> PyAsyncIoStream::whenWriteDisconnected() {
+  // TODO: Possibly connect this to protocol.connection_lost?
+  return kj::NEVER_DONE;
+}
+
+void PyAsyncIoStream::shutdownWrite() {
+  _asyncio_stream_shutdown_write(protocol->obj);
+}
+
 void init_capnp_api() {
     import_capnp__lib__capnp();
 }

@@ -34,8 +34,9 @@ at the given address and does some RPCs"
 
 
 async def main(host):
-    # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
-    client = capnp.TwoPartyClient(host)
+    host, port = parse_args().host.split(':')
+    connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
+    client = capnp.TwoPartyClient(connection)
 
     # Bootstrap the Calculator interface
     calculator = client.bootstrap().cast_as(calculator_capnp.Calculator)
