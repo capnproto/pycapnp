@@ -15,16 +15,13 @@ logger.setLevel(logging.DEBUG)
 class ExampleImpl(thread_capnp.Example.Server):
     "Implementation of the Example threading Cap'n Proto interface."
 
-    def subscribeStatus(self, subscriber, **kwargs):
-        return (
-            capnp.getTimer()
-            .after_delay(10**9)
-            .then(lambda: subscriber.status(True))
-            .then(lambda _: self.subscribeStatus(subscriber))
-        )
+    async def subscribeStatus(self, subscriber, **kwargs):
+        await asyncio.sleep(1)
+        await subscriber.status(True)
+        await self.subscribeStatus(subscriber)
 
-    def longRunning(self, **kwargs):
-        return capnp.getTimer().after_delay(11 * 10**8)
+    async def longRunning(self, **kwargs):
+        await asyncio.sleep(1)
 
 
 async def new_connection(stream):
@@ -35,7 +32,7 @@ async def new_connection(stream):
 def parse_args():
     parser = argparse.ArgumentParser(
         usage="""Runs the server bound to the\
-given address/port ADDRESS. """
+        given address/port ADDRESS. """
     )
 
     parser.add_argument("address", help="ADDRESS:PORT")

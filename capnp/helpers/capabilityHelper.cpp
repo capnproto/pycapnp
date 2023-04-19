@@ -203,6 +203,27 @@ void PyAsyncIoStream::shutdownWrite() {
   _asyncio_stream_shutdown_write(protocol->obj);
 }
 
+
+class TaskToPromiseAdapter {
+public:
+  TaskToPromiseAdapter(kj::PromiseFulfiller<void>& fulfiller,
+                       kj::Own<PyRefCounter> task, PyObject* callback)
+    : task(kj::mv(task)) {
+    promise_task_add_done_callback(this->task->obj, callback, fulfiller);
+  }
+
+  ~TaskToPromiseAdapter() {
+    promise_task_cancel(this->task->obj);
+  }
+
+private:
+  kj::Own<PyRefCounter> task;
+};
+
+kj::Promise<void> taskToPromise(kj::Own<PyRefCounter> task, PyObject* callback) {
+  return kj::newAdaptedPromise<void, TaskToPromiseAdapter>(kj::mv(task), callback);
+}
+
 void init_capnp_api() {
     import_capnp__lib__capnp();
 }

@@ -32,6 +32,7 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     PyPromise convert_to_pypromise(Own[VoidPromise])
     VoidPromise convert_to_voidpromise(Own[PyPromise])
     PyPromise wrapSizePromise(Promise[size_t])
+    VoidPromise taskToPromise(Own[PyRefCounter] coroutine, PyObject* callback)
     void init_capnp_api()
 
 cdef extern from "capnp/helpers/rpcHelper.h":

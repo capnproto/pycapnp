@@ -10,7 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, makeException
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
@@ -68,10 +68,39 @@ cdef api object wrap_remote_call(object func, Response & r):
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
 
+cdef class _VoidPromiseFulfiller:
+   cdef VoidPromiseFulfiller* fulfiller
 
-cdef api VoidPromise * call_server_method(PyObject * _server,
+   cdef _init(self, VoidPromiseFulfiller* fulfiller):
+       self.fulfiller = fulfiller
+       return self
+
+def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
+    if task.cancelled():
+        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(
+            f"Server task for method {method_name} was cancelled")))
+        return
+
+    exc = task.exception()
+    if exc is not None:
+        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(str(exc))))
+        return
+
+    res = task.result()
+    if res is not None:
+        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(
+            f"Async server function ({method_name}) returned a non-none value: return = {res}")))
+    else:
+        fulfiller.fulfiller.fulfill()
+
+cdef api void promise_task_add_done_callback(object task, object callback, VoidPromiseFulfiller& fulfiller):
+    task.add_done_callback(_partial(callback, _VoidPromiseFulfiller()._init(&fulfiller)))
+
+cdef api void promise_task_cancel(object task):
+    task.cancel()
+
+cdef api VoidPromise * call_server_method(object server,
                                           char * _method_name, CallContext & _context) except * with gil:
-    server = <object>_server
     method_name = <object>_method_name
 
     context = _CallContext()._init(_context) # TODO:MEMORY: invalidate this with promise chain
@@ -83,6 +112,12 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
             elif type(ret) is _Promise:
                 return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
+            elif asyncio.iscoroutine(ret):
+                task = asyncio.create_task(ret)
+                callback = _partial(void_task_done_callback, method_name)
+                return new VoidPromise(helpers.taskToPromise(
+                    capnp.heap[PyRefCounter](<PyObject*>task),
+                    <PyObject*>callback))
             else:
                 try:
                     warning_msg = (
@@ -93,20 +128,6 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                 _warnings.warn_explicit(
                     warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
 
-        if ret is not None:
-            if type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
-            elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
-            else:
-                try:
-                    warning_msg = (
-                        "Server function ({}) returned a value that was not a Promise: return = {}"
-                        .format(method_name, str(ret)))
-                except Exception:
-                    warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
-                _warnings.warn_explicit(
-                    warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
     else:
         func = getattr(server, method_name) # will raise if no function found
         params = context.params
@@ -119,6 +140,12 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
             elif type(ret) is _Promise:
                 return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
+            elif asyncio.iscoroutine(ret):
+                task = asyncio.create_task(ret)
+                callback = _partial(void_task_done_callback, method_name)
+                return new VoidPromise(helpers.taskToPromise(
+                    capnp.heap[PyRefCounter](<PyObject*>task),
+                    <PyObject*>callback))
             if not isinstance(ret, tuple):
                 ret = (ret,)
             names = _find_field_order(context.results.schema.node.struct)

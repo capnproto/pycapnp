@@ -564,3 +564,4 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
         PyAsyncIoStream(PyObject* thisptr)
     void rejectDisconnected[T](PromiseFulfiller[T]& fulfiller, StringPtr message)
     void rejectVoidDisconnected(VoidPromiseFulfiller& fulfiller, StringPtr message)
+    Exception makeException(StringPtr message)
