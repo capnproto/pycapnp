@@ -68,8 +68,7 @@ class FunctionImpl(calculator_capnp.Calculator.Function.Server):
         another promise"""
 
         assert len(params) == self.paramCount
-        value = await evaluate_impl(self.body, params)
-        _context.results.value = value
+        return await evaluate_impl(self.body, params)
 
 
 class OperatorImpl(calculator_capnp.Calculator.Function.Server):
@@ -101,8 +100,7 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
     "Implementation of the Calculator Cap'n Proto interface."
 
     async def evaluate(self, expression, _context, **kwargs):
-        value = await evaluate_impl(expression)
-        _context.results.value = ValueImpl(value)
+        return ValueImpl(await evaluate_impl(expression))
 
     def defFunction(self, paramCount, body, _context, **kwargs):
         return FunctionImpl(paramCount, body)

@@ -99,6 +99,21 @@ cdef api void promise_task_add_done_callback(object task, object callback, VoidP
 cdef api void promise_task_cancel(object task):
     task.cancel()
 
+def fill_context(method_name, context, returned_data):
+    if returned_data is None:
+        return
+    if not isinstance(returned_data, tuple):
+        returned_data = (returned_data,)
+    names = _find_field_order(context.results.schema.node.struct)
+    if len(returned_data) > len(names):
+        raise KjException(
+            "Too many values returned from `{}`. Expected {} and got {}"
+            .format(method_name, len(names), len(returned_data)))
+
+    results = context.results
+    for arg_name, arg_val in zip(names, returned_data):
+        setattr(results, arg_name, arg_val)
+
 cdef api VoidPromise * call_server_method(object server,
                                           char * _method_name, CallContext & _context) except * with gil:
     method_name = <object>_method_name
@@ -141,22 +156,15 @@ cdef api VoidPromise * call_server_method(object server,
             elif type(ret) is _Promise:
                 return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             elif asyncio.iscoroutine(ret):
-                task = asyncio.create_task(ret)
+                async def finalize():
+                    fill_context(method_name, context, await ret)
+                task = asyncio.create_task(finalize())
                 callback = _partial(void_task_done_callback, method_name)
                 return new VoidPromise(helpers.taskToPromise(
                     capnp.heap[PyRefCounter](<PyObject*>task),
                     <PyObject*>callback))
-            if not isinstance(ret, tuple):
-                ret = (ret,)
-            names = _find_field_order(context.results.schema.node.struct)
-            if len(ret) > len(names):
-                raise KjException(
-                    "Too many values returned from `{}`. Expected {} and got {}"
-                    .format(method_name, len(names), len(ret)))
-
-            results = context.results
-            for arg_name, arg_val in zip(names, ret):
-                setattr(results, arg_name, arg_val)
+            else:
+                fill_context(method_name, context, ret)
 
     return NULL
 
