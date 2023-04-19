@@ -2764,12 +2764,8 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
 
         # TODO: BUG. We want to immediately pause reading, but Python's transport implementation does not
         #       allow this. See https://github.com/python/cpython/issues/103607.
-        #       As a workaround, in addition to pausing now, we also schedule the pausing for later.
-        #       Note however, that this is still not enough to solve the problem, because in the window
-        #       between the connection being made and the transport being paused, data may already be
-        #       forced upon us. For that, see `read_overflow_buffer`.
+        #       To work around this, we also insert pause_reading() in get_buffer() when appropriate.
         transport.pause_reading()
-        asyncio.get_running_loop().call_soon(lambda: transport.pause_reading())
 
         self.write_paused = False
         self.write_in_progress = False
@@ -2795,6 +2791,10 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
 
     def get_buffer(self, size_hint):
         if self.read_buffer == NULL: # Should not happen, but for SSL it does, see comment above
+
+            # TODO: Bug. Workaround for the transport ignoring pause_reading() in connection_made()
+            self.transport.pause_reading()
+
             size = size_hint if size_hint > 0 else 100
             self.read_overflow_buffer_current = bytearray(size)
             return self.read_overflow_buffer_current
