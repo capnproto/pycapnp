@@ -2911,7 +2911,9 @@ cdef api void _asyncio_stream_shutdown_write(object thisptr) except*:
 
 cdef api void _asyncio_stream_close(object thisptr) except*:
     cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
-    if self.transport is not None: self.transport.close()
+    # Careful, the transport object may have already been partially destroyed here.
+    if self.transport is not None and hasattr(self.transport, "close"):
+        self.transport.close()
 
 cdef class _TwoWayPipe:
     cdef _EventLoop _event_loop
