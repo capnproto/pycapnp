@@ -12,15 +12,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def read_value(value):
-    """Helper function to asynchronously call read() on a Calculator::Value and
-    return a promise for the result.  (In the future, the generated code might
-    include something like this automatically.)"""
-
-    return value.read().then(lambda result: result.value)
-
-
-def evaluate_impl(expression, params=None):
+async def evaluate_impl(expression, params=None):
     """Implementation of CalculatorImpl::evaluate(), also shared by
     FunctionImpl::call().  In the latter case, `params` are the parameter
     values passed to the function; in the former case, `params` is just an
@@ -29,26 +21,23 @@ def evaluate_impl(expression, params=None):
     which = expression.which()
 
     if which == "literal":
-        return capnp.Promise(expression.literal)
+        return expression.literal
     elif which == "previousResult":
-        return read_value(expression.previousResult)
+        return (await expression.previousResult.read()).value
     elif which == "parameter":
         assert expression.parameter < len(params)
-        return capnp.Promise(params[expression.parameter])
+        return params[expression.parameter]
     elif which == "call":
         call = expression.call
         func = call.function
 
         # Evaluate each parameter.
         paramPromises = [evaluate_impl(param, params) for param in call.params]
+        vals = await asyncio.gather(*paramPromises)
 
-        joinedParams = capnp.join_promises(paramPromises)
         # When the parameters are complete, call the function.
-        ret = joinedParams.then(lambda vals: func.call(vals)).then(
-            lambda result: result.value
-        )
-
-        return ret
+        result = await func.call(vals)
+        return result.value
     else:
         raise ValueError("Unknown expression type: " + which)
 
@@ -72,17 +61,15 @@ class FunctionImpl(calculator_capnp.Calculator.Function.Server):
         self.paramCount = paramCount
         self.body = body.as_builder()
 
-    def call(self, params, _context, **kwargs):
+    async def call(self, params, _context, **kwargs):
         """Note that we're returning a Promise object here, and bypassing the
         helper functionality that normally sets the results struct from the
         returned object. Instead, we set _context.results directly inside of
         another promise"""
 
         assert len(params) == self.paramCount
-        # using setattr because '=' is not allowed inside of lambdas
-        return evaluate_impl(self.body, params).then(
-            lambda value: setattr(_context.results, "value", value)
-        )
+        value = await evaluate_impl(self.body, params)
+        _context.results.value = value
 
 
 class OperatorImpl(calculator_capnp.Calculator.Function.Server):
@@ -113,10 +100,9 @@ class OperatorImpl(calculator_capnp.Calculator.Function.Server):
 class CalculatorImpl(calculator_capnp.Calculator.Server):
     "Implementation of the Calculator Cap'n Proto interface."
 
-    def evaluate(self, expression, _context, **kwargs):
-        return evaluate_impl(expression).then(
-            lambda value: setattr(_context.results, "value", ValueImpl(value))
-        )
+    async def evaluate(self, expression, _context, **kwargs):
+        value = await evaluate_impl(expression)
+        _context.results.value = ValueImpl(value)
 
     def defFunction(self, paramCount, body, _context, **kwargs):
         return FunctionImpl(paramCount, body)
@@ -133,7 +119,7 @@ async def new_connection(stream):
 def parse_args():
     parser = argparse.ArgumentParser(
         usage="""Runs the server bound to the\
-given address/port ADDRESS. """
+        given address/port ADDRESS. """
     )
 
     parser.add_argument("address", help="ADDRESS:PORT")

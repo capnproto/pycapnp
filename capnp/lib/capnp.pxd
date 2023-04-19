@@ -160,7 +160,7 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
 
 cdef api object wrap_dynamic_struct_reader(Response & r) with gil
 cdef api Promise[void] * call_server_method(
-    PyObject * _server, char * _method_name, CallContext & _context) except * with gil
+    object server, char * _method_name, CallContext & _context) except * with gil
 cdef api convert_array_pyobject(PyArray & arr) with gil
 cdef api object wrap_kj_exception(capnp.Exception & exception) with gil
 cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil

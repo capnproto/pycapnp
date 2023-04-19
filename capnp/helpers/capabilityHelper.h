@@ -141,4 +141,10 @@ inline void rejectVoidDisconnected(kj::PromiseFulfiller<void>& fulfiller, kj::St
   fulfiller.reject(KJ_EXCEPTION(DISCONNECTED, message));
 }
 
+inline kj::Exception makeException(kj::StringPtr message) {
+  return KJ_EXCEPTION(FAILED, message);
+}
+
+kj::Promise<void> taskToPromise(kj::Own<PyRefCounter> coroutine, PyObject* callback);
+
 void init_capnp_api();
