@@ -2,6 +2,7 @@
 
 #include "capnp/dynamic.h"
 #include <kj/async-io.h>
+#include <capnp/serialize-async.h>
 #include <stdexcept>
 #include "Python.h"
 
@@ -146,5 +147,7 @@ inline kj::Exception makeException(kj::StringPtr message) {
 }
 
 kj::Promise<void> taskToPromise(kj::Own<PyRefCounter> coroutine, PyObject* callback);
+
+::kj::Promise<kj::Own<PyRefCounter>> tryReadMessage(kj::AsyncIoStream& stream, capnp::ReaderOptions opts);
 
 void init_capnp_api();
