@@ -11,6 +11,8 @@ cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
 from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, makeException
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, tryReadMessage, writeMessage, makeException
+from capnp.includes.schema_cpp cimport (MessageReader,)
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
@@ -1305,6 +1307,23 @@ cdef class _DynamicStructBuilder:
         """
         self._check_write()
         _write_message_to_fd(file.fileno(), self._parent)
+        self._is_written = True
+
+    async def write_async(self, _AsyncIoStream stream):
+        """Async version of of write().
+
+        This is a shortcut for calling capnp._write_message_to_fd().  This can only be called on the
+        message's root struct.
+
+        :type file: AsyncIoStream
+        :param file: The AsyncIoStream to write the message to
+
+        :rtype: void
+
+        :Raises: :exc:`KjException` if this isn't the message's root struct.
+        """
+        self._check_write()
+        await _VoidPromise()._init(writeMessage(deref(stream.thisptr.get()), deref((<_MessageBuilder>self._parent).thisptr)))
         self._is_written = True
 
     def write_packed(self, file):
@@ -3477,6 +3496,26 @@ class _StructModule(object):
         reader = _StreamFdMessageReader(file, traversal_limit_in_words, nesting_limit)
         return reader.get_root(self.schema)
 
+    async def read_async(self, _AsyncIoStream stream, traversal_limit_in_words=None, nesting_limit=None):
+        """Async version of read(). Returns either a message, or None in case of EOF.
+
+        :type file: AsyncIoStream
+        :param file: A AsyncIoStream
+
+        :type traversal_limit_in_words: int
+        :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                         Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+        :type nesting_limit: int
+        :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+        :rtype: :class:`_DynamicStructReader`"""
+        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
+        reader = await _Promise()._init(tryReadMessage(deref(stream.thisptr.get()), opts))
+        if reader is None:
+            return
+        return reader.get_root(self.schema)
+
     def read_multiple(self, file, traversal_limit_in_words=None, nesting_limit=None, skip_copy=False):
         """Returns an iterable, that when traversed will return Readers for messages.
 
@@ -4152,6 +4191,24 @@ cdef class _PackedFdMessageReader(_MessageReader):
 
     def __dealloc__(self):
         del self.thisptr
+
+cdef class _AsyncMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a AsyncIoStream class.
+
+    Do not use directly
+    """
+
+    def __init__(self):
+        pass
+
+    cdef Own[MessageReader] reader
+    cdef _init(self, Own[MessageReader] reader):
+        self.reader = move(reader)
+        self.thisptr = self.reader.get()
+        return self
+
+cdef api object make_async_message_reader(Own[MessageReader] reader):
+    return _AsyncMessageReader()._init(move(reader))
 
 
 cdef class _MultipleMessageReader:

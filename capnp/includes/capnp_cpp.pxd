@@ -565,3 +565,7 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     void rejectDisconnected[T](PromiseFulfiller[T]& fulfiller, StringPtr message)
     void rejectVoidDisconnected(VoidPromiseFulfiller& fulfiller, StringPtr message)
     Exception makeException(StringPtr message)
+    PyPromise tryReadMessage(AsyncIoStream& stream, ReaderOptions opts)
+
+cdef extern from "capnp/serialize-async.h" namespace " ::capnp":
+    VoidPromise writeMessage(AsyncIoStream& output, MessageBuilder& builder)

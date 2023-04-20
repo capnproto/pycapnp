@@ -189,3 +189,10 @@ def test_async_ssl_calculator_example(cleanup):
     server = "async_ssl_calculator_server.py"
     client = "async_ssl_calculator_client.py"
     run_subprocesses(address, server, client, ipv4_force=False)
+
+
+def test_async_socket_message_example(cleanup):
+    address = "{}:36438".format(hostname)
+    server = "async_socket_message_server.py"
+    client = "async_socket_message_client.py"
+    run_subprocesses(address, server, client)

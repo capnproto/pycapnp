@@ -203,7 +203,6 @@ void PyAsyncIoStream::shutdownWrite() {
   _asyncio_stream_shutdown_write(protocol->obj);
 }
 
-
 class TaskToPromiseAdapter {
 public:
   TaskToPromiseAdapter(kj::PromiseFulfiller<void>& fulfiller,
@@ -222,6 +221,19 @@ private:
 
 kj::Promise<void> taskToPromise(kj::Own<PyRefCounter> task, PyObject* callback) {
   return kj::newAdaptedPromise<void, TaskToPromiseAdapter>(kj::mv(task), callback);
+}
+
+::kj::Promise<kj::Own<PyRefCounter>> tryReadMessage(kj::AsyncIoStream& stream, capnp::ReaderOptions opts) {
+  return capnp::tryReadMessage(stream, opts)
+    .then([](kj::Maybe<kj::Own<capnp::MessageReader>> maybeReader) -> kj::Promise<kj::Own<PyRefCounter>> {
+        KJ_IF_MAYBE(reader, maybeReader) {
+          PyObject* pyreader = make_async_message_reader(kj::mv(*reader));
+          check_py_error();
+          return kj::heap<PyRefCounter>(pyreader);
+        } else {
+          return kj::heap<PyRefCounter>(Py_None);
+        }
+      });
 }
 
 void init_capnp_api() {
