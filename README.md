@@ -66,6 +66,13 @@ python setup.py clean
 ```
 
 
+## Stub-file generation
+
+While not directly supported by pycapnp, a tool has been created to help generate pycapnp stubfile to assist with development (this is very helpful if you're new to pypcapnp!). See [#289](https://github.com/capnproto/pycapnp/pull/289#event-9078216721) for more details.
+
+[Python Capnp Stub Generator](https://gitlab.com/mic_public/tools/python-helpers/capnp-stub-generator)
+
+
 ## Python Versions
 
 Python 3.7+ is supported.
