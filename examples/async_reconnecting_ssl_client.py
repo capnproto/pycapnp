@@ -4,16 +4,14 @@ import asyncio
 import argparse
 import os
 import time
-import socket
 import ssl
+import socket
 
 import capnp
 
 import thread_capnp
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
-capnp.remove_event_loop()
-capnp.create_event_loop(threaded=True)
 
 
 def parse_args():
@@ -33,32 +31,10 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
         print("status: {}".format(time.time()))
 
 
-async def myreader(client, reader):
-    while True:
-        try:
-            # Must be a wait_for in order to give watch_connection a slot
-            # to try again
-            data = await asyncio.wait_for(reader.read(4096), timeout=1.0)
-        except asyncio.TimeoutError:
-            continue
-        client.write(data)
-
-
-async def mywriter(client, writer):
-    while True:
-        try:
-            # Must be a wait_for in order to give watch_connection a slot
-            # to try again
-            data = await asyncio.wait_for(client.read(4096), timeout=1.0)
-            writer.write(data.tobytes())
-        except asyncio.TimeoutError:
-            continue
-
-
 async def watch_connection(cap):
     while True:
         try:
-            await asyncio.wait_for(cap.alive().a_wait(), timeout=5)
+            await asyncio.wait_for(cap.alive(), timeout=5)
             await asyncio.sleep(1)
         except asyncio.TimeoutError:
             print("Watch timeout!")
@@ -68,14 +44,11 @@ async def watch_connection(cap):
 
 async def background(cap):
     subscriber = StatusSubscriber()
-    promise = cap.subscribeStatus(subscriber)
-    await promise.a_wait()
+    await cap.subscribeStatus(subscriber)
 
 
 async def main(host):
-    host = host.split(":")
-    addr = host[0]
-    port = host[1]
+    addr, port = host.split(":")
 
     # Setup SSL context
     ctx = ssl.create_default_context(
@@ -85,46 +58,33 @@ async def main(host):
     # Handle both IPv4 and IPv6 cases
     try:
         print("Try IPv4")
-        reader, writer = await asyncio.open_connection(
+        stream = await capnp.AsyncIoStream.create_connection(
             addr, port, ssl=ctx, family=socket.AF_INET
         )
-    except OSError:
+    except Exception:
         print("Try IPv6")
-        try:
-            reader, writer = await asyncio.open_connection(
-                addr, port, ssl=ctx, family=socket.AF_INET6
-            )
-        except OSError:
-            return False
+        stream = await capnp.AsyncIoStream.create_connection(
+            addr, port, ssl=ctx, family=socket.AF_INET6
+        )
 
-    # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
-    client = capnp.TwoPartyClient()
+    client = capnp.TwoPartyClient(stream)
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
-    # Start watcher to restart socket connection if it is lost
-    overalltasks = []
-    watcher = [watch_connection(cap)]
-    overalltasks.append(asyncio.gather(*watcher, return_exceptions=True))
-
-    # Assemble reader and writer tasks, run in the background
-    coroutines = [myreader(client, reader), mywriter(client, writer)]
-    overalltasks.append(asyncio.gather(*coroutines, return_exceptions=True))
-
-    # Start background task for subscriber
-    tasks = [background(cap)]
-    overalltasks.append(asyncio.gather(*tasks, return_exceptions=True))
+    # Start watcher to restart socket connection if it is lost and subscriber background task
+    background_tasks = asyncio.gather(
+        background(cap), watch_connection(cap), return_exceptions=True
+    )
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
 
-    for task in overalltasks:
-        task.cancel()
+    background_tasks.cancel()
 
     return True
 

@@ -12,7 +12,7 @@ from capnp.includes.capnp_cpp cimport (
     CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability,
     TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork,
     PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller,
-    PyArray, DynamicStruct_Builder, TwoWayPipe,
+    PyArray, DynamicStruct_Builder, TwoWayPipe, PyRefCounter, PyAsyncIoStream
 )
 from capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from capnp.includes.types cimport *
@@ -159,12 +159,9 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
 
 cdef api object wrap_dynamic_struct_reader(Response & r) with gil
-cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil
 cdef api Promise[void] * call_server_method(
     PyObject * _server, char * _method_name, CallContext & _context) except * with gil
 cdef api convert_array_pyobject(PyArray & arr) with gil
-cdef api Promise[PyObject*] * extract_promise(object obj) with gil
-cdef api RemotePromise * extract_remote_promise(object obj) with gil
 cdef api object wrap_kj_exception(capnp.Exception & exception) with gil
 cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil
 cdef api object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil

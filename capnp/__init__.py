@@ -53,6 +53,7 @@ from .lib.capnp import (
     _write_message_to_fd,
     _write_packed_message_to_fd,
     _Promise as Promise,
+    _AsyncIoStream as AsyncIoStream,
     _init_capnp_api,
 )
 

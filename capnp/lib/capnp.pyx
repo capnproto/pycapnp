@@ -9,15 +9,17 @@
 
 cimport cython  # noqa: E402
 
-from capnp.helpers.helpers cimport AsyncIoStreamReadHelper, init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise
+from capnp.helpers.helpers cimport init_capnp_api
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller
 
-from cpython cimport array, Py_buffer, PyObject_CheckBuffer
+from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE
 from cpython.exc cimport PyErr_Clear
 from cython.operator cimport dereference as deref
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
+from libcpp.utility cimport move
+
 
 import array
 import asyncio
@@ -32,6 +34,7 @@ import sys as _sys
 import threading as _threading
 import traceback as _traceback
 import warnings as _warnings
+import weakref as _weakref
 
 from types import ModuleType as _ModuleType
 from operator import attrgetter as _attrgetter
@@ -58,14 +61,9 @@ cdef api object wrap_dynamic_struct_reader(Response & r) with gil:
     return _Response()._init_childptr(new Response(moveResponse(r)), None)
 
 
-cdef api PyObject * wrap_remote_call(PyObject * func, Response & r) except * with gil:
+cdef api object wrap_remote_call(object func, Response & r):
     response = _Response()._init_childptr(new Response(moveResponse(r)), None)
-
-    func_obj = <object>func
-    ret = func_obj(response)
-    Py_INCREF(ret)
-    return <PyObject *>ret
-
+    return func(response)
 
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
@@ -84,7 +82,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
             elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             else:
                 try:
                     warning_msg = (
@@ -97,9 +95,9 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
 
         if ret is not None:
             if type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             else:
                 try:
                     warning_msg = (
@@ -120,7 +118,7 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
             if type(ret) is _VoidPromise:
                 return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
             elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(deref((<_Promise>ret).thisptr)))
+                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
             if not isinstance(ret, tuple):
                 ret = (ret,)
             names = _find_field_order(context.results.schema.node.struct)
@@ -136,30 +134,21 @@ cdef api VoidPromise * call_server_method(PyObject * _server,
     return NULL
 
 
-cdef api convert_array_pyobject(PyArray & arr) with gil:
-    return [<object>arr[i] for i in range(arr.size())]
+cdef api object convert_array_pyobject(PyArray & arr) with gil:
+    return [<object>arr[i].get().obj for i in range(arr.size())]
 
 
-cdef api PyPromise * extract_promise(object obj) with gil:
+cdef api Own[Promise[Own[PyRefCounter]]] extract_promise(object obj):
     if type(obj) is _Promise:
-        promise = <_Promise>obj
-
-        ret = new PyPromise(promise.thisptr.attach(capnp.makePyRefCounter(<PyObject *>promise)))
-        Py_DECREF(obj)
-
-        return ret
-
-    return NULL
-
-
-cdef api RemotePromise * extract_remote_promise(object obj) with gil:
-    if type(obj) is _RemotePromise:
-        promise = <_RemotePromise>obj
-        promise.is_consumed = True
-
-        return promise.thisptr # TODO:MEMORY: fix this leak
-
-    return NULL
+        return move((<_Promise>obj).thisptr)
+    elif type(obj) is _RemotePromise:
+        parent = (<_RemotePromise>obj)._parent
+        # We don't need parent anymore. Setting to none allows quicker garbage collection
+        (<_RemotePromise>obj)._parent = None
+        return capnp.heap[PyPromise](helpers.convert_to_pypromise(move((<_RemotePromise>obj).thisptr))
+                                     .attach(capnp.heap[PyRefCounter](<PyObject *>parent)))
+    else:
+        return capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
@@ -317,7 +306,7 @@ ctypedef fused PromiseTypes:
     _Promise
     _RemotePromise
     _VoidPromise
-    PromiseFulfillerPair
+    # PromiseFulfillerPair
 
 
 cdef extern from "Python.h":
@@ -1771,51 +1760,150 @@ cdef class _DynamicObjectBuilder:
     cpdef as_reader(self):
         return _DynamicObjectReader()._init(self.thisptr.asReader(), self._parent)
 
+cdef void kjloop_runnable_callback(void* data) with gil:
+    cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
+    assert port.runHandle is not None
+    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
+    port.kjLoop.run()
+
+cdef void kjloop_advance_callback(void* data) with gil:
+    cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
+    assert port.runHandle is not None
+    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
+
+cdef cppclass AsyncIoEventPort(EventPort):
+    EventLoop *kjLoop
+    TimerImpl *timerImpl;
+    object asyncioLoop;
+    object runHandle;
+
+    __init__(object asyncioLoop):
+        this.kjLoop = new EventLoop(deref(this))
+        this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
+        this.runHandle = None
+        this.asyncioLoop = asyncioLoop
+
+    __dealloc__():
+        del this.timerImpl
+        del this.kjLoop
+
+    cbool wait() except* with gil:
+        raise KjException("Currently you cannot wait for promises while pycapnp is running in asyncio mode. " +
+                          "You should instead use 'await'. If you have a use-case to start the asyncio loop " +
+                          "using wait(), please report")
+
+    cbool poll() except* with gil:
+        raise KjException("Currently you cannot poll promises while pycapnp is running in asyncio mode. " +
+                          "If you have a use-case to poll the asyncio loop using poll(), please report")
+
+    void setRunnable(cbool runnable) except* with gil:
+        if runnable:
+            if this.runHandle is not None:
+                # If a timer was running, cancel it and schedule a run immediately
+                # The timer will be re-scheduled once the kj loop becomes un-runnable again.
+                this.runHandle.cancel()
+            us = <void*>this;
+            this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
+        else:
+            assert this.runHandle is not None
+            this.runHandle.cancel()
+            this.scheduleAdvance()
+
+    void scheduleAdvance() with gil:
+        cdef uint64_t nextEvent = this.timerImpl.timeoutToNextEvent(
+            systemPreciseMonotonicClock().now(), MILLISECONDS, -1).orDefault(-1)
+        if nextEvent == -1:
+            this.runHandle = None
+        else:
+            seconds = <double>nextEvent / 1000
+            us = <void*>this;
+            this.runHandle = this.asyncioLoop.call_later(seconds, lambda: kjloop_advance_callback(us))
+
+    EventLoop *getKjLoop():
+        return this.kjLoop
+
+    Timer *getTimer():
+        return this.timerImpl;
+
+def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
+    # The purpose of patching the asyncio close() function is to set up the kj-loop to be closed as well.
+    # We replace the event loop getter with a weakref, such that it can be destroyed when all other
+    # references to it are gone. Then, if a new asyncio loop ever gets started, a new kj-loop can also be
+    # started.
+    _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _weakref.ref(kjloop)
+    loop.close = oldclose()
+    return oldclose()
 
 cdef class _EventLoop:
-    cdef capnp.AsyncIoContext * thisptr
+    cdef object __weakref__ # Needed to make this class weak-referenceable
+    cdef Own[LowLevelAsyncIoProvider] lowLevelProvider
+    cdef Own[AsyncIoProvider] provider
+    cdef WaitScope * waitScope
+    cdef Timer* timer
+    cdef readonly in_asyncio_mode
+
+    cdef AsyncIoEventPort *customPort
 
     def __init__(self):
         self._init()
 
     cdef _init(self) except +reraise_kj_exception:
-        self.thisptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
+        try:
+            loop = asyncio.get_running_loop()
+            self.customPort = new AsyncIoEventPort(loop)
+            kjLoop = self.customPort.getKjLoop()
+            self.waitScope = new WaitScope(deref(kjLoop))
+            self.timer = self.customPort.getTimer()
+            loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
+            self.in_asyncio_mode = True
+        except RuntimeError:
+            ptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
+            self.lowLevelProvider = move(ptr.lowLevelProvider)
+            self.provider = move(ptr.provider)
+            self.waitScope = &ptr.waitScope
+            self.timer = &self.lowLevelProvider.get().getTimer()
+            del ptr
+            self.in_asyncio_mode = False
 
     def __dealloc__(self):
-        del self.thisptr #TODO:MEMORY: fix problems with Promises still being around
-
-    cpdef _remove(self) except +reraise_kj_exception:
-        del self.thisptr
-        self.thisptr = NULL
+        if not self.customPort == NULL:
+            # If we have a custom port, the waitscope is not owned by provider, we have to delete it manually
+            del self.waitScope
+            del self.customPort
 
     cdef TwoWayPipe makeTwoWayPipe(self):
-        return deref(deref(self.thisptr).provider).newTwoWayPipe()
+        if self.in_asyncio_mode:
+            raise RuntimeError("Cannot call makeTwoWayPipe in asyncio mode")
+        return deref(self.provider).newTwoWayPipe()
 
     cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
-        return deref(deref(self.thisptr).lowLevelProvider).wrapSocketFd(fd)
+        if self.in_asyncio_mode:
+            raise RuntimeError("Cannot call wrapSocketFd in asyncio mode")
+        return deref(self.lowLevelProvider).wrapSocketFd(fd)
 
 
-cdef _EventLoop C_DEFAULT_EVENT_LOOP
-
-_C_DEFAULT_EVENT_LOOP_LOCAL = None
-_THREAD_LOCAL_EVENT_LOOPS = []
+_C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
 
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
-    'Optimization for not having to deal with threadlocal event loops unless we need to'
-    global C_DEFAULT_EVENT_LOOP
-    if C_DEFAULT_EVENT_LOOP is not None:
-        return C_DEFAULT_EVENT_LOOP
-    elif _C_DEFAULT_EVENT_LOOP_LOCAL is not None:
-        loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
+    global C_DEFAULT_EVENT_LOOP_LOCAL
+    loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
+    if type(loop) is _EventLoop:
+        return loop
+    elif type(loop) is _weakref.ref:
+        loop = loop()
         if loop is not None:
-            return <_EventLoop>_C_DEFAULT_EVENT_LOOP_LOCAL.loop
+            raise RuntimeError(
+                "The capnproto event loop associated to an already closed Python asyncio event loop is " +
+                "still running, because not all I/O events associated to it have terminated. If you wish " +
+                " to start a new loop, make sure that all previous events are cleaned up.")
         else:
             _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
             return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
     else:
-        C_DEFAULT_EVENT_LOOP = _EventLoop()
-        return C_DEFAULT_EVENT_LOOP
+        assert loop is None
+        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
+        return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
 
 cdef class _Timer:
@@ -1833,62 +1921,17 @@ def getTimer():
     """
     Get libcapnp event loop timer
     """
-    return _Timer()._init(helpers.getTimer(C_DEFAULT_EVENT_LOOP_GETTER().thisptr))
+    return _Timer()._init(C_DEFAULT_EVENT_LOOP_GETTER().timer)
 
 
-cpdef remove_event_loop(ignore_errors=False):
-    '''Remove the global event loop'''
-    global C_DEFAULT_EVENT_LOOP
-    global _THREAD_LOCAL_EVENT_LOOPS
+cpdef remove_event_loop():
+    '''Remove the event loop'''
     global _C_DEFAULT_EVENT_LOOP_LOCAL
 
-    if C_DEFAULT_EVENT_LOOP:
-        try:
-            C_DEFAULT_EVENT_LOOP._remove()
-        except Exception as e:
-            if isinstance(ignore_errors, Exception):
-                if isinstance(e, ignore_errors):
-                    ignore_errors = True
-            if ignore_errors is True:
-                pass
-            else:
-                raise
-        C_DEFAULT_EVENT_LOOP = None
-    if len(_THREAD_LOCAL_EVENT_LOOPS) > 0:
-        for loop in _THREAD_LOCAL_EVENT_LOOPS:
-            try:
-                loop._remove()
-            except Exception as e:
-                if isinstance(ignore_errors, Exception):
-                    if isinstance(e, ignore_errors):
-                        ignore_errors = True
-                if ignore_errors is True:
-                    pass
-                else:
-                    raise
-        _THREAD_LOCAL_EVENT_LOOPS = []
-        _C_DEFAULT_EVENT_LOOP_LOCAL = None
-
-
-cpdef create_event_loop(threaded=True):
-    '''Create a new global event loop. This will not remove the previous
-    EventLoop for you, so make sure to do that first'''
-    global C_DEFAULT_EVENT_LOOP
-    global _C_DEFAULT_EVENT_LOOP_LOCAL
-    if threaded:
-        if _C_DEFAULT_EVENT_LOOP_LOCAL is None:
-            _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
-        loop = _EventLoop()
-        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = loop
-        _THREAD_LOCAL_EVENT_LOOPS.append(loop)
-    else:
-        C_DEFAULT_EVENT_LOOP = _EventLoop()
-
-
-cpdef reset_event_loop(ignore_errors=False, threaded=True):
-    '''Removes event loop, then creates a new one. See remove_event_loop and create_event_loop for more details.'''
-    remove_event_loop(ignore_errors)
-    create_event_loop(threaded)
+    loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
+    if loop is not None:
+        loop._remove()
+        del _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
 
 def wait_forever():
@@ -1896,7 +1939,8 @@ def wait_forever():
     Use libcapnp event loop to poll/wait forever
     """
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-    helpers.waitNeverDone(deref(loop.thisptr).waitScope)
+    with nogil:
+        helpers.waitNeverDone(deref(loop.waitScope))
 
 
 def poll_once():
@@ -1904,7 +1948,8 @@ def poll_once():
     Poll libcapnp event loop once
     """
     cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-    helpers.pollWaitScope(deref(loop.thisptr).waitScope)
+    with nogil:
+        loop.waitScope.poll()
 
 
 cdef class _CallContext:
@@ -1936,194 +1981,64 @@ cdef class _CallContext:
 
     cpdef tail_call(self, _Request tailRequest):
         promise = _VoidPromise()._init(self.thisptr.tailCall(moveRequest(deref(tailRequest.thisptr_child))))
-        promise.is_consumed = True
         return promise
 
+cdef void _promise_check_consumed(PromiseTypes promise) except*:
+    if promise.thisptr.get() == NULL:
+        raise KjException(
+            "Promise was already used in a consuming operation. You can no longer use this Promise object")
+
+cdef _promise_then(PromiseTypes self, func, error_func, num_args, attach=None) except +reraise_kj_exception:
+    _promise_check_consumed(self)
+
+    argspec = None
+    try:
+        argspec = _inspect.getfullargspec(func)
+    except (TypeError, ValueError):
+        pass
+    if argspec:
+        args_length = len(argspec.args) if argspec.args else 0
+        defaults_length = len(argspec.defaults) if argspec.defaults else 0
+        if args_length - defaults_length != num_args:
+            raise KjException(f'Function passed to `then` call must take exactly {num_args} arguments')
+
+    return _Promise()._init(
+        helpers.then(move(self.thisptr), capnp.heap[PyRefCounter](<PyObject *>func),
+                     capnp.heap[PyRefCounter](<PyObject *>error_func))
+        .attach(capnp.heap[PyRefCounter](<PyObject *> attach)))
+
+cdef _promise_to_asyncio(PromiseTypes promise):
+    _promise_check_consumed(promise)
+
+    fut = asyncio.get_running_loop().create_future()
+    # Attach the promise to the future, so that it doesn't get destroyed
+    fut.kjpromise = promise.then(
+        lambda res: fut.set_result(res)    if not fut.cancelled() else None,
+        lambda err: fut.set_exception(err) if not fut.cancelled() else None)
+    del promise
+    fut.add_done_callback(
+        lambda fut: fut.kjpromise.cancel() if fut.cancelled() else None)
+    return fut
 
 cdef class _Promise:
-    cdef PyPromise * thisptr
-    cdef public bint is_consumed
-    cdef public object _parent, _obj
-    cdef _EventLoop _event_loop
+    cdef Own[PyPromise] thisptr
 
     def __init__(self, obj=None):
-        if obj is None:
-            self.is_consumed = True
-        else:
-            self.is_consumed = False
-            self._obj = obj
-            Py_INCREF(obj) # TODO: MEM: fix leak
-            self.thisptr = new PyPromise(<PyObject *>obj)
+        if obj is not None:
+            self.thisptr = capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
-
-    cdef _init(self, PyPromise other, parent=None):
-        self.is_consumed = False
-        self.thisptr = new PyPromise(movePromise(other))
-        self._parent = parent
+    cdef _init(self, PyPromise other):
+        self.thisptr = capnp.heap[PyPromise](movePromise(other))
         return self
-
-    def __dealloc__(self):
-        del self.thisptr
 
     cpdef wait(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        ret = <object>helpers.waitPyPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
-        Py_DECREF(ret)
-
-        self.is_consumed = True
-
-        return ret
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        argspec = None
-        try:
-            argspec = _inspect.getfullargspec(func)
-        except (TypeError, ValueError):
-            pass
-        if argspec:
-            args_length = len(argspec.args) if argspec.args else 0
-            defaults_length = len(argspec.defaults) if argspec.defaults else 0
-            if args_length - defaults_length != 1:
-                raise KjException('Function passed to `then` call must take exactly one argument')
-
-        cdef _Promise new_promise = _Promise()._init(
-            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(
-            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
-
-    def attach(self, *args):
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        ret = _Promise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
-        self.is_consumed = True
-
-        return ret
-
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        if numParents > 0 and hasattr(self._parent, 'cancel'):
-            self._parent.cancel(numParents - 1)
-
-        self.is_consumed = True
-        del self.thisptr
-        self.thisptr = NULL
-
-
-cdef class _VoidPromise:
-    cdef VoidPromise * thisptr
-    cdef public bint is_consumed
-    cdef public object _parent
-    cdef _EventLoop _event_loop
-
-    def __init__(self):
-        self.is_consumed = True
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
-
-    cdef _init(self, VoidPromise other, parent=None):
-        self.is_consumed = False
-        self.thisptr = new VoidPromise(moveVoidPromise(other))
-        self._parent = parent
-        return self
-
-    def __dealloc__(self):
-        del self.thisptr
-
-    cpdef wait(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        helpers.waitVoidPromise(self.thisptr, deref(self._event_loop.thisptr).waitScope)
-
-        self.is_consumed = True
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        argspec = None
-        try:
-            argspec = _inspect.getfullargspec(func)
-        except (TypeError, ValueError):
-            pass
-        if argspec:
-            args_length = len(argspec.args) if argspec.args else 0
-            defaults_length = len(argspec.defaults) if argspec.defaults else 0
-            if args_length - defaults_length != 0:
-                raise KjException('Function passed to `then` call must take no arguments')
-
-        cdef _Promise new_promise = _Promise()._init(
-            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(
-            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
-
-    cpdef as_pypromise(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-        return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
-
-    def attach(self, *args):
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        ret = _VoidPromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
-        self.is_consumed = True
-
-        return ret
-
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        if numParents > 0 and hasattr(self._parent, 'cancel'):
-            self._parent.cancel(numParents - 1)
-
-        self.is_consumed = True
-        del self.thisptr
-        self.thisptr = NULL
-
-
-cdef class _RemotePromise:
-    cdef RemotePromise * thisptr
-    cdef public bint is_consumed
-    cdef public object _parent
-    cdef _EventLoop _event_loop
-
-    def __init__(self):
-        self.is_consumed = True
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
-
-    cdef _init(self, RemotePromise other, parent):
-        self.is_consumed = False
-        self.thisptr = new RemotePromise(moveRemotePromise(other))
-        self._parent = parent
-        return self
-
-    def __dealloc__(self):
-        del self.thisptr
-
-    cpdef _wait(self) except +reraise_kj_exception:
-        return _Response()._init_childptr(
-            helpers.waitRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope), self._parent)
-
-    def wait(self):
-        """Wait on the promise. This will block until the promise has completed."""
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-        ret = self._wait()
-        self.is_consumed = True
-        return ret
+        _promise_check_consumed(self)
+        cdef Own[PyPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
+        cdef Own[PyRefCounter] ret
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        with nogil:
+            ret = move(prom.get().wait(deref(loop.waitScope)))
+        return <object>ret.get().obj
 
     async def a_wait(self):
         """
@@ -2132,54 +2047,109 @@ cdef class _RemotePromise:
 
         Will still work with non-asyncio socket communication, but requires async handling of the function call.
         """
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
+        return await _promise_to_asyncio(self)
 
-        while not helpers.pollRemote(self.thisptr, deref(self._event_loop.thisptr).waitScope):
-            await asyncio.sleep(0.01)
-        ret = self._wait()
-        self.is_consumed = True
-
-        return ret
-
-    cpdef as_pypromise(self) except +reraise_kj_exception:
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
-        return _Promise()._init(helpers.convert_to_pypromise(deref(self.thisptr)), self)
+    def __await__(self):
+        return _promise_to_asyncio(self).__await__()
 
     cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        """Promise pipelining, use to queue up operations on a promise before executing the promise."""
-        if self.is_consumed:
-            raise KjException(
-                "Promise was already used in a consuming operation. You can no longer use this Promise object")
+        return _promise_then(self, func, error_func, 1)
 
-        argspec = None
-        try:
-            argspec = _inspect.getfullargspec(func)
-        except (TypeError, ValueError):
-            pass
-        if argspec:
-            args_length = len(argspec.args) if argspec.args else 0
-            defaults_length = len(argspec.defaults) if argspec.defaults else 0
-            if args_length - defaults_length != 1:
-                raise KjException('Function passed to `then` call must take exactly one argument')
+    cpdef cancel(self) except +reraise_kj_exception:
+        self.thisptr = Own[PyPromise]()
 
-        cdef _Promise new_promise = _Promise()._init(
-            helpers.then(deref(self.thisptr), <PyObject *>func, <PyObject *>error_func), self)
-        return _Promise()._init(new_promise.thisptr.attach(
-            capnp.makePyRefCounter(<PyObject *>func), capnp.makePyRefCounter(<PyObject *>error_func)), new_promise)
+
+cdef class _VoidPromise:
+    cdef Own[VoidPromise] thisptr
+
+
+    cdef _init(self, VoidPromise other):
+        self.thisptr = capnp.heap[VoidPromise](moveVoidPromise(other))
+        return self
+
+    cpdef wait(self) except +reraise_kj_exception:
+        _promise_check_consumed(self)
+        cdef Own[VoidPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        with nogil:
+            prom.get().wait(deref(loop.waitScope))
+
+    async def a_wait(self):
+        """
+        Asyncio version of wait().
+        Required when using asyncio for socket communication.
+
+        Will still work with non-asyncio socket communication, but requires async handling of the function call.
+        """
+        # TODO: Is keeping a separate _VoidPromise class really worth it? Does it make things faster?
+        return await _promise_to_asyncio[_Promise](self.as_pypromise())
+
+    def __await__(self):
+        return _promise_to_asyncio[_Promise](self.as_pypromise()).__await__()
+
+    cpdef as_pypromise(self) except +reraise_kj_exception:
+        _promise_check_consumed(self)
+        return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr)))
+
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        return _promise_then(self, func, error_func, 0)
+
+    cpdef cancel(self) except +reraise_kj_exception:
+        self.thisptr = Own[VoidPromise]()
+
+
+
+cdef class _RemotePromise:
+    cdef object _parent
+    """A pointer to a parent object that needs to be kept alive for this promise to function.
+    Note that _Promise and _VoidPromise don't have such pointer. The reason is that in _RemotePromise
+    the parent pointer needs to be passed around through _RemotePromise._get. If an object needs to
+    be kept alive in _Promise or _VoidPromise, it can be attached to the underlying C++ promise."""
+
+    cdef Own[RemotePromise] thisptr
+
+    cdef _init(self, RemotePromise other, object parent=None):
+        self.thisptr = capnp.heap[RemotePromise](moveRemotePromise(other))
+        self._parent = parent
+        return self
+
+    cpdef wait(self) except +reraise_kj_exception:
+        """Wait on the promise. This will block until the promise has completed."""
+        _promise_check_consumed(self)
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        with nogil:
+            response = helpers.waitRemote(move(self.thisptr), deref(loop.waitScope))
+        return _Response()._init_childptr(response, None)
+
+    async def a_wait(self):
+        """
+        Asyncio version of wait().
+        Required when using asyncio for socket communication.
+
+        Will still work with non-asyncio socket communication, but requires async handling of the function call.
+        """
+        return await _promise_to_asyncio(self)
+
+    def __await__(self):
+        return _promise_to_asyncio(self).__await__()
+
+    cpdef as_pypromise(self) except +reraise_kj_exception:
+        _promise_check_consumed(self)
+        parent = self._parent
+        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
+        return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr))
+                                .attach(capnp.heap[PyRefCounter](<PyObject *>parent)))
 
     cpdef _get(self, field) except +reraise_kj_exception:
-        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get(field)).getType()
+        _promise_check_consumed(self)
+        cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get().get(field)).getType()
         if type == capnp.TYPE_CAPABILITY:
             return _DynamicCapabilityClient()._init(
-                (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asCapability(), self._parent)
+                (<C_DynamicValue.Pipeline>self.thisptr.get().get(field)).asCapability(), self._parent)
         elif type == capnp.TYPE_STRUCT:
             return _DynamicStructPipeline()._init(
                 new C_DynamicStruct.Pipeline(
-                    (<C_DynamicValue.Pipeline>self.thisptr.get(field)).asStruct()), self._parent)
+                    (<C_DynamicValue.Pipeline>self.thisptr.get().get(field)).asStruct()), self._parent)
         elif type == capnp.TYPE_UNKNOWN:
             raise KjException("Cannot convert type to Python. Type is unknown by capnproto library")
         else:
@@ -2194,7 +2164,8 @@ cdef class _RemotePromise:
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
-            return _StructSchema()._init_child(self.thisptr.getSchema())
+            _promise_check_consumed(self)
+            return _StructSchema()._init_child(self.thisptr.get().getSchema())
 
     def __dir__(self):
         return list(set(self.schema.fieldnames + tuple(dir(self.__class__))))
@@ -2202,23 +2173,14 @@ cdef class _RemotePromise:
     def to_dict(self, verbose=False, ordered=False):
         return _to_dict(self, verbose, ordered)
 
-    cpdef cancel(self, numParents=1) except +reraise_kj_exception:
-        if numParents > 0 and hasattr(self._parent, 'cancel'):
-            self._parent.cancel(numParents - 1)
+    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
+        parent = self._parent
+        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
+        return _promise_then(self, func, error_func, 1, attach=parent)
 
-        self.is_consumed = True
-        del self.thisptr
-        self.thisptr = NULL
-
-    # def attach(self, *args):
-    #     if self.is_consumed:
-    #         raise KjException(
-    #             "Promise was already used in a consuming operation. You can no longer use this Promise object")
-
-    #     ret = _RemotePromise()._init(self.thisptr.attach(capnp.makePyRefCounter(<PyObject *>args)), self)
-    #     self.is_consumed = True
-
-    #     return ret
+    cpdef cancel(self) except +reraise_kj_exception:
+        self.thisptr = Own[RemotePromise]()
+        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
 
 
 cpdef join_promises(promises) except +reraise_kj_exception:
@@ -2238,7 +2200,6 @@ cpdef join_promises(promises) except +reraise_kj_exception:
             raise KjException(
                 "One of the promises passed to `join_promises` had a non promise value of: {}".format(promise))
         heap.add(movePromise(deref(pyPromise.thisptr)))
-        pyPromise.is_consumed = True
 
     return _Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
 
@@ -2302,7 +2263,7 @@ cdef class _DynamicCapabilityServer:
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
-    cdef public object _server, _parent, _cached_schema
+    cdef public object _parent, _cached_schema
 
     cdef _init(self, C_DynamicCapability.Client other, object parent):
         self.thisptr = other
@@ -2317,7 +2278,7 @@ cdef class _DynamicCapabilityClient:
             s = schema
 
         self.thisptr = helpers.new_client(s.thisptr, <PyObject *>server)
-        self._server = server
+        self._parent = server
         return self
 
     cpdef _find_method_args(self, method_name):
@@ -2449,7 +2410,7 @@ cdef class _TwoPartyVatNetwork:
         return self
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
-        return _VoidPromise()._init(deref(self.thisptr).onDisconnect(), self)
+        return _VoidPromise()._init(deref(self.thisptr).onDisconnect())
 
 
 cdef class TwoPartyClient:
@@ -2465,32 +2426,29 @@ cdef class TwoPartyClient:
     """
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
-    cdef public object _orig_stream
-    cdef public _AsyncIoStream _stream
     cdef public _TwoWayPipe _pipe
 
     def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
         if isinstance(socket, basestring):
+            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
+                raise RuntimeError("Pycapnp is in asyncio mode. Pass a AsyncIoStream")
             socket = self._connect(socket)
 
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
-        self._orig_stream = socket
-        if self._orig_stream:
-            self._stream = _FdAsyncIoStream(socket.fileno())
-            self._network = _TwoPartyVatNetwork()._init(self._stream, capnp.CLIENT, opts)
-        else:
+        if socket is None:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
             self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.CLIENT, opts)
+        elif isinstance(socket, _AsyncIoStream):
+            self._network = _TwoPartyVatNetwork()._init(socket, capnp.CLIENT, opts)
+        elif isinstance(socket, _socket.socket):
+            stream = _FdAsyncIoStream(socket)
+            self._network = _TwoPartyVatNetwork()._init(stream, capnp.CLIENT, opts)
+        else:
+            raise ValueError(f"Argument socket should be a string, socket, AsyncIoStream or None, was {type(socket)}")
 
         self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
-        if self._orig_stream:
-            Py_INCREF(self._orig_stream)
-            Py_INCREF(self._stream)
-        else:
-            Py_INCREF(self._pipe)
-        Py_INCREF(self._network) # TODO:MEMORY: attach this to onDrained, also figure out what's leaking
 
     async def read(self, bufsize):
         """
@@ -2498,45 +2456,40 @@ cdef class TwoPartyClient:
 
         :param bufsize: Buffer size to read from the libcapnp library
         """
-        cdef AsyncIoStreamReadHelper *reader = new AsyncIoStreamReadHelper(
-            self._pipe._pipe.ends[1].get(),
-            &self._pipe._event_loop.thisptr.waitScope,
-            bufsize
-        )
-        while not reader.poll():
-            await asyncio.sleep(0.01)
 
         cdef array.array read_buffer = array.array('b', [])
-        array.resize(read_buffer, reader.read_size())
-        memcpy(read_buffer.data.as_voidptr, reader.read_buffer(), reader.read_size())
-        del reader
+        array.resize(read_buffer, bufsize)
+        read_size_actual = await _Promise()._init(
+            helpers.wrapSizePromise(
+                self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
+        array.resize(read_buffer, read_size_actual)
         return read_buffer
 
-    def write(self, data):
+    async def write(self, data):
         """
         libcapnp writer (asyncio sockets only)
 
         :param data: Buffer to write to the libcapnp library
         """
         cdef array.array write_buffer = array.array('b', data)
-        deref(self._pipe._pipe.ends[1]).write(
-            write_buffer.data.as_voidptr,
-            len(data)
-        ).wait(self._pipe._event_loop.thisptr.waitScope)
+        await _VoidPromise()._init(
+            deref(self._pipe._pipe.ends[1]).write(
+                write_buffer.data.as_voidptr,
+                len(data)
+            ))
 
     def __dealloc__(self):
-        del self.thisptr
+        if not self.thisptr == NULL:
+            del self.thisptr
 
-    cpdef _connect(self, host_string):
+    def _connect(self, host_string):
         if host_string.startswith('unix:'):
             path = host_string[5:]
             sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
             sock.connect(path)
         else:
             host, port = host_string.split(':')
-
             sock = _socket.create_connection((host, port))
-
             # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
             # neccessary, but it speeds things up.
             sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
@@ -2564,8 +2517,6 @@ cdef class TwoPartyServer:
     """
     cdef RpcSystem * thisptr
     cdef public _TwoPartyVatNetwork _network
-    cdef public object _orig_stream, _disconnect_promise
-    cdef public _AsyncIoStream _stream
     cdef public _TwoWayPipe _pipe
     cdef object _port
     cdef public object port_promise, _bootstrap
@@ -2580,19 +2531,27 @@ cdef class TwoPartyServer:
         self._bootstrap = None
 
         if isinstance(socket, basestring):
+            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
+                raise RuntimeError("Pycapnp is in asyncio mode. Please start an asyncio server using"
+                                   "TwoPartyClient.create_server and pass any resulting connection to this class.")
             self._connect(socket, bootstrap, traversal_limit_in_words, nesting_limit)
             return
 
-        self._orig_stream = socket
-        if self._orig_stream:
-            self._stream = _FdAsyncIoStream(socket.fileno())
-            self._network = _TwoPartyVatNetwork()._init(
-                self._stream, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
-        else:
+        opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
+        if isinstance(socket, _AsyncIoStream):
+            self._network = _TwoPartyVatNetwork()._init(socket, capnp.SERVER, opts)
+        elif isinstance(socket, _socket.socket):
+            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
+                raise RuntimeError("Pycapnp is in asyncio mode. Please pass an AsyncIoStream instance.")
+            stream = _FdAsyncIoStream(socket)
+            self._network = _TwoPartyVatNetwork()._init(stream, capnp.SERVER, opts)
+        elif socket is None:
             # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
             self._pipe = _TwoWayPipe()
             self._network = _TwoPartyVatNetwork()._init_pipe(
-                self._pipe, capnp.SERVER, make_reader_opts(traversal_limit_in_words, nesting_limit))
+                self._pipe, capnp.SERVER, opts)
+        else:
+            raise KjException("Unexpected typ for socket in TwoPartyServer")
 
         self._port = 0
 
@@ -2602,31 +2561,18 @@ cdef class TwoPartyServer:
             self.thisptr = new RpcSystem(makeRpcServerBootstrap(
                 deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
 
-        Py_INCREF(self._orig_stream)
-        Py_INCREF(self._stream)
-        Py_INCREF(self._pipe)
-        Py_INCREF(self._bootstrap)
-        Py_INCREF(self._network)
-        self._disconnect_promise = self.on_disconnect().then(self._decref)
-
     async def read(self, bufsize):
         """
         libcapnp reader (asyncio sockets only)
 
         :param bufsize: Buffer size to read from the libcapnp library
         """
-        cdef AsyncIoStreamReadHelper *reader = new AsyncIoStreamReadHelper(
-            self._pipe._pipe.ends[1].get(),
-            &self._pipe._event_loop.thisptr.waitScope,
-            bufsize
-        )
-        while not reader.poll():
-            await asyncio.sleep(0.01)
-
         cdef array.array read_buffer = array.array('b', [])
-        array.resize(read_buffer, reader.read_size())
-        memcpy(read_buffer.data.as_voidptr, reader.read_buffer(), reader.read_size())
-        del reader
+        array.resize(read_buffer, bufsize)
+        read_size_actual = await _Promise()._init(
+            helpers.wrapSizePromise(
+                self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
+        array.resize(read_buffer, read_size_actual)
         return read_buffer
 
     async def write(self, data):
@@ -2636,10 +2582,11 @@ cdef class TwoPartyServer:
         :param data: Buffer to write to the libcapnp library
         """
         cdef array.array write_buffer = array.array('b', data)
-        deref(self._pipe._pipe.ends[1]).write(
-            write_buffer.data.as_voidptr,
-            len(data)
-        ).wait(self._pipe._event_loop.thisptr.waitScope)
+        await _VoidPromise()._init(
+            deref(self._pipe._pipe.ends[1]).write(
+                write_buffer.data.as_voidptr,
+                len(data)
+            ))
 
     cpdef _connect(self, host_string, bootstrap, traversal_limit_in_words, nesting_limit):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
@@ -2649,26 +2596,20 @@ cdef class TwoPartyServer:
         self._task_set = new capnp.TaskSet(self._error_handler)
 
         self._bootstrap = bootstrap
-        Py_INCREF(self._bootstrap)
         schema = bootstrap.schema
         self.port_promise = _Promise()._init(
             helpers.connectServer(
                 deref(self._task_set),
                 helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap),
-                loop.thisptr, temp_string, opts))
-
-    def _decref(self):
-        Py_DECREF(self._bootstrap)
-        Py_INCREF(self._pipe)
-        Py_DECREF(self._orig_stream)
-        Py_DECREF(self._stream)
-        Py_DECREF(self._network)
+                loop.provider.get(), temp_string, opts))
 
     def __dealloc__(self):
         del self.thisptr
         del self._task_set
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
+        if self._task_set != NULL:
+            raise KjException("Currently, you can only call on_disconnect on a server without an internal socket")
         return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
 
     def poll_once(self):
@@ -2678,12 +2619,11 @@ cdef class TwoPartyServer:
         return poll_once()
 
     async def poll_forever(self):
-        """
+        """Deprecated. Do not use.
         Poll libcapnp library forever (asyncio)
         """
-        while True:
-            poll_once()
-            await asyncio.sleep(0.01)
+        raise KjException("This functionality has been removed. If you wish to wait forever, use \n" +
+                          "'await asyncio._get_running_loop().create_future()'")
 
     cpdef run_forever(self):
         if self.port_promise is None:
@@ -2705,7 +2645,275 @@ cdef class TwoPartyServer:
 
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
+    cdef _EventLoop _event_loop # We hold a pointer to the event loop here, to ensure it remains alive
 
+    @staticmethod
+    async def create_connection(host = None, port = None, **kwargs):
+        """Create a TCP connection.
+
+        All parameters given to this function are passed to `asyncio.get_running_loop().create_connection()`.
+        See that function for documentation on the possible arguments.
+        """
+        cdef _AsyncIoStream self = _AsyncIoStream()
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop = asyncio.get_running_loop()
+        transport, protocol = await loop.create_connection(
+            lambda: _PyAsyncIoStreamProtocol(), host, port, **kwargs)
+        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        return self
+
+    @staticmethod
+    async def create_unix_connection(path = None, **kwargs):
+        """Create a Unix socket connection.
+
+        All parameters given to this function are passed to `asyncio.get_running_loop().create_unix_connection()`.
+        See that function for documentation on the possible arguments.
+        """
+        cdef _AsyncIoStream self = _AsyncIoStream()
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop = asyncio.get_running_loop()
+        transport, protocol = await loop.create_unix_connection(
+            lambda: _PyAsyncIoStreamProtocol(), path, **kwargs)
+        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        return self
+
+    @staticmethod
+    def _connect(callback):
+        cdef _AsyncIoStream self = _AsyncIoStream()
+        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop = asyncio.get_running_loop()
+        protocol = _PyAsyncIoStreamProtocol(callback, self)
+        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        return protocol
+
+    @staticmethod
+    async def create_server(callback, host = None, port = None, **kwargs):
+        """Create a TCP connection server.
+
+        The `callback` parameter will be called whenever a new connection is made. It receives a `AsyncIoStream`
+        instance as its only argument. If the result of `callback` is a coroutine, it will be scheduled as a task.
+
+        This function behaves similarly to `asyncio.get_running_loop().create_server()`. All arguments except
+        for `callback` will be passed directly to that function, and the server returned is similar as well.
+        See that function for documentation on the possible arguments.
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.create_server(lambda: _AsyncIoStream._connect(callback), host, port, **kwargs)
+
+    @staticmethod
+    async def create_unix_server(callback, path = None, **kwargs):
+        """Create a unix connection server.
+
+        The `callback` parameter will be called whenever a new connection is made. It receives a `AsyncIoStream`
+        instance as its only argument. If the result of `callback` is a coroutine, it will be scheduled as a task.
+
+        This function behaves similarly to `asyncio.get_running_loop().create_server()`. All arguments except
+        for `callback` will be passed directly to that function, and the server returned is similar as well.
+        See that function for documentation on the possible arguments.
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.create_unix_server(lambda: _AsyncIoStream._connect(callback), path, **kwargs)
+
+cdef class DummyBaseClass:
+    pass
+
+cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
+    # TODO: Temporary. Needed due to a missing __slots__ definitions in BufferedProtocol on Python 3.7.
+    #       See https://github.com/python/cpython/issues/79575. Can be removed once Python 3.7 is unsupported.
+    cdef dict __dict__
+
+    cdef object transport
+    cdef object connected_callback
+    cdef object callback_arg
+
+    # State for reading data from the transport
+    cdef char* read_buffer
+    cdef size_t read_min_bytes
+    cdef size_t read_max_bytes
+    cdef size_t read_already_read
+    cdef PromiseFulfiller[size_t]* read_fulfiller
+    cdef cbool read_eof
+
+    # TODO: Temporary. This is an overflow buffer, which is needed for two blatant violations of the protocol.
+    #       The first violation is int the SSL transport implementation.
+    #       See https://github.com/python/cpython/issues/89322, fixed in Python 3.11. This bug causes the
+    #       SSL transport to force data upon us even when we've asked it to pause sending us data. Therefore,
+    #       we have to store the data in a overflow buffer.
+    #
+    #       The second violation is that a transport cannot be paused immediately after it is connected.
+    #       See https://github.com/python/cpython/issues/103607. This also causes the need to be prepared
+    #       for unexpected data.
+    #
+    #       This extra code can be removed once both bugs are fixed in all supported python versions.
+    cdef bytearray read_overflow_buffer
+    cdef bytearray read_overflow_buffer_current
+
+    # State for writing data to the transport
+    cdef cbool write_paused
+    cdef cbool write_in_progress
+    cdef ArrayPtr[const ArrayPtr[const uint8_t]] write_pieces
+    cdef size_t write_index
+    cdef VoidPromiseFulfiller* write_fulfiller
+
+    def __init__(self, connected_callback = None, callback_arg = None):
+        self.connected_callback = connected_callback
+        self.callback_arg = callback_arg
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+        # TODO: BUG. We want to immediately pause reading, but Python's transport implementation does not
+        #       allow this. See https://github.com/python/cpython/issues/103607.
+        #       To work around this, we also insert pause_reading() in get_buffer() when appropriate.
+        transport.pause_reading()
+
+        self.write_paused = False
+        self.write_in_progress = False
+        self.read_eof = False
+        self.read_overflow_buffer = bytearray()
+        if self.connected_callback is not None:
+            callback_res = self.connected_callback(self.callback_arg)
+            if asyncio.iscoroutine(callback_res):
+                asyncio.get_running_loop().create_task(callback_res)
+            self.connected_callback = None
+            self.callback_arg = None
+
+    def connection_lost(self, exc):
+        if self.read_fulfiller != NULL:
+            capnp.rejectDisconnected[size_t](deref(self.read_fulfiller), StringPtr(str(exc)))
+            self.read_buffer = NULL
+            self.read_fulfiller = NULL
+        if self.write_fulfiller != NULL:
+            capnp.rejectVoidDisconnected(deref(self.write_fulfiller), StringPtr(str(exc)))
+            self.write_reset()
+            self.write_paused = True
+        self.transport = None
+
+    def get_buffer(self, size_hint):
+        if self.read_buffer == NULL: # Should not happen, but for SSL it does, see comment above
+
+            # TODO: Bug. Workaround for the transport ignoring pause_reading() in connection_made()
+            self.transport.pause_reading()
+
+            size = size_hint if size_hint > 0 else 100
+            self.read_overflow_buffer_current = bytearray(size)
+            return self.read_overflow_buffer_current
+        else:
+            return memoryview.PyMemoryView_FromMemory(self.read_buffer, self.read_max_bytes, buffer.PyBUF_WRITE)
+
+    def buffer_updated(self, size):
+        if self.read_buffer == NULL: # Should not happen, but for SSL it does, see comment above
+            self.read_overflow_buffer.extend(self.read_overflow_buffer_current[0:size])
+        else:
+            self.read_buffer += size
+            self.read_min_bytes -= size
+            self.read_max_bytes -= size
+            self.read_already_read += size
+            if self.read_min_bytes <= 0:
+                self.read_fulfiller.fulfill(move(self.read_already_read))
+                self.read_reset()
+
+    def pause_writing(self):
+        self.write_paused = True
+
+    def resume_writing(self):
+        self.write_paused = False
+        self.write_loop()
+
+    def eof_received(self):
+        self.read_eof = True
+        if self.read_buffer != NULL:
+            self.read_fulfiller.fulfill(move(self.read_already_read))
+            self.read_reset()
+
+    cdef write_loop(self):
+        if not self.write_in_progress: return
+        cdef const ArrayPtr[const uint8_t]* piece
+        for i in range(self.write_index, self.write_pieces.size()):
+            if self.write_paused:
+                self.write_index = i
+                break
+            piece = &self.write_pieces[i]
+            view = memoryview.PyMemoryView_FromMemory(<char*>piece.begin(), piece.size(), buffer.PyBUF_READ)
+            self.transport.write(view)
+        if not self.write_paused:
+            self.write_fulfiller.fulfill()
+            self.write_reset()
+
+    cdef read_reset(self):
+        self.transport.pause_reading()
+        self.read_buffer = NULL
+        self.read_fulfiller = NULL
+
+    cdef write_reset(self):
+        self.write_in_progress = False
+        self.write_fulfiller = NULL
+
+
+cdef api void _asyncio_stream_write_start(
+    object thisptr, ArrayPtr[const ArrayPtr[const uint8_t]] pieces,
+    VoidPromiseFulfiller& fulfiller) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is None or self.transport.is_closing():
+        capnp.rejectVoidDisconnected(fulfiller, StringPtr("Socket is closing."))
+        return
+    self.write_pieces = pieces
+    self.write_index = 0
+    self.write_fulfiller = &fulfiller
+    self.write_in_progress = True
+    self.write_loop()
+
+cdef api void _asyncio_stream_write_stop(object thisptr):
+    (<_PyAsyncIoStreamProtocol>thisptr).write_reset()
+
+cdef api void _asyncio_stream_read_start(
+    object thisptr, void* buffer, size_t min_bytes, size_t max_bytes,
+    PromiseFulfiller[size_t]& fulfiller) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is None or self.transport.is_closing():
+        capnp.rejectDisconnected(fulfiller, StringPtr("Socket is closing"))
+        return
+    if self.read_eof:
+        self.read_fulfiller.fulfill(0)
+        return
+    self.read_buffer = <char*>buffer
+    self.read_min_bytes = min_bytes
+    self.read_max_bytes = max_bytes
+    self.read_already_read = 0
+    self.read_fulfiller = &fulfiller
+
+    # Begin of draining the overflow buffer, which is created because of a bug in SSL, see comment above.
+    # Can be removed once Python < 3.11 is not longer supported.
+    if self.read_overflow_buffer:
+        to_copy = min(len(self.read_overflow_buffer), max_bytes)
+        memcpy(buffer, <char*>self.read_overflow_buffer, to_copy)
+        del self.read_overflow_buffer[:to_copy]
+        self.read_buffer += to_copy
+        self.read_min_bytes -= to_copy
+        self.read_max_bytes -= to_copy
+        self.read_already_read += to_copy
+        if self.read_min_bytes <= 0:
+            self.read_fulfiller.fulfill(move(self.read_already_read))
+            self.read_reset()
+            return # resume_reading no longer needed
+    # End of draining the overflow buffer.
+
+    self.transport.resume_reading()
+
+cdef api void _asyncio_stream_read_stop(object thisptr):
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is not None: self.read_reset()
+
+cdef api void _asyncio_stream_shutdown_write(object thisptr) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    if self.transport is not None and self.transport.can_write_eof():
+        self.transport.write_eof()
+
+cdef api void _asyncio_stream_close(object thisptr) except*:
+    cdef _PyAsyncIoStreamProtocol self = <_PyAsyncIoStreamProtocol>thisptr
+    # Careful, the transport object may have already been partially destroyed here.
+    if self.transport is not None and hasattr(self.transport, "close"):
+        self.transport.close()
 
 cdef class _TwoWayPipe:
     cdef _EventLoop _event_loop
@@ -2721,19 +2929,24 @@ cdef class _TwoWayPipe:
 
 
 cdef class _FdAsyncIoStream(_AsyncIoStream):
-    cdef _EventLoop _event_loop
+    """Wraps a socket for usage with pycapnp.
+    Note that this class does not own the socket. Instead, it receives the fileno from a python object,
+    which will continue to own it. This object is kept alive as long as this class is alive. Ultimately,
+    the python object is responsible for closing."""
+    cdef object _socket
 
-    def __init__(self, int fd):
-        self._init(fd)
+    def __init__(self, object socket):
+        self._socket = socket
+        self._init(socket.fileno())
 
     cdef _init(self, int fd) except +reraise_kj_exception:
         self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = self._event_loop.wrapSocketFd(fd)
 
-
-cdef class PyAsyncIoStream(_AsyncIoStream):
-    def __init__(self, int fd):
-        pass
+    def __dealloc__(self):
+        # The AsyncIoStream must be destroyed before self._socket is removed, to ensure the socket is still
+        # open when the destructor is called. Therefore, we do this manually to have control over the ordering
+        self.thisptr = Own[AsyncIoStream]()
 
 
 cdef class PromiseFulfillerPair:
@@ -3413,9 +3626,11 @@ class _InterfaceModule(object):
         self.Server = type(name + '.Server', (_DynamicCapabilityServer,), {'__init__': server_init, 'schema':schema})
 
     def _new_client(self, server):
+        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
         return _DynamicCapabilityClient()._init_vals(self.schema, server)
 
     def _new_server(self, server):
+        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
         return _DynamicCapabilityServer(self.schema, server)
 
 

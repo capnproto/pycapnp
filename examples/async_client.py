@@ -4,12 +4,8 @@ import asyncio
 import argparse
 import time
 import capnp
-import socket
 
 import thread_capnp
-
-capnp.remove_event_loop()
-capnp.create_event_loop(threaded=True)
 
 
 def parse_args():
@@ -29,61 +25,35 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
         print("status: {}".format(time.time()))
 
 
-async def myreader(client, reader):
-    while True:
-        data = await reader.read(4096)
-        client.write(data)
-
-
-async def mywriter(client, writer):
-    while True:
-        data = await client.read(4096)
-        writer.write(data.tobytes())
-
-
 async def background(cap):
     subscriber = StatusSubscriber()
-    promise = cap.subscribeStatus(subscriber)
-    await promise.a_wait()
+    await cap.subscribeStatus(subscriber)
 
 
 async def main(host):
-    host = host.split(":")
-    addr = host[0]
-    port = host[1]
-    # Handle both IPv4 and IPv6 cases
-    try:
-        print("Try IPv4")
-        reader, writer = await asyncio.open_connection(
-            addr, port, family=socket.AF_INET
-        )
-    except Exception:
-        print("Try IPv6")
-        reader, writer = await asyncio.open_connection(
-            addr, port, family=socket.AF_INET6
-        )
-
-    # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
-    client = capnp.TwoPartyClient()
+    host, port = host.split(":")
+    connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
+    client = capnp.TwoPartyClient(connection)
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
-    # Assemble reader and writer tasks, run in the background
-    coroutines = [myreader(client, reader), mywriter(client, writer)]
-    asyncio.gather(*coroutines, return_exceptions=True)
-
     # Start background task for subscriber
-    tasks = [background(cap)]
-    asyncio.gather(*tasks, return_exceptions=True)
+    asyncio.create_task(background(cap))
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
 
 
 if __name__ == "__main__":
-    asyncio.run(main(parse_args().host))
+    args = parse_args()
+    asyncio.run(main(args.host))
+
+    # Test that we can run multiple asyncio loops in sequence. This is particularly tricky, because
+    # main contains a background task that we never cancel. The entire loop gets cleaned up anyways,
+    # and we can start a new loop.
+    asyncio.run(main(args.host))

@@ -5,7 +5,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
 
 from libcpp cimport bool
 from capnp.helpers.non_circular cimport (
-    PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, PyEventPort, ErrorHandler,
+    PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, ErrorHandler,
 )
 from capnp.includes.schema_cpp cimport (
     Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions,
@@ -48,21 +48,21 @@ cdef extern from "kj/exception.h" namespace " ::kj":
 
 cdef extern from "kj/memory.h" namespace " ::kj":
     cdef cppclass Own[T] nogil:
+        Own()
         T& operator*()
         T* get()
+    Own[T] heap[T](...)
     Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(
         AsyncIoStream& stream, Side, ReaderOptions)
     Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(
         PromiseFulfillerPair&)
-    Own[PyRefCounter] makePyRefCounter" ::kj::heap< PyRefCounter >"(PyObject *)
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass Promise[T] nogil:
-        Promise()
         Promise(Promise)
         Promise(T)
-        T wait(WaitScope)
-        bool poll(WaitScope)
+        T wait(WaitScope) except +reraise_kj_exception
+        bool poll(WaitScope) except +reraise_kj_exception
         # ForkedPromise<T> fork()
         # Promise<T> exclusiveJoin(Promise<T>&& other)
         # Promise[T] eagerlyEvaluate()
@@ -73,7 +73,15 @@ cdef extern from "kj/async.h" namespace " ::kj":
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
 
-ctypedef Promise[PyObject *] PyPromise
+    cdef cppclass Canceler nogil:
+        Canceler()
+        Promise[T] wrap[T](Promise[T] promise)
+        void cancel(StringPtr cancelReason)
+        void cancel(Exception& exception)
+        void release()
+        bool isEmpty()
+
+ctypedef Promise[Own[PyRefCounter]] PyPromise
 ctypedef Promise[void] VoidPromise
 
 cdef extern from "kj/string-tree.h" namespace " ::kj":
@@ -82,10 +90,11 @@ cdef extern from "kj/string-tree.h" namespace " ::kj":
 
 cdef extern from "kj/common.h" namespace " ::kj":
     cdef cppclass Maybe[T] nogil:
-        pass
+        T& orDefault(T&)
     cdef cppclass ArrayPtr[T] nogil:
         ArrayPtr()
         ArrayPtr(T *, size_t size)
+        T* begin()
         size_t size()
         T& operator[](size_t index)
 
@@ -101,9 +110,9 @@ cdef extern from "kj/array.h" namespace " ::kj":
         T& add(T&)
         Array[T] finish()
 
-    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<PyObject *> >"(size_t) nogil
+    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<kj::Own<PyRefCounter>> >"(size_t) nogil
 
-    ctypedef Array[PyObject *] PyArray' ::kj::Array<PyObject *>'
+    ctypedef Array[Own[PyRefCounter]] PyArray' ::kj::Array<kj::Own<PyRefCounter>>'
 
 ctypedef Promise[PyArray] PyPromiseArray
 
@@ -117,12 +126,23 @@ cdef extern from "kj/time.h" namespace " ::kj":
     Duration MINUTES
     Duration HOURS
     Duration DAYS
-    # cdef cppclass TimePoint:
-    #     TimePoint(Duration)
+    cdef cppclass TimePoint:
+        TimePoint(Duration)
+    cdef cppclass MonotonicClock nogil:
+        MonotonicClock(MonotonicClock&)
+        TimePoint now()
+    MonotonicClock systemPreciseMonotonicClock()
+
+cdef extern from "kj/timer.h" namespace " ::kj":
     cdef cppclass Timer nogil:
         # int64_t now()
         # VoidPromise atTime(TimePoint time)
         VoidPromise afterDelay(Duration delay)
+    cdef cppclass TimerImpl(Timer) nogil:
+        TimerImpl(TimePoint startTime)
+        Maybe[TimePoint] nextEvent()
+        Maybe[uint64_t] timeoutToNextEvent(TimePoint start, Duration unit, uint64_t max)
+        void advanceTo(TimePoint newTime)
 
 cdef inline Duration Nanoseconds(int64_t nanos):
     return NANOSECONDS * nanos
@@ -132,7 +152,7 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
         Promise[size_t] read(void*, size_t, size_t)
         Promise[void] write(const void*, size_t)
 
-    cdef cppclass LowLevelAsyncIoProvider nogil:
+    cdef cppclass LowLevelAsyncIoProvider:
         # Own[AsyncInputStream] wrapInputFd(int)
         # Own[AsyncOutputStream] wrapOutputFd(int)
         Own[AsyncIoStream] wrapSocketFd(int)
@@ -140,9 +160,6 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
 
     cdef cppclass AsyncIoProvider nogil:
         TwoWayPipe newTwoWayPipe()
-
-    cdef cppclass WaitScope nogil:
-        pass
 
     cdef cppclass AsyncIoContext nogil:
         AsyncIoContext(AsyncIoContext&)
@@ -157,6 +174,7 @@ cdef extern from "kj/async-io.h" namespace " ::kj":
         Own[AsyncIoStream] ends[2]
 
     AsyncIoContext setupAsyncIo() nogil
+    Own[AsyncIoProvider] newAsyncIoProvider(LowLevelAsyncIoProvider& lowLevel);
 
 cdef extern from "capnp/schema.capnp.h" namespace " ::capnp":
     enum TypeWhich" ::capnp::schema::Type::Which":
@@ -518,20 +536,31 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
         void allowCancellation() except +reraise_kj_exception
 
 cdef extern from "kj/async.h" namespace " ::kj":
+    cdef cppclass EventPort:
+        bool wait() except* with gil
+        bool poll() except* with gil
+        void setRunnable(bool runnable) except* with gil
     cdef cppclass EventLoop nogil:
         EventLoop()
-        EventLoop(PyEventPort &)
-    cdef cppclass PromiseFulfiller nogil:
+        EventLoop(EventPort &)
+        void run()
+    cdef cppclass WaitScope nogil:
+        WaitScope(EventLoop &)
+        void poll()
+    cdef cppclass PromiseFulfiller[T] nogil:
+        void fulfill(T&& value)
+        void reject(Exception&& exception)
+    cdef cppclass VoidPromiseFulfiller"::kj::PromiseFulfiller<void>" nogil:
         void fulfill()
+        void reject(Exception&& exception)
     cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>" nogil:
         VoidPromise promise
-        Own[PromiseFulfiller] fulfiller
+        Own[VoidPromiseFulfiller] fulfiller
     PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"() nogil
     PyPromiseArray joinPromises(Array[PyPromise]) nogil
 
-cdef extern from "capnp/helpers/asyncIoHelper.h":
-    cdef cppclass AsyncIoStreamReadHelper nogil:
-        AsyncIoStreamReadHelper(AsyncIoStream *, WaitScope *, size_t)
-        bool poll()
-        size_t read_size()
-        void* read_buffer()
+cdef extern from "capnp/helpers/capabilityHelper.h":
+    cdef cppclass PyAsyncIoStream(AsyncIoStream):
+        PyAsyncIoStream(PyObject* thisptr)
+    void rejectDisconnected[T](PromiseFulfiller[T]& fulfiller, StringPtr message)
+    void rejectVoidDisconnected(VoidPromiseFulfiller& fulfiller, StringPtr message)

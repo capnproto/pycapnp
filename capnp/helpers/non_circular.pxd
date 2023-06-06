@@ -9,11 +9,8 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     void reraise_kj_exception()
     cdef cppclass PyRefCounter:
         PyRefCounter(PyObject *)
+        PyObject * obj
 
 cdef extern from "capnp/helpers/rpcHelper.h":
     cdef cppclass ErrorHandler:
         pass
-
-cdef extern from "capnp/helpers/asyncHelper.h":
-    cdef cppclass PyEventPort:
-        PyEventPort(PyObject *)

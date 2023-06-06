@@ -3,9 +3,9 @@
 import argparse
 import asyncio
 import os
-import socket
 import ssl
 import time
+import socket
 
 import capnp
 import thread_capnp
@@ -30,29 +30,13 @@ class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
         print("status: {}".format(time.time()))
 
 
-async def myreader(client, reader):
-    while True:
-        data = await reader.read(4096)
-        client.write(data)
-
-
-async def mywriter(client, writer):
-    while True:
-        data = await client.read(4096)
-        writer.write(data.tobytes())
-        await writer.drain()
-
-
 async def background(cap):
     subscriber = StatusSubscriber()
-    promise = cap.subscribeStatus(subscriber)
-    await promise.a_wait()
+    await cap.subscribeStatus(subscriber)
 
 
 async def main(host):
-    host = host.split(":")
-    addr = host[0]
-    port = host[1]
+    addr, port = host.split(":")
 
     # Setup SSL context
     ctx = ssl.create_default_context(
@@ -62,34 +46,28 @@ async def main(host):
     # Handle both IPv4 and IPv6 cases
     try:
         print("Try IPv4")
-        reader, writer = await asyncio.open_connection(
+        stream = await capnp.AsyncIoStream.create_connection(
             addr, port, ssl=ctx, family=socket.AF_INET
         )
     except Exception:
         print("Try IPv6")
-        reader, writer = await asyncio.open_connection(
+        stream = await capnp.AsyncIoStream.create_connection(
             addr, port, ssl=ctx, family=socket.AF_INET6
         )
 
-    # Start TwoPartyClient using TwoWayPipe (takes no arguments in this mode)
-    client = capnp.TwoPartyClient()
+    client = capnp.TwoPartyClient(stream)
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
-    # Assemble reader and writer tasks, run in the background
-    coroutines = [myreader(client, reader), mywriter(client, writer)]
-    asyncio.gather(*coroutines, return_exceptions=True)
-
     # Start background task for subscriber
-    tasks = [background(cap)]
-    asyncio.gather(*tasks, return_exceptions=True)
+    asyncio.create_task(background(cap))
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
-    await cap.longRunning().a_wait()
+    await cap.longRunning()
     print("main: {}".format(time.time()))
 
 
