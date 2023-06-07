@@ -10,8 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, makeException
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, tryReadMessage, writeMessage, makeException
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, tryReadMessage, writeMessage, makeException
 from capnp.includes.schema_cpp cimport (MessageReader,)
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
@@ -1817,28 +1816,19 @@ cdef class _DynamicObjectBuilder:
 cdef void kjloop_runnable_callback(void* data) with gil:
     cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
     assert port.runHandle is not None
-    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
     port.kjLoop.run()
-
-cdef void kjloop_advance_callback(void* data) with gil:
-    cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
-    assert port.runHandle is not None
-    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
 
 cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *kjLoop
-    TimerImpl *timerImpl;
     object asyncioLoop;
     object runHandle;
 
     __init__(object asyncioLoop):
         this.kjLoop = new EventLoop(deref(this))
-        this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
         this.runHandle = None
         this.asyncioLoop = asyncioLoop
 
     __dealloc__():
-        del this.timerImpl
         del this.kjLoop
 
     cbool wait() except* with gil:
@@ -1852,32 +1842,16 @@ cdef cppclass AsyncIoEventPort(EventPort):
 
     void setRunnable(cbool runnable) except* with gil:
         if runnable:
-            if this.runHandle is not None:
-                # If a timer was running, cancel it and schedule a run immediately
-                # The timer will be re-scheduled once the kj loop becomes un-runnable again.
-                this.runHandle.cancel()
+            assert this.runHandle is None
             us = <void*>this;
             this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
         else:
             assert this.runHandle is not None
             this.runHandle.cancel()
-            this.scheduleAdvance()
-
-    void scheduleAdvance() with gil:
-        cdef uint64_t nextEvent = this.timerImpl.timeoutToNextEvent(
-            systemPreciseMonotonicClock().now(), MILLISECONDS, -1).orDefault(-1)
-        if nextEvent == -1:
             this.runHandle = None
-        else:
-            seconds = <double>nextEvent / 1000
-            us = <void*>this;
-            this.runHandle = this.asyncioLoop.call_later(seconds, lambda: kjloop_advance_callback(us))
 
     EventLoop *getKjLoop():
         return this.kjLoop
-
-    Timer *getTimer():
-        return this.timerImpl;
 
 def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
     # The purpose of patching the asyncio close() function is to set up the kj-loop to be closed as well.
@@ -1893,7 +1867,6 @@ cdef class _EventLoop:
     cdef Own[LowLevelAsyncIoProvider] lowLevelProvider
     cdef Own[AsyncIoProvider] provider
     cdef WaitScope * waitScope
-    cdef Timer* timer
     cdef readonly in_asyncio_mode
 
     cdef AsyncIoEventPort *customPort
@@ -1907,7 +1880,6 @@ cdef class _EventLoop:
             self.customPort = new AsyncIoEventPort(loop)
             kjLoop = self.customPort.getKjLoop()
             self.waitScope = new WaitScope(deref(kjLoop))
-            self.timer = self.customPort.getTimer()
             loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
             self.in_asyncio_mode = True
         except RuntimeError:
@@ -1915,7 +1887,6 @@ cdef class _EventLoop:
             self.lowLevelProvider = move(ptr.lowLevelProvider)
             self.provider = move(ptr.provider)
             self.waitScope = &ptr.waitScope
-            self.timer = &self.lowLevelProvider.get().getTimer()
             del ptr
             self.in_asyncio_mode = False
 
@@ -1958,24 +1929,6 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
         assert loop is None
         _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
         return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
-
-
-cdef class _Timer:
-    cdef capnp.Timer * thisptr
-
-    cdef _init(self, capnp.Timer * timer):
-        self.thisptr = timer
-        return self
-
-    cpdef after_delay(self, time) except +reraise_kj_exception:
-        return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Nanoseconds(time)))
-
-
-def getTimer():
-    """
-    Get libcapnp event loop timer
-    """
-    return _Timer()._init(C_DEFAULT_EVENT_LOOP_GETTER().timer)
 
 
 cpdef remove_event_loop():

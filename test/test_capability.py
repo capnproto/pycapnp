@@ -300,35 +300,6 @@ def test_cancel():
         req.wait()
 
 
-def test_timer():
-    global test_timer_var
-    test_timer_var = False
-
-    def set_timer_var():
-        global test_timer_var
-        test_timer_var = True
-
-    capnp.getTimer().after_delay(1).then(set_timer_var).wait()
-
-    assert test_timer_var is True
-
-    test_timer_var = False
-    promise = (
-        capnp.Promise(0)
-        .then(lambda x: time.sleep(0.1))
-        .then(lambda x: time.sleep(0.1))
-        .then(lambda x: set_timer_var())
-    )
-
-    canceller = capnp.getTimer().after_delay(1).then(lambda: promise.cancel())
-
-    joined = capnp.join_promises([canceller, promise])
-    joined.wait()
-
-    # faling for now, not sure why...
-    # assert test_timer_var is False
-
-
 def test_double_send():
     client = capability.TestInterface._new_client(Server())
 
@@ -348,11 +319,6 @@ def test_then_args():
 
     with pytest.raises(Exception):
         capnp.Promise(0).then(lambda x, y: 1)
-
-    capnp.getTimer().after_delay(1).then(lambda: 1)  # after_delay is a VoidPromise
-
-    with pytest.raises(Exception):
-        capnp.getTimer().after_delay(1).then(lambda x: 1)
 
     client = capability.TestInterface._new_client(Server())
 

@@ -20,16 +20,13 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 class ExampleImpl(thread_capnp.Example.Server):
     "Implementation of the Example threading Cap'n Proto interface."
 
-    def subscribeStatus(self, subscriber, **kwargs):
-        return (
-            capnp.getTimer()
-            .after_delay(10**9)
-            .then(lambda: subscriber.status(True))
-            .then(lambda _: self.subscribeStatus(subscriber))
-        )
+    async def subscribeStatus(self, subscriber, **kwargs):
+        await asyncio.sleep(1)
+        await subscriber.status(True)
+        await self.subscribeStatus(subscriber)
 
-    def longRunning(self, **kwargs):
-        return capnp.getTimer().after_delay(1 * 10**9)
+    async def longRunning(self, **kwargs):
+        await asyncio.sleep(1)
 
     def alive(self, **kwargs):
         return True
