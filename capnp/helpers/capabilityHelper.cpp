@@ -122,11 +122,6 @@ kj::Promise<kj::Own<PyRefCounter>> wrapRemoteCall(kj::Own<PyRefCounter> func, ca
                           return wrapPyFunc(kj::mv(error_func), stealPyRef(wrap_kj_exception(arg))); } ));
 }
 
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Array<kj::Own<PyRefCounter>> > && promise) {
-  return promise.then([](kj::Array<kj::Own<PyRefCounter>>&& arg) {
-    return stealPyRef(convert_array_pyobject(arg)); } );
-}
-
 kj::Promise<void> PythonInterfaceDynamicImpl::call(capnp::InterfaceSchema::Method method,
                          capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> context) {
     auto methodName = method.getProto().getName();

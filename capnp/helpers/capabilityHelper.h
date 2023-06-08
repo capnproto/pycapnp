@@ -84,8 +84,6 @@ inline kj::Promise<kj::Own<PyRefCounter>> wrapSizePromise(kj::Promise<size_t> pr
 ::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<kj::Promise<void>> promise,
                                           kj::Own<PyRefCounter>func, kj::Own<PyRefCounter> error_func);
 
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Array<kj::Own<PyRefCounter>> > && promise);
-
 class PythonInterfaceDynamicImpl final: public capnp::DynamicCapability::Server {
 public:
   PyObject * py_server;

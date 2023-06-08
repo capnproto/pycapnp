@@ -154,12 +154,6 @@ cdef api VoidPromise * call_server_method(object server,
                 "Server function ({}) is not a coroutine"
                 .format(method_name, str(ret)))
 
-    return NULL
-
-
-cdef api object convert_array_pyobject(PyArray & arr) with gil:
-    return [<object>arr[i].get().obj for i in range(arr.size())]
-
 
 cdef api Own[Promise[Own[PyRefCounter]]] extract_promise(object obj):
     if type(obj) is _Promise:
@@ -2095,27 +2089,6 @@ cdef class _RemotePromise:
     cpdef cancel(self) except +reraise_kj_exception:
         self.thisptr = Own[RemotePromise]()
         self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
-
-
-cpdef join_promises(promises) except +reraise_kj_exception:
-    heap = capnp.heapArrayBuilderPyPromise(len(promises))
-
-    new_promises = []
-    new_promises_append = new_promises.append
-
-    for promise in promises:
-        promise_type = type(promise)
-        if promise_type is _Promise:
-            pyPromise = <_Promise>promise
-        elif promise_type is _RemotePromise or promise_type is _VoidPromise:
-            pyPromise = <_Promise>promise.as_pypromise()
-            new_promises_append(pyPromise)
-        else:
-            raise KjException(
-                "One of the promises passed to `join_promises` had a non promise value of: {}".format(promise))
-        heap.add(movePromise(deref(pyPromise.thisptr)))
-
-    return _Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
 
 
 cdef class _Request(_DynamicStructBuilder):
