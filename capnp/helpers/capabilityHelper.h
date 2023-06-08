@@ -54,35 +54,21 @@ inline kj::Own<PyRefCounter> stealPyRef(PyObject* o) {
   return ret;
 }
 
-::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(kj::Own<capnp::RemotePromise<capnp::DynamicStruct>> promise);
+::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> promise);
 
-inline ::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(kj::Own<kj::Promise<void>> promise) {
-    return promise->then([]() {
+inline ::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(kj::Promise<void> promise) {
+    return promise.then([]() {
       GILAcquire gil;
       return kj::heap<PyRefCounter>(Py_None);
     });
-}
-
-template<class T>
-::kj::Promise<void> convert_to_voidpromise(kj::Own<kj::Promise<T>> promise) {
-    return promise->then([](T) { } );
 }
 
 void reraise_kj_exception();
 
 void check_py_error();
 
-inline kj::Promise<kj::Own<PyRefCounter>> wrapSizePromise(kj::Promise<size_t> promise) {
-  return promise.then([](size_t response) { return stealPyRef(PyLong_FromSize_t(response)); } );
-}
-
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<kj::Promise<kj::Own<PyRefCounter>>> promise,
+::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Own<PyRefCounter>> promise,
                                           kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func);
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<::capnp::RemotePromise< ::capnp::DynamicStruct>> promise,
-                                          kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func);
-
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<kj::Promise<void>> promise,
-                                          kj::Own<PyRefCounter>func, kj::Own<PyRefCounter> error_func);
 
 class PythonInterfaceDynamicImpl final: public capnp::DynamicCapability::Server {
 public:

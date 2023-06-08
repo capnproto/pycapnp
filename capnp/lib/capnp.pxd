@@ -10,8 +10,8 @@ from capnp.includes.capnp_cpp cimport (
     String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject,
     DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, Promise,
     CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability,
-    TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork,
-    PyArray, DynamicStruct_Builder, TwoWayPipe, PyRefCounter, PyAsyncIoStream
+    TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own,
+    DynamicStruct_Builder, PyRefCounter, PyAsyncIoStream
 )
 from capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from capnp.includes.types cimport *
