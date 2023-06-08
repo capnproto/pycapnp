@@ -10,8 +10,7 @@ import thread_capnp
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        usage="Connects to the Example thread server \
-at the given address and does some RPCs"
+        usage="Connects to the Example thread server at the given address and does some RPCs"
     )
     parser.add_argument("host", help="HOST:PORT")
 
