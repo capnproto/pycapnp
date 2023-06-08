@@ -16,12 +16,12 @@ class ExampleImpl(thread_capnp.Example.Server):
     "Implementation of the Example threading Cap'n Proto interface."
 
     async def subscribeStatus(self, subscriber, **kwargs):
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
         await subscriber.status(True)
         await self.subscribeStatus(subscriber)
 
     async def longRunning(self, **kwargs):
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
 
 
 async def new_connection(stream):
