@@ -17,8 +17,10 @@ class Server(test_capability_capnp.TestInterface.Server):
         return str(i * 5 + self.val)
 
 
-def test_simple_rpc_with_options():
+async def test_simple_rpc_with_options():
     read, write = socket.socketpair()
+    read = await capnp.AsyncIoStream.create_connection(sock = read)
+    write = await capnp.AsyncIoStream.create_connection(sock = write)
 
     _ = capnp.TwoPartyServer(write, bootstrap=Server())
     # This traversal limit is too low to receive the response in, so we expect
@@ -32,8 +34,10 @@ def test_simple_rpc_with_options():
         _ = remote.wait()
 
 
-def test_simple_rpc_bootstrap():
+async def test_simple_rpc_bootstrap():
     read, write = socket.socketpair()
+    read = await capnp.AsyncIoStream.create_connection(sock = read)
+    write = await capnp.AsyncIoStream.create_connection(sock = write)
 
     _ = capnp.TwoPartyServer(write, bootstrap=Server(100))
     client = capnp.TwoPartyClient(read)
@@ -42,6 +46,6 @@ def test_simple_rpc_bootstrap():
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "125"

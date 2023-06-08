@@ -124,16 +124,6 @@ def test_async_calculator_example(cleanup):
     run_subprocesses(address, server, client)
 
 
-@pytest.mark.xfail(
-    reason="Some versions of python don't like to share ports, don't worry if this fails"
-)
-def test_thread_example(cleanup):
-    address = "{}:36433".format(hostname)
-    server = "thread_server.py"
-    client = "thread_client.py"
-    run_subprocesses(address, server, client, wildcard_server=True)
-
-
 def test_addressbook_example(cleanup):
     proc = subprocess.Popen(
         [sys.executable, os.path.join(examples_dir, "addressbook.py")]

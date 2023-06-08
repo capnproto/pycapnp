@@ -39,7 +39,7 @@ class PipelineServer:
         return context.params.inCap.foo(i=context.params.n).then(_then)
 
 
-def test_client_context(capability):
+async def test_client_context(capability):
     client = capability.TestInterface._new_client(Server())
 
     req = client._request("foo")
@@ -72,7 +72,7 @@ def test_client_context(capability):
         req.baz = 1
 
 
-def test_simple_client_context(capability):
+async def test_simple_client_context(capability):
     client = capability.TestInterface._new_client(Server())
 
     remote = client._send("foo", i=5)
@@ -159,7 +159,7 @@ class BadServer:
         context.results.x2 = 5  # raises exception
 
 
-def test_exception_client_context(capability):
+async def test_exception_client_context(capability):
     client = capability.TestInterface._new_client(BadServer())
 
     remote = client._send("foo", i=5)
@@ -181,7 +181,7 @@ class BadPipelineServer:
         return context.params.inCap.foo(i=context.params.n).then(_then, _error)
 
 
-def test_exception_chain_context(capability):
+async def test_exception_chain_context(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -193,7 +193,7 @@ def test_exception_chain_context(capability):
         assert "test was a success" in str(e)
 
 
-def test_pipeline_exception_context(capability):
+async def test_pipeline_exception_context(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -209,7 +209,7 @@ def test_pipeline_exception_context(capability):
         remote.wait()
 
 
-def test_casting_context(capability):
+async def test_casting_context(capability):
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
     _ = client2.cast_as(capability.TestInterface)

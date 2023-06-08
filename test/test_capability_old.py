@@ -37,7 +37,7 @@ class PipelineServer:
         return inCap.foo(i=n).then(_then)
 
 
-def test_client(capability):
+async def test_client(capability):
     client = capability.TestInterface._new_client(Server())
 
     req = client._request("foo")
@@ -70,7 +70,7 @@ def test_client(capability):
         req.baz = 1
 
 
-def test_simple_client(capability):
+async def test_simple_client(capability):
     client = capability.TestInterface._new_client(Server())
 
     remote = client._send("foo", i=5)
@@ -159,7 +159,7 @@ class BadServer:
         return str(i * 5 + extra + self.val), 10  # returning too many args
 
 
-def test_exception_client(capability):
+async def test_exception_client(capability):
     client = capability.TestInterface._new_client(BadServer())
 
     remote = client._send("foo", i=5)
@@ -180,7 +180,7 @@ class BadPipelineServer:
         return inCap.foo(i=n).then(_then, _error)
 
 
-def test_exception_chain(capability):
+async def test_exception_chain(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -192,7 +192,7 @@ def test_exception_chain(capability):
         assert "test was a success" in str(e)
 
 
-def test_pipeline_exception(capability):
+async def test_pipeline_exception(capability):
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -208,7 +208,7 @@ def test_pipeline_exception(capability):
         remote.wait()
 
 
-def test_casting(capability):
+async def test_casting(capability):
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
     _ = client2.cast_as(capability.TestInterface)

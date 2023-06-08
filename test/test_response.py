@@ -17,7 +17,7 @@ class BazServer(test_response_capnp.Baz.Server):
         return {"foo": FooServer()}
 
 
-def test_response_reference():
+async def test_response_reference():
     baz = test_response_capnp.Baz._new_client(BazServer())
 
     bar = baz.grault().wait().bar
@@ -27,7 +27,7 @@ def test_response_reference():
     assert foo.foo().wait().val == 1
 
 
-def test_response_reference2():
+async def test_response_reference2():
     baz = test_response_capnp.Baz._new_client(BazServer())
 
     bar = baz.grault().wait().bar

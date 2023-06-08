@@ -33,9 +33,7 @@ at the given address and does some RPCs"
     return parser.parse_args()
 
 
-async def main(host):
-    host, port = parse_args().host.split(":")
-    connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
+async def main(connection):
     client = capnp.TwoPartyClient(connection)
 
     # Bootstrap the Calculator interface
@@ -302,6 +300,9 @@ async def main(host):
 
     print("PASS")
 
+async def cmd_main(host):
+    host, port = host.split(":")
+    await main(await capnp.AsyncIoStream.create_connection(host=host, port=port))
 
 if __name__ == "__main__":
-    asyncio.run(main(parse_args().host))
+    asyncio.run(cmd_main(parse_args().host))

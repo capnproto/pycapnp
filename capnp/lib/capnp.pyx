@@ -1859,7 +1859,7 @@ def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
     # references to it are gone. Then, if a new asyncio loop ever gets started, a new kj-loop can also be
     # started.
     _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _weakref.ref(kjloop)
-    loop.close = oldclose()
+    loop.close = oldclose
     return oldclose()
 
 cdef class _EventLoop:
@@ -1875,20 +1875,12 @@ cdef class _EventLoop:
         self._init()
 
     cdef _init(self) except +reraise_kj_exception:
-        try:
-            loop = asyncio.get_running_loop()
-            self.customPort = new AsyncIoEventPort(loop)
-            kjLoop = self.customPort.getKjLoop()
-            self.waitScope = new WaitScope(deref(kjLoop))
-            loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
-            self.in_asyncio_mode = True
-        except RuntimeError:
-            ptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
-            self.lowLevelProvider = move(ptr.lowLevelProvider)
-            self.provider = move(ptr.provider)
-            self.waitScope = &ptr.waitScope
-            del ptr
-            self.in_asyncio_mode = False
+        loop = asyncio.get_running_loop()
+        self.customPort = new AsyncIoEventPort(loop)
+        kjLoop = self.customPort.getKjLoop()
+        self.waitScope = new WaitScope(deref(kjLoop))
+        loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
+        self.in_asyncio_mode = True
 
     def __dealloc__(self):
         if not self.customPort == NULL:
@@ -1929,16 +1921,6 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
         assert loop is None
         _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
         return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
-
-
-cpdef remove_event_loop():
-    '''Remove the event loop'''
-    global _C_DEFAULT_EVENT_LOOP_LOCAL
-
-    loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
-    if loop is not None:
-        loop._remove()
-        del _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
 
 def wait_forever():
@@ -2031,6 +2013,7 @@ cdef class _Promise:
     cdef Own[PyPromise] thisptr
 
     def __init__(self, obj=None):
+        C_DEFAULT_EVENT_LOOP_GETTER()
         if obj is not None:
             self.thisptr = capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
 
@@ -2071,6 +2054,7 @@ cdef class _VoidPromise:
 
 
     cdef _init(self, VoidPromise other):
+        C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = capnp.heap[VoidPromise](moveVoidPromise(other))
         return self
 
@@ -2742,7 +2726,7 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
     cdef cbool read_eof
 
     # TODO: Temporary. This is an overflow buffer, which is needed for two blatant violations of the protocol.
-    #       The first violation is int the SSL transport implementation.
+    #       The first violation is in the the SSL transport implementation.
     #       See https://github.com/python/cpython/issues/89322, fixed in Python 3.11. This bug causes the
     #       SSL transport to force data upon us even when we've asked it to pause sending us data. Therefore,
     #       we have to store the data in a overflow buffer.
