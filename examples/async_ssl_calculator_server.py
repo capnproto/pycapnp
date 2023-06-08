@@ -125,8 +125,7 @@ def parse_args():
 
 
 async def new_connection(stream):
-    server = capnp.TwoPartyServer(stream, bootstrap=CalculatorImpl())
-    await server.on_disconnect()
+    await capnp.TwoPartyServer(stream, bootstrap=CalculatorImpl()).on_disconnect()
 
 
 async def main():

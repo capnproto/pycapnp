@@ -25,8 +25,7 @@ class ExampleImpl(thread_capnp.Example.Server):
 
 
 async def new_connection(stream):
-    server = capnp.TwoPartyServer(stream, bootstrap=ExampleImpl())
-    await server.on_disconnect()
+    await capnp.TwoPartyServer(stream, bootstrap=ExampleImpl()).on_disconnect()
 
 
 def parse_args():

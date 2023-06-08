@@ -2241,7 +2241,8 @@ cdef class TwoPartyServer:
         return _CapabilityClient()._init(helpers.bootstrapHelperServer(deref(self.thisptr)), self)
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
-        return self._network.on_disconnect()
+        return _voidpromise_to_asyncio(deref(self._network.thisptr).onDisconnect()
+                                       .attach(capnp.heap[PyRefCounter](<PyObject*>self)))
 
 
 cdef class _AsyncIoStream:

@@ -110,8 +110,7 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
 
 
 async def new_connection(stream):
-    server = capnp.TwoPartyServer(stream, bootstrap=CalculatorImpl())
-    await server.on_disconnect()
+    await capnp.TwoPartyServer(stream, bootstrap=CalculatorImpl()).on_disconnect()
 
 
 def parse_args():
