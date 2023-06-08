@@ -27,7 +27,6 @@ Promise may be one of:
 * :meth:`capnp.lib.capnp._Promise`
 * :meth:`capnp.lib.capnp._RemotePromise`
 * :meth:`capnp.lib.capnp._VoidPromise`
-* :meth:`PromiseFulfillerPair`
 
 .. autoclass:: capnp.lib.capnp._Promise
   :members:
@@ -40,11 +39,6 @@ Promise may be one of:
   :inherited-members:
 
 .. autoclass:: capnp.lib.capnp._VoidPromise
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-.. autoclass:: PromiseFulfillerPair
   :members:
   :undoc-members:
   :inherited-members:

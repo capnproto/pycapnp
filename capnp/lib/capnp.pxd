@@ -11,7 +11,6 @@ from capnp.includes.capnp_cpp cimport (
     DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, Promise,
     CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability,
     TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork,
-    PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller,
     PyArray, DynamicStruct_Builder, TwoWayPipe, PyRefCounter, PyAsyncIoStream
 )
 from capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
