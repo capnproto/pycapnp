@@ -58,32 +58,25 @@ void check_py_error() {
     }
 }
 
-inline kj::Promise<kj::Own<PyRefCounter>> maybeUnwrapPromise(PyObject * result) {
-  check_py_error();
-  auto promise = extract_promise(result);
-  Py_DECREF(result);
-  return kj::mv(*promise);
-}
-
 kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> arg) {
     GILAcquire gil;
-    // Creates an owned reference, which will be destroyed in maybeUnwrapPromise
     PyObject * result = PyObject_CallFunctionObjArgs(func->obj, arg->obj, NULL);
-    return maybeUnwrapPromise(result);
+    check_py_error();
+    return stealPyRef(result);
 }
 
 kj::Promise<kj::Own<PyRefCounter>> wrapPyFuncNoArg(kj::Own<PyRefCounter> func) {
     GILAcquire gil;
-    // Creates an owned reference, which will be destroyed in maybeUnwrapPromise
     PyObject * result = PyObject_CallFunctionObjArgs(func->obj, NULL);
-    return maybeUnwrapPromise(result);
+    check_py_error();
+    return stealPyRef(result);
 }
 
 kj::Promise<kj::Own<PyRefCounter>> wrapRemoteCall(kj::Own<PyRefCounter> func, capnp::Response<capnp::DynamicStruct> & arg) {
     GILAcquire gil;
-    // Creates an owned reference, which will be destroyed in maybeUnwrapPromise
-    PyObject * ret = wrap_remote_call(func->obj, arg);
-    return maybeUnwrapPromise(ret);
+    PyObject * result = wrap_remote_call(func->obj, arg);
+    check_py_error();
+    return stealPyRef(result);
 }
 
 ::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<kj::Promise<kj::Own<PyRefCounter>>> promise,

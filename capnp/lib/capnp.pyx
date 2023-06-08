@@ -155,19 +155,6 @@ cdef api VoidPromise * call_server_method(object server,
                 .format(method_name, str(ret)))
 
 
-cdef api Own[Promise[Own[PyRefCounter]]] extract_promise(object obj):
-    if type(obj) is _Promise:
-        return move((<_Promise>obj).thisptr)
-    elif type(obj) is _RemotePromise:
-        parent = (<_RemotePromise>obj)._parent
-        # We don't need parent anymore. Setting to none allows quicker garbage collection
-        (<_RemotePromise>obj)._parent = None
-        return capnp.heap[PyPromise](helpers.convert_to_pypromise(move((<_RemotePromise>obj).thisptr))
-                                     .attach(capnp.heap[PyRefCounter](<PyObject *>parent)))
-    else:
-        return capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
-
-
 cdef extern from "<kj/string.h>" namespace " ::kj":
     String strStructReader" ::kj::str"(C_DynamicStruct.Reader)
     String strStructBuilder" ::kj::str"(DynamicStruct_Builder)
