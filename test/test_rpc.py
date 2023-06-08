@@ -19,8 +19,8 @@ class Server(test_capability_capnp.TestInterface.Server):
 
 async def test_simple_rpc_with_options():
     read, write = socket.socketpair()
-    read = await capnp.AsyncIoStream.create_connection(sock = read)
-    write = await capnp.AsyncIoStream.create_connection(sock = write)
+    read = await capnp.AsyncIoStream.create_connection(sock=read)
+    write = await capnp.AsyncIoStream.create_connection(sock=write)
 
     _ = capnp.TwoPartyServer(write, bootstrap=Server())
     # This traversal limit is too low to receive the response in, so we expect
@@ -36,8 +36,8 @@ async def test_simple_rpc_with_options():
 
 async def test_simple_rpc_bootstrap():
     read, write = socket.socketpair()
-    read = await capnp.AsyncIoStream.create_connection(sock = read)
-    write = await capnp.AsyncIoStream.create_connection(sock = write)
+    read = await capnp.AsyncIoStream.create_connection(sock=read)
+    write = await capnp.AsyncIoStream.create_connection(sock=write)
 
     _ = capnp.TwoPartyServer(write, bootstrap=Server(100))
     client = capnp.TwoPartyClient(read)

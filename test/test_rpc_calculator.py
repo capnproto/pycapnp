@@ -1,6 +1,5 @@
 import gc
 import os
-import pytest
 import socket
 import sys  # add examples dir to sys.path
 
@@ -15,8 +14,8 @@ import async_calculator_server  # noqa: E402
 
 async def test_calculator():
     read, write = socket.socketpair()
-    read = await capnp.AsyncIoStream.create_connection(sock = read)
-    write = await capnp.AsyncIoStream.create_connection(sock = write)
+    read = await capnp.AsyncIoStream.create_connection(sock=read)
+    write = await capnp.AsyncIoStream.create_connection(sock=write)
 
     _ = capnp.TwoPartyServer(write, bootstrap=async_calculator_server.CalculatorImpl())
     await async_calculator_client.main(read)
@@ -31,8 +30,8 @@ async def test_calculator_gc():
         return call
 
     read, write = socket.socketpair()
-    read = await capnp.AsyncIoStream.create_connection(sock = read)
-    write = await capnp.AsyncIoStream.create_connection(sock = write)
+    read = await capnp.AsyncIoStream.create_connection(sock=read)
+    write = await capnp.AsyncIoStream.create_connection(sock=write)
 
     # inject a gc.collect to the beginning of every evaluate_impl call
     evaluate_impl_orig = async_calculator_server.evaluate_impl

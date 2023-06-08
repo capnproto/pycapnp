@@ -305,7 +305,7 @@ async def test_double_send():
 class PromiseJoinServer(capability.TestPipeline.Server):
     async def getCap(self, n, inCap, _context, **kwargs):
         res = await inCap.foo(i=n)
-        response = await inCap.foo(i = int(res.x) + 1)
+        response = await inCap.foo(i=int(res.x) + 1)
         _results = _context.results
         _results.s = response.x + "_bar"
         _results.outBox.cap = inCap
