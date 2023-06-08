@@ -81,9 +81,6 @@ def test_roundtrip_bytes_mmap(all_types):
             test_regression.check_all_types(msg)
 
 
-@pytest.mark.skipif(
-    sys.version_info[0] < 3, reason="memoryview is a builtin on Python 3"
-)
 def test_roundtrip_bytes_buffer(all_types):
     msg = all_types.TestAllTypes.new_message()
     test_regression.init_all_types(msg)

@@ -29,10 +29,13 @@ class Server:
 
 
 class PipelineServer:
+    def __init__(self, capability):
+        self.capability = capability
+
     def getCap_context(self, context):
         def _then(response):
             context.results.s = response.x + "_foo"
-            context.results.outBox.cap = capability().TestInterface._new_server(
+            context.results.outBox.cap = self.capability.TestInterface._new_server(
                 Server(100)
             )
 
@@ -126,16 +129,8 @@ async def test_simple_client_context(capability):
         remote = client.foo(baz=5)
 
 
-@pytest.mark.xfail
-def test_pipeline_context(capability):
-    """
-    E   capnp.lib.capnp.KjException: capnp/lib/capnp.pyx:61: failed: <class 'Failed'>:Fixture "capability" called directly. Fixtures are not meant to be called directly,
-    E   but are created automatically when test functions request them as parameters.
-    E   See https://docs.pytest.org/en/latest/fixture.html for more information about fixtures, and
-    E   https://docs.pytest.org/en/latest/deprecations.html#calling-fixtures-directly about how to update your code.
-    E   stack: 7f87c1ac6e40 7f87c17c3250 7f87c17be260 7f87c17c49f0 7f87c17c0f50 7f87c17c5540 7f87c17d7bf0 7f87c1acb768 7f87c1aaf185 7f87c1aaf2dc 7f87c1a6da1d 7f87c3895459 7f87c3895713 7f87c38c72eb 7f87c3901409 7f87c38b5767 7f87c38b6e7e 7f87c38fe48d 7f87c38b5767 7f87c38b6e7e 7f87c38fe48d 7f87c38b5767 7f87c38b67d2 7f87c38c71cf 7f87c38fdb77 7f87c38b5767 7f87c38b67d2 7f87c38c71cf 7f87c3901409 7f87c38b6632 7f87c38c71cf 7f87c3901409
-    """
-    client = capability.TestPipeline._new_client(PipelineServer())
+async def test_pipeline_context(capability):
+    client = capability.TestPipeline._new_client(PipelineServer(capability))
     foo_client = capability.TestInterface._new_client(Server())
 
     remote = client.getCap(n=5, inCap=foo_client)
@@ -168,10 +163,13 @@ async def test_exception_client_context(capability):
 
 
 class BadPipelineServer:
+    def __init__(self, capability):
+        self.capability = capability
+
     def getCap_context(self, context):
         def _then(response):
             context.results.s = response.x + "_foo"
-            context.results.outBox.cap = capability().TestInterface._new_server(
+            context.results.outBox.cap = self.capability.TestInterface._new_server(
                 Server(100)
             )
 
@@ -182,7 +180,7 @@ class BadPipelineServer:
 
 
 async def test_exception_chain_context(capability):
-    client = capability.TestPipeline._new_client(BadPipelineServer())
+    client = capability.TestPipeline._new_client(BadPipelineServer(capability))
     foo_client = capability.TestInterface._new_client(BadServer())
 
     remote = client.getCap(n=5, inCap=foo_client)
@@ -194,7 +192,7 @@ async def test_exception_chain_context(capability):
 
 
 async def test_pipeline_exception_context(capability):
-    client = capability.TestPipeline._new_client(BadPipelineServer())
+    client = capability.TestPipeline._new_client(BadPipelineServer(capability))
     foo_client = capability.TestInterface._new_client(BadServer())
 
     remote = client.getCap(n=5, inCap=foo_client)
@@ -241,8 +239,9 @@ class TailCaller:
 
 
 class TailCallee:
-    def __init__(self):
+    def __init__(self, capability):
         self.count = 0
+        self.capability = capability
 
     def foo_context(self, context):
         self.count += 1
@@ -250,19 +249,11 @@ class TailCallee:
         results = context.results
         results.i = context.params.i
         results.t = context.params.t
-        results.c = capability().TestCallOrder._new_server(TailCallOrder())
+        results.c = self.capability.TestCallOrder._new_server(TailCallOrder())
 
 
-@pytest.mark.xfail
-def test_tail_call(capability):
-    """
-    E   capnp.lib.capnp.KjException: capnp/lib/capnp.pyx:75: failed: <class 'Failed'>:Fixture "capability" called directly. Fixtures are not meant to be called directly,
-    E   but are created automatically when test functions request them as parameters.
-    E   See https://docs.pytest.org/en/latest/fixture.html for more information about fixtures, and
-    E   https://docs.pytest.org/en/latest/deprecations.html#calling-fixtures-directly about how to update your code.
-    E   stack: 7f87c17c5540 7f87c17c51b0 7f87c17c5540 7f87c17d7bf0 7f87c1acb768 7f87c1aaf185 7f87c1aaf2dc 7f87c1a6da1d 7f87c3895459 7f87c3895713 7f87c38c72eb 7f87c3901409 7f87c38b5767 7f87c38b6e7e 7f87c38fe48d 7f87c38b5767 7f87c38b6e7e 7f87c38fe48d 7f87c38b5767 7f87c38b67d2 7f87c38c71cf 7f87c38fdb77 7f87c38b5767 7f87c38b67d2 7f87c38c71cf 7f87c3901409 7f87c38b6632 7f87c38c71cf 7f87c3901409 7f87c38b5767 7f87c38b6e7e 7f87c388ace7
-    """
-    callee_server = TailCallee()
+async def test_tail_call(capability):
+    callee_server = TailCallee(capability)
     caller_server = TailCaller()
 
     callee = capability.TestTailCallee._new_client(callee_server)
