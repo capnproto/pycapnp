@@ -19,7 +19,7 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
     we're implementing this on the client side and will pass a reference to
     the server.  The server will then be able to make calls back to the client."""
 
-    def call(self, params, **kwargs):
+    async def call(self, params, **kwargs):
         """Note the **kwargs. This is very necessary to include, since
         protocols can add parameters over time. Also, by default, a _context
         variable is passed to all server methods, but you can also return

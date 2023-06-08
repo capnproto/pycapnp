@@ -28,7 +28,7 @@ class ExampleImpl(thread_capnp.Example.Server):
     async def longRunning(self, **kwargs):
         await asyncio.sleep(0.1)
 
-    def alive(self, **kwargs):
+    async def alive(self, **kwargs):
         return True
 
 

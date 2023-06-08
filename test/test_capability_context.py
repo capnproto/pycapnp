@@ -18,13 +18,13 @@ class Server:
     def __init__(self, val=1):
         self.val = val
 
-    def foo_context(self, context):
+    async def foo_context(self, context):
         extra = 0
         if context.params.j:
             extra = 1
         context.results.x = str(context.params.i * 5 + extra + self.val)
 
-    def buz_context(self, context):
+    async def buz_context(self, context):
         context.results.x = context.params.i.host + "_test"
 
 
@@ -32,14 +32,12 @@ class PipelineServer:
     def __init__(self, capability):
         self.capability = capability
 
-    def getCap_context(self, context):
-        def _then(response):
-            context.results.s = response.x + "_foo"
-            context.results.outBox.cap = self.capability.TestInterface._new_server(
-                Server(100)
-            )
-
-        return context.params.inCap.foo(i=context.params.n).then(_then)
+    async def getCap_context(self, context):
+        response = await context.params.inCap.foo(i=context.params.n)
+        context.results.s = response.x + "_foo"
+        context.results.outBox.cap = self.capability.TestInterface._new_server(
+            Server(100)
+        )
 
 
 async def test_client_context(capability):
@@ -49,7 +47,7 @@ async def test_client_context(capability):
     req.i = 5
 
     remote = req.send()
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
@@ -57,7 +55,7 @@ async def test_client_context(capability):
     req.i = 5
 
     remote = req.send()
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
@@ -79,37 +77,37 @@ async def test_simple_client_context(capability):
     client = capability.TestInterface._new_client(Server())
 
     remote = client._send("foo", i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
     remote = client.foo(i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
     remote = client.foo(i=5, j=True)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "27"
 
     remote = client.foo(5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
     remote = client.foo(5, True)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "27"
 
     remote = client.foo(5, j=True)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "27"
 
     remote = client.buz(capability.TestSturdyRefHostId.new_message(host="localhost"))
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "localhost_test"
 
@@ -138,10 +136,10 @@ async def test_pipeline_context(capability):
     outCap = remote.outBox.cap
     pipelinePromise = outCap.foo(i=10)
 
-    response = pipelinePromise.wait()
+    response = await pipelinePromise
     assert response.x == "150"
 
-    response = remote.wait()
+    response = await remote
     assert response.s == "26_foo"
 
 
@@ -149,7 +147,7 @@ class BadServer:
     def __init__(self, val=1):
         self.val = val
 
-    def foo_context(self, context):
+    async def foo_context(self, context):
         context.results.x = str(context.params.i * 5 + self.val)
         context.results.x2 = 5  # raises exception
 
@@ -159,24 +157,18 @@ async def test_exception_client_context(capability):
 
     remote = client._send("foo", i=5)
     with pytest.raises(capnp.KjException):
-        remote.wait()
+        await remote
 
 
 class BadPipelineServer:
     def __init__(self, capability):
         self.capability = capability
 
-    def getCap_context(self, context):
-        def _then(response):
-            context.results.s = response.x + "_foo"
-            context.results.outBox.cap = self.capability.TestInterface._new_server(
-                Server(100)
-            )
-
-        def _error(error):
+    async def getCap_context(self, context):
+        try:
+            await context.params.inCap.foo(i=context.params.n)
+        except capnp.KjException:
             raise Exception("test was a success")
-
-        return context.params.inCap.foo(i=context.params.n).then(_then, _error)
 
 
 async def test_exception_chain_context(capability):
@@ -186,7 +178,7 @@ async def test_exception_chain_context(capability):
     remote = client.getCap(n=5, inCap=foo_client)
 
     try:
-        remote.wait()
+        await remote
     except Exception as e:
         assert "test was a success" in str(e)
 
@@ -201,10 +193,10 @@ async def test_pipeline_exception_context(capability):
     pipelinePromise = outCap.foo(i=10)
 
     with pytest.raises(Exception):
-        pipelinePromise.wait()
+        await pipelinePromise
 
     with pytest.raises(Exception):
-        remote.wait()
+        await remote
 
 
 async def test_casting_context(capability):
@@ -220,7 +212,7 @@ class TailCallOrder:
     def __init__(self):
         self.count = -1
 
-    def getCallSequence_context(self, context):
+    async def getCallSequence_context(self, context):
         self.count += 1
         context.results.n = self.count
 
@@ -229,13 +221,13 @@ class TailCaller:
     def __init__(self):
         self.count = 0
 
-    def foo_context(self, context):
+    async def foo_context(self, context):
         self.count += 1
 
         tail = context.params.callee.foo_request(
             i=context.params.i, t="from TailCaller"
         )
-        return context.tail_call(tail)
+        await context.tail_call(tail)
 
 
 class TailCallee:
@@ -243,7 +235,7 @@ class TailCallee:
         self.count = 0
         self.capability = capability
 
-    def foo_context(self, context):
+    async def foo_context(self, context):
         self.count += 1
 
         results = context.results
@@ -262,7 +254,7 @@ async def test_tail_call(capability):
     promise = caller.foo(i=456, callee=callee)
     dependent_call1 = promise.c.getCallSequence()
 
-    response = promise.wait()
+    response = await promise
 
     assert response.i == 456
     assert response.i == 456
@@ -270,11 +262,11 @@ async def test_tail_call(capability):
     dependent_call2 = response.c.getCallSequence()
     dependent_call3 = response.c.getCallSequence()
 
-    result = dependent_call1.wait()
+    result = await dependent_call1
     assert result.n == 0
-    result = dependent_call2.wait()
+    result = await dependent_call2
     assert result.n == 1
-    result = dependent_call3.wait()
+    result = await dependent_call3
     assert result.n == 2
 
     assert callee_server.count == 1

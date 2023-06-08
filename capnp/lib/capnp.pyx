@@ -36,6 +36,7 @@ import threading as _threading
 import traceback as _traceback
 import warnings as _warnings
 import weakref as _weakref
+import traceback as _traceback
 
 from types import ModuleType as _ModuleType
 from operator import attrgetter as _attrgetter
@@ -84,7 +85,7 @@ def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
 
     exc = task.exception()
     if exc is not None:
-        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(str(exc))))
+        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(''.join(_traceback.format_exception(exc)))))
         return
 
     res = task.result()
@@ -123,27 +124,16 @@ cdef api VoidPromise * call_server_method(object server,
     func = getattr(server, method_name+'_context', None)
     if func is not None:
         ret = func(context)
-        if ret is not None:
-            if type(ret) is _VoidPromise:
-                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
-            elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
-            elif asyncio.iscoroutine(ret):
-                task = asyncio.create_task(ret)
-                callback = _partial(void_task_done_callback, method_name)
-                return new VoidPromise(helpers.taskToPromise(
-                    capnp.heap[PyRefCounter](<PyObject*>task),
-                    <PyObject*>callback))
-            else:
-                try:
-                    warning_msg = (
-                        "Server function ({}) returned a value that was not a Promise: return = {}"
-                        .format(method_name, str(ret)))
-                except Exception:
-                    warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
-                _warnings.warn_explicit(
-                    warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
-
+        if asyncio.iscoroutine(ret):
+            task = asyncio.create_task(ret)
+            callback = _partial(void_task_done_callback, method_name)
+            return new VoidPromise(helpers.taskToPromise(
+                capnp.heap[PyRefCounter](<PyObject*>task),
+                <PyObject*>callback))
+        else:
+            raise ValueError(
+                "Server function ({}) is not a coroutine"
+                .format(method_name, str(ret)))
     else:
         func = getattr(server, method_name) # will raise if no function found
         params = context.params
@@ -151,21 +141,18 @@ cdef api VoidPromise * call_server_method(object server,
         params_dict['_context'] = context
         ret = func(**params_dict)
 
-        if ret is not None:
-            if type(ret) is _VoidPromise:
-                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
-            elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
-            elif asyncio.iscoroutine(ret):
-                async def finalize():
-                    fill_context(method_name, context, await ret)
-                task = asyncio.create_task(finalize())
-                callback = _partial(void_task_done_callback, method_name)
-                return new VoidPromise(helpers.taskToPromise(
-                    capnp.heap[PyRefCounter](<PyObject*>task),
-                    <PyObject*>callback))
-            else:
-                fill_context(method_name, context, ret)
+        if asyncio.iscoroutine(ret):
+            async def finalize():
+                fill_context(method_name, context, await ret)
+            task = asyncio.create_task(finalize())
+            callback = _partial(void_task_done_callback, method_name)
+            return new VoidPromise(helpers.taskToPromise(
+                capnp.heap[PyRefCounter](<PyObject*>task),
+                <PyObject*>callback))
+        else:
+            raise ValueError(
+                "Server function ({}) is not a coroutine"
+                .format(method_name, str(ret)))
 
     return NULL
 
@@ -1970,9 +1957,11 @@ cdef _promise_to_asyncio(PromiseTypes promise):
 
     fut = asyncio.get_running_loop().create_future()
     # Attach the promise to the future, so that it doesn't get destroyed
-    fut.kjpromise = promise.then(
+    fut.kjpromise = _promise_then(
+        promise,
         lambda res: fut.set_result(res)    if not fut.cancelled() else None,
-        lambda err: fut.set_exception(err) if not fut.cancelled() else None)
+        lambda err: fut.set_exception(err) if not fut.cancelled() else None,
+    1)
     del promise
     fut.add_done_callback(
         lambda fut: fut.kjpromise.cancel() if fut.cancelled() else None)
@@ -1990,15 +1979,6 @@ cdef class _Promise:
         self.thisptr = capnp.heap[PyPromise](movePromise(other))
         return self
 
-    cpdef wait(self) except +reraise_kj_exception:
-        _promise_check_consumed(self)
-        cdef Own[PyPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
-        cdef Own[PyRefCounter] ret
-        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        with nogil:
-            ret = move(prom.get().wait(deref(loop.waitScope)))
-        return <object>ret.get().obj
-
     async def a_wait(self):
         """
         Asyncio version of wait().
@@ -2010,9 +1990,6 @@ cdef class _Promise:
 
     def __await__(self):
         return _promise_to_asyncio(self).__await__()
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        return _promise_then(self, func, error_func, 1)
 
     cpdef cancel(self) except +reraise_kj_exception:
         self.thisptr = Own[PyPromise]()
@@ -2026,13 +2003,6 @@ cdef class _VoidPromise:
         C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = capnp.heap[VoidPromise](moveVoidPromise(other))
         return self
-
-    cpdef wait(self) except +reraise_kj_exception:
-        _promise_check_consumed(self)
-        cdef Own[VoidPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
-        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        with nogil:
-            prom.get().wait(deref(loop.waitScope))
 
     async def a_wait(self):
         """
@@ -2050,9 +2020,6 @@ cdef class _VoidPromise:
     cpdef as_pypromise(self) except +reraise_kj_exception:
         _promise_check_consumed(self)
         return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr)))
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        return _promise_then(self, func, error_func, 0)
 
     cpdef cancel(self) except +reraise_kj_exception:
         self.thisptr = Own[VoidPromise]()
@@ -2072,14 +2039,6 @@ cdef class _RemotePromise:
         self.thisptr = capnp.heap[RemotePromise](moveRemotePromise(other))
         self._parent = parent
         return self
-
-    cpdef wait(self) except +reraise_kj_exception:
-        """Wait on the promise. This will block until the promise has completed."""
-        _promise_check_consumed(self)
-        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        with nogil:
-            response = helpers.waitRemote(move(self.thisptr), deref(loop.waitScope))
-        return _Response()._init_childptr(response, None)
 
     async def a_wait(self):
         """
@@ -2132,11 +2091,6 @@ cdef class _RemotePromise:
 
     def to_dict(self, verbose=False, ordered=False):
         return _to_dict(self, verbose, ordered)
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        parent = self._parent
-        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
-        return _promise_then(self, func, error_func, 1, attach=parent)
 
     cpdef cancel(self) except +reraise_kj_exception:
         self.thisptr = Own[RemotePromise]()

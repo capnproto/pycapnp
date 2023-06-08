@@ -13,7 +13,7 @@ class Server(test_capability_capnp.TestInterface.Server):
     def __init__(self, val=100):
         self.val = val
 
-    def foo(self, i, j, **kwargs):
+    async def foo(self, i, j, **kwargs):
         return str(i * 5 + self.val)
 
 
