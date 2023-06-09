@@ -492,7 +492,7 @@ cdef extern from "kj/async.h" namespace " ::kj":
 
 cdef extern from "capnp/helpers/capabilityHelper.h":
     cdef cppclass PyAsyncIoStream(AsyncIoStream):
-        PyAsyncIoStream(PyObject* thisptr)
+        PyAsyncIoStream(Own[PyRefCounter] thisptr)
     void rejectDisconnected[T](PromiseFulfiller[T]& fulfiller, StringPtr message)
     void rejectVoidDisconnected(VoidPromiseFulfiller& fulfiller, StringPtr message)
     Exception makeException(StringPtr message)

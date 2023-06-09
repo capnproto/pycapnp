@@ -65,13 +65,6 @@ kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Ow
     return stealPyRef(result);
 }
 
-kj::Promise<kj::Own<PyRefCounter>> wrapPyFuncNoArg(kj::Own<PyRefCounter> func) {
-    GILAcquire gil;
-    PyObject * result = PyObject_CallFunctionObjArgs(func->obj, NULL);
-    check_py_error();
-    return stealPyRef(result);
-}
-
 ::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Own<PyRefCounter>> promise,
                                           kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func) {
   if(error_func->obj == Py_None)

@@ -1266,7 +1266,7 @@ cdef class _DynamicStructBuilder:
         """
         self._check_write()
         await _voidpromise_to_asyncio(
-            writeMessage(deref(stream.thisptr.get()), deref((<_MessageBuilder>self._parent).thisptr)))
+            writeMessage(deref(stream.thisptr), deref((<_MessageBuilder>self._parent).thisptr)))
         self._is_written = True
 
     def write_packed(self, file):
@@ -3033,7 +3033,7 @@ class _StructModule(object):
 
         :rtype: :class:`_DynamicStructReader`"""
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
-        reader = await _promise_to_asyncio(tryReadMessage(deref(stream.thisptr.get()), opts))
+        reader = await _promise_to_asyncio(tryReadMessage(deref(stream.thisptr), opts))
         if reader is None:
             return
         return reader.get_root(self.schema)
