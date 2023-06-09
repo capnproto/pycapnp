@@ -20,7 +20,7 @@ def parse_args():
 class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
     """An implementation of the StatusSubscriber interface"""
 
-    def status(self, value, **kwargs):
+    async def status(self, value, **kwargs):
         print("status: {}".format(time.time()))
 
 
