@@ -2039,6 +2039,11 @@ cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
     cdef public object _parent, _cached_schema
 
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = C_DynamicCapability.Client()
+
     cdef _init(self, C_DynamicCapability.Client other, object parent):
         self.thisptr = other
         self._parent = parent
@@ -2194,6 +2199,11 @@ cdef class TwoPartyClient:
     cdef Own[RpcSystem] thisptr
     cdef _TwoPartyVatNetwork _network
 
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = Own[RpcSystem]()
+
     def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
 
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
@@ -2224,6 +2234,11 @@ cdef class TwoPartyServer:
     cdef Own[RpcSystem] thisptr
     cdef _TwoPartyVatNetwork _network
 
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = Own[RpcSystem]()
+
     def __init__(self, socket=None, bootstrap=None, traversal_limit_in_words=None, nesting_limit=None):
         if not bootstrap:
             raise KjException("You must provide a bootstrap interface to a server constructor.")
@@ -2249,6 +2264,11 @@ cdef class TwoPartyServer:
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
     cdef _EventLoop _event_loop # We hold a pointer to the event loop here, to ensure it remains alive
+
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = Own[AsyncIoStream]()
 
     @staticmethod
     async def create_connection(host = None, port = None, **kwargs):
