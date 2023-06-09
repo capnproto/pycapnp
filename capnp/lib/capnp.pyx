@@ -80,7 +80,8 @@ def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
 
     exc = task.exception()
     if exc is not None:
-        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(''.join(_traceback.format_exception(exc)))))
+        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(''.join(
+            _traceback.format_exception(type(exc), exc, exc.__traceback__)))))
         return
 
     res = task.result()
