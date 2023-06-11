@@ -5,7 +5,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
 
 from libcpp cimport bool
 from capnp.helpers.non_circular cimport (
-    PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter,
+    reraise_kj_exception, PyRefCounter,
 )
 from capnp.includes.schema_cpp cimport (
     Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions,
@@ -296,6 +296,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Client nogil:
             Client()
             Client(Client&)
+            Client(Own[PythonInterfaceDynamicImpl])
             Client upcast(InterfaceSchema requestedSchema)
             DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
             InterfaceSchema getSchema()
@@ -326,7 +327,7 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
         TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side, ReaderOptions)
         VoidPromise onDisconnect()
         VoidPromise onDrained()
-    RpcSystem makeRpcServerBootstrap"makeRpcServer"(TwoPartyVatNetwork&, Capability.Client) nogil
+    RpcSystem makeRpcServer(TwoPartyVatNetwork&, Capability.Client) nogil
     RpcSystem makeRpcClient(TwoPartyVatNetwork&) nogil
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
@@ -410,7 +411,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Reader(DynamicEnum value)
             Reader(DynamicStruct.Reader& value)
             Reader(DynamicCapability.Client& value)
-            Reader(PythonInterfaceDynamicImpl& value)
+            Reader(Own[PythonInterfaceDynamicImpl] value)
             Reader(AnyPointer.Reader& value)
             Type getType()
             int64_t asInt"as<int64_t>"()
@@ -497,6 +498,8 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     void rejectVoidDisconnected(VoidPromiseFulfiller& fulfiller, StringPtr message)
     Exception makeException(StringPtr message)
     PyPromise tryReadMessage(AsyncIoStream& stream, ReaderOptions opts)
+    cppclass PythonInterfaceDynamicImpl:
+        PythonInterfaceDynamicImpl(InterfaceSchema&, PyObject *)
 
 cdef extern from "capnp/serialize-async.h" namespace " ::capnp":
     VoidPromise writeMessage(AsyncIoStream& output, MessageBuilder& builder)

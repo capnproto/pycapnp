@@ -9,7 +9,7 @@ from capnp.includes.capnp_cpp cimport (
     SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr,
     String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject,
     DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, Promise,
-    CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability,
+    CallContext, RpcSystem, makeRpcServer, makeRpcClient, Capability as C_Capability,
     TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own,
     DynamicStruct_Builder, PyRefCounter, PyAsyncIoStream
 )

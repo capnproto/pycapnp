@@ -89,17 +89,6 @@ public:
                          capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> context);
 };
 
-inline capnp::DynamicCapability::Client new_client(capnp::InterfaceSchema & schema, PyObject * server) {
-  return capnp::DynamicCapability::Client(kj::heap<PythonInterfaceDynamicImpl>(schema, server));
-}
-inline capnp::DynamicValue::Reader new_server(capnp::InterfaceSchema & schema, PyObject * server) {
-  return capnp::DynamicValue::Reader(kj::heap<PythonInterfaceDynamicImpl>(schema, server));
-}
-
-inline capnp::Capability::Client server_to_client(capnp::InterfaceSchema & schema, PyObject * server) {
-  return kj::heap<PythonInterfaceDynamicImpl>(schema, server);
-}
-
 class PyAsyncIoStream: public kj::AsyncIoStream {
 public:
   kj::Own<PyRefCounter> protocol;

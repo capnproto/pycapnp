@@ -10,7 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, tryReadMessage, writeMessage, makeException
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, tryReadMessage, writeMessage, makeException, PythonInterfaceDynamicImpl
 from capnp.includes.schema_cpp cimport (MessageReader,)
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
@@ -702,7 +702,7 @@ cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient valu
 
 cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
     cdef _InterfaceSchema schema = value.schema
-    return helpers.new_server(schema.thisptr, <PyObject *>value)
+    return C_DynamicValue.Reader(capnp.heap[PythonInterfaceDynamicImpl](schema.thisptr, <PyObject*> value))
 
 
 cdef C_DynamicValue.Reader _extract_dynamic_enum(_DynamicEnum value):
@@ -2056,7 +2056,8 @@ cdef class _DynamicCapabilityClient:
         else:
             s = schema
 
-        self.thisptr = helpers.new_client(s.thisptr, <PyObject *>server)
+        self.thisptr = C_DynamicCapability.Client(
+            capnp.heap[PythonInterfaceDynamicImpl](s.thisptr, <PyObject *>server))
         self._parent = server
         return self
 
@@ -2250,8 +2251,10 @@ cdef class TwoPartyServer:
             raise ValueError(f"Argument socket should be a AsyncIoStream, was {type(socket)}")
 
         cdef _InterfaceSchema schema = bootstrap.schema
-        self.thisptr = capnp.heap[RpcSystem](makeRpcServerBootstrap(
-            deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
+        self.thisptr = capnp.heap[RpcSystem](makeRpcServer(
+            deref(self._network.thisptr),
+            C_DynamicCapability.Client(capnp.heap[PythonInterfaceDynamicImpl](
+                schema.thisptr, <PyObject *>bootstrap))))
 
     cpdef bootstrap(self) except +reraise_kj_exception:
         return _CapabilityClient()._init(helpers.bootstrapHelperServer(deref(self.thisptr)), self)
