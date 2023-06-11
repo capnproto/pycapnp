@@ -1,20 +1,10 @@
-import os
 import pytest
 
 import capnp
-
-this_dir = os.path.dirname(__file__)
-
-# flake8: noqa: E501
+import test_capability_capnp as capability
 
 
-@pytest.fixture
-def capability():
-    capnp.cleanup_global_schema_parser()
-    return capnp.load(os.path.join(this_dir, "test_capability.capnp"))
-
-
-class Server:
+class Server(capability.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
 
@@ -28,19 +18,14 @@ class Server:
         context.results.x = context.params.i.host + "_test"
 
 
-class PipelineServer:
-    def __init__(self, capability):
-        self.capability = capability
-
+class PipelineServer(capability.TestPipeline.Server):
     async def getCap_context(self, context):
         response = await context.params.inCap.foo(i=context.params.n)
         context.results.s = response.x + "_foo"
-        context.results.outBox.cap = self.capability.TestInterface._new_server(
-            Server(100)
-        )
+        context.results.outBox.cap = Server(100)
 
 
-async def test_client_context(capability):
+async def test_client_context():
     client = capability.TestInterface._new_client(Server())
 
     req = client._request("foo")
@@ -73,7 +58,7 @@ async def test_client_context(capability):
         req.baz = 1
 
 
-async def test_simple_client_context(capability):
+async def test_simple_client_context():
     client = capability.TestInterface._new_client(Server())
 
     remote = client._send("foo", i=5)
@@ -127,8 +112,8 @@ async def test_simple_client_context(capability):
         remote = client.foo(baz=5)
 
 
-async def test_pipeline_context(capability):
-    client = capability.TestPipeline._new_client(PipelineServer(capability))
+async def test_pipeline_context():
+    client = capability.TestPipeline._new_client(PipelineServer())
     foo_client = capability.TestInterface._new_client(Server())
 
     remote = client.getCap(n=5, inCap=foo_client)
@@ -143,7 +128,7 @@ async def test_pipeline_context(capability):
     assert response.s == "26_foo"
 
 
-class BadServer:
+class BadServer(capability.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
 
@@ -152,7 +137,7 @@ class BadServer:
         context.results.x2 = 5  # raises exception
 
 
-async def test_exception_client_context(capability):
+async def test_exception_client_context():
     client = capability.TestInterface._new_client(BadServer())
 
     remote = client._send("foo", i=5)
@@ -160,10 +145,7 @@ async def test_exception_client_context(capability):
         await remote
 
 
-class BadPipelineServer:
-    def __init__(self, capability):
-        self.capability = capability
-
+class BadPipelineServer(capability.TestPipeline.Server):
     async def getCap_context(self, context):
         try:
             await context.params.inCap.foo(i=context.params.n)
@@ -171,8 +153,8 @@ class BadPipelineServer:
             raise Exception("test was a success")
 
 
-async def test_exception_chain_context(capability):
-    client = capability.TestPipeline._new_client(BadPipelineServer(capability))
+async def test_exception_chain_context():
+    client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
     remote = client.getCap(n=5, inCap=foo_client)
@@ -183,8 +165,8 @@ async def test_exception_chain_context(capability):
         assert "test was a success" in str(e)
 
 
-async def test_pipeline_exception_context(capability):
-    client = capability.TestPipeline._new_client(BadPipelineServer(capability))
+async def test_pipeline_exception_context():
+    client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
     remote = client.getCap(n=5, inCap=foo_client)
@@ -199,7 +181,7 @@ async def test_pipeline_exception_context(capability):
         await remote
 
 
-async def test_casting_context(capability):
+async def test_casting_context():
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
     _ = client2.cast_as(capability.TestInterface)
@@ -208,7 +190,7 @@ async def test_casting_context(capability):
         client.upcast(capability.TestPipeline)
 
 
-class TailCallOrder:
+class TailCallOrder(capability.TestCallOrder.Server):
     def __init__(self):
         self.count = -1
 
@@ -217,7 +199,7 @@ class TailCallOrder:
         context.results.n = self.count
 
 
-class TailCaller:
+class TailCaller(capability.TestTailCaller.Server):
     def __init__(self):
         self.count = 0
 
@@ -230,10 +212,9 @@ class TailCaller:
         await context.tail_call(tail)
 
 
-class TailCallee:
-    def __init__(self, capability):
+class TailCallee(capability.TestTailCallee.Server):
+    def __init__(self):
         self.count = 0
-        self.capability = capability
 
     async def foo_context(self, context):
         self.count += 1
@@ -241,11 +222,11 @@ class TailCallee:
         results = context.results
         results.i = context.params.i
         results.t = context.params.t
-        results.c = self.capability.TestCallOrder._new_server(TailCallOrder())
+        results.c = TailCallOrder()
 
 
-async def test_tail_call(capability):
-    callee_server = TailCallee(capability)
+async def test_tail_call():
+    callee_server = TailCallee()
     caller_server = TailCaller()
 
     callee = capability.TestTailCallee._new_client(callee_server)
