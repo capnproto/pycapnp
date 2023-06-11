@@ -785,7 +785,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+    elif isinstance(value, _DynamicCapabilityServer):
         thisptr.set(field, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
@@ -834,7 +834,7 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
         thisptr.setByField(field.thisptr, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.setByField(field.thisptr, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+    elif isinstance(value, _DynamicCapabilityServer):
         thisptr.setByField(field.thisptr, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.setByField(field.thisptr, _extract_dynamic_enum(value))
@@ -883,7 +883,7 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
         thisptr.set(field, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+    elif isinstance(value, _DynamicCapabilityServer):
         thisptr.set(field, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
@@ -2015,25 +2015,7 @@ cdef class _Response(_DynamicStructReader):
         return self
 
 cdef class _DynamicCapabilityServer:
-    cdef public _InterfaceSchema schema
-    cdef public object server
-
-    def __init__(self, schema, server):
-        cdef _InterfaceSchema s
-        if hasattr(schema, 'schema'):
-            s = schema.schema
-        else:
-            s = schema
-
-        self.schema = s
-        self.server = server
-
-    def __getattr__(self, field):
-        try:
-            return getattr(self.server, field)
-        except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
-
+    pass
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
@@ -3227,10 +3209,6 @@ class _InterfaceModule(object):
     def _new_client(self, server):
         C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
         return _DynamicCapabilityClient()._init_vals(self.schema, server)
-
-    def _new_server(self, server):
-        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
-        return _DynamicCapabilityServer(self.schema, server)
 
 
 class _EnumModule(object):
