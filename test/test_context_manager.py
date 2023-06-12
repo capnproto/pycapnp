@@ -195,11 +195,31 @@ async def test_kj_loop_partial_write_message_after_close():
     assert "The KJ event-loop is not running" in str(exninfo)
 
 
+async def test_client_on_disconnect_memory():
+    read, _ = socket.socketpair()
+    async with capnp.kj_loop():
+        read = await capnp.AsyncIoStream.create_connection(sock=read)
+        client = capnp.TwoPartyClient(read)
+    with pytest.raises(RuntimeError) as exninfo:
+        await client.on_disconnect()
+    assert "This client is closed" in str(exninfo)
+
+
+async def test_server_on_disconnect_memory():
+    _, write = socket.socketpair()
+    async with capnp.kj_loop():
+        write = await capnp.AsyncIoStream.create_connection(sock=write)
+        server = capnp.TwoPartyServer(write, bootstrap=test_capability.Server())
+    with pytest.raises(RuntimeError) as exninfo:
+        await server.on_disconnect()
+    assert "This server is closed" in str(exninfo)
+
+
 @pytest.mark.xfail(
     strict=True,
     reason="Fails because the promisefulfiller got destroyed. Possibly a bug in the C++ library.",
 )
-async def test_client_on_disconnect_memory():
+async def test_client_on_disconnect_memory2():
     """
     E       capnp.lib.capnp.KjException: kj/async.c++:2813: failed:
             PromiseFulfiller was destroyed without fulfilling the promise.
@@ -209,4 +229,13 @@ async def test_client_on_disconnect_memory():
         read = await capnp.AsyncIoStream.create_connection(sock=read)
         client = capnp.TwoPartyClient(read)
         disc = client.on_disconnect()
+    await disc
+
+
+async def test_server_on_disconnect_memory2():
+    _, write = socket.socketpair()
+    async with capnp.kj_loop():
+        write = await capnp.AsyncIoStream.create_connection(sock=write)
+        server = capnp.TwoPartyServer(write, bootstrap=test_capability.Server())
+        disc = server.on_disconnect()
     await disc

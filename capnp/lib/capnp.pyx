@@ -2247,6 +2247,8 @@ cdef class TwoPartyClient:
         return _CapabilityClient()._init(helpers.bootstrapHelper(deref(self.thisptr)), self)
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
+        if self.closed:
+            raise RuntimeError("This client is closed")
         return self._network.on_disconnect()
 
 
@@ -2300,6 +2302,8 @@ cdef class TwoPartyServer:
         return _CapabilityClient()._init(helpers.bootstrapHelperServer(deref(self.thisptr)), self)
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
+        if self.closed:
+            raise RuntimeError("This server is closed")
         return _voidpromise_to_asyncio(deref(self._network.thisptr).onDisconnect()
                                        .attach(capnp.heap[PyRefCounter](<PyObject*>self)))
 
