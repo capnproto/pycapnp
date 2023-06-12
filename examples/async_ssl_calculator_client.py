@@ -330,4 +330,4 @@ if __name__ == "__main__":
     # https://bugs.python.org/issue36709
     # asyncio.run(main(parse_args().host), loop=loop, debug=True)
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(parse_args().host))
+    loop.run_until_complete(capnp.run(main(parse_args().host)))

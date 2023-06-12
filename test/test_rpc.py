@@ -9,6 +9,12 @@ import socket
 import test_capability_capnp
 
 
+@pytest.fixture(autouse=True)
+async def kj_loop():
+    async with capnp.kj_loop():
+        yield
+
+
 class Server(test_capability_capnp.TestInterface.Server):
     def __init__(self, val=100):
         self.val = val

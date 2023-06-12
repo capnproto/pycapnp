@@ -15,8 +15,7 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        usage="Connects to the Example thread server \
-at the given address and does some RPCs"
+        usage="Connects to the Example thread server at the given address and does some RPCs"
     )
     parser.add_argument("host", help="HOST:PORT")
 
@@ -26,13 +25,8 @@ at the given address and does some RPCs"
 class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
     """An implementation of the StatusSubscriber interface"""
 
-    def status(self, value, **kwargs):
+    async def status(self, value, **kwargs):
         print("status: {}".format(time.time()))
-
-
-async def background(cap):
-    subscriber = StatusSubscriber()
-    await cap.subscribeStatus(subscriber)
 
 
 async def main(host):
@@ -59,7 +53,7 @@ async def main(host):
     cap = client.bootstrap().cast_as(thread_capnp.Example)
 
     # Start background task for subscriber
-    asyncio.create_task(background(cap))
+    task = asyncio.ensure_future(cap.subscribeStatus(StatusSubscriber()))
 
     # Run blocking tasks
     print("main: {}".format(time.time()))
@@ -70,10 +64,12 @@ async def main(host):
     await cap.longRunning()
     print("main: {}".format(time.time()))
 
+    task.cancel()
+
 
 if __name__ == "__main__":
     # Using asyncio.run hits an asyncio ssl bug
     # https://bugs.python.org/issue36709
     # asyncio.run(main(parse_args().host), loop=loop, debug=True)
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(parse_args().host))
+    loop.run_until_complete(capnp.run(main(parse_args().host)))

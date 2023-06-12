@@ -79,10 +79,14 @@ kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Ow
 }
 
 kj::Promise<void> PythonInterfaceDynamicImpl::call(capnp::InterfaceSchema::Method method,
-                         capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> context) {
+                                                   capnp::CallContext< capnp::DynamicStruct,
+                                                   capnp::DynamicStruct> context) {
     auto methodName = method.getProto().getName();
 
-    kj::Promise<void> * promise = call_server_method(py_server, const_cast<char *>(methodName.cStr()), context);
+    kj::Promise<void> * promise = call_server_method(this->py_server->obj,
+                                                     const_cast<char *>(methodName.cStr()),
+                                                     context,
+                                                     this->kj_loop->obj);
 
     check_py_error();
 

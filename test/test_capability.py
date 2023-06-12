@@ -4,6 +4,12 @@ import capnp
 import test_capability_capnp as capability
 
 
+@pytest.fixture(autouse=True)
+async def kj_loop():
+    async with capnp.kj_loop():
+        yield
+
+
 class Server(capability.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
