@@ -1,2 +1,5 @@
 [build-system]
 requires = ["setuptools", "wheel", "pkgconfig", "cython"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

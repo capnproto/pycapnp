@@ -48,7 +48,7 @@ class ValueImpl(calculator_capnp.Calculator.Value.Server):
     def __init__(self, value):
         self.value = value
 
-    def read(self, **kwargs):
+    async def read(self, **kwargs):
         return self.value
 
 
@@ -79,7 +79,7 @@ class OperatorImpl(calculator_capnp.Calculator.Function.Server):
     def __init__(self, op):
         self.op = op
 
-    def call(self, params, **kwargs):
+    async def call(self, params, **kwargs):
         assert len(params) == 2
 
         op = self.op
@@ -102,22 +102,20 @@ class CalculatorImpl(calculator_capnp.Calculator.Server):
     async def evaluate(self, expression, _context, **kwargs):
         return ValueImpl(await evaluate_impl(expression))
 
-    def defFunction(self, paramCount, body, _context, **kwargs):
+    async def defFunction(self, paramCount, body, _context, **kwargs):
         return FunctionImpl(paramCount, body)
 
-    def getOperator(self, op, **kwargs):
+    async def getOperator(self, op, **kwargs):
         return OperatorImpl(op)
 
 
 async def new_connection(stream):
-    server = capnp.TwoPartyServer(stream, bootstrap=CalculatorImpl())
-    await server.on_disconnect()
+    await capnp.TwoPartyServer(stream, bootstrap=CalculatorImpl()).on_disconnect()
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        usage="""Runs the server bound to the\
-        given address/port ADDRESS. """
+        usage="""Runs the server bound to the given address/port ADDRESS. """
     )
 
     parser.add_argument("address", help="ADDRESS:PORT")

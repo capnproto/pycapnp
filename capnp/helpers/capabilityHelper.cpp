@@ -1,8 +1,8 @@
 #include "capnp/helpers/capabilityHelper.h"
 #include "capnp/lib/capnp_api.h"
 
-::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(kj::Own<capnp::RemotePromise<capnp::DynamicStruct>> promise) {
-    return promise->then([](capnp::Response<capnp::DynamicStruct>&& response) {
+::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> promise) {
+    return promise.then([](capnp::Response<capnp::DynamicStruct>&& response) {
       return stealPyRef(wrap_dynamic_struct_reader(response)); } );
 }
 
@@ -58,73 +58,24 @@ void check_py_error() {
     }
 }
 
-inline kj::Promise<kj::Own<PyRefCounter>> maybeUnwrapPromise(PyObject * result) {
-  check_py_error();
-  auto promise = extract_promise(result);
-  Py_DECREF(result);
-  return kj::mv(*promise);
-}
-
 kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> arg) {
     GILAcquire gil;
-    // Creates an owned reference, which will be destroyed in maybeUnwrapPromise
     PyObject * result = PyObject_CallFunctionObjArgs(func->obj, arg->obj, NULL);
-    return maybeUnwrapPromise(result);
+    check_py_error();
+    return stealPyRef(result);
 }
 
-kj::Promise<kj::Own<PyRefCounter>> wrapPyFuncNoArg(kj::Own<PyRefCounter> func) {
-    GILAcquire gil;
-    // Creates an owned reference, which will be destroyed in maybeUnwrapPromise
-    PyObject * result = PyObject_CallFunctionObjArgs(func->obj, NULL);
-    return maybeUnwrapPromise(result);
-}
-
-kj::Promise<kj::Own<PyRefCounter>> wrapRemoteCall(kj::Own<PyRefCounter> func, capnp::Response<capnp::DynamicStruct> & arg) {
-    GILAcquire gil;
-    // Creates an owned reference, which will be destroyed in maybeUnwrapPromise
-    PyObject * ret = wrap_remote_call(func->obj, arg);
-    return maybeUnwrapPromise(ret);
-}
-
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<kj::Promise<kj::Own<PyRefCounter>>> promise,
+::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Own<PyRefCounter>> promise,
                                           kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func) {
   if(error_func->obj == Py_None)
-    return promise->then(kj::mvCapture(func, [](auto func, kj::Own<PyRefCounter> arg) {
+    return promise.then(kj::mvCapture(func, [](auto func, kj::Own<PyRefCounter> arg) {
       return wrapPyFunc(kj::mv(func), kj::mv(arg)); } ));
   else
-    return promise->then
+    return promise.then
       (kj::mvCapture(func, [](auto func, kj::Own<PyRefCounter> arg) {
         return wrapPyFunc(kj::mv(func), kj::mv(arg)); }),
         kj::mvCapture(error_func, [](auto error_func, kj::Exception arg) {
           return wrapPyFunc(kj::mv(error_func), stealPyRef(wrap_kj_exception(arg))); } ));
-}
-
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<::capnp::RemotePromise<::capnp::DynamicStruct>> promise,
-                                          kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func) {
-  if(error_func->obj == Py_None)
-    return promise->then(kj::mvCapture(func, [](auto func, capnp::Response<capnp::DynamicStruct>&& arg) {
-      return wrapRemoteCall(kj::mv(func), arg); } ));
-  else
-    return promise->then
-      (kj::mvCapture(func, [](auto func, capnp::Response<capnp::DynamicStruct>&& arg) {
-        return  wrapRemoteCall(kj::mv(func), arg); }),
-       kj::mvCapture(error_func, [](auto error_func, kj::Exception arg) {
-         return wrapPyFunc(kj::mv(error_func), stealPyRef(wrap_kj_exception(arg))); } ));
-}
-
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Own<kj::Promise<void>> promise,
-                                          kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func) {
-  if(error_func->obj == Py_None)
-    return promise->then(kj::mvCapture(func, [](auto func) { return wrapPyFuncNoArg(kj::mv(func)); } ));
-  else
-    return promise->then(kj::mvCapture(func, [](auto func) { return wrapPyFuncNoArg(kj::mv(func)); }),
-                        kj::mvCapture(error_func, [](auto error_func, kj::Exception arg) {
-                          return wrapPyFunc(kj::mv(error_func), stealPyRef(wrap_kj_exception(arg))); } ));
-}
-
-::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Array<kj::Own<PyRefCounter>> > && promise) {
-  return promise.then([](kj::Array<kj::Own<PyRefCounter>>&& arg) {
-    return stealPyRef(convert_array_pyobject(arg)); } );
 }
 
 kj::Promise<void> PythonInterfaceDynamicImpl::call(capnp::InterfaceSchema::Method method,

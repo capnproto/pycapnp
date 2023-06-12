@@ -5,7 +5,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
 
 from libcpp cimport bool
 from capnp.helpers.non_circular cimport (
-    PythonInterfaceDynamicImpl, reraise_kj_exception, PyRefCounter, ErrorHandler,
+    reraise_kj_exception, PyRefCounter,
 )
 from capnp.includes.schema_cpp cimport (
     Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions,
@@ -52,10 +52,6 @@ cdef extern from "kj/memory.h" namespace " ::kj":
         T& operator*()
         T* get()
     Own[T] heap[T](...)
-    Own[TwoPartyVatNetwork] makeTwoPartyVatNetwork" ::kj::heap< ::capnp::TwoPartyVatNetwork>"(
-        AsyncIoStream& stream, Side, ReaderOptions)
-    Own[PromiseFulfillerPair] copyPromiseFulfillerPair" ::kj::heap< ::kj::PromiseFulfillerPair<void> >"(
-        PromiseFulfillerPair&)
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass Promise[T] nogil:
@@ -110,71 +106,11 @@ cdef extern from "kj/array.h" namespace " ::kj":
         T& add(T&)
         Array[T] finish()
 
-    ArrayBuilder[PyPromise] heapArrayBuilderPyPromise"::kj::heapArrayBuilder< ::kj::Promise<kj::Own<PyRefCounter>> >"(size_t) nogil
-
-    ctypedef Array[Own[PyRefCounter]] PyArray' ::kj::Array<kj::Own<PyRefCounter>>'
-
-ctypedef Promise[PyArray] PyPromiseArray
-
-cdef extern from "kj/time.h" namespace " ::kj":
-    cdef cppclass Duration nogil:
-        Duration operator*(int64_t)
-    Duration NANOSECONDS
-    Duration MICROSECONDS
-    Duration MILLISECONDS
-    Duration SECONDS
-    Duration MINUTES
-    Duration HOURS
-    Duration DAYS
-    cdef cppclass TimePoint:
-        TimePoint(Duration)
-    cdef cppclass MonotonicClock nogil:
-        MonotonicClock(MonotonicClock&)
-        TimePoint now()
-    MonotonicClock systemPreciseMonotonicClock()
-
-cdef extern from "kj/timer.h" namespace " ::kj":
-    cdef cppclass Timer nogil:
-        # int64_t now()
-        # VoidPromise atTime(TimePoint time)
-        VoidPromise afterDelay(Duration delay)
-    cdef cppclass TimerImpl(Timer) nogil:
-        TimerImpl(TimePoint startTime)
-        Maybe[TimePoint] nextEvent()
-        Maybe[uint64_t] timeoutToNextEvent(TimePoint start, Duration unit, uint64_t max)
-        void advanceTo(TimePoint newTime)
-
-cdef inline Duration Nanoseconds(int64_t nanos):
-    return NANOSECONDS * nanos
 
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream nogil:
         Promise[size_t] read(void*, size_t, size_t)
         Promise[void] write(const void*, size_t)
-
-    cdef cppclass LowLevelAsyncIoProvider:
-        # Own[AsyncInputStream] wrapInputFd(int)
-        # Own[AsyncOutputStream] wrapOutputFd(int)
-        Own[AsyncIoStream] wrapSocketFd(int)
-        Timer& getTimer() except +reraise_kj_exception
-
-    cdef cppclass AsyncIoProvider nogil:
-        TwoWayPipe newTwoWayPipe()
-
-    cdef cppclass AsyncIoContext nogil:
-        AsyncIoContext(AsyncIoContext&)
-        Own[LowLevelAsyncIoProvider] lowLevelProvider
-        Own[AsyncIoProvider] provider
-        WaitScope waitScope
-
-    cdef cppclass TaskSet nogil:
-        TaskSet(ErrorHandler &)
-
-    cdef cppclass TwoWayPipe nogil:
-        Own[AsyncIoStream] ends[2]
-
-    AsyncIoContext setupAsyncIo() nogil
-    Own[AsyncIoProvider] newAsyncIoProvider(LowLevelAsyncIoProvider& lowLevel);
 
 cdef extern from "capnp/schema.capnp.h" namespace " ::capnp":
     enum TypeWhich" ::capnp::schema::Type::Which":
@@ -360,6 +296,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         cppclass Client nogil:
             Client()
             Client(Client&)
+            Client(Own[PythonInterfaceDynamicImpl])
             Client upcast(InterfaceSchema requestedSchema)
             DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
             InterfaceSchema getSchema()
@@ -390,7 +327,7 @@ cdef extern from "capnp/rpc-twoparty.h" namespace " ::capnp":
         TwoPartyVatNetwork(EventLoop &, AsyncIoStream& stream, Side, ReaderOptions)
         VoidPromise onDisconnect()
         VoidPromise onDrained()
-    RpcSystem makeRpcServerBootstrap"makeRpcServer"(TwoPartyVatNetwork&, Capability.Client) nogil
+    RpcSystem makeRpcServer(TwoPartyVatNetwork&, Capability.Client) nogil
     RpcSystem makeRpcClient(TwoPartyVatNetwork&) nogil
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
@@ -474,7 +411,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Reader(DynamicEnum value)
             Reader(DynamicStruct.Reader& value)
             Reader(DynamicCapability.Client& value)
-            Reader(PythonInterfaceDynamicImpl& value)
+            Reader(Own[PythonInterfaceDynamicImpl] value)
             Reader(AnyPointer.Reader& value)
             Type getType()
             int64_t asInt"as<int64_t>"()
@@ -553,19 +490,16 @@ cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass VoidPromiseFulfiller"::kj::PromiseFulfiller<void>" nogil:
         void fulfill()
         void reject(Exception&& exception)
-    cdef cppclass PromiseFulfillerPair" ::kj::PromiseFulfillerPair<void>" nogil:
-        VoidPromise promise
-        Own[VoidPromiseFulfiller] fulfiller
-    PromiseFulfillerPair newPromiseAndFulfiller" ::kj::newPromiseAndFulfiller<void>"() nogil
-    PyPromiseArray joinPromises(Array[PyPromise]) nogil
 
 cdef extern from "capnp/helpers/capabilityHelper.h":
     cdef cppclass PyAsyncIoStream(AsyncIoStream):
-        PyAsyncIoStream(PyObject* thisptr)
+        PyAsyncIoStream(Own[PyRefCounter] thisptr)
     void rejectDisconnected[T](PromiseFulfiller[T]& fulfiller, StringPtr message)
     void rejectVoidDisconnected(VoidPromiseFulfiller& fulfiller, StringPtr message)
     Exception makeException(StringPtr message)
     PyPromise tryReadMessage(AsyncIoStream& stream, ReaderOptions opts)
+    cppclass PythonInterfaceDynamicImpl:
+        PythonInterfaceDynamicImpl(InterfaceSchema&, PyObject *)
 
 cdef extern from "capnp/serialize-async.h" namespace " ::capnp":
     VoidPromise writeMessage(AsyncIoStream& output, MessageBuilder& builder)

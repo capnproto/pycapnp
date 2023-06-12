@@ -117,21 +117,11 @@ def run_subprocesses(
     serverp.kill()
 
 
-def test_async_calculator_example(cleanup):
-    address = "{}:36432".format(hostname)
+def test_async_calculator_example(unused_tcp_port, cleanup):
+    address = "{}:{}".format(hostname, unused_tcp_port)
     server = "async_calculator_server.py"
     client = "async_calculator_client.py"
     run_subprocesses(address, server, client)
-
-
-@pytest.mark.xfail(
-    reason="Some versions of python don't like to share ports, don't worry if this fails"
-)
-def test_thread_example(cleanup):
-    address = "{}:36433".format(hostname)
-    server = "thread_server.py"
-    client = "thread_client.py"
-    run_subprocesses(address, server, client, wildcard_server=True)
 
 
 def test_addressbook_example(cleanup):
@@ -142,57 +132,36 @@ def test_addressbook_example(cleanup):
     assert ret == 0
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="""
-Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop.
-See https://github.com/capnproto/pycapnp/issues/196
-""",
-)
-def test_async_example(cleanup):
-    address = "{}:36434".format(hostname)
+def test_async_example(unused_tcp_port, cleanup):
+    address = "{}:{}".format(hostname, unused_tcp_port)
     server = "async_server.py"
     client = "async_client.py"
     run_subprocesses(address, server, client)
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="""
-Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop.
-See https://github.com/capnproto/pycapnp/issues/196
-""",
-)
-def test_ssl_async_example(cleanup):
-    address = "{}:36435".format(hostname)
+def test_ssl_async_example(unused_tcp_port, cleanup):
+    address = "{}:{}".format(hostname, unused_tcp_port)
     server = "async_ssl_server.py"
     client = "async_ssl_client.py"
     run_subprocesses(address, server, client, ipv4_force=False)
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="""
-Asyncio bug with libcapnp timer, likely due to asyncio starving some event loop.
-See https://github.com/capnproto/pycapnp/issues/196
-""",
-)
-def test_ssl_reconnecting_async_example(cleanup):
-    address = "{}:36436".format(hostname)
+def test_ssl_reconnecting_async_example(unused_tcp_port, cleanup):
+    address = "{}:{}".format(hostname, unused_tcp_port)
     server = "async_ssl_server.py"
     client = "async_reconnecting_ssl_client.py"
     run_subprocesses(address, server, client, ipv4_force=False)
 
 
-def test_async_ssl_calculator_example(cleanup):
-    address = "{}:36437".format(hostname)
+def test_async_ssl_calculator_example(unused_tcp_port, cleanup):
+    address = "{}:{}".format(hostname, unused_tcp_port)
     server = "async_ssl_calculator_server.py"
     client = "async_ssl_calculator_client.py"
     run_subprocesses(address, server, client, ipv4_force=False)
 
 
-def test_async_socket_message_example(cleanup):
-    address = "{}:36438".format(hostname)
+def test_async_socket_message_example(unused_tcp_port, cleanup):
+    address = "{}:{}".format(hostname, unused_tcp_port)
     server = "async_socket_message_server.py"
     client = "async_socket_message_client.py"
     run_subprocesses(address, server, client)

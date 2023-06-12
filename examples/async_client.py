@@ -10,8 +10,7 @@ import thread_capnp
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        usage="Connects to the Example thread server \
-at the given address and does some RPCs"
+        usage="Connects to the Example thread server at the given address and does some RPCs"
     )
     parser.add_argument("host", help="HOST:PORT")
 
@@ -21,7 +20,7 @@ at the given address and does some RPCs"
 class StatusSubscriber(thread_capnp.Example.StatusSubscriber.Server):
     """An implementation of the StatusSubscriber interface"""
 
-    def status(self, value, **kwargs):
+    async def status(self, value, **kwargs):
         print("status: {}".format(time.time()))
 
 

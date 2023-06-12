@@ -1,5 +1,4 @@
 import pytest
-import time
 
 import capnp
 import test_capability_capnp as capability
@@ -9,37 +8,35 @@ class Server(capability.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, i, j, **kwargs):
+    async def foo(self, i, j, **kwargs):
         extra = 0
         if j:
             extra = 1
         return str(i * 5 + extra + self.val)
 
-    def buz(self, i, **kwargs):
+    async def buz(self, i, **kwargs):
         return i.host + "_test"
 
-    def bam(self, i, **kwargs):
+    async def bam(self, i, **kwargs):
         return str(i) + "_test", i
 
 
 class PipelineServer(capability.TestPipeline.Server):
-    def getCap(self, n, inCap, _context, **kwargs):
-        def _then(response):
-            _results = _context.results
-            _results.s = response.x + "_foo"
-            _results.outBox.cap = Server(100)
-
-        return inCap.foo(i=n).then(_then)
+    async def getCap(self, n, inCap, _context, **kwargs):
+        response = await inCap.foo(i=n)
+        _results = _context.results
+        _results.s = response.x + "_foo"
+        _results.outBox.cap = Server(100)
 
 
-def test_client():
+async def test_client():
     client = capability.TestInterface._new_client(Server())
 
     req = client._request("foo")
     req.i = 5
 
     remote = req.send()
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
@@ -47,7 +44,7 @@ def test_client():
     req.i = 5
 
     remote = req.send()
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
@@ -65,46 +62,46 @@ def test_client():
         req.baz = 1
 
 
-def test_simple_client():
+async def test_simple_client():
     client = capability.TestInterface._new_client(Server())
 
     remote = client._send("foo", i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
     remote = client.foo(i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
     remote = client.foo(i=5, j=True)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "27"
 
     remote = client.foo(5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
     remote = client.foo(5, True)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "27"
 
     remote = client.foo(5, j=True)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "27"
 
     remote = client.buz(capability.TestSturdyRefHostId.new_message(host="localhost"))
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "localhost_test"
 
     remote = client.bam(i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "5_test"
     assert response.i == 5
@@ -125,7 +122,7 @@ def test_simple_client():
         remote = client.foo(baz=5)
 
 
-def test_pipeline():
+async def test_pipeline():
     client = capability.TestPipeline._new_client(PipelineServer())
     foo_client = capability.TestInterface._new_client(Server())
 
@@ -134,10 +131,10 @@ def test_pipeline():
     outCap = remote.outBox.cap
     pipelinePromise = outCap.foo(i=10)
 
-    response = pipelinePromise.wait()
+    response = await pipelinePromise
     assert response.x == "150"
 
-    response = remote.wait()
+    response = await remote
     assert response.s == "26_foo"
 
 
@@ -145,47 +142,42 @@ class BadServer(capability.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, i, j, **kwargs):
+    async def foo(self, i, j, **kwargs):
         extra = 0
         if j:
             extra = 1
         return str(i * 5 + extra + self.val), 10  # returning too many args
 
 
-def test_exception_client():
+async def test_exception_client():
     client = capability.TestInterface._new_client(BadServer())
 
     remote = client._send("foo", i=5)
     with pytest.raises(capnp.KjException):
-        remote.wait()
+        await remote
 
 
 class BadPipelineServer(capability.TestPipeline.Server):
-    def getCap(self, n, inCap, _context, **kwargs):
-        def _then(response):
-            _results = _context.results
-            _results.s = response.x + "_foo"
-            _results.outBox.cap = Server(100)
-
-        def _error(error):
+    async def getCap(self, n, inCap, _context, **kwargs):
+        try:
+            await inCap.foo(i=n)
+        except capnp.KjException:
             raise Exception("test was a success")
 
-        return inCap.foo(i=n).then(_then, _error)
 
-
-def test_exception_chain():
+async def test_exception_chain():
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
     remote = client.getCap(n=5, inCap=foo_client)
 
     try:
-        remote.wait()
+        await remote
     except Exception as e:
         assert "test was a success" in str(e)
 
 
-def test_pipeline_exception():
+async def test_pipeline_exception():
     client = capability.TestPipeline._new_client(BadPipelineServer())
     foo_client = capability.TestInterface._new_client(BadServer())
 
@@ -195,13 +187,13 @@ def test_pipeline_exception():
     pipelinePromise = outCap.foo(i=10)
 
     with pytest.raises(Exception):
-        pipelinePromise.wait()
+        await pipelinePromise
 
     with pytest.raises(Exception):
-        remote.wait()
+        await remote
 
 
-def test_casting():
+async def test_casting():
     client = capability.TestExtends._new_client(Server())
     client2 = client.upcast(capability.TestInterface)
     _ = client2.cast_as(capability.TestInterface)
@@ -214,7 +206,7 @@ class TailCallOrder(capability.TestCallOrder.Server):
     def __init__(self):
         self.count = -1
 
-    def getCallSequence(self, expected, **kwargs):
+    async def getCallSequence(self, expected, **kwargs):
         self.count += 1
         return self.count
 
@@ -223,18 +215,18 @@ class TailCaller(capability.TestTailCaller.Server):
     def __init__(self):
         self.count = 0
 
-    def foo(self, i, callee, _context, **kwargs):
+    async def foo(self, i, callee, _context, **kwargs):
         self.count += 1
 
         tail = callee.foo_request(i=i, t="from TailCaller")
-        return _context.tail_call(tail)
+        return await _context.tail_call(tail)
 
 
 class TailCallee(capability.TestTailCallee.Server):
     def __init__(self):
         self.count = 0
 
-    def foo(self, i, t, _context, **kwargs):
+    async def foo(self, i, t, _context, **kwargs):
         self.count += 1
 
         results = _context.results
@@ -243,7 +235,7 @@ class TailCallee(capability.TestTailCallee.Server):
         results.c = TailCallOrder()
 
 
-def test_tail_call():
+async def test_tail_call():
     callee_server = TailCallee()
     caller_server = TailCaller()
 
@@ -253,7 +245,7 @@ def test_tail_call():
     promise = caller.foo(i=456, callee=callee)
     dependent_call1 = promise.c.getCallSequence()
 
-    response = promise.wait()
+    response = await promise
 
     assert response.i == 456
     assert response.i == 456
@@ -261,18 +253,18 @@ def test_tail_call():
     dependent_call2 = response.c.getCallSequence()
     dependent_call3 = response.c.getCallSequence()
 
-    result = dependent_call1.wait()
+    result = await dependent_call1
     assert result.n == 0
-    result = dependent_call2.wait()
+    result = await dependent_call2
     assert result.n == 1
-    result = dependent_call3.wait()
+    result = await dependent_call3
     assert result.n == 2
 
     assert callee_server.count == 1
     assert caller_server.count == 1
 
 
-def test_cancel():
+async def test_cancel():
     client = capability.TestInterface._new_client(Server())
 
     req = client._request("foo")
@@ -282,167 +274,100 @@ def test_cancel():
     remote.cancel()
 
     with pytest.raises(Exception):
-        remote.wait()
+        await remote
 
     req = client.foo(5)
-    trans = req.then(lambda x: 5)
+    await req
     req.cancel()  # Cancel a promise that was already consumed
-    assert trans.wait() == 5
 
     req = client.foo(5)
     req.cancel()
     with pytest.raises(Exception):
-        trans = req.then(lambda x: 5)
+        await req
 
     req = client.foo(5)
-    assert req.wait().x == "26"
+    assert (await req).x == "26"
     with pytest.raises(Exception):
-        req.wait()
+        await req
 
 
-def test_timer():
-    global test_timer_var
-    test_timer_var = False
-
-    def set_timer_var():
-        global test_timer_var
-        test_timer_var = True
-
-    capnp.getTimer().after_delay(1).then(set_timer_var).wait()
-
-    assert test_timer_var is True
-
-    test_timer_var = False
-    promise = (
-        capnp.Promise(0)
-        .then(lambda x: time.sleep(0.1))
-        .then(lambda x: time.sleep(0.1))
-        .then(lambda x: set_timer_var())
-    )
-
-    canceller = capnp.getTimer().after_delay(1).then(lambda: promise.cancel())
-
-    joined = capnp.join_promises([canceller, promise])
-    joined.wait()
-
-    # faling for now, not sure why...
-    # assert test_timer_var is False
-
-
-def test_double_send():
+async def test_double_send():
     client = capability.TestInterface._new_client(Server())
 
     req = client._request("foo")
     req.i = 5
 
-    req.send()
+    await req.send()
     with pytest.raises(Exception):
-        req.send()
-
-
-def test_then_args():
-    capnp.Promise(0).then(lambda x: 1)
-
-    with pytest.raises(Exception):
-        capnp.Promise(0).then(lambda: 1)
-
-    with pytest.raises(Exception):
-        capnp.Promise(0).then(lambda x, y: 1)
-
-    capnp.getTimer().after_delay(1).then(lambda: 1)  # after_delay is a VoidPromise
-
-    with pytest.raises(Exception):
-        capnp.getTimer().after_delay(1).then(lambda x: 1)
-
-    client = capability.TestInterface._new_client(Server())
-
-    client.foo(i=5).then(lambda x: 1)
-
-    with pytest.raises(Exception):
-        client.foo(i=5).then(lambda: 1)
-
-    with pytest.raises(Exception):
-        client.foo(i=5).then(lambda x, y: 1)
+        await req.send()
 
 
 class PromiseJoinServer(capability.TestPipeline.Server):
-    def getCap(self, n, inCap, _context, **kwargs):
-        def _then(response):
-            _results = _context.results
-            _results.s = response.x + "_bar"
-            _results.outBox.cap = inCap
-
-        return (
-            inCap.foo(i=n)
-            .then(
-                lambda res: capnp.Promise(int(res.x))
-            )  # Make sure that Promise is flattened
-            .then(
-                lambda x: inCap.foo(i=x + 1)
-            )  # Make sure that RemotePromise is flattened
-            .then(_then)
-        )
+    async def getCap(self, n, inCap, _context, **kwargs):
+        res = await inCap.foo(i=n)
+        response = await inCap.foo(i=int(res.x) + 1)
+        _results = _context.results
+        _results.s = response.x + "_bar"
+        _results.outBox.cap = inCap
 
 
-def test_promise_joining():
+async def test_promise_joining():
     client = capability.TestPipeline._new_client(PromiseJoinServer())
     foo_client = capability.TestInterface._new_client(Server())
 
     remote = client.getCap(n=5, inCap=foo_client)
-    assert remote.wait().s == "136_bar"
+    assert (await remote).s == "136_bar"
 
 
 class ExtendsServer(Server):
-    def qux(self, **kwargs):
+    async def qux(self, **kwargs):
         pass
 
 
-def test_inheritance():
+async def test_inheritance():
     client = capability.TestExtends._new_client(ExtendsServer())
-    client.qux().wait()
+    await client.qux()
 
     remote = client.foo(i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == "26"
 
 
 class PassedCapTest(capability.TestPassedCap.Server):
-    def foo(self, cap, _context, **kwargs):
-        def set_result(res):
-            _context.results.x = res.x
-
-        return cap.foo(5).then(set_result)
+    async def foo(self, cap, _context, **kwargs):
+        res = await cap.foo(5)
+        _context.results.x = res.x
 
 
-def test_null_cap():
+async def test_null_cap():
     client = capability.TestPassedCap._new_client(PassedCapTest())
-    assert client.foo(Server()).wait().x == "26"
+    assert (await client.foo(Server())).x == "26"
 
     with pytest.raises(capnp.KjException):
-        client.foo().wait()
+        await client.foo()
 
 
 class StructArgTest(capability.TestStructArg.Server):
-    def bar(self, a, b, **kwargs):
+    async def bar(self, a, b, **kwargs):
         return a + str(b)
 
 
-def test_struct_args():
+async def test_struct_args():
     client = capability.TestStructArg._new_client(StructArgTest())
-    assert client.bar(a="test", b=1).wait().c == "test1"
+    assert (await client.bar(a="test", b=1)).c == "test1"
     with pytest.raises(capnp.KjException):
-        assert client.bar("test", 1).wait().c == "test1"
+        assert (await client.bar("test", 1)).c == "test1"
 
 
 class GenericTest(capability.TestGeneric.Server):
-    def foo(self, a, **kwargs):
+    async def foo(self, a, **kwargs):
         return a.as_text() + "test"
 
 
-def test_generic():
+async def test_generic():
     client = capability.TestGeneric._new_client(GenericTest())
 
     obj = capnp._MallocMessageBuilder().get_root_as_any()
     obj.set_as_text("anypointer_")
-    assert client.foo(obj).wait().b == "anypointer_test"
+    assert (await client.foo(obj)).b == "anypointer_test"

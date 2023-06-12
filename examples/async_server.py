@@ -16,23 +16,21 @@ class ExampleImpl(thread_capnp.Example.Server):
     "Implementation of the Example threading Cap'n Proto interface."
 
     async def subscribeStatus(self, subscriber, **kwargs):
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
         await subscriber.status(True)
         await self.subscribeStatus(subscriber)
 
     async def longRunning(self, **kwargs):
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
 
 
 async def new_connection(stream):
-    server = capnp.TwoPartyServer(stream, bootstrap=ExampleImpl())
-    await server.on_disconnect()
+    await capnp.TwoPartyServer(stream, bootstrap=ExampleImpl()).on_disconnect()
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        usage="""Runs the server bound to the\
-        given address/port ADDRESS. """
+        usage="""Runs the server bound to the given address/port ADDRESS. """
     )
 
     parser.add_argument("address", help="ADDRESS:PORT")

@@ -60,7 +60,7 @@ jobs:
           # TODO: Disable building PyPy wheels. If the build system gets modernized, this should be
           # auto-detected based on the Cython dependency.
           CIBW_SKIP: pp*
-          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
           # Only needed to make the macosx arm64 build work
           CMAKE_OSX_ARCHITECTURES: "${{ matrix.arch == 'arm64' && 'arm64' || '' }}"

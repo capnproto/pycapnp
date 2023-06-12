@@ -13,7 +13,7 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
     we're implementing this on the client side and will pass a reference to
     the server.  The server will then be able to make calls back to the client."""
 
-    def call(self, params, **kwargs):
+    async def call(self, params, **kwargs):
         """Note the **kwargs. This is very necessary to include, since
         protocols can add parameters over time. Also, by default, a _context
         variable is passed to all server methods, but you can also return
@@ -25,17 +25,14 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        usage="Connects to the Calculator server \
-at the given address and does some RPCs"
+        usage="Connects to the Calculator server at the given address and does some RPCs"
     )
     parser.add_argument("host", help="HOST:PORT")
 
     return parser.parse_args()
 
 
-async def main(host):
-    host, port = parse_args().host.split(":")
-    connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
+async def main(connection):
     client = capnp.TwoPartyClient(connection)
 
     # Bootstrap the Calculator interface
@@ -303,5 +300,10 @@ async def main(host):
     print("PASS")
 
 
+async def cmd_main(host):
+    host, port = host.split(":")
+    await main(await capnp.AsyncIoStream.create_connection(host=host, port=port))
+
+
 if __name__ == "__main__":
-    asyncio.run(main(parse_args().host))
+    asyncio.run(cmd_main(parse_args().host))

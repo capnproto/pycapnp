@@ -9,10 +9,9 @@ from capnp.includes.capnp_cpp cimport (
     SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr,
     String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject,
     DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, Promise,
-    CallContext, RpcSystem, makeRpcServerBootstrap, makeRpcClient, Capability as C_Capability,
-    TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own, makeTwoPartyVatNetwork,
-    PromiseFulfillerPair as C_PromiseFulfillerPair, copyPromiseFulfillerPair, newPromiseAndFulfiller,
-    PyArray, DynamicStruct_Builder, TwoWayPipe, PyRefCounter, PyAsyncIoStream
+    CallContext, RpcSystem, makeRpcServer, makeRpcClient, Capability as C_Capability,
+    TwoPartyVatNetwork as C_TwoPartyVatNetwork, Side, AsyncIoStream, Own,
+    DynamicStruct_Builder, PyRefCounter, PyAsyncIoStream
 )
 from capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from capnp.includes.types cimport *
@@ -161,7 +160,6 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
 cdef api object wrap_dynamic_struct_reader(Response & r) with gil
 cdef api Promise[void] * call_server_method(
     object server, char * _method_name, CallContext & _context) except * with gil
-cdef api convert_array_pyobject(PyArray & arr) with gil
 cdef api object wrap_kj_exception(capnp.Exception & exception) with gil
 cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil
 cdef api object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil

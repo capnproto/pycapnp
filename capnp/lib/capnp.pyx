@@ -10,8 +10,7 @@
 cimport cython  # noqa: E402
 
 from capnp.helpers.helpers cimport init_capnp_api
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, makeException
-from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, WaitScope, LowLevelAsyncIoProvider, AsyncIoProvider, newAsyncIoProvider, MonotonicClock, Timer, TimerImpl, systemPreciseMonotonicClock, MILLISECONDS, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, tryReadMessage, writeMessage, makeException
+from capnp.includes.capnp_cpp cimport AsyncIoStream, WaitScope, PyPromise, VoidPromise, EventPort, EventLoop, Canceler, PyAsyncIoStream, PromiseFulfiller, VoidPromiseFulfiller, tryReadMessage, writeMessage, makeException, PythonInterfaceDynamicImpl
 from capnp.includes.schema_cpp cimport (MessageReader,)
 
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer, memoryview, buffer
@@ -37,6 +36,7 @@ import threading as _threading
 import traceback as _traceback
 import warnings as _warnings
 import weakref as _weakref
+import traceback as _traceback
 
 from types import ModuleType as _ModuleType
 from operator import attrgetter as _attrgetter
@@ -60,12 +60,7 @@ def deregister_all_types():
 
 # By making it public, we'll be able to call it from capabilityHelper.h
 cdef api object wrap_dynamic_struct_reader(Response & r) with gil:
-    return _Response()._init_childptr(new Response(moveResponse(r)), None)
-
-
-cdef api object wrap_remote_call(object func, Response & r):
-    response = _Response()._init_childptr(new Response(moveResponse(r)), None)
-    return func(response)
+    return _Response()._init_childptr(new Response(move(r)), None)
 
 cdef _find_field_order(struct_node):
     return [f.name for f in sorted(struct_node.fields, key=_attrgetter('codeOrder'))]
@@ -85,7 +80,8 @@ def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
 
     exc = task.exception()
     if exc is not None:
-        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(str(exc))))
+        fulfiller.fulfiller.reject(makeException(capnp.StringPtr(''.join(
+            _traceback.format_exception(type(exc), exc, exc.__traceback__)))))
         return
 
     res = task.result()
@@ -124,27 +120,16 @@ cdef api VoidPromise * call_server_method(object server,
     func = getattr(server, method_name+'_context', None)
     if func is not None:
         ret = func(context)
-        if ret is not None:
-            if type(ret) is _VoidPromise:
-                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
-            elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
-            elif asyncio.iscoroutine(ret):
-                task = asyncio.create_task(ret)
-                callback = _partial(void_task_done_callback, method_name)
-                return new VoidPromise(helpers.taskToPromise(
-                    capnp.heap[PyRefCounter](<PyObject*>task),
-                    <PyObject*>callback))
-            else:
-                try:
-                    warning_msg = (
-                        "Server function ({}) returned a value that was not a Promise: return = {}"
-                        .format(method_name, str(ret)))
-                except Exception:
-                    warning_msg = 'Server function (%s) returned a value that was not a Promise' % (method_name)
-                _warnings.warn_explicit(
-                    warning_msg, UserWarning, _inspect.getsourcefile(func), _inspect.getsourcelines(func)[1])
-
+        if asyncio.iscoroutine(ret):
+            task = asyncio.create_task(ret)
+            callback = _partial(void_task_done_callback, method_name)
+            return new VoidPromise(helpers.taskToPromise(
+                capnp.heap[PyRefCounter](<PyObject*>task),
+                <PyObject*>callback))
+        else:
+            raise ValueError(
+                "Server function ({}) is not a coroutine"
+                .format(method_name, str(ret)))
     else:
         func = getattr(server, method_name) # will raise if no function found
         params = context.params
@@ -152,40 +137,18 @@ cdef api VoidPromise * call_server_method(object server,
         params_dict['_context'] = context
         ret = func(**params_dict)
 
-        if ret is not None:
-            if type(ret) is _VoidPromise:
-                return new VoidPromise(moveVoidPromise(deref((<_VoidPromise>ret).thisptr)))
-            elif type(ret) is _Promise:
-                return new VoidPromise(helpers.convert_to_voidpromise(move((<_Promise>ret).thisptr)))
-            elif asyncio.iscoroutine(ret):
-                async def finalize():
-                    fill_context(method_name, context, await ret)
-                task = asyncio.create_task(finalize())
-                callback = _partial(void_task_done_callback, method_name)
-                return new VoidPromise(helpers.taskToPromise(
-                    capnp.heap[PyRefCounter](<PyObject*>task),
-                    <PyObject*>callback))
-            else:
-                fill_context(method_name, context, ret)
-
-    return NULL
-
-
-cdef api object convert_array_pyobject(PyArray & arr) with gil:
-    return [<object>arr[i].get().obj for i in range(arr.size())]
-
-
-cdef api Own[Promise[Own[PyRefCounter]]] extract_promise(object obj):
-    if type(obj) is _Promise:
-        return move((<_Promise>obj).thisptr)
-    elif type(obj) is _RemotePromise:
-        parent = (<_RemotePromise>obj)._parent
-        # We don't need parent anymore. Setting to none allows quicker garbage collection
-        (<_RemotePromise>obj)._parent = None
-        return capnp.heap[PyPromise](helpers.convert_to_pypromise(move((<_RemotePromise>obj).thisptr))
-                                     .attach(capnp.heap[PyRefCounter](<PyObject *>parent)))
-    else:
-        return capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
+        if asyncio.iscoroutine(ret):
+            async def finalize():
+                fill_context(method_name, context, await ret)
+            task = asyncio.create_task(finalize())
+            callback = _partial(void_task_done_callback, method_name)
+            return new VoidPromise(helpers.taskToPromise(
+                capnp.heap[PyRefCounter](<PyObject*>task),
+                <PyObject*>callback))
+        else:
+            raise ValueError(
+                "Server function ({}) is not a coroutine"
+                .format(method_name, str(ret)))
 
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
@@ -218,7 +181,7 @@ cdef class _KjExceptionWrapper:
     cdef capnp.Exception * thisptr
 
     cdef _init(self, capnp.Exception & other):
-        self.thisptr = new capnp.Exception(moveException(other))
+        self.thisptr = new capnp.Exception(move(other))
         return self
 
     def __dealloc__(self):
@@ -339,13 +302,6 @@ ctypedef fused _DynamicSetterClasses:
     DynamicStruct_Builder
 
 
-ctypedef fused PromiseTypes:
-    _Promise
-    _RemotePromise
-    _VoidPromise
-    # PromiseFulfillerPair
-
-
 cdef extern from "Python.h":
     cdef int PyObject_GetBuffer(object, Py_buffer *view, int flags)
     cdef void PyBuffer_Release(Py_buffer *view)
@@ -359,20 +315,6 @@ cdef extern from "capnp/list.h" namespace " ::capnp":
         cppclass Builder:
             T operator[](uint) except +reraise_kj_exception
             uint size()
-
-
-cdef extern from "<utility>" namespace "std":
-    C_DynamicStruct.Pipeline moveStructPipeline"std::move"(C_DynamicStruct.Pipeline)
-    C_DynamicOrphan moveOrphan"std::move"(C_DynamicOrphan)
-    Request moveRequest"std::move"(Request)
-    Response moveResponse"std::move"(Response)
-    PyPromise movePromise"std::move"(PyPromise)
-    VoidPromise moveVoidPromise"std::move"(VoidPromise)
-    RemotePromise moveRemotePromise"std::move"(RemotePromise)
-    CallContext moveCallContext"std::move"(CallContext)
-    Own[AsyncIoStream] moveOwnAsyncIOStream"std::move"(Own[AsyncIoStream])
-    capnp.Exception moveException"std::move"(capnp.Exception)
-    capnp.AsyncIoContext moveAsyncContext"std::move"(capnp.AsyncIoContext)
 
 
 cdef extern from "<capnp/pretty-print.h>" namespace " ::capnp":
@@ -760,7 +702,7 @@ cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient valu
 
 cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
     cdef _InterfaceSchema schema = value.schema
-    return helpers.new_server(schema.thisptr, <PyObject *>value)
+    return C_DynamicValue.Reader(capnp.heap[PythonInterfaceDynamicImpl](schema.thisptr, <PyObject*> value))
 
 
 cdef C_DynamicValue.Reader _extract_dynamic_enum(_DynamicEnum value):
@@ -843,7 +785,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+    elif isinstance(value, _DynamicCapabilityServer):
         thisptr.set(field, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
@@ -892,7 +834,7 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
         thisptr.setByField(field.thisptr, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.setByField(field.thisptr, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+    elif isinstance(value, _DynamicCapabilityServer):
         thisptr.setByField(field.thisptr, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.setByField(field.thisptr, _extract_dynamic_enum(value))
@@ -941,7 +883,7 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
         thisptr.set(field, _extract_dynamic_struct_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
-    elif value_type is _DynamicCapabilityServer or isinstance(value, _DynamicCapabilityServer):
+    elif isinstance(value, _DynamicCapabilityServer):
         thisptr.set(field, _extract_dynamic_server(value))
     elif value_type is _DynamicEnum:
         thisptr.set(field, _extract_dynamic_enum(value))
@@ -1323,7 +1265,8 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`KjException` if this isn't the message's root struct.
         """
         self._check_write()
-        await _VoidPromise()._init(writeMessage(deref(stream.thisptr.get()), deref((<_MessageBuilder>self._parent).thisptr)))
+        await _voidpromise_to_asyncio(
+            writeMessage(deref(stream.thisptr), deref((<_MessageBuilder>self._parent).thisptr)))
         self._is_written = True
 
     def write_packed(self, file):
@@ -1691,12 +1634,12 @@ cdef class _DynamicStructPipeline:
 
 cdef class _DynamicOrphan:
     cdef _init(self, C_DynamicOrphan other, object parent):
-        self.thisptr = moveOrphan(other)
+        self.thisptr = move(other)
         self._parent = parent
         return self
 
     cdef C_DynamicOrphan move(self):
-        return moveOrphan(self.thisptr)
+        return move(self.thisptr)
 
     cpdef get(self):
         """Returns a python object corresponding to the DynamicValue owned by this orphan
@@ -1817,28 +1760,19 @@ cdef class _DynamicObjectBuilder:
 cdef void kjloop_runnable_callback(void* data) with gil:
     cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
     assert port.runHandle is not None
-    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
     port.kjLoop.run()
-
-cdef void kjloop_advance_callback(void* data) with gil:
-    cdef AsyncIoEventPort *port = <AsyncIoEventPort*>data
-    assert port.runHandle is not None
-    port.timerImpl.advanceTo(systemPreciseMonotonicClock().now())
 
 cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *kjLoop
-    TimerImpl *timerImpl;
     object asyncioLoop;
     object runHandle;
 
     __init__(object asyncioLoop):
         this.kjLoop = new EventLoop(deref(this))
-        this.timerImpl = new TimerImpl(systemPreciseMonotonicClock().now())
         this.runHandle = None
         this.asyncioLoop = asyncioLoop
 
     __dealloc__():
-        del this.timerImpl
         del this.kjLoop
 
     cbool wait() except* with gil:
@@ -1852,32 +1786,16 @@ cdef cppclass AsyncIoEventPort(EventPort):
 
     void setRunnable(cbool runnable) except* with gil:
         if runnable:
-            if this.runHandle is not None:
-                # If a timer was running, cancel it and schedule a run immediately
-                # The timer will be re-scheduled once the kj loop becomes un-runnable again.
-                this.runHandle.cancel()
+            assert this.runHandle is None
             us = <void*>this;
             this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
         else:
             assert this.runHandle is not None
             this.runHandle.cancel()
-            this.scheduleAdvance()
-
-    void scheduleAdvance() with gil:
-        cdef uint64_t nextEvent = this.timerImpl.timeoutToNextEvent(
-            systemPreciseMonotonicClock().now(), MILLISECONDS, -1).orDefault(-1)
-        if nextEvent == -1:
             this.runHandle = None
-        else:
-            seconds = <double>nextEvent / 1000
-            us = <void*>this;
-            this.runHandle = this.asyncioLoop.call_later(seconds, lambda: kjloop_advance_callback(us))
 
     EventLoop *getKjLoop():
         return this.kjLoop
-
-    Timer *getTimer():
-        return this.timerImpl;
 
 def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
     # The purpose of patching the asyncio close() function is to set up the kj-loop to be closed as well.
@@ -1885,55 +1803,27 @@ def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
     # references to it are gone. Then, if a new asyncio loop ever gets started, a new kj-loop can also be
     # started.
     _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _weakref.ref(kjloop)
-    loop.close = oldclose()
+    loop.close = oldclose
     return oldclose()
 
 cdef class _EventLoop:
     cdef object __weakref__ # Needed to make this class weak-referenceable
-    cdef Own[LowLevelAsyncIoProvider] lowLevelProvider
-    cdef Own[AsyncIoProvider] provider
-    cdef WaitScope * waitScope
-    cdef Timer* timer
-    cdef readonly in_asyncio_mode
-
-    cdef AsyncIoEventPort *customPort
+    cdef WaitScope* waitScope
+    cdef AsyncIoEventPort* customPort
 
     def __init__(self):
         self._init()
 
     cdef _init(self) except +reraise_kj_exception:
-        try:
-            loop = asyncio.get_running_loop()
-            self.customPort = new AsyncIoEventPort(loop)
-            kjLoop = self.customPort.getKjLoop()
-            self.waitScope = new WaitScope(deref(kjLoop))
-            self.timer = self.customPort.getTimer()
-            loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
-            self.in_asyncio_mode = True
-        except RuntimeError:
-            ptr = new capnp.AsyncIoContext(capnp.setupAsyncIo())
-            self.lowLevelProvider = move(ptr.lowLevelProvider)
-            self.provider = move(ptr.provider)
-            self.waitScope = &ptr.waitScope
-            self.timer = &self.lowLevelProvider.get().getTimer()
-            del ptr
-            self.in_asyncio_mode = False
+        loop = asyncio.get_running_loop()
+        self.customPort = new AsyncIoEventPort(loop)
+        kjLoop = self.customPort.getKjLoop()
+        self.waitScope = new WaitScope(deref(kjLoop))
+        loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
 
     def __dealloc__(self):
-        if not self.customPort == NULL:
-            # If we have a custom port, the waitscope is not owned by provider, we have to delete it manually
-            del self.waitScope
-            del self.customPort
-
-    cdef TwoWayPipe makeTwoWayPipe(self):
-        if self.in_asyncio_mode:
-            raise RuntimeError("Cannot call makeTwoWayPipe in asyncio mode")
-        return deref(self.provider).newTwoWayPipe()
-
-    cdef Own[AsyncIoStream] wrapSocketFd(self, int fd):
-        if self.in_asyncio_mode:
-            raise RuntimeError("Cannot call wrapSocketFd in asyncio mode")
-        return deref(self.lowLevelProvider).wrapSocketFd(fd)
+        del self.waitScope
+        del self.customPort
 
 
 _C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
@@ -1960,57 +1850,11 @@ cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
         return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
 
 
-cdef class _Timer:
-    cdef capnp.Timer * thisptr
-
-    cdef _init(self, capnp.Timer * timer):
-        self.thisptr = timer
-        return self
-
-    cpdef after_delay(self, time) except +reraise_kj_exception:
-        return _VoidPromise()._init(self.thisptr.afterDelay(capnp.Nanoseconds(time)))
-
-
-def getTimer():
-    """
-    Get libcapnp event loop timer
-    """
-    return _Timer()._init(C_DEFAULT_EVENT_LOOP_GETTER().timer)
-
-
-cpdef remove_event_loop():
-    '''Remove the event loop'''
-    global _C_DEFAULT_EVENT_LOOP_LOCAL
-
-    loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
-    if loop is not None:
-        loop._remove()
-        del _C_DEFAULT_EVENT_LOOP_LOCAL.loop
-
-
-def wait_forever():
-    """
-    Use libcapnp event loop to poll/wait forever
-    """
-    cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-    with nogil:
-        helpers.waitNeverDone(deref(loop.waitScope))
-
-
-def poll_once():
-    """
-    Poll libcapnp event loop once
-    """
-    cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-    with nogil:
-        loop.waitScope.poll()
-
-
 cdef class _CallContext:
     cdef CallContext * thisptr
 
     cdef _init(self, CallContext other):
-        self.thisptr = new CallContext(moveCallContext(other))
+        self.thisptr = new CallContext(move(other))
         return self
 
     def __dealloc__(self):
@@ -2034,146 +1878,51 @@ cdef class _CallContext:
         self.thisptr.allowCancellation()
 
     cpdef tail_call(self, _Request tailRequest):
-        promise = _VoidPromise()._init(self.thisptr.tailCall(moveRequest(deref(tailRequest.thisptr_child))))
-        return promise
+        return _voidpromise_to_asyncio(self.thisptr.tailCall(move(deref(tailRequest.thisptr_child))))
 
-cdef void _promise_check_consumed(PromiseTypes promise) except*:
-    if promise.thisptr.get() == NULL:
-        raise KjException(
-            "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
-cdef _promise_then(PromiseTypes self, func, error_func, num_args, attach=None) except +reraise_kj_exception:
-    _promise_check_consumed(self)
-
-    argspec = None
-    try:
-        argspec = _inspect.getfullargspec(func)
-    except (TypeError, ValueError):
-        pass
-    if argspec:
-        args_length = len(argspec.args) if argspec.args else 0
-        defaults_length = len(argspec.defaults) if argspec.defaults else 0
-        if args_length - defaults_length != num_args:
-            raise KjException(f'Function passed to `then` call must take exactly {num_args} arguments')
-
-    return _Promise()._init(
-        helpers.then(move(self.thisptr), capnp.heap[PyRefCounter](<PyObject *>func),
-                     capnp.heap[PyRefCounter](<PyObject *>error_func))
-        .attach(capnp.heap[PyRefCounter](<PyObject *> attach)))
-
-cdef _promise_to_asyncio(PromiseTypes promise):
-    _promise_check_consumed(promise)
-
+cdef _promise_to_asyncio(PyPromise promise):
     fut = asyncio.get_running_loop().create_future()
+    def success(res):   return fut.set_result(res)    if not fut.cancelled() else None
+    def exception(err): return fut.set_exception(err) if not fut.cancelled() else None
+    def done(fut): return fut.kjpromise.cancel() if fut.cancelled() else None
     # Attach the promise to the future, so that it doesn't get destroyed
-    fut.kjpromise = promise.then(
-        lambda res: fut.set_result(res)    if not fut.cancelled() else None,
-        lambda err: fut.set_exception(err) if not fut.cancelled() else None)
-    del promise
-    fut.add_done_callback(
-        lambda fut: fut.kjpromise.cancel() if fut.cancelled() else None)
+    fut.kjpromise = _Promise()._init(helpers.then(
+        move(promise),
+        capnp.heap[PyRefCounter](<PyObject *>success),
+        capnp.heap[PyRefCounter](<PyObject *>exception)))
+    fut.add_done_callback(done)
     return fut
+
+cdef _voidpromise_to_asyncio(VoidPromise promise):
+    return _promise_to_asyncio(helpers.convert_to_pypromise(move(promise)))
 
 cdef class _Promise:
     cdef Own[PyPromise] thisptr
 
-    def __init__(self, obj=None):
-        if obj is not None:
-            self.thisptr = capnp.heap[PyPromise](capnp.heap[PyRefCounter](<PyObject *>obj))
-
     cdef _init(self, PyPromise other):
-        self.thisptr = capnp.heap[PyPromise](movePromise(other))
+        self.thisptr = capnp.heap[PyPromise](move(other))
         return self
-
-    cpdef wait(self) except +reraise_kj_exception:
-        _promise_check_consumed(self)
-        cdef Own[PyPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
-        cdef Own[PyRefCounter] ret
-        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        with nogil:
-            ret = move(prom.get().wait(deref(loop.waitScope)))
-        return <object>ret.get().obj
-
-    async def a_wait(self):
-        """
-        Asyncio version of wait().
-        Required when using asyncio for socket communication.
-
-        Will still work with non-asyncio socket communication, but requires async handling of the function call.
-        """
-        return await _promise_to_asyncio(self)
-
-    def __await__(self):
-        return _promise_to_asyncio(self).__await__()
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        return _promise_then(self, func, error_func, 1)
 
     cpdef cancel(self) except +reraise_kj_exception:
         self.thisptr = Own[PyPromise]()
 
 
-cdef class _VoidPromise:
-    cdef Own[VoidPromise] thisptr
-
-
-    cdef _init(self, VoidPromise other):
-        self.thisptr = capnp.heap[VoidPromise](moveVoidPromise(other))
-        return self
-
-    cpdef wait(self) except +reraise_kj_exception:
-        _promise_check_consumed(self)
-        cdef Own[VoidPromise] prom = move(self.thisptr) # Explicit move to not leave thisptr dangling
-        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        with nogil:
-            prom.get().wait(deref(loop.waitScope))
-
-    async def a_wait(self):
-        """
-        Asyncio version of wait().
-        Required when using asyncio for socket communication.
-
-        Will still work with non-asyncio socket communication, but requires async handling of the function call.
-        """
-        # TODO: Is keeping a separate _VoidPromise class really worth it? Does it make things faster?
-        return await _promise_to_asyncio[_Promise](self.as_pypromise())
-
-    def __await__(self):
-        return _promise_to_asyncio[_Promise](self.as_pypromise()).__await__()
-
-    cpdef as_pypromise(self) except +reraise_kj_exception:
-        _promise_check_consumed(self)
-        return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr)))
-
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        return _promise_then(self, func, error_func, 0)
-
-    cpdef cancel(self) except +reraise_kj_exception:
-        self.thisptr = Own[VoidPromise]()
-
-
-
 cdef class _RemotePromise:
     cdef object _parent
-    """A pointer to a parent object that needs to be kept alive for this promise to function.
-    Note that _Promise and _VoidPromise don't have such pointer. The reason is that in _RemotePromise
-    the parent pointer needs to be passed around through _RemotePromise._get. If an object needs to
-    be kept alive in _Promise or _VoidPromise, it can be attached to the underlying C++ promise."""
+    """A pointer to a parent object that needs to be kept alive for this promise to function."""
 
     cdef Own[RemotePromise] thisptr
 
     cdef _init(self, RemotePromise other, object parent=None):
-        self.thisptr = capnp.heap[RemotePromise](moveRemotePromise(other))
+        self.thisptr = capnp.heap[RemotePromise](move(other))
         self._parent = parent
         return self
 
-    cpdef wait(self) except +reraise_kj_exception:
-        """Wait on the promise. This will block until the promise has completed."""
-        _promise_check_consumed(self)
-        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        with nogil:
-            response = helpers.waitRemote(move(self.thisptr), deref(loop.waitScope))
-        return _Response()._init_childptr(response, None)
+    cdef void _check_consumed(self) except*:
+        if self.thisptr.get() == NULL:
+            raise KjException(
+                "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
     async def a_wait(self):
         """
@@ -2182,20 +1931,17 @@ cdef class _RemotePromise:
 
         Will still work with non-asyncio socket communication, but requires async handling of the function call.
         """
-        return await _promise_to_asyncio(self)
+        self._check_consumed()
+        cdef Own[RemotePromise] thisptr = move(self.thisptr)
+        return await _promise_to_asyncio(helpers.convert_to_pypromise(move(deref(thisptr))))
 
     def __await__(self):
-        return _promise_to_asyncio(self).__await__()
-
-    cpdef as_pypromise(self) except +reraise_kj_exception:
-        _promise_check_consumed(self)
-        parent = self._parent
-        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
-        return _Promise()._init(helpers.convert_to_pypromise(move(self.thisptr))
-                                .attach(capnp.heap[PyRefCounter](<PyObject *>parent)))
+        self._check_consumed()
+        cdef Own[RemotePromise] thisptr = move(self.thisptr)
+        return _promise_to_asyncio(helpers.convert_to_pypromise(move(deref(thisptr)))).__await__()
 
     cpdef _get(self, field) except +reraise_kj_exception:
-        _promise_check_consumed(self)
+        self._check_consumed()
         cdef int type = (<C_DynamicValue.Pipeline>self.thisptr.get().get(field)).getType()
         if type == capnp.TYPE_CAPABILITY:
             return _DynamicCapabilityClient()._init(
@@ -2218,7 +1964,7 @@ cdef class _RemotePromise:
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
         def __get__(self):
-            _promise_check_consumed(self)
+            self._check_consumed()
             return _StructSchema()._init_child(self.thisptr.get().getSchema())
 
     def __dir__(self):
@@ -2227,35 +1973,9 @@ cdef class _RemotePromise:
     def to_dict(self, verbose=False, ordered=False):
         return _to_dict(self, verbose, ordered)
 
-    cpdef then(self, func, error_func=None) except +reraise_kj_exception:
-        parent = self._parent
-        self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
-        return _promise_then(self, func, error_func, 1, attach=parent)
-
     cpdef cancel(self) except +reraise_kj_exception:
         self.thisptr = Own[RemotePromise]()
         self._parent = None # We don't need parent anymore. Setting to none allows quicker garbage collection
-
-
-cpdef join_promises(promises) except +reraise_kj_exception:
-    heap = capnp.heapArrayBuilderPyPromise(len(promises))
-
-    new_promises = []
-    new_promises_append = new_promises.append
-
-    for promise in promises:
-        promise_type = type(promise)
-        if promise_type is _Promise:
-            pyPromise = <_Promise>promise
-        elif promise_type is _RemotePromise or promise_type is _VoidPromise:
-            pyPromise = <_Promise>promise.as_pypromise()
-            new_promises_append(pyPromise)
-        else:
-            raise KjException(
-                "One of the promises passed to `join_promises` had a non promise value of: {}".format(promise))
-        heap.add(movePromise(deref(pyPromise.thisptr)))
-
-    return _Promise()._init(helpers.then(capnp.joinPromises(heap.finish())))
 
 
 cdef class _Request(_DynamicStructBuilder):
@@ -2263,7 +1983,7 @@ cdef class _Request(_DynamicStructBuilder):
     cdef public bint is_consumed
 
     cdef _init_child(self, Request other, parent):
-        self.thisptr_child = new Request(moveRequest(other))
+        self.thisptr_child = new Request(move(other))
         self._init(<DynamicStruct_Builder>deref(self.thisptr_child), parent)
         self.is_consumed = False
         return self
@@ -2282,7 +2002,7 @@ cdef class _Response(_DynamicStructReader):
     cdef Response * thisptr_child
 
     cdef _init_child(self, Response other, parent):
-        self.thisptr_child = new Response(moveResponse(other))
+        self.thisptr_child = new Response(move(other))
         self._init(<C_DynamicStruct.Reader>deref(self.thisptr_child), parent)
         return self
 
@@ -2295,29 +2015,16 @@ cdef class _Response(_DynamicStructReader):
         return self
 
 cdef class _DynamicCapabilityServer:
-    cdef public _InterfaceSchema schema
-    cdef public object server
-
-    def __init__(self, schema, server):
-        cdef _InterfaceSchema s
-        if hasattr(schema, 'schema'):
-            s = schema.schema
-        else:
-            s = schema
-
-        self.schema = s
-        self.server = server
-
-    def __getattr__(self, field):
-        try:
-            return getattr(self.server, field)
-        except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
-
+    pass
 
 cdef class _DynamicCapabilityClient:
     cdef C_DynamicCapability.Client thisptr
     cdef public object _parent, _cached_schema
+
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = C_DynamicCapability.Client()
 
     cdef _init(self, C_DynamicCapability.Client other, object parent):
         self.thisptr = other
@@ -2331,7 +2038,8 @@ cdef class _DynamicCapabilityClient:
         else:
             s = schema
 
-        self.thisptr = helpers.new_client(s.thisptr, <PyObject *>server)
+        self.thisptr = C_DynamicCapability.Client(
+            capnp.heap[PythonInterfaceDynamicImpl](s.thisptr, <PyObject *>server))
         self._parent = server
         return self
 
@@ -2456,250 +2164,96 @@ cdef class _TwoPartyVatNetwork:
 
     cdef _init(self, _AsyncIoStream stream, Side side, schema_cpp.ReaderOptions opts):
         self.stream = stream
-        self.thisptr = makeTwoPartyVatNetwork(deref(stream.thisptr), side, opts)
-        return self
-
-    cdef _init_pipe(self, _TwoWayPipe pipe, Side side, schema_cpp.ReaderOptions opts):
-        self.thisptr = makeTwoPartyVatNetwork(deref(pipe._pipe.ends[0]), side, opts)
+        self.thisptr = capnp.heap[C_TwoPartyVatNetwork](deref(stream.thisptr), side, opts)
         return self
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
-        return _VoidPromise()._init(deref(self.thisptr).onDisconnect())
+        return _voidpromise_to_asyncio(deref(self.thisptr).onDisconnect())
 
 
 cdef class TwoPartyClient:
     """
     TwoPartyClient for RPC Communication
 
-    Can be initialized using a socket wrapper (libcapnp) or using asyncio controlled sockets.
-
-    :param socket: Can be a string defining a socket (e.g. localhost:12345) or a file descriptor for a socket.
-                   Passes socket directly to libcapnp. Do not use with asyncio.
+    :param socket: AsyncIoStream
     :param traversal_limit_in_words: Pointer derefence limit (see https://capnproto.org/cxx.html).
     :param nesting_limit: Recursive limit when reading types (see https://capnproto.org/cxx.html).
     """
-    cdef RpcSystem * thisptr
-    cdef public _TwoPartyVatNetwork _network
-    cdef public _TwoWayPipe _pipe
+    cdef Own[RpcSystem] thisptr
+    cdef _TwoPartyVatNetwork _network
+
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = Own[RpcSystem]()
 
     def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
-        if isinstance(socket, basestring):
-            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
-                raise RuntimeError("Pycapnp is in asyncio mode. Pass a AsyncIoStream")
-            socket = self._connect(socket)
 
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
-        if socket is None:
-            # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
-            self._pipe = _TwoWayPipe()
-            self._network = _TwoPartyVatNetwork()._init_pipe(self._pipe, capnp.CLIENT, opts)
-        elif isinstance(socket, _AsyncIoStream):
+        if isinstance(socket, _AsyncIoStream):
             self._network = _TwoPartyVatNetwork()._init(socket, capnp.CLIENT, opts)
-        elif isinstance(socket, _socket.socket):
-            stream = _FdAsyncIoStream(socket)
-            self._network = _TwoPartyVatNetwork()._init(stream, capnp.CLIENT, opts)
         else:
-            raise ValueError(f"Argument socket should be a string, socket, AsyncIoStream or None, was {type(socket)}")
+            raise ValueError(f"Argument socket should be a AsyncIoStream, was {type(socket)}")
 
-        self.thisptr = new RpcSystem(makeRpcClient(deref(self._network.thisptr)))
-
-    async def read(self, bufsize):
-        """
-        libcapnp reader (asyncio sockets only)
-
-        :param bufsize: Buffer size to read from the libcapnp library
-        """
-
-        cdef array.array read_buffer = array.array('b', [])
-        array.resize(read_buffer, bufsize)
-        read_size_actual = await _Promise()._init(
-            helpers.wrapSizePromise(
-                self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-        array.resize(read_buffer, read_size_actual)
-        return read_buffer
-
-    async def write(self, data):
-        """
-        libcapnp writer (asyncio sockets only)
-
-        :param data: Buffer to write to the libcapnp library
-        """
-        cdef array.array write_buffer = array.array('b', data)
-        await _VoidPromise()._init(
-            deref(self._pipe._pipe.ends[1]).write(
-                write_buffer.data.as_voidptr,
-                len(data)
-            ))
-
-    def __dealloc__(self):
-        if not self.thisptr == NULL:
-            del self.thisptr
-
-    def _connect(self, host_string):
-        if host_string.startswith('unix:'):
-            path = host_string[5:]
-            sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
-            sock.connect(path)
-        else:
-            host, port = host_string.split(':')
-            sock = _socket.create_connection((host, port))
-            # Set TCP_NODELAY on socket to disable Nagle's algorithm. This is not
-            # neccessary, but it speeds things up.
-            sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
-        return sock
+        self.thisptr = capnp.heap[RpcSystem](makeRpcClient(deref(self._network.thisptr)))
 
     cpdef bootstrap(self) except +reraise_kj_exception:
         return _CapabilityClient()._init(helpers.bootstrapHelper(deref(self.thisptr)), self)
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
-        return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
+        return self._network.on_disconnect()
 
 
 cdef class TwoPartyServer:
     """
     TwoPartyServer for RPC Communication
 
-    Can be initialized using a socket wrapper (libcapnp) or using asyncio controlled sockets.
-
-    :param socket: Can be a string defining a socket (e.g. localhost:12345, also supports *:12345)
-                   or a file descriptor for a socket.
-                   Passes socket directly to libcapnp. Do not use with asyncio.
+    :param socket: AsyncIoStream
     :param bootstrap: Class object defining the implementation of the Cap'n'proto interface.
     :param traversal_limit_in_words: Pointer derefence limit (see https://capnproto.org/cxx.html).
     :param nesting_limit: Recursive limit when reading types (see https://capnproto.org/cxx.html).
     """
-    cdef RpcSystem * thisptr
-    cdef public _TwoPartyVatNetwork _network
-    cdef public _TwoWayPipe _pipe
-    cdef object _port
-    cdef public object port_promise, _bootstrap
-    cdef capnp.TaskSet * _task_set
-    cdef capnp.ErrorHandler _error_handler
+    cdef Own[RpcSystem] thisptr
+    cdef _TwoPartyVatNetwork _network
+
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = Own[RpcSystem]()
 
     def __init__(self, socket=None, bootstrap=None, traversal_limit_in_words=None, nesting_limit=None):
         if not bootstrap:
             raise KjException("You must provide a bootstrap interface to a server constructor.")
 
-        cdef _InterfaceSchema schema
-        self._bootstrap = None
-
-        if isinstance(socket, basestring):
-            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
-                raise RuntimeError("Pycapnp is in asyncio mode. Please start an asyncio server using"
-                                   "TwoPartyClient.create_server and pass any resulting connection to this class.")
-            self._connect(socket, bootstrap, traversal_limit_in_words, nesting_limit)
-            return
-
         opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         if isinstance(socket, _AsyncIoStream):
             self._network = _TwoPartyVatNetwork()._init(socket, capnp.SERVER, opts)
-        elif isinstance(socket, _socket.socket):
-            if C_DEFAULT_EVENT_LOOP_GETTER().in_asyncio_mode:
-                raise RuntimeError("Pycapnp is in asyncio mode. Please pass an AsyncIoStream instance.")
-            stream = _FdAsyncIoStream(socket)
-            self._network = _TwoPartyVatNetwork()._init(stream, capnp.SERVER, opts)
-        elif socket is None:
-            # Initialize TwoWayPipe, to use pipe() acquire other end of the pipe using read() and write() methods
-            self._pipe = _TwoWayPipe()
-            self._network = _TwoPartyVatNetwork()._init_pipe(
-                self._pipe, capnp.SERVER, opts)
         else:
-            raise KjException("Unexpected typ for socket in TwoPartyServer")
+            raise ValueError(f"Argument socket should be a AsyncIoStream, was {type(socket)}")
 
-        self._port = 0
-
-        if bootstrap:
-            self._bootstrap = bootstrap
-            schema = bootstrap.schema
-            self.thisptr = new RpcSystem(makeRpcServerBootstrap(
-                deref(self._network.thisptr), helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap)))
-
-    async def read(self, bufsize):
-        """
-        libcapnp reader (asyncio sockets only)
-
-        :param bufsize: Buffer size to read from the libcapnp library
-        """
-        cdef array.array read_buffer = array.array('b', [])
-        array.resize(read_buffer, bufsize)
-        read_size_actual = await _Promise()._init(
-            helpers.wrapSizePromise(
-                self._pipe._pipe.ends[1].get().read(read_buffer.data.as_voidptr, 1, bufsize)))
-        array.resize(read_buffer, read_size_actual)
-        return read_buffer
-
-    async def write(self, data):
-        """
-        libcapnp writer (asyncio sockets only)
-
-        :param data: Buffer to write to the libcapnp library
-        """
-        cdef array.array write_buffer = array.array('b', data)
-        await _VoidPromise()._init(
-            deref(self._pipe._pipe.ends[1]).write(
-                write_buffer.data.as_voidptr,
-                len(data)
-            ))
-
-    cpdef _connect(self, host_string, bootstrap, traversal_limit_in_words, nesting_limit):
-        cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
-        cdef _InterfaceSchema schema
-        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        cdef capnp.StringPtr temp_string = capnp.StringPtr(<char*>host_string, len(host_string))
-        self._task_set = new capnp.TaskSet(self._error_handler)
-
-        self._bootstrap = bootstrap
-        schema = bootstrap.schema
-        self.port_promise = _Promise()._init(
-            helpers.connectServer(
-                deref(self._task_set),
-                helpers.server_to_client(schema.thisptr, <PyObject *>bootstrap),
-                loop.provider.get(), temp_string, opts))
-
-    def __dealloc__(self):
-        del self.thisptr
-        del self._task_set
-
-    cpdef on_disconnect(self) except +reraise_kj_exception:
-        if self._task_set != NULL:
-            raise KjException("Currently, you can only call on_disconnect on a server without an internal socket")
-        return _VoidPromise()._init(deref(self._network.thisptr).onDisconnect())
-
-    def poll_once(self):
-        """
-        Poll libcapnp library one cycle.
-        """
-        return poll_once()
-
-    async def poll_forever(self):
-        """Deprecated. Do not use.
-        Poll libcapnp library forever (asyncio)
-        """
-        raise KjException("This functionality has been removed. If you wish to wait forever, use \n" +
-                          "'await asyncio._get_running_loop().create_future()'")
-
-    cpdef run_forever(self):
-        if self.port_promise is None:
-            raise KjException("You must pass a string as the socket parameter in __init__ to use this function")
-
-        wait_forever()
+        cdef _InterfaceSchema schema = bootstrap.schema
+        self.thisptr = capnp.heap[RpcSystem](makeRpcServer(
+            deref(self._network.thisptr),
+            C_DynamicCapability.Client(capnp.heap[PythonInterfaceDynamicImpl](
+                schema.thisptr, <PyObject *>bootstrap))))
 
     cpdef bootstrap(self) except +reraise_kj_exception:
         return _CapabilityClient()._init(helpers.bootstrapHelperServer(deref(self.thisptr)), self)
 
-    property port:
-        def __get__(self):
-            if self._port is None:
-                self._port = self.port_promise.wait()
-                return self._port
-            else:
-                return self._port
+    cpdef on_disconnect(self) except +reraise_kj_exception:
+        return _voidpromise_to_asyncio(deref(self._network.thisptr).onDisconnect()
+                                       .attach(capnp.heap[PyRefCounter](<PyObject*>self)))
 
 
 cdef class _AsyncIoStream:
     cdef Own[AsyncIoStream] thisptr
     cdef _EventLoop _event_loop # We hold a pointer to the event loop here, to ensure it remains alive
+
+    def __dealloc__(self):
+        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # appropriately
+        self.thisptr = Own[AsyncIoStream]()
 
     @staticmethod
     async def create_connection(host = None, port = None, **kwargs):
@@ -2789,7 +2343,7 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
     cdef cbool read_eof
 
     # TODO: Temporary. This is an overflow buffer, which is needed for two blatant violations of the protocol.
-    #       The first violation is int the SSL transport implementation.
+    #       The first violation is in the the SSL transport implementation.
     #       See https://github.com/python/cpython/issues/89322, fixed in Python 3.11. This bug causes the
     #       SSL transport to force data upon us even when we've asked it to pause sending us data. Therefore,
     #       we have to store the data in a overflow buffer.
@@ -2968,53 +2522,6 @@ cdef api void _asyncio_stream_close(object thisptr) except*:
     # Careful, the transport object may have already been partially destroyed here.
     if self.transport is not None and hasattr(self.transport, "close"):
         self.transport.close()
-
-cdef class _TwoWayPipe:
-    cdef _EventLoop _event_loop
-    cdef TwoWayPipe _pipe
-
-    def __init__(self):
-        self._init()
-
-    cpdef _init(self) except +reraise_kj_exception:
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        # Create two way pipe using AsyncIoContext
-        self._pipe = self._event_loop.makeTwoWayPipe()
-
-
-cdef class _FdAsyncIoStream(_AsyncIoStream):
-    """Wraps a socket for usage with pycapnp.
-    Note that this class does not own the socket. Instead, it receives the fileno from a python object,
-    which will continue to own it. This object is kept alive as long as this class is alive. Ultimately,
-    the python object is responsible for closing."""
-    cdef object _socket
-
-    def __init__(self, object socket):
-        self._socket = socket
-        self._init(socket.fileno())
-
-    cdef _init(self, int fd) except +reraise_kj_exception:
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
-        self.thisptr = self._event_loop.wrapSocketFd(fd)
-
-    def __dealloc__(self):
-        # The AsyncIoStream must be destroyed before self._socket is removed, to ensure the socket is still
-        # open when the destructor is called. Therefore, we do this manually to have control over the ordering
-        self.thisptr = Own[AsyncIoStream]()
-
-
-cdef class PromiseFulfillerPair:
-    cdef Own[C_PromiseFulfillerPair] thisptr
-    cdef public bint is_consumed
-    cdef public _VoidPromise promise
-
-    def __init__(self):
-        self.thisptr = copyPromiseFulfillerPair(newPromiseAndFulfiller())
-        self.is_consumed = False
-        self.promise = _VoidPromise()._init(moveVoidPromise(deref(self.thisptr).promise))
-
-    cpdef fulfill(self):
-        deref(deref(self.thisptr).fulfiller).fulfill()
 
 
 cdef class _Schema:
@@ -3511,7 +3018,7 @@ class _StructModule(object):
 
         :rtype: :class:`_DynamicStructReader`"""
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
-        reader = await _Promise()._init(tryReadMessage(deref(stream.thisptr.get()), opts))
+        reader = await _promise_to_asyncio(tryReadMessage(deref(stream.thisptr), opts))
         if reader is None:
             return
         return reader.get_root(self.schema)
@@ -3702,10 +3209,6 @@ class _InterfaceModule(object):
     def _new_client(self, server):
         C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
         return _DynamicCapabilityClient()._init_vals(self.schema, server)
-
-    def _new_server(self, server):
-        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
-        return _DynamicCapabilityServer(self.schema, server)
 
 
 class _EnumModule(object):
