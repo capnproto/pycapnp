@@ -446,6 +446,12 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             DynamicStruct.Pipeline asStruct"releaseAs< ::capnp::DynamicStruct>"()
             Type getType()
 
+cdef extern from "capnp/schema-loader.h" namespace " ::capnp":
+    cdef cppclass SchemaLoader:
+        SchemaLoader()
+        Schema load(Node.Reader reader) except +reraise_kj_exception
+        Schema get(uint64_t id_) except +reraise_kj_exception
+
 cdef extern from "capnp/schema-parser.h" namespace " ::capnp":
     cdef cppclass ParsedSchema(Schema) nogil:
         ParsedSchema getNested(char * name) except +reraise_kj_exception

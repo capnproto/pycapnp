@@ -5,7 +5,7 @@ from capnp.includes cimport schema_cpp
 from capnp.includes.capnp_cpp cimport (
     Schema as C_Schema, StructSchema as C_StructSchema, InterfaceSchema as C_InterfaceSchema,
     EnumSchema as C_EnumSchema, ListSchema as C_ListSchema, DynamicStruct as C_DynamicStruct,
-    DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList,
+    DynamicValue as C_DynamicValue, Type as C_Type, DynamicList as C_DynamicList, SchemaLoader as C_SchemaLoader,
     SchemaParser as C_SchemaParser, ParsedSchema as C_ParsedSchema, VOID, ArrayPtr, StringPtr,
     String, StringTree, DynamicOrphan as C_DynamicOrphan, AnyPointer as C_DynamicObject,
     DynamicCapability as C_DynamicCapability, Request, Response, RemotePromise, Promise,
@@ -29,6 +29,9 @@ cdef class _StringArrayPtr:
     cdef object parent
     cdef size_t size
     cdef ArrayPtr[StringPtr] asArrayPtr(self) except +reraise_kj_exception
+
+cdef class SchemaLoader:
+    cdef C_SchemaLoader * thisptr
 
 cdef class SchemaParser:
     cdef C_SchemaParser * thisptr
