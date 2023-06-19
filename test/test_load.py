@@ -121,7 +121,7 @@ def test_bundled_import_hook():
     import stream_capnp  # noqa: F401
 
 
-def test_load_capnp(foo):
+async def test_load_capnp(foo):
     # test dynamically loading
     loader = capnp.SchemaLoader()
     loader.load(foo.Baz.schema.get_proto())
@@ -133,7 +133,7 @@ def test_load_capnp(foo):
     assert schema.fields["qux"].proto.slot.type.which == "struct"
 
     class Wrapper(foo.Wrapper.Server):
-        def wrapped(self, object, **kwargs):
+        async def wrapped(self, object, **kwargs):
             assert isinstance(object, capnp.lib.capnp._DynamicObjectReader)
             baz_ = object.as_struct(schema)
             assert baz_.text == "test"
@@ -145,4 +145,5 @@ def test_load_capnp(foo):
     baz_.qux.id = 2
 
     wrapper = foo.Wrapper._new_client(Wrapper())
-    wrapper.wrapped(baz_).wait()
+    remote = wrapper.wrapped(baz_)
+    await remote
