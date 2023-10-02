@@ -38,25 +38,27 @@ cd pycapnp
 pip install .
 ```
 
+By default, the setup script will automatically use the locally installed Cap'n Proto.
+If Cap'n Proto is not installed, it will bundle and build the matching Cap'n Proto library.
+
+To enforce bundling, the Cap'n Proto library:
+
+```bash
+pip install . -C force-bundled-libcapnp=True
+```
+
 If you wish to install using the latest upstream C++ Cap'n Proto:
 
 ```bash
-pip install \
-    --install-option "--libcapnp-url" \
-    --install-option "https://github.com/capnproto/capnproto/archive/master.tar.gz" \
-    --install-option "--force-bundled-libcapnp" .
+pip install . \
+    -C force-bundled-libcapnp=True \
+    -C libcapnp-url="https://github.com/capnproto/capnproto/archive/master.tar.gz"
 ```
 
-To force bundled python:
+To enforce using the installed Cap'n Proto from the system:
 
 ```bash
-pip install --install-option "--force-bundled-libcapnp" .
-```
-
-Slightly more prompt error messages using distutils rather than pip.
-
-```bash
-python setup.py install --force-bundled-libcapnp
+pip install . -C force-system-libcapnp=True
 ```
 
 The bundling system isn't that smart so it might be necessary to clean up the bundled build when changing versions:
@@ -92,18 +94,11 @@ pipenv run pytest
 
 ### Binary Packages
 
-Building a dumb binary distribution:
+Building a Python wheel distributiion
 
 ```bash
-python setup.py bdist_dumb
+pip wheel .
 ```
-
-Building a Python wheel distributiion:
-
-```bash
-python setup.py bdist_wheel
-```
-
 
 ## Documentation/Example
 
