@@ -1912,9 +1912,6 @@ cdef class _CallContext:
     cpdef release_params(self):
         self.thisptr.releaseParams()
 
-    cpdef allow_cancellation(self):
-        self.thisptr.allowCancellation()
-
     cpdef tail_call(self, _Request tailRequest):
         return _voidpromise_to_asyncio(self.thisptr.tailCall(move(deref(tailRequest.thisptr_child))))
 

@@ -476,7 +476,6 @@ cdef extern from "capnp/capability.h" namespace " ::capnp":
         # void adoptResults(Orphan<Results>&& value);
         # Orphanage getResultsOrphanage(uint firstSegmentWordSize = 0);
         VoidPromise tailCall(Request & tailRequest)
-        void allowCancellation() except +reraise_kj_exception
 
 cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass EventPort:

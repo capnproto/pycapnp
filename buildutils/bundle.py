@@ -26,7 +26,7 @@ pjoin = os.path.join
 #
 
 
-bundled_version = (0, 10, 3)
+bundled_version = (1, 0, 1)
 libcapnp_name = "capnproto-c++-%i.%i.%i.tar.gz" % (bundled_version)
 libcapnp_url = "https://capnproto.org/" + libcapnp_name
 
@@ -50,8 +50,13 @@ def localpath(*args):
     return os.path.abspath(pjoin(*plist))
 
 
-def fetch_archive(savedir, url, fname, force=False):
+def fetch_archive(savedir, url, force=False):
     """download an archive to a specific location"""
+    req = urlopen(url)
+    # Lookup filename
+    fname = req.info().get_filename()
+    if not fname:
+        fname = os.path.basename(url)
     dest = pjoin(savedir, fname)
     if os.path.exists(dest) and not force:
         print("already have %s" % fname)
@@ -59,7 +64,6 @@ def fetch_archive(savedir, url, fname, force=False):
     print("fetching %s into %s" % (url, savedir))
     if not os.path.exists(savedir):
         os.makedirs(savedir)
-    req = urlopen(url)
     with open(dest, "wb") as f:
         f.write(req.read())
     return dest
@@ -80,7 +84,7 @@ def fetch_libcapnp(savedir, url=None):
     if os.path.exists(dest):
         print("already have %s" % dest)
         return
-    fname = fetch_archive(savedir, url, libcapnp_name)
+    fname = fetch_archive(savedir, url)
     tf = tarfile.open(fname)
     with_version = pjoin(savedir, tf.firstmember.path)
     tf.extractall(savedir)

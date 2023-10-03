@@ -13,7 +13,7 @@ To force rebuilding the pip package from source (you'll need requirments.txt or 
 
     pip install --no-binary :all: pycapnp
 
-To force bundling libcapnp (or force system libcapnp), just in case setup.py isn't doing the right thing::
+To force bundling libcapnp (or force system libcapnp), just in case pip isn't doing the right thing::
 
     pip install --no-binary :all: -C force-bundled-libcapnp=True
     pip install --no-binary :all: -C force-system-libcapnp=True
@@ -50,11 +50,6 @@ And install pycapnp with::
     cd pycapnp
     pip install .
 
-or::
-
-    cd pycapnp
-    python setup.py install
-
 
 Development
 -----------
@@ -72,21 +67,15 @@ Building::
     cd pycapnp
     pip install .
 
-or::
-
-    cd pycapnp
-    python setup.py install
-
 Useful targets for setup.py::
 
-    python setup.py build
     python setup.py clean
 
-Useful command-line arguments are available for setup.py::
+Useful command-line arguments are available for pip install::
 
-    --force-bundled-libcapnp
-    --force-system-libcapnp
-    --libcapnp-url
+    -C force-bundled-libcapnp=True
+    -C force-system-libcapnp=True
+    -C libcapnp-url="https://github.com/capnproto/capnproto/archive/master.tar.gz"
 
 Testing is done through pytest::
 

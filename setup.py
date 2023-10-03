@@ -22,10 +22,10 @@ from buildutils.build import build_libcapnp
 from buildutils.bundle import fetch_libcapnp
 
 
-MAJOR = 1
-MINOR = 3
+MAJOR = 2
+MINOR = 0
 MICRO = 0
-TAG = ""
+TAG = "b1"
 VERSION = "%d.%d.%d%s" % (MAJOR, MINOR, MICRO, TAG)
 
 
@@ -170,15 +170,16 @@ class build_libcapnp_ext(build_ext_c):
             else:
                 print("capnproto already built at {}".format(build_dir))
 
-            self.include_dirs += [os.path.join(build_dir, "include")]
-            self.library_dirs += [
-                os.path.join(build_dir, "lib{}".format(8 * struct.calcsize("P")))
-            ]
-            self.library_dirs += [os.path.join(build_dir, "lib")]
+            self.include_dirs = [os.path.join(build_dir, "include")] + self.include_dirs
+            self.library_dirs = [
+                os.path.join(build_dir, "lib{}".format(8 * struct.calcsize("P"))),
+                os.path.join(build_dir, "lib"),
+            ] + self.library_dirs
 
             # Copy .capnp files from source
             src_glob = glob.glob(os.path.join(build_dir, "include", "capnp", "*.capnp"))
             dst_dir = os.path.join(self.build_lib, "capnp")
+            os.makedirs(dst_dir, exist_ok=True)
             for file in src_glob:
                 print("copying {} -> {}".format(file, dst_dir))
                 shutil.copy(file, dst_dir)
@@ -253,10 +254,11 @@ setup(
         "Operating System :: POSIX",
         "Programming Language :: C++",
         "Programming Language :: Cython",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Communications",
     ],

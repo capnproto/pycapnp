@@ -1,3 +1,17 @@
+## v2.0.0b1 (2023-10-03)
+- Update to bundled capnproto-1.0.1
+- Remove explicit support for Python 3.7 (though wheels are still built for now)
+- Use custom build backend to support build args (#328)
+- Update Cython version and Python to 3.12 (#320)
+- Wrap all capnp code in a context-manager to avoid segfaults (#317)
+- Schema loading from the wire (#307)
+- Make pycapnp more GIL friendly (#308)
+- Use cibuildwheel in ci (#309)
+- Integrate the KJ event loop into Python's asyncio event loop (#310)
+- Allow capability implementation methods to be `async` (#312)
+- Allow reading and writing messages from sockets in `async` mode (#313)
+- Remove the synchronous RPC mode (#315)
+
 ## v1.3.0 (2023-01-26)
 - Update to bundled capnproto-0.10.3
 - Add Python 3.11 to Github Actions builds (#306)
