@@ -306,4 +306,4 @@ async def cmd_main(host):
 
 
 if __name__ == "__main__":
-    asyncio.run(cmd_main(parse_args().host))
+    asyncio.run(capnp.run(cmd_main(parse_args().host)))

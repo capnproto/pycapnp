@@ -505,7 +505,7 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     Exception makeException(StringPtr message)
     PyPromise tryReadMessage(AsyncIoStream& stream, ReaderOptions opts)
     cppclass PythonInterfaceDynamicImpl:
-        PythonInterfaceDynamicImpl(InterfaceSchema&, PyObject *)
+        PythonInterfaceDynamicImpl(InterfaceSchema&, Own[PyRefCounter] server, Own[PyRefCounter] kj_loop)
 
 cdef extern from "capnp/serialize-async.h" namespace " ::capnp":
     VoidPromise writeMessage(AsyncIoStream& output, MessageBuilder& builder)

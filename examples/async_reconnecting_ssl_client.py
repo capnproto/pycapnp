@@ -41,11 +41,6 @@ async def watch_connection(cap):
             return False
 
 
-async def background(cap):
-    subscriber = StatusSubscriber()
-    await cap.subscribeStatus(subscriber)
-
-
 async def main(host):
     addr, port = host.split(":")
 
@@ -71,7 +66,9 @@ async def main(host):
 
     # Start watcher to restart socket connection if it is lost and subscriber background task
     background_tasks = asyncio.gather(
-        background(cap), watch_connection(cap), return_exceptions=True
+        cap.subscribeStatus(StatusSubscriber()),
+        watch_connection(cap),
+        return_exceptions=True,
     )
 
     # Run blocking tasks
@@ -96,7 +93,7 @@ if __name__ == "__main__":
     while retry:
         loop = asyncio.new_event_loop()
         try:
-            retry = not loop.run_until_complete(main(parse_args().host))
+            retry = not loop.run_until_complete(capnp.run(main(parse_args().host)))
         except RuntimeError:
             # If an IO is hung, the event loop will be stopped
             # and will throw RuntimeError exception

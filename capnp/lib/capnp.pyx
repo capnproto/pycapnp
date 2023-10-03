@@ -41,6 +41,7 @@ import traceback as _traceback
 from types import ModuleType as _ModuleType
 from operator import attrgetter as _attrgetter
 from functools import partial as _partial
+from contextlib import asynccontextmanager as _asynccontextmanager
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -73,6 +74,9 @@ cdef class _VoidPromiseFulfiller:
        return self
 
 def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
+    if fulfiller.fulfiller == NULL:
+        return
+
     if task.cancelled():
         fulfiller.fulfiller.reject(makeException(capnp.StringPtr(
             f"Server task for method {method_name} was cancelled")))
@@ -92,9 +96,12 @@ def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
         fulfiller.fulfiller.fulfill()
 
 cdef api void promise_task_add_done_callback(object task, object callback, VoidPromiseFulfiller& fulfiller):
-    task.add_done_callback(_partial(callback, _VoidPromiseFulfiller()._init(&fulfiller)))
+    wrapper = _VoidPromiseFulfiller()._init(&fulfiller)
+    task.add_done_callback(_partial(callback, wrapper))
+    task._fulfiller = wrapper
 
 cdef api void promise_task_cancel(object task):
+    (<_VoidPromiseFulfiller>task._fulfiller).fulfiller = NULL
     task.cancel()
 
 def fill_context(method_name, context, returned_data):
@@ -113,42 +120,41 @@ def fill_context(method_name, context, returned_data):
         setattr(results, arg_name, arg_val)
 
 cdef api VoidPromise * call_server_method(object server,
-                                          char * _method_name, CallContext & _context) except * with gil:
+                                          char * _method_name,
+                                          CallContext & _context,
+                                          object _kj_loop) except * with gil:
     method_name = <object>_method_name
+    kj_loop = <_EventLoop>_kj_loop
+    kj_loop.check()
 
     context = _CallContext()._init(_context) # TODO:MEMORY: invalidate this with promise chain
     func = getattr(server, method_name+'_context', None)
     if func is not None:
         ret = func(context)
-        if asyncio.iscoroutine(ret):
-            task = asyncio.create_task(ret)
-            callback = _partial(void_task_done_callback, method_name)
-            return new VoidPromise(helpers.taskToPromise(
-                capnp.heap[PyRefCounter](<PyObject*>task),
-                <PyObject*>callback))
-        else:
+        if not asyncio.iscoroutine(ret):
             raise ValueError(
                 "Server function ({}) is not a coroutine"
                 .format(method_name, str(ret)))
+        task = asyncio.create_task(ret)
     else:
-        func = getattr(server, method_name) # will raise if no function found
-        params = context.params
-        params_dict = {name: getattr(params, name) for name in params.schema.fieldnames}
-        params_dict['_context'] = context
-        ret = func(**params_dict)
+        async def finalize():
+            params = context.params
+            params_dict = {name: getattr(params, name) for name in params.schema.fieldnames}
+            params_dict['_context'] = context
+            func = getattr(server, method_name) # will raise if no function found
+            ret = func(**params_dict)
+            if not asyncio.iscoroutine(ret):
+                raise ValueError(
+                    "Server function ({}) is not a coroutine"
+                    .format(method_name, str(ret)))
+            fill_context(method_name, context, await ret)
+        task = asyncio.create_task(finalize())
 
-        if asyncio.iscoroutine(ret):
-            async def finalize():
-                fill_context(method_name, context, await ret)
-            task = asyncio.create_task(finalize())
-            callback = _partial(void_task_done_callback, method_name)
-            return new VoidPromise(helpers.taskToPromise(
-                capnp.heap[PyRefCounter](<PyObject*>task),
-                <PyObject*>callback))
-        else:
-            raise ValueError(
-                "Server function ({}) is not a coroutine"
-                .format(method_name, str(ret)))
+    kj_loop.active_tasks.add(task)
+    callback = _partial(void_task_done_callback, method_name)
+    return new VoidPromise(helpers.taskToPromise(
+        capnp.heap[PyRefCounter](<PyObject*>task),
+        <PyObject*>callback))
 
 
 cdef extern from "<kj/string.h>" namespace " ::kj":
@@ -707,7 +713,11 @@ cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient valu
 
 cdef C_DynamicValue.Reader _extract_dynamic_server(object value):
     cdef _InterfaceSchema schema = value.schema
-    return C_DynamicValue.Reader(capnp.heap[PythonInterfaceDynamicImpl](schema.thisptr, <PyObject*> value))
+    kj_loop = C_DEFAULT_EVENT_LOOP_GETTER()
+    return C_DynamicValue.Reader(capnp.heap[PythonInterfaceDynamicImpl](
+        schema.thisptr,
+        capnp.heap[PyRefCounter](<PyObject*>value),
+        capnp.heap[PyRefCounter](<PyObject*>kj_loop)))
 
 
 cdef C_DynamicValue.Reader _extract_dynamic_enum(_DynamicEnum value):
@@ -1778,6 +1788,8 @@ cdef cppclass AsyncIoEventPort(EventPort):
         this.asyncioLoop = asyncioLoop
 
     __dealloc__():
+        if this.runHandle is not None:
+            this.runHandle.cancel()
         del this.kjLoop
 
     cbool wait() except* with gil:
@@ -1802,57 +1814,78 @@ cdef cppclass AsyncIoEventPort(EventPort):
     EventLoop *getKjLoop():
         return this.kjLoop
 
-def _asyncio_close_patch(loop, oldclose, _EventLoop kjloop):
-    # The purpose of patching the asyncio close() function is to set up the kj-loop to be closed as well.
-    # We replace the event loop getter with a weakref, such that it can be destroyed when all other
-    # references to it are gone. Then, if a new asyncio loop ever gets started, a new kj-loop can also be
-    # started.
-    _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _weakref.ref(kjloop)
-    loop.close = oldclose
-    return oldclose()
-
 cdef class _EventLoop:
-    cdef object __weakref__ # Needed to make this class weak-referenceable
-    cdef WaitScope* waitScope
-    cdef AsyncIoEventPort* customPort
+    cdef Own[WaitScope] wait_scope
+    cdef Own[AsyncIoEventPort] event_port
+    cdef object active_streams
+    cdef object active_rpcs
+    cdef object active_tasks
+    cdef cbool closed
 
-    def __init__(self):
-        self._init()
-
-    cdef _init(self) except +reraise_kj_exception:
-        loop = asyncio.get_running_loop()
-        self.customPort = new AsyncIoEventPort(loop)
-        kjLoop = self.customPort.getKjLoop()
-        self.waitScope = new WaitScope(deref(kjLoop))
-        loop.close = _partial(_asyncio_close_patch, loop, loop.close, self)
+    cdef _init(self, asyncio_loop) except +reraise_kj_exception:
+        self.event_port = capnp.heap[AsyncIoEventPort](<PyObject*>asyncio_loop)
+        kj_loop = deref(self.event_port).getKjLoop()
+        self.wait_scope = capnp.heap[WaitScope](deref(kj_loop))
+        self.active_streams = _weakref.WeakSet()
+        self.active_rpcs = _weakref.WeakSet()
+        self.active_tasks = _weakref.WeakSet()
+        self.closed = False
+        return self
 
     def __dealloc__(self):
-        del self.waitScope
-        del self.customPort
+        self.close()
 
+    cdef close(self):
+        if not self.closed:
+            self.closed = True
+            deref(self.event_port).kjLoop.run()
+            self.wait_scope = Own[WaitScope]()
+            self.event_port = Own[AsyncIoEventPort]()
 
-_C_DEFAULT_EVENT_LOOP_LOCAL = _threading.local()
+    cdef check(self):
+        if self.closed:
+            raise RuntimeError(
+                "The KJ event-loop is not running (on this thread). Please start it through 'capnp.kj_loop()'")
 
+@_asynccontextmanager
+async def kj_loop():
+    asyncio_loop = asyncio.get_running_loop()
+    if hasattr(asyncio_loop, '_kj_loop'):
+        raise RuntimeError("The KJ event-loop is already running (on this thread).")
+    cdef _EventLoop kj_loop = _EventLoop()._init(asyncio_loop)
+    asyncio_loop._kj_loop = kj_loop
+    try:
+        yield
+    finally:
+        # Close any asynciostream that has not been closed
+        for stream in list(kj_loop.active_streams): stream.close()
+
+        # Shut down all the RPC clients and servers
+        for rpc in list(kj_loop.active_rpcs): rpc.close()
+
+        # Cancel any pending task that is a RPC call
+        # TODO: What if the cancellation is inhibited?
+        tasks = list(kj_loop.active_tasks)
+        for task in tasks: task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        try:
+            del asyncio_loop._kj_loop
+        except AttributeError: pass
+        kj_loop.close()
+
+async def run(coro):
+    async with kj_loop():
+        return await coro
 
 cdef _EventLoop C_DEFAULT_EVENT_LOOP_GETTER():
-    global C_DEFAULT_EVENT_LOOP_LOCAL
-    loop = getattr(_C_DEFAULT_EVENT_LOOP_LOCAL, 'loop', None)
-    if type(loop) is _EventLoop:
-        return loop
-    elif type(loop) is _weakref.ref:
-        loop = loop()
-        if loop is not None:
-            raise RuntimeError(
-                "The capnproto event loop associated to an already closed Python asyncio event loop is " +
-                "still running, because not all I/O events associated to it have terminated. If you wish " +
-                " to start a new loop, make sure that all previous events are cleaned up.")
-        else:
-            _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
-            return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
-    else:
-        assert loop is None
-        _C_DEFAULT_EVENT_LOOP_LOCAL.loop = _EventLoop()
-        return _C_DEFAULT_EVENT_LOOP_LOCAL.loop
+    asyncio_loop = asyncio.get_running_loop()
+    kj_loop = getattr(asyncio_loop, '_kj_loop', None)
+    if kj_loop is None:
+        raise RuntimeError(
+            "The KJ event-loop is not running (on this thread). Please start it through 'capnp.kj_loop()'")
+    elif type(kj_loop) is _EventLoop: return kj_loop
+    else: raise RuntimeError("Someone meddled with the KJ event loop!")
 
 
 cdef class _CallContext:
@@ -1887,6 +1920,7 @@ cdef class _CallContext:
 
 
 cdef _promise_to_asyncio(PyPromise promise):
+    C_DEFAULT_EVENT_LOOP_GETTER() # Make sure the event loop is running
     fut = asyncio.get_running_loop().create_future()
     def success(res):   return fut.set_result(res)    if not fut.cancelled() else None
     def exception(err): return fut.set_exception(err) if not fut.cancelled() else None
@@ -1929,21 +1963,13 @@ cdef class _RemotePromise:
             raise KjException(
                 "Promise was already used in a consuming operation. You can no longer use this Promise object")
 
-    async def a_wait(self):
-        """
-        Asyncio version of wait().
-        Required when using asyncio for socket communication.
-
-        Will still work with non-asyncio socket communication, but requires async handling of the function call.
-        """
-        self._check_consumed()
-        cdef Own[RemotePromise] thisptr = move(self.thisptr)
-        return await _promise_to_asyncio(helpers.convert_to_pypromise(move(deref(thisptr))))
-
     def __await__(self):
         self._check_consumed()
         cdef Own[RemotePromise] thisptr = move(self.thisptr)
-        return _promise_to_asyncio(helpers.convert_to_pypromise(move(deref(thisptr)))).__await__()
+        return _promise_to_asyncio(
+            helpers.convert_to_pypromise(move(deref(thisptr)))
+            .attach(capnp.heap[PyRefCounter](<PyObject*>self._parent))
+            ).__await__()
 
     cpdef _get(self, field) except +reraise_kj_exception:
         self._check_consumed()
@@ -1997,6 +2023,7 @@ cdef class _Request(_DynamicStructBuilder):
         del self.thisptr_child
 
     cpdef send(self):
+        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure the event loop is running
         if self.is_consumed:
             raise KjException('Request has already been sent. You can only send a request once.')
         self.is_consumed = True
@@ -2043,8 +2070,12 @@ cdef class _DynamicCapabilityClient:
         else:
             s = schema
 
+        kj_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         self.thisptr = C_DynamicCapability.Client(
-            capnp.heap[PythonInterfaceDynamicImpl](s.thisptr, <PyObject *>server))
+            capnp.heap[PythonInterfaceDynamicImpl](
+                s.thisptr,
+                capnp.heap[PyRefCounter](<PyObject*>server),
+                capnp.heap[PyRefCounter](<PyObject*>kj_loop)))
         self._parent = server
         return self
 
@@ -2079,6 +2110,7 @@ cdef class _DynamicCapabilityClient:
     cpdef _send_helper(self, name, word_count, args, kwargs) except +reraise_kj_exception:
         # if word_count is None:
         #     word_count = 0
+        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure the event loop is running
         cdef Request * request = new Request(self.thisptr.newRequest(name)) # TODO: pass word_count
 
         self._set_fields(request, name, args, kwargs)
@@ -2167,6 +2199,9 @@ cdef class _TwoPartyVatNetwork:
     cdef Own[C_TwoPartyVatNetwork] thisptr
     cdef _AsyncIoStream stream
 
+    def close(self):
+        self.thisptr = Own[C_TwoPartyVatNetwork]()
+
     cdef _init(self, _AsyncIoStream stream, Side side, schema_cpp.ReaderOptions opts):
         self.stream = stream
         self.thisptr = capnp.heap[C_TwoPartyVatNetwork](deref(stream.thisptr), side, opts)
@@ -2184,16 +2219,24 @@ cdef class TwoPartyClient:
     :param traversal_limit_in_words: Pointer derefence limit (see https://capnproto.org/cxx.html).
     :param nesting_limit: Recursive limit when reading types (see https://capnproto.org/cxx.html).
     """
+    cdef object __weakref__ # Needed to make this class weak-referenceable
     cdef Own[RpcSystem] thisptr
     cdef _TwoPartyVatNetwork _network
+    cdef cbool closed
 
     def __dealloc__(self):
         # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[RpcSystem]()
 
-    def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
+    def close(self):
+        self.closed = True
+        self.thisptr = Own[RpcSystem]()
+        self._network.close()
 
+    def __init__(self, socket=None, traversal_limit_in_words=None, nesting_limit=None):
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop.active_rpcs.add(self)
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         if isinstance(socket, _AsyncIoStream):
@@ -2204,9 +2247,13 @@ cdef class TwoPartyClient:
         self.thisptr = capnp.heap[RpcSystem](makeRpcClient(deref(self._network.thisptr)))
 
     cpdef bootstrap(self) except +reraise_kj_exception:
+        if self.closed:
+            raise RuntimeError("This client is closed")
         return _CapabilityClient()._init(helpers.bootstrapHelper(deref(self.thisptr)), self)
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
+        if self.closed:
+            raise RuntimeError("This client is closed")
         return self._network.on_disconnect()
 
 
@@ -2219,15 +2266,24 @@ cdef class TwoPartyServer:
     :param traversal_limit_in_words: Pointer derefence limit (see https://capnproto.org/cxx.html).
     :param nesting_limit: Recursive limit when reading types (see https://capnproto.org/cxx.html).
     """
+    cdef object __weakref__ # Needed to make this class weak-referenceable
     cdef Own[RpcSystem] thisptr
     cdef _TwoPartyVatNetwork _network
+    cdef cbool closed
 
     def __dealloc__(self):
         # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[RpcSystem]()
 
+    def close(self):
+        self.closed = True
+        self.thisptr = Own[RpcSystem]()
+        self._network.close()
+
     def __init__(self, socket=None, bootstrap=None, traversal_limit_in_words=None, nesting_limit=None):
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop.active_rpcs.add(self)
         if not bootstrap:
             raise KjException("You must provide a bootstrap interface to a server constructor.")
 
@@ -2241,24 +2297,56 @@ cdef class TwoPartyServer:
         self.thisptr = capnp.heap[RpcSystem](makeRpcServer(
             deref(self._network.thisptr),
             C_DynamicCapability.Client(capnp.heap[PythonInterfaceDynamicImpl](
-                schema.thisptr, <PyObject *>bootstrap))))
+                schema.thisptr,
+                capnp.heap[PyRefCounter](<PyObject*>bootstrap),
+                capnp.heap[PyRefCounter](<PyObject*>loop)))))
 
     cpdef bootstrap(self) except +reraise_kj_exception:
+        if self.closed:
+            raise RuntimeError("This server is closed")
         return _CapabilityClient()._init(helpers.bootstrapHelperServer(deref(self.thisptr)), self)
 
     cpdef on_disconnect(self) except +reraise_kj_exception:
+        if self.closed:
+            raise RuntimeError("This server is closed")
         return _voidpromise_to_asyncio(deref(self._network.thisptr).onDisconnect()
                                        .attach(capnp.heap[PyRefCounter](<PyObject*>self)))
 
 
 cdef class _AsyncIoStream:
+    cdef object __weakref__ # Needed to make this class weak-referenceable
     cdef Own[AsyncIoStream] thisptr
-    cdef _EventLoop _event_loop # We hold a pointer to the event loop here, to ensure it remains alive
+    cdef cbool close_called
+    cdef object protocol
+
+    def __init__(self):
+        cdef _EventLoop loop = C_DEFAULT_EVENT_LOOP_GETTER()
+        loop.active_streams.add(self)
+        self.close_called = False
+
+    def _post_init(self, protocol):
+        if not self.close_called:
+            self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](
+                capnp.heap[PyRefCounter](<PyObject*>protocol))
+            self.protocol = protocol
+        else:
+            protocol.transport.close()
 
     def __dealloc__(self):
         # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[AsyncIoStream]()
+
+    def close(self):
+        if self.protocol is None: # _post_init wasn't called yet
+            self.close_called = True
+        elif self.protocol.transport is not None and hasattr(self.protocol.transport, "close"):
+            self.protocol.transport.close()
+            # Call connection_lost immediately, instead of waiting for the transport to do it.
+            self.protocol.connection_lost("Stream is closing")
+
+    async def wait_closed(self):
+        return await self.protocol.closed_future
 
     @staticmethod
     async def create_connection(host = None, port = None, **kwargs):
@@ -2268,11 +2356,10 @@ cdef class _AsyncIoStream:
         See that function for documentation on the possible arguments.
         """
         cdef _AsyncIoStream self = _AsyncIoStream()
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_connection(
             lambda: _PyAsyncIoStreamProtocol(), host, port, **kwargs)
-        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        self._post_init(protocol)
         return self
 
     @staticmethod
@@ -2283,20 +2370,18 @@ cdef class _AsyncIoStream:
         See that function for documentation on the possible arguments.
         """
         cdef _AsyncIoStream self = _AsyncIoStream()
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_unix_connection(
             lambda: _PyAsyncIoStreamProtocol(), path, **kwargs)
-        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        self._post_init(protocol)
         return self
 
     @staticmethod
     def _connect(callback):
         cdef _AsyncIoStream self = _AsyncIoStream()
-        self._event_loop = C_DEFAULT_EVENT_LOOP_GETTER()
         loop = asyncio.get_running_loop()
         protocol = _PyAsyncIoStreamProtocol(callback, self)
-        self.thisptr = <Own[AsyncIoStream]>capnp.heap[PyAsyncIoStream](capnp.heap[PyRefCounter](<PyObject*>protocol))
+        self._post_init(protocol)
         return protocol
 
     @staticmethod
@@ -2335,7 +2420,7 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
     #       See https://github.com/python/cpython/issues/79575. Can be removed once Python 3.7 is unsupported.
     cdef dict __dict__
 
-    cdef object transport
+    cdef public object transport
     cdef object connected_callback
     cdef object callback_arg
 
@@ -2387,7 +2472,7 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
         if self.connected_callback is not None:
             callback_res = self.connected_callback(self.callback_arg)
             if asyncio.iscoroutine(callback_res):
-                asyncio.get_running_loop().create_task(callback_res)
+                self._task = asyncio.get_running_loop().create_task(callback_res)
             self.connected_callback = None
             self.callback_arg = None
 
@@ -2401,6 +2486,7 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
             self.write_reset()
             self.write_paused = True
         self.transport = None
+        self._task = None
 
     def get_buffer(self, size_hint):
         if self.read_buffer == NULL: # Should not happen, but for SSL it does, see comment above
@@ -3022,6 +3108,7 @@ class _StructModule(object):
         :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
 
         :rtype: :class:`_DynamicStructReader`"""
+        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure the event loop is running
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
         reader = await _promise_to_asyncio(tryReadMessage(deref(stream.thisptr), opts))
         if reader is None:
@@ -3212,7 +3299,6 @@ class _InterfaceModule(object):
         self.Server = type(name + '.Server', (_DynamicCapabilityServer,), {'__init__': server_init, 'schema':schema})
 
     def _new_client(self, server):
-        C_DEFAULT_EVENT_LOOP_GETTER() # Make sure that the event loop has been initialized
         return _DynamicCapabilityClient()._init_vals(self.schema, server)
 
 

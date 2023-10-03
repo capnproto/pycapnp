@@ -72,17 +72,15 @@ void check_py_error();
 
 class PythonInterfaceDynamicImpl final: public capnp::DynamicCapability::Server {
 public:
-  PyObject * py_server;
+  kj::Own<PyRefCounter> py_server;
+  kj::Own<PyRefCounter> kj_loop;
 
-  PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema, PyObject * _py_server)
-      : capnp::DynamicCapability::Server(schema), py_server(_py_server) {
-        GILAcquire gil;
-        Py_INCREF(_py_server);
-      }
+  PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema,
+                             kj::Own<PyRefCounter> _py_server,
+                             kj::Own<PyRefCounter> kj_loop)
+    : capnp::DynamicCapability::Server(schema), py_server(kj::mv(_py_server)), kj_loop(kj::mv(kj_loop)) { }
 
   ~PythonInterfaceDynamicImpl() {
-    GILAcquire gil;
-    Py_DECREF(py_server);
   }
 
   kj::Promise<void> call(capnp::InterfaceSchema::Method method,

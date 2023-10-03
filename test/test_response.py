@@ -1,4 +1,13 @@
+import pytest
+
+import capnp
 import test_response_capnp
+
+
+@pytest.fixture(autouse=True)
+async def kj_loop():
+    async with capnp.kj_loop():
+        yield
 
 
 class FooServer(test_response_capnp.Foo.Server):

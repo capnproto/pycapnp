@@ -2,6 +2,7 @@ import gc
 import os
 import socket
 import sys  # add examples dir to sys.path
+import pytest
 
 import capnp
 
@@ -10,6 +11,12 @@ sys.path.append(examples_dir)
 
 import async_calculator_client  # noqa: E402
 import async_calculator_server  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+async def kj_loop():
+    async with capnp.kj_loop():
+        yield
 
 
 async def test_calculator():

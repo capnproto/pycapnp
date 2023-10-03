@@ -50,4 +50,4 @@ async def main(host):
 
 if __name__ == "__main__":
     args = parse_args()
-    asyncio.run(main(args.host))
+    asyncio.run(capnp.run(main(args.host)))
