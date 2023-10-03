@@ -144,6 +144,7 @@ async def test_load_capnp(foo):
     baz_.text = "test"
     baz_.qux.id = 2
 
-    wrapper = foo.Wrapper._new_client(Wrapper())
-    remote = wrapper.wrapped(baz_)
-    await remote
+    async with capnp.kj_loop():
+        wrapper = foo.Wrapper._new_client(Wrapper())
+        remote = wrapper.wrapped(baz_)
+        await remote
