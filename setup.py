@@ -15,10 +15,12 @@ from distutils.command.clean import clean as _clean
 
 from setuptools import setup, Extension
 
+_this_dir = os.path.dirname(__file__)
+sys.path.insert(1, _this_dir)
+
 from buildutils.build import build_libcapnp
 from buildutils.bundle import fetch_libcapnp
 
-_this_dir = os.path.dirname(__file__)
 
 MAJOR = 1
 MINOR = 3
@@ -85,26 +87,6 @@ class clean(_clean):
                 shutil.rmtree(x, ignore_errors=True)
 
 
-# hack to parse commandline arguments
-force_bundled_libcapnp = "--force-bundled-libcapnp" in sys.argv
-if force_bundled_libcapnp:
-    sys.argv.remove("--force-bundled-libcapnp")
-force_system_libcapnp = "--force-system-libcapnp" in sys.argv
-if force_system_libcapnp:
-    sys.argv.remove("--force-system-libcapnp")
-force_cython = "--force-cython" in sys.argv
-if force_cython:
-    sys.argv.remove("--force-cython")
-    # Always use cython, ignoring option
-libcapnp_url = None
-try:
-    libcapnp_url_index = sys.argv.index("--libcapnp-url")
-    libcapnp_url = sys.argv[libcapnp_url_index + 1]
-    sys.argv.remove("--libcapnp-url")
-    sys.argv.remove(libcapnp_url)
-except Exception:
-    pass
-
 from Cython.Distutils import build_ext as build_ext_c  # noqa: E402
 
 
@@ -113,13 +95,29 @@ class build_libcapnp_ext(build_ext_c):
     Build capnproto library
     """
 
+    user_options = build_ext_c.user_options + [
+        ("force-bundled-libcapnp", None, "Bundle capnp library into the installer"),
+        ("force-system-libcapnp", None, "Use system capnp library"),
+        ("libcapnp-url=", "u", "URL to download libcapnp from (only if bundled)"),
+    ]
+
+    def initialize_options(self):
+        build_ext_c.initialize_options(self)
+        self.force_bundled_libcapnp = None
+        self.force_system_libcapnp = None
+        self.libcapnp_url = None
+
+    def finalize_options(self):
+        # print('The custom option for install is ', self.custom_option)
+        build_ext_c.finalize_options(self)
+
     def build_extension(self, ext):
         build_ext_c.build_extension(self, ext)
 
     def run(self):  # noqa: C901
-        if force_bundled_libcapnp:
+        if self.force_bundled_libcapnp:
             need_build = True
-        elif force_system_libcapnp:
+        elif self.force_system_libcapnp:
             need_build = False
         else:
             # Try to use capnp executable to find include and lib path
@@ -167,7 +165,7 @@ class build_libcapnp_ext(build_ext_c):
 
             if not os.path.exists(capnp_bin):
                 # Not built, fetch and build
-                fetch_libcapnp(bundle_dir, libcapnp_url)
+                fetch_libcapnp(bundle_dir, self.libcapnp_url)
                 build_libcapnp(bundle_dir, build_dir)
             else:
                 print("capnproto already built at {}".format(build_dir))

@@ -15,8 +15,8 @@ To force rebuilding the pip package from source (you'll need requirments.txt or 
 
 To force bundling libcapnp (or force system libcapnp), just in case setup.py isn't doing the right thing::
 
-    pip install --no-binary :all: --install-option "--force-bundled-libcapnp"
-    pip install --no-binary :all: --install-option "--force-system-libcapnp"
+    pip install --no-binary :all: -C force-bundled-libcapnp=True
+    pip install --no-binary :all: -C force-system-libcapnp=True
 
 If you're using an older Linux distro (e.g. CentOS 6) you many need to set `LDFLAGS="-Wl,--no-as-needed -lrt"`::
 
@@ -24,7 +24,7 @@ If you're using an older Linux distro (e.g. CentOS 6) you many need to set `LDFL
 
 It's also possible to specify the libcapnp url when bundling (this may not work, there be dragons)::
 
-    pip install --no-binary :all: --install-option "--force-bundled-libcapnp" --install-option "--libcapnp-url" --install-option "https://github.com/capnproto/capnproto/archive/master.tar.gz"
+    pip install --no-binary :all: -C force-bundled-libcapnp=True -C libcapnp-url="https://github.com/capnproto/capnproto/archive/master.tar.gz"
 
 From Source
 -----------
