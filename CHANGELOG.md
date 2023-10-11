@@ -1,6 +1,6 @@
 ## v2.0.0b1 (2023-10-03)
 - Update to bundled capnproto-1.0.1
-- Remove explicit support for Python 3.7 (though wheels are still built for now)
+- Remove support for Python 3.7
 - Use custom build backend to support build args (#328)
 - Update Cython version and Python to 3.12 (#320)
 - Wrap all capnp code in a context-manager to avoid segfaults (#317)

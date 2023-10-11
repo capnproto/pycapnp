@@ -46,6 +46,7 @@ docs/_build
 
 capnp/lib/capnp.cpp
 capnp/lib/capnp.h
+capnp/lib/capnp_api.h
 bundled/
 example
 *.iml

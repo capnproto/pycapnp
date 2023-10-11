@@ -210,7 +210,7 @@ extensions = [
 ]
 
 setup(
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,

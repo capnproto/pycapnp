@@ -42,6 +42,7 @@ from types import ModuleType as _ModuleType
 from operator import attrgetter as _attrgetter
 from functools import partial as _partial
 from contextlib import asynccontextmanager as _asynccontextmanager
+from importlib.machinery import ModuleSpec
 
 _CAPNP_VERSION_MAJOR = capnp.CAPNP_VERSION_MAJOR
 _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
@@ -2423,7 +2424,7 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
 
     # State for reading data from the transport
     cdef char* read_buffer
-    cdef size_t read_min_bytes
+    cdef int32_t read_min_bytes
     cdef size_t read_max_bytes
     cdef size_t read_already_read
     cdef PromiseFulfiller[size_t]* read_fulfiller
@@ -4322,7 +4323,7 @@ class _Importer:
         self.extension = '.capnp'
         self.additional_paths = additional_paths
 
-    def find_module(self, fullname, package_path=None):
+    def find_spec(self, fullname, package_path, target=None):
         if fullname in _sys.modules: # Don't allow re-imports
             return None
 
@@ -4363,12 +4364,12 @@ class _Importer:
                 path = abspath(path)
 
             if is_file(path+sep+capnp_module_name):
-                return _Loader(fullname, join_path(path, capnp_module_name), self.additional_paths)
+                return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name), self.additional_paths))
             if has_underscores:
                 if is_file(path+sep+capnp_module_name_dashes):
-                    return _Loader(fullname, join_path(path, capnp_module_name_dashes), self.additional_paths)
+                    return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name_dashes), self.additional_paths))
                 if is_file(path+sep+capnp_module_name_spaces):
-                    return _Loader(fullname, join_path(path, capnp_module_name_spaces), self.additional_paths)
+                    return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name_spaces), self.additional_paths))
 
 
 _importer = None
