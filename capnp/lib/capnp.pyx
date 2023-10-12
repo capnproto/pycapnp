@@ -438,8 +438,10 @@ cdef class _DynamicListReader:
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
 
-    .. warning:: You need to call :meth:`finish` on this object before serializing the Cap'n Proto message.
-    Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+    .. warning::
+        You need to call :meth:`finish` on this object before serializing the
+        Cap'n Proto message. Failure to do so will cause your objects not to be
+        written out as well as leaking orphan structs into your message.
 
     This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically.
     It is meant for lists of structs, since for primitive types like int or float, you're much better off
@@ -1436,9 +1438,11 @@ cdef class _DynamicStructBuilder:
         This is only meant for lists of Cap'n Proto objects, since for primitive types
         you can just define a normal python list and fill it yourself.
 
-        .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the
-        list object before serializing the Cap'n Proto message. Failure to do so will cause
-        your objects not to be written out as well as leaking orphan structs into your message.
+        .. warning::
+            You need to call :meth:`_DynamicResizableListBuilder.finish` on the
+            list object before serializing the Cap'n Proto message. Failure to do
+            so will cause your objects not to be written out as well as leaking
+            orphan structs into your message.
 
         :type field: str
         :param field: The field name to initialize
@@ -1860,6 +1864,16 @@ cdef class _EventLoop:
 
 @_asynccontextmanager
 async def kj_loop():
+    """Context manager for running the KJ event loop
+
+    As long as the context manager is active it is guaranteed that the KJ event
+    loop is running. When the context manager is exited, the KJ event loop is
+    shut down properly and pending tasks are cancelled.
+
+    :raises [RuntimeError]: If the KJ event loop is already running (on this thread).
+
+    .. warning:: Every capnp rpc call required a running KJ event loop.
+    """
     asyncio_loop = asyncio.get_running_loop()
     if hasattr(asyncio_loop, '_kj_loop'):
         raise RuntimeError("The KJ event-loop is already running (on this thread).")
@@ -1886,6 +1900,12 @@ async def kj_loop():
         kj_loop.close()
 
 async def run(coro):
+    """Ensure that the coroutine runs while the KJ event loop is running
+    
+    This is a shortcut for wrapping the coroutine in a :py:meth:`capnp.kj_loop` context manager.
+
+    :param coro: Coroutine to run
+    """
     async with kj_loop():
         return await coro
 
@@ -4401,7 +4421,7 @@ def add_import_hook(additional_paths=[]):
 
     :type additional_paths: list
     :param additional_paths: Additional paths, listed as strings, to be used to search for the .capnp files.
-    It is prepended to the beginning of sys.path. It also affects imports inside of Cap'n Proto schemas.
+        It is prepended to the beginning of sys.path. It also affects imports inside of Cap'n Proto schemas.
     """
     global _importer
     if _importer is not None:
