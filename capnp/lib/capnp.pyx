@@ -2052,7 +2052,7 @@ cdef class _DynamicCapabilityClient:
     cdef public object _parent, _cached_schema
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = C_DynamicCapability.Client()
 
@@ -2223,7 +2223,7 @@ cdef class TwoPartyClient:
     cdef cbool closed
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[RpcSystem]()
 
@@ -2270,7 +2270,7 @@ cdef class TwoPartyServer:
     cdef cbool closed
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[RpcSystem]()
 
@@ -2331,7 +2331,7 @@ cdef class _AsyncIoStream:
             protocol.transport.close()
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[AsyncIoStream]()
 
@@ -2414,9 +2414,7 @@ cdef class DummyBaseClass:
     pass
 
 cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
-    # TODO: Temporary. Needed due to a missing __slots__ definitions in BufferedProtocol on Python 3.7.
-    #       See https://github.com/python/cpython/issues/79575. Can be removed once Python 3.7 is unsupported.
-    cdef dict __dict__
+    cdef object _task
 
     cdef public object transport
     cdef object connected_callback
