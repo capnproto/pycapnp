@@ -1806,7 +1806,17 @@ cdef cppclass AsyncIoEventPort(EventPort):
         if runnable:
             assert this.runHandle is None
             us = <void*>this;
-            this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
+            while True:
+                # TODO: This loop is a workaround for the following occasional nondeterministic bug
+                #       that appears on Python 3.8 and 3.9:
+                # AttributeError: '_UnixSelectorEventLoop' object has no attribute 'call_soon'
+                # The cause of this is unknown (either a bug in our code, Cython, or Python).
+                # It appears to no longer exist in Python 3.10. This can be removed once 3.9 is EOL.
+                try:
+                    this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
+                    break
+                except AttributeError:
+                    pass
         else:
             assert this.runHandle is not None
             this.runHandle.cancel()
