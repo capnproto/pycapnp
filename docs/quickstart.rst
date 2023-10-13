@@ -177,6 +177,16 @@ Once you're done assigning to all the fields in a message, you can write it to a
 
 There is also a `write_packed` function, that writes out the message more space-efficientally. If you use write_packed, make sure to use read_packed when reading the message.
 
+Writing to a socket
+~~~~~~~~~~~~~~~~~~~
+Alternatively, you can write to a socket. This is useful if you want to send the message over the network or to another process.
+A full example of this is available on GitHub `examples/async_socket_message_client.py <https://github.com/capnproto/pycapnp/blob/master/examples/async_socket_message_client.py>`_.
+
+.. important:: Writing to a socket is implemented using asyncio and requires a running event loop both for the python part (asyncio) and the C++ part (KJ). See :ref:`RPC <kj-event-loop>` for more information.
+::
+
+    stream = await capnp.AsyncIoStream.create_connection(host="localhost", port=6000)
+    await addresses.write_async(stream)
 
 Read a message
 --------------
@@ -196,6 +206,18 @@ Note that this very much needs to match the type you wrote out. In general, you 
           addressbook @1 :AddressBook;
         }
     }
+
+Reading from a socket
+~~~~~~~~~~~~~~~~~~~~~
+
+The same as for writing, you can read from a socket. This is useful if you want to receive the message over the network or from another process.
+A full example of this is available on GitHub `examples/async_socket_message_client.py <https://github.com/capnproto/pycapnp/blob/master/examples/async_socket_message_client.py>`_.
+
+.. important:: Reading from a socket is implemented using asyncio and requires a running event loop both for the python part (asyncio) and the C++ part (KJ). See :ref:`RPC <kj-event-loop>` for more information.
+::
+
+    stream = await capnp.AsyncIoStream.create_connection(host="localhost", port=6000)
+    message = await addressbook_capnp.AddressBook.read_async(stream)
 
 
 Reading Fields
