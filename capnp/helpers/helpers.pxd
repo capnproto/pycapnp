@@ -16,20 +16,17 @@ cdef extern from "capnp/helpers/fixMaybe.h":
 
 cdef extern from "capnp/helpers/capabilityHelper.h":
     PyPromise then(PyPromise promise, Own[PyRefCounter] func, Own[PyRefCounter] error_func)
-    DynamicCapability.Client new_client(InterfaceSchema&, PyObject *)
-    DynamicValue.Reader new_server(InterfaceSchema&, PyObject *)
-    Capability.Client server_to_client(InterfaceSchema&, PyObject *)
     PyPromise convert_to_pypromise(RemotePromise)
     PyPromise convert_to_pypromise(VoidPromise)
     VoidPromise taskToPromise(Own[PyRefCounter] coroutine, PyObject* callback)
     void init_capnp_api()
 
 cdef extern from "capnp/helpers/rpcHelper.h":
-    Capability.Client bootstrapHelper(RpcSystem&)
-    Capability.Client bootstrapHelperServer(RpcSystem&)
+    Own[Capability.Client] bootstrapHelper(RpcSystem&) except +reraise_kj_exception
+    Own[Capability.Client] bootstrapHelperServer(RpcSystem&) except +reraise_kj_exception
 
 cdef extern from "capnp/helpers/serialize.h":
-    ByteArray messageToPackedBytes(MessageBuilder &, size_t wordCount)
+    ByteArray messageToPackedBytes(MessageBuilder &, size_t wordCount) except +reraise_kj_exception
 
 cdef extern from "capnp/helpers/deserialize.h":
     Node.Reader toReader(DynamicStruct.Reader reader) except +reraise_kj_exception

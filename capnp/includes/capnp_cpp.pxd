@@ -57,25 +57,11 @@ cdef extern from "kj/async.h" namespace " ::kj":
     cdef cppclass Promise[T] nogil:
         Promise(Promise)
         Promise(T)
-        T wait(WaitScope) except +reraise_kj_exception
-        bool poll(WaitScope) except +reraise_kj_exception
-        # ForkedPromise<T> fork()
-        # Promise<T> exclusiveJoin(Promise<T>&& other)
-        # Promise[T] eagerlyEvaluate()
-        # void detach(ErrorFunc)
         String trace()
         Promise[T] attach(Own[PyRefCounter] &)
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &)
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
         Promise[T] attach(Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &, Own[PyRefCounter] &)
-
-    cdef cppclass Canceler nogil:
-        Canceler()
-        Promise[T] wrap[T](Promise[T] promise)
-        void cancel(StringPtr cancelReason)
-        void cancel(Exception& exception)
-        void release()
-        bool isEmpty()
 
 ctypedef Promise[Own[PyRefCounter]] PyPromise
 ctypedef Promise[void] VoidPromise
@@ -109,8 +95,8 @@ cdef extern from "kj/array.h" namespace " ::kj":
 
 cdef extern from "kj/async-io.h" namespace " ::kj":
     cdef cppclass AsyncIoStream nogil:
-        Promise[size_t] read(void*, size_t, size_t)
-        Promise[void] write(const void*, size_t)
+        Promise[size_t] read(void*, size_t, size_t) except +reraise_kj_exception
+        Promise[void] write(const void*, size_t) except +reraise_kj_exception
 
 cdef extern from "capnp/schema.capnp.h" namespace " ::capnp":
     enum TypeWhich" ::capnp::schema::Type::Which":
@@ -297,7 +283,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Client()
             Client(Client&)
             Client(Own[PythonInterfaceDynamicImpl])
-            Client upcast(InterfaceSchema requestedSchema)
+            Client upcast(InterfaceSchema requestedSchema) except +reraise_kj_exception
             DynamicCapability.Client castAs"castAs< ::capnp::DynamicCapability>"(InterfaceSchema)
             InterfaceSchema getSchema()
             Request newRequest(char * methodName)
@@ -447,7 +433,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             Type getType()
 
 cdef extern from "capnp/schema-loader.h" namespace " ::capnp":
-    cdef cppclass SchemaLoader:
+    cdef cppclass SchemaLoader nogil:
         SchemaLoader()
         Schema load(Node.Reader reader) except +reraise_kj_exception
         Schema get(uint64_t id_) except +reraise_kj_exception
