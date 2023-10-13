@@ -1,6 +1,6 @@
 jinja2
 black
-cython<3
+cython>=3
 flake8
 setuptools
 pkgconfig
