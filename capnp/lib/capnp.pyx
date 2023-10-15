@@ -2403,6 +2403,9 @@ cdef class _AsyncIoStream:
         for `callback` will be passed directly to that function, and the server returned is similar as well.
         See that function for documentation on the possible arguments.
         """
+        # Fail early in case the kj loop is not running. Without this, the error is thrown when a connection is made.
+        # Unless asyncio is in debug mode, that error is swallowed.
+        C_DEFAULT_EVENT_LOOP_GETTER()
         loop = asyncio.get_running_loop()
         return await loop.create_server(lambda: _AsyncIoStream._connect(callback), host, port, **kwargs)
 
@@ -2417,6 +2420,9 @@ cdef class _AsyncIoStream:
         for `callback` will be passed directly to that function, and the server returned is similar as well.
         See that function for documentation on the possible arguments.
         """
+        # Fail early in case the kj loop is not running. Without this, the error is thrown when a connection is made.
+        # Unless asyncio is in debug mode, that error is swallowed.
+        C_DEFAULT_EVENT_LOOP_GETTER()
         loop = asyncio.get_running_loop()
         return await loop.create_unix_server(lambda: _AsyncIoStream._connect(callback), path, **kwargs)
 
