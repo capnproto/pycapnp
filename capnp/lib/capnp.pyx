@@ -2475,10 +2475,24 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
         self.write_in_progress = False
         self.read_eof = False
         self.read_overflow_buffer = bytearray()
+        def done(task):
+            if self.transport is not None:
+                self.transport.close()
+            exc = task.exception()
+            if exc is not None:
+                context = {
+                    'message': "Exception in pycapnp server callback",
+                    'exception': exc,
+                    'task': task,
+                    'protocol': self,
+                    'transport': self.transport
+                }
+                asyncio.get_running_loop().call_exception_handler(context)
         if self.connected_callback is not None:
             callback_res = self.connected_callback(self.callback_arg)
             if asyncio.iscoroutine(callback_res):
-                self._task = asyncio.get_running_loop().create_task(callback_res)
+                self._task = asyncio.create_task(callback_res)
+                self._task.add_done_callback(done)
             self.connected_callback = None
             self.callback_arg = None
 
