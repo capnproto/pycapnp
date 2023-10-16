@@ -2351,6 +2351,7 @@ cdef class _AsyncIoStream:
         elif self.protocol.transport is not None and hasattr(self.protocol.transport, "close"):
             self.protocol.transport.close()
             # Call connection_lost immediately, instead of waiting for the transport to do it.
+            # TODO: This might be a questionable thing to do...
             self.protocol.connection_lost("Stream is closing")
 
     async def wait_closed(self):
@@ -2532,15 +2533,15 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
             self.read_reset()
 
     cdef write_loop(self):
-        if not self.write_in_progress: return
+        if self.write_paused or not self.write_in_progress: return
         cdef const ArrayPtr[const uint8_t]* piece
         for i in range(self.write_index, self.write_pieces.size()):
-            if self.write_paused:
-                self.write_index = i
-                break
             piece = &self.write_pieces[i]
             view = memoryview.PyMemoryView_FromMemory(<char*>piece.begin(), piece.size(), buffer.PyBUF_READ)
             self.transport.write(view)
+            if self.write_paused:
+                self.write_index = i+1
+                break
         if not self.write_paused:
             self.write_fulfiller.fulfill()
             self.write_reset()
