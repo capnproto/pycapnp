@@ -3739,7 +3739,9 @@ cdef class _StreamFdMessageReader(_MessageReader):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
-        self.thisptr = new schema_cpp.StreamFdMessageReader(file.fileno(), opts)
+        cdef int fd = file.fileno()
+        with nogil:
+            self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
 
     def __dealloc__(self):
         del self.thisptr
@@ -3842,7 +3844,9 @@ cdef class _PackedFdMessageReader(_MessageReader):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
-        self.thisptr = new schema_cpp.PackedFdMessageReader(file.fileno(), opts)
+        cdef int fd = file.fileno()
+        with nogil:
+            self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
 
     def __dealloc__(self):
         del self.thisptr
@@ -4251,7 +4255,8 @@ def _write_message_to_fd(int fd, _MessageBuilder message):
 
     :rtype: void
     """
-    schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
+    with nogil:
+        schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
 
 
 def _write_packed_message_to_fd(int fd, _MessageBuilder message):
@@ -4278,7 +4283,8 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
 
     :rtype: void
     """
-    schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
+    with nogil:
+        schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
 
 
 _global_schema_parser = None
