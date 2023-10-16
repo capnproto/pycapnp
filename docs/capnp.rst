@@ -14,35 +14,10 @@ Classes
 RPC
 ~~~
 
-Promise
-#######
-
-.. autoclass:: Promise
-  :members:
-  :undoc-members:
-  :inherited-members:
-
-Promise may be one of:
-
-* :meth:`capnp.lib.capnp._Promise`
-* :meth:`capnp.lib.capnp._RemotePromise`
-* :meth:`capnp.lib.capnp._VoidPromise`
-
-.. autoclass:: capnp.lib.capnp._Promise
-  :members:
-  :undoc-members:
-  :inherited-members:
-
 .. autoclass:: capnp.lib.capnp._RemotePromise
   :members:
   :undoc-members:
   :inherited-members:
-
-.. autoclass:: capnp.lib.capnp._VoidPromise
-  :members:
-  :undoc-members:
-  :inherited-members:
-
 
 Communication
 #############
@@ -57,6 +32,15 @@ Communication
   :undoc-members:
   :inherited-members:
 
+.. autoclass:: AsyncIoStream
+  :members:
+  :undoc-members:
+  :inherited-members:
+
+.. autoclass:: capnp.lib.capnp._AsyncIoStream
+  :members:
+  :undoc-members:
+  :inherited-members:
 
 Capability
 ##########
@@ -96,16 +80,14 @@ Miscellaneous
 Functions
 ---------
 .. autofunction:: add_import_hook
-.. autofunction:: cleanup_global_schema_parser
-.. autofunction:: create_event_loop
-.. autofunction:: getTimer
-.. autofunction:: join_promises
-.. autofunction:: load
-.. autofunction:: poll_once
-.. autofunction:: remove_event_loop
 .. autofunction:: remove_import_hook
-.. autofunction:: reset_event_loop
-.. autofunction:: wait_forever
+.. autofunction:: cleanup_global_schema_parser
+
+.. autofunction:: kj_loop
+.. autofunction:: run
+
+.. autofunction:: load
+
 
 
 Internal Classes

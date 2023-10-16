@@ -77,7 +77,7 @@ While not directly supported by pycapnp, a tool has been created to help generat
 
 ## Python Versions
 
-Python 3.7+ is supported.
+Python 3.8+ is supported.
 
 
 ## Development

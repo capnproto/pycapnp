@@ -307,6 +307,6 @@ epub_copyright = "2013, Author"
 # Allow duplicate toc entries.
 # epub_tocdup = True
 
-intersphinx_mapping = {"http://docs.python.org/": None}
+intersphinx_mapping = {"<name>": ("http://docs.python.org/", None)}
 
 smv_branch_whitelist = r"^master$"
