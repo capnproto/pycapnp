@@ -28,7 +28,7 @@ def build_libcapnp(bundle_dir, build_dir):  # noqa: C901
 
     # Enable ninja for compilation if available
     build_type = []
-    if shutil.which("ninja"):
+    if shutil.which("ninja") and os.name != "nt":
         build_type = ["-G", "Ninja"]
 
     # Determine python shell architecture for Windows
