@@ -1,7 +1,7 @@
 from capnp.includes.capnp_cpp cimport (
     Maybe, PyPromise, VoidPromise, RemotePromise,
-    DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability, 
-    RpcSystem, MessageBuilder, Own, PyRefCounter, Node, DynamicStruct
+    DynamicCapability, InterfaceSchema, EnumSchema, StructSchema, DynamicValue, Capability,
+    RpcSystem, MessageBuilder, Own, PyRefCounter, Node, DynamicStruct, CallContext
 )
 
 from capnp.includes.schema_cpp cimport ByteArray
@@ -22,6 +22,7 @@ cdef extern from "capnp/helpers/capabilityHelper.h":
     PyPromise convert_to_pypromise(RemotePromise)
     PyPromise convert_to_pypromise(VoidPromise)
     VoidPromise taskToPromise(Own[PyRefCounter] coroutine, PyObject* callback)
+    void allowCancellation(CallContext context) except +reraise_kj_exception nogil
     void init_capnp_api()
 
 cdef extern from "capnp/helpers/rpcHelper.h":

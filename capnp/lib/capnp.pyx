@@ -1927,7 +1927,7 @@ async def kj_loop():
 
 async def run(coro):
     """Ensure that the coroutine runs while the KJ event loop is running
-    
+
     This is a shortcut for wrapping the coroutine in a :py:meth:`capnp.kj_loop` context manager.
 
     :param coro: Coroutine to run
@@ -1949,6 +1949,7 @@ cdef class _CallContext:
     cdef CallContext * thisptr
 
     cdef _init(self, CallContext other):
+        helpers.allowCancellation(other)
         self.thisptr = new CallContext(move(other))
         return self
 
