@@ -6,7 +6,7 @@
       return stealPyRef(wrap_dynamic_struct_reader(response)); } );
 }
 
-void reraise_kj_exception() {
+void c_reraise_kj_exception() {
   GILAcquire gil;
   try {
     if (PyErr_Occurred())

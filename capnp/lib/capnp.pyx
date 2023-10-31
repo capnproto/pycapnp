@@ -281,6 +281,10 @@ cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with 
     return ret
 
 
+cdef void reraise_kj_exception():
+    helpers.reraise_kj_exception()
+
+
 cdef api object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil:
     try:
         return (exc_tb.tb_frame.f_code.co_filename.encode(),
