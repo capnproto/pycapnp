@@ -5,7 +5,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
 
 from libcpp cimport bool
 from capnp.helpers.non_circular cimport (
-    reraise_kj_exception, PyRefCounter,
+    c_reraise_kj_exception as reraise_kj_exception, PyRefCounter,
 )
 from capnp.includes.schema_cpp cimport (
     Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions,

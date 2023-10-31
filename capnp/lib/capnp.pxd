@@ -15,9 +15,9 @@ from capnp.includes.capnp_cpp cimport (
 )
 from capnp.includes.schema_cpp cimport Node as C_Node, EnumNode as C_EnumNode
 from capnp.includes.types cimport *
-from capnp.helpers.non_circular cimport reraise_kj_exception
 from capnp.helpers cimport helpers
 
+cdef void reraise_kj_exception()
 
 cdef class _StructSchemaField:
     cdef C_StructSchema.Field thisptr

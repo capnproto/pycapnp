@@ -63,7 +63,7 @@ inline ::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(kj::Promise<voi
     });
 }
 
-void reraise_kj_exception();
+void c_reraise_kj_exception();
 
 void check_py_error();
 

@@ -6,7 +6,7 @@ from capnp.includes.capnp_cpp cimport (
 
 from capnp.includes.schema_cpp cimport ByteArray
 
-from non_circular cimport reraise_kj_exception
+from non_circular cimport c_reraise_kj_exception as reraise_kj_exception
 
 from cpython.ref cimport PyObject
 

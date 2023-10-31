@@ -221,7 +221,6 @@ setup(
             "*.capnp",
             "helpers/*.pxd",
             "helpers/*.h",
-            "helpers/*.cpp",
             "includes/*.pxd",
             "lib/*.pxd",
             "lib/*.py",
