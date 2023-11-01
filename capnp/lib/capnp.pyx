@@ -2199,7 +2199,7 @@ cdef class _DynamicCapabilityClient:
             return self._cached_schema
 
     def __dir__(self):
-        return list(set(self.schema.method_names_inherited + tuple(dir(self.__class__))))
+        return list(set(self.schema.method_names_inherited) | set(dir(self.__class__)))
 
 
 cdef class _CapabilityClient:
