@@ -51,6 +51,13 @@ async def test_simple_rpc_bootstrap():
     cap = client.bootstrap()
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
+    # Check not only that the methods are there, but also that they are listed
+    # as expected.
+    assert "foo" in dir(cap)
+    assert "bar" in dir(cap)
+    assert "buz" in dir(cap)
+    assert "bam" in dir(cap)
+
     remote = cap.foo(i=5)
     response = await remote
 
