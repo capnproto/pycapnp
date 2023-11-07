@@ -26,6 +26,12 @@ class Server(capability.TestInterface.Server):
     async def bam(self, i, **kwargs):
         return str(i) + "_test", i
 
+    async def bak1(self, **kwargs):
+        return [1, 2, 3, 4, 5]
+
+    async def bak2(self, i, **kwargs):
+        assert i[4] == 5
+
 
 class PipelineServer(capability.TestPipeline.Server):
     async def getCap(self, n, inCap, _context, **kwargs):
@@ -66,6 +72,12 @@ async def test_client():
 
     with pytest.raises(AttributeError):
         req.baz = 1
+
+    resp = await client.bak1()
+    # Used to fail with
+    # capnp.lib.capnp.KjException: Tried to set field: 'i' with a value of: '[1, 2, 3, 4, 5]'
+    # which is an unsupported type: '<class 'capnp.lib.capnp._DynamicListReader'>'
+    await client.bak2(resp.i)
 
 
 async def test_simple_client():

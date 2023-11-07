@@ -362,6 +362,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             void adopt(uint, DynamicOrphan) except +reraise_kj_exception
             DynamicOrphan disown(uint)
             StructSchema getStructElementType'getSchema().getStructElementType'()
+            DynamicList.Reader asReader() except +reraise_kj_exception
 
 cdef extern from "capnp/any.h" namespace " ::capnp":
     cdef cppclass AnyPointer nogil:

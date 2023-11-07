@@ -28,6 +28,8 @@ interface TestInterface {
   bar @1 () -> ();
   buz @2 (i: TestSturdyRefHostId) -> (x: Text);
   bam @3 (i :UInt32, j :Bool) -> (x: Text, i:UInt32);
+  bak1 @4 () -> (i:List(UInt32));
+  bak2 @5 (i:List(UInt32)) -> ();
   # baz @2 (s: TestAllTypes);
 }
 

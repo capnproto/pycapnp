@@ -714,6 +714,14 @@ cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader v
     return C_DynamicValue.Reader(value.thisptr)
 
 
+cdef C_DynamicValue.Reader _extract_dynamic_list_builder(_DynamicListBuilder value):
+    return C_DynamicValue.Reader(value.thisptr.asReader())
+
+
+cdef C_DynamicValue.Reader _extract_dynamic_list_reader(_DynamicListReader value):
+    return C_DynamicValue.Reader(value.thisptr)
+
+
 cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient value):
     return C_DynamicValue.Reader(value.thisptr)
 
@@ -805,6 +813,10 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
         thisptr.set(field, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicListBuilder:
+        thisptr.set(field, _extract_dynamic_list_builder(value))
+    elif value_type is _DynamicListReader:
+        thisptr.set(field, _extract_dynamic_list_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
     elif isinstance(value, _DynamicCapabilityServer):
@@ -821,6 +833,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
             .format(field, str(value), str(type(value))))
 
 
+# TODO: Is this function used by anyone? Can it be removed?
 cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
@@ -854,6 +867,10 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
         thisptr.setByField(field.thisptr, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
         thisptr.setByField(field.thisptr, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicListBuilder:
+        thisptr.setByField(field.thisptr, _extract_dynamic_list_builder(value))
+    elif value_type is _DynamicListReader:
+        thisptr.setByField(field.thisptr, _extract_dynamic_list_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.setByField(field.thisptr, _extract_dynamic_client(value))
     elif isinstance(value, _DynamicCapabilityServer):
@@ -870,6 +887,7 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
             .format(field, str(value), str(type(value))))
 
 
+# TODO: Is this function used by anyone? Can it be removed?
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
@@ -903,6 +921,10 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
         thisptr.set(field, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
         thisptr.set(field, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicListBuilder:
+        thisptr.set(field, _extract_dynamic_list_builder(value))
+    elif value_type is _DynamicListReader:
+        thisptr.set(field, _extract_dynamic_list_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
     elif isinstance(value, _DynamicCapabilityServer):
