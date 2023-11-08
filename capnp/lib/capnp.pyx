@@ -76,6 +76,15 @@ cdef class _VoidPromiseFulfiller:
 
 def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
     if fulfiller.fulfiller == NULL:
+        if not task.cancelled():
+            exc = task.exception()
+            if exc is not None:
+                context = {
+                    'message': f"Cancelled server method {method_name} raised an exception",
+                    'exception': exc,
+                    'task': task,
+                }
+                asyncio.get_running_loop().call_exception_handler(context)
         return
 
     if task.cancelled():
