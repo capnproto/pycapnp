@@ -4385,24 +4385,25 @@ def load(file_name, display_name=None, imports=[]):
     return _global_schema_parser.load(file_name, display_name, imports)
 
 
+# Automatically include the system and built-in capnp paths
+# Highest priority at position 0
+_capnp_paths = [
+    # Common macOS brew location
+    '/usr/local/include',
+    # Common posix location
+    '/usr/include',
+]
+
 class _Loader:
-    def __init__(self, fullname, path, additional_paths):
+    def __init__(self, fullname, path):
         self.fullname = fullname
         self.path = path
-
-        # Add current directory of the capnp schema to search path
-        dir_name = _os.path.dirname(path)
-        if path is not '':
-            additional_paths = [dir_name] + additional_paths
-
-        self.additional_paths = additional_paths
 
     def load_module(self, fullname):
         assert self.fullname == fullname, (
             "invalid module, expected {}, got {}".format(self.fullname, fullname))
 
-        imports = self.additional_paths + _sys.path
-        imports = [path if path != '' else '.' for path in imports] # convert empty path '' to '.'
+        imports = _capnp_paths + [path if path != '' else '.' for path in _sys.path]
         module = load(self.path, fullname, imports=imports)
         _sys.modules[fullname] = module
 
@@ -4410,9 +4411,6 @@ class _Loader:
 
 
 class _Importer:
-    def __init__(self, additional_paths):
-        self.extension = '.capnp'
-        self.additional_paths = additional_paths
 
     def find_spec(self, fullname, package_path, target=None):
         if fullname in _sys.modules: # Don't allow re-imports
@@ -4428,45 +4426,38 @@ class _Importer:
             return None
 
         module_name = module_name[:-len('_capnp')]
-        capnp_module_name = module_name + self.extension
-        has_underscores = False
+        capnp_module_name = module_name + '.capnp'
 
+        capnp_module_names = set()
+        capnp_module_names.add(capnp_module_name)
         if '_' in capnp_module_name:
-            capnp_module_name_dashes = capnp_module_name.replace('_', '-')
-            capnp_module_name_spaces = capnp_module_name.replace('_', ' ')
-            has_underscores = True
+            capnp_module_names.add(capnp_module_name.replace('_', '-'))
+            capnp_module_names.add(capnp_module_name.replace('_', ' '))
 
         if package_path:
             paths = list(package_path)
         else:
             paths = _sys.path
-        join_path = _os.path.join
-        is_file = _os.path.isfile
-        is_abs = _os.path.isabs
-        abspath = _os.path.abspath
-        #is_dir = os.path.isdir
-        sep = _os.path.sep
 
-        paths = self.additional_paths + paths
+        # Special case for the 'capnp' namespace, which can be resolved to system paths
+        if fullname.startswith('capnp.'):
+            paths += [path + '/capnp' for path in _capnp_paths]
+
         for path in paths:
             if not path:
                 path = _os.getcwd()
-            elif not is_abs(path):
-                path = abspath(path)
+            elif not _os.path.isabs(path):
+                path = _os.path.abspath(path)
 
-            if is_file(path+sep+capnp_module_name):
-                return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name), self.additional_paths))
-            if has_underscores:
-                if is_file(path+sep+capnp_module_name_dashes):
-                    return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name_dashes), self.additional_paths))
-                if is_file(path+sep+capnp_module_name_spaces):
-                    return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name_spaces), self.additional_paths))
+            for capnp_module_name in capnp_module_names:
+                if _os.path.isfile(path+_os.path.sep+capnp_module_name):
+                    return ModuleSpec(fullname, _Loader(fullname, _os.path.join(path, capnp_module_name)))
 
 
 _importer = None
 
 
-def add_import_hook(additional_paths=[]):
+def add_import_hook():
     """Add a hook to the python import system, so that Cap'n Proto modules are directly importable
 
     After calling this function, you can use the python import syntax to directly import capnproto schemas.
@@ -4480,36 +4471,12 @@ def add_import_hook(additional_paths=[]):
         # equivalent to capnp.load('addressbook.capnp', 'addressbook', sys.path),
         # except it will search for 'addressbook.capnp' in all directories of sys.path
 
-    :type additional_paths: list
-    :param additional_paths: Additional paths, listed as strings, to be used to search for the .capnp files.
-        It is prepended to the beginning of sys.path. It also affects imports inside of Cap'n Proto schemas.
     """
     global _importer
     if _importer is not None:
         remove_import_hook()
 
-    # Automatically include the system and built-in capnp paths
-    # Highest priority at position 0
-    try:
-        this_file_path = __file__
-    except NameError:
-        this_file_path = None
-    extra_paths = ([
-        _os.path.join(_os.path.dirname(this_file_path), '..'), # Built-in (only used if bundled)
-    ] if this_file_path else []) + [
-        # Common macOS brew location
-        '/usr/local/include/capnp',
-        '/usr/local/include',
-        # Common posix location
-        '/usr/include/capnp',
-        '/usr/include',
-    ]
-    for path in extra_paths:
-        if _os.path.isdir(path):
-            if path not in additional_paths:
-                additional_paths.append(path)
-
-    _importer = _Importer(additional_paths)
+    _importer = _Importer()
     _sys.meta_path.append(_importer)
 
 
