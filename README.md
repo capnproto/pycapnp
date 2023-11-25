@@ -4,7 +4,7 @@
 [![manylinux2014 Status](https://github.com/capnproto/pycapnp/workflows/manylinux2014/badge.svg)](https://github.com/capnproto/pycapnp/actions)
 [![PyPI version](https://badge.fury.io/py/pycapnp.svg)](https://badge.fury.io/py/pycapnp)
 
-[Cap'n'proto Mailing List](https://groups.google.com/forum/#!forum/capnproto) [Documentation](https://capnproto.github.io/pycapnp)
+[Cap'n'proto Mailing List](https://github.com/capnproto/capnproto/discussions) [Documentation](https://capnproto.github.io/pycapnp)
 
 
 ## Requirements
