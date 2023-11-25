@@ -25,7 +25,7 @@ from buildutils.bundle import fetch_libcapnp
 MAJOR = 2
 MINOR = 0
 MICRO = 0
-TAG = "b1"
+TAG = "b2"
 VERSION = "%d.%d.%d%s" % (MAJOR, MINOR, MICRO, TAG)
 
 
