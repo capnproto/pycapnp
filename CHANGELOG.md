@@ -1,3 +1,6 @@
+## v2.0.0 (2024-01-19)
+- Updated link for mailing list in README
+
 ## v2.0.0b2 (2023-11-25)
 - Fix broken test in test_load (#329)
 - Update README example to async code (#331)
