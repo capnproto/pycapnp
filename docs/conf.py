@@ -1,6 +1,7 @@
 """
 Docs configuration
 """
+
 # -*- coding: utf-8 -*-
 #
 # capnp documentation build configuration file, created by

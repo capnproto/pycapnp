@@ -14,7 +14,6 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class PowerFunction(calculator_capnp.Calculator.Function.Server):
-
     """An implementation of the Function interface wrapping pow().  Note that
     we're implementing this on the client side and will pass a reference to
     the server.  The server will then be able to make calls back to the client."""
