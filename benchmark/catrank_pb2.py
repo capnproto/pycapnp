@@ -144,7 +144,7 @@ SearchResultList = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_SEARCHRESULTLIST,
-        __module__="catrank_pb2"
+        __module__="catrank_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.SearchResultList)
     ),
 )
@@ -155,7 +155,7 @@ SearchResult = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_SEARCHRESULT,
-        __module__="catrank_pb2"
+        __module__="catrank_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.SearchResult)
     ),
 )

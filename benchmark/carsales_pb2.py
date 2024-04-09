@@ -675,7 +675,7 @@ ParkingLot = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_PARKINGLOT,
-        __module__="carsales_pb2"
+        __module__="carsales_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.ParkingLot)
     ),
 )
@@ -686,7 +686,7 @@ TotalValue = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_TOTALVALUE,
-        __module__="carsales_pb2"
+        __module__="carsales_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.TotalValue)
     ),
 )
@@ -697,7 +697,7 @@ Car = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_CAR,
-        __module__="carsales_pb2"
+        __module__="carsales_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.Car)
     ),
 )
@@ -708,7 +708,7 @@ Wheel = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_WHEEL,
-        __module__="carsales_pb2"
+        __module__="carsales_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.Wheel)
     ),
 )
@@ -719,7 +719,7 @@ Engine = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_ENGINE,
-        __module__="carsales_pb2"
+        __module__="carsales_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.Engine)
     ),
 )
