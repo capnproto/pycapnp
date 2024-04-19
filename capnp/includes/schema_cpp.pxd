@@ -673,7 +673,7 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         Annotation.Builder getRootAnnotation'getRoot< ::capnp::schema::Annotation>'()
         Annotation.Builder initRootAnnotation'initRoot< ::capnp::schema::Annotation>'()
 
-        DynamicStruct_Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct_Builder getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema) except +reraise_kj_exception
         DynamicStruct_Builder initRootDynamicStruct'initRoot< ::capnp::DynamicStruct>'(StructSchema)
         void setRootDynamicStruct'setRoot< ::capnp::DynamicStruct::Reader>'(DynamicStruct.Reader)
 
@@ -696,7 +696,7 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
         StructNode.Reader getRootStructNode'getRoot< ::capnp::schema::StructNode>'()
         Annotation.Reader getRootAnnotation'getRoot< ::capnp::schema::Annotation>'()
 
-        DynamicStruct.Reader getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema)
+        DynamicStruct.Reader getRootDynamicStruct'getRoot< ::capnp::DynamicStruct>'(StructSchema) except +reraise_kj_exception
         AnyPointer.Reader getRootAnyPointer'getRoot< ::capnp::AnyPointer>'()
 
     cdef cppclass MallocMessageBuilder(MessageBuilder) nogil:
@@ -798,7 +798,7 @@ cdef extern from "capnp/serialize.h" namespace " ::capnp":
         FlatArrayMessageReader(WordArrayPtr array, ReaderOptions) except +reraise_kj_exception
         const word* getEnd() const
 
-    void writeMessageToFd(int, MessageBuilder&) nogil except +reraise_kj_exception
+    void writeMessageToFd(int, MessageBuilder&) except +reraise_kj_exception nogil
 
     WordArray messageToFlatArray(MessageBuilder &) nogil
 
@@ -816,6 +816,6 @@ cdef extern from "capnp/serialize-packed.h" namespace " ::capnp":
         PackedFdMessageReader(int) except +reraise_kj_exception
         PackedFdMessageReader(int, ReaderOptions) except +reraise_kj_exception
 
-    void writePackedMessage(BufferedOutputStream&, MessageBuilder&) nogil except +reraise_kj_exception
-    void writePackedMessage(OutputStream&, MessageBuilder&) nogil except +reraise_kj_exception
-    void writePackedMessageToFd(int, MessageBuilder&) nogil except +reraise_kj_exception
+    void writePackedMessage(BufferedOutputStream&, MessageBuilder&) except +reraise_kj_exception nogil
+    void writePackedMessage(OutputStream&, MessageBuilder&) except +reraise_kj_exception nogil
+    void writePackedMessageToFd(int, MessageBuilder&) except +reraise_kj_exception nogil
