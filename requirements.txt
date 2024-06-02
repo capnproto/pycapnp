@@ -5,6 +5,7 @@ flake8
 setuptools
 pkgconfig
 pytest
+pytest-asyncio
 sphinx
 sphinx-multiversion
 tox
