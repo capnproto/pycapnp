@@ -3,6 +3,7 @@ include LICENSE.md
 include CHANGELOG.md
 include requirements.txt
 include buildutils/*
+include _custom_build/*
 include capnp/lib/capnp_api.h
 include Pipfile
 include tox.ini
