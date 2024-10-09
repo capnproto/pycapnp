@@ -4399,15 +4399,13 @@ class _Loader:
         self.fullname = fullname
         self.path = path
 
-    def load_module(self, fullname):
-        assert self.fullname == fullname, (
-            "invalid module, expected {}, got {}".format(self.fullname, fullname))
-
+    def create_module(self, _spec):
         imports = _capnp_paths + [path if path != '' else '.' for path in _sys.path]
-        module = load(self.path, fullname, imports=imports)
-        _sys.modules[fullname] = module
-
+        module = load(self.path, self.fullname, imports=imports)
         return module
+
+    def exec_module(self, _module):
+        pass
 
 
 class _Importer:
