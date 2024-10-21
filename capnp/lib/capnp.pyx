@@ -4119,6 +4119,44 @@ cdef class _MultipleBytesPackedMessageReader:
         return self
 
 
+cdef class _MultipleBytesPackedAnyMessageReader:
+    cdef schema_cpp.ArrayInputStream * stream
+    cdef schema_cpp.BufferedInputStream * buffered_stream
+    cdef Py_buffer view
+
+    cdef public object traversal_limit_in_words, nesting_limit, schema, buf
+
+    def __init__(self, buf, traversal_limit_in_words=None, nesting_limit=None):
+        self.traversal_limit_in_words = traversal_limit_in_words
+        self.nesting_limit = nesting_limit
+
+        if PyObject_GetBuffer(buf, &self.view, PyBUF_SIMPLE) != 0:
+            raise KjException("could not get read buffer")
+
+        self.buf = buf
+        self.stream = new schema_cpp.ArrayInputStream(schema_cpp.ByteArrayPtr(<byte *>self.view.buf, self.view.len))
+        self.buffered_stream = new schema_cpp.BufferedInputStreamWrapper(deref(self.stream))
+
+    def __dealloc__(self):
+        PyBuffer_Release(&self.view)
+        del self.buffered_stream
+        del self.stream
+
+    def __next__(self):
+        try:
+            reader = _PackedMessageReader()._init(
+                deref(self.buffered_stream), self.traversal_limit_in_words, self.nesting_limit, self)
+            return reader.get_root_as_any()
+        except KjException as e:
+            if 'EOF' in str(e):
+                raise StopIteration
+            else:
+                raise
+
+    def __iter__(self):
+        return self
+
+
 @cython.internal
 cdef class _AlignedBuffer:
     cdef char * buf
@@ -4416,6 +4454,25 @@ def load(file_name, display_name=None, imports=[]):
         _global_schema_parser = SchemaParser()
 
     return _global_schema_parser.load(file_name, display_name, imports)
+
+
+def read_multiple_bytes_packed(buf, traversal_limit_in_words=None, nesting_limit=None):
+    """Returns an iterable, that when traversed will return Readers for AnyPointer messages.
+
+    :type buf: buffer
+    :param buf: Any Python object that supports the buffer interface.
+
+    :type traversal_limit_in_words: int
+    :param traversal_limit_in_words: Limits how many total words of data are allowed to be traversed.
+                                        Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.
+
+    :type nesting_limit: int
+    :param nesting_limit: Limits how many total words of data are allowed to be traversed. Default is 64.
+
+    :rtype: Iterable with elements of :class:`_DynamicStructReader`"""
+
+    reader = _MultipleBytesPackedAnyMessageReader(buf, traversal_limit_in_words, nesting_limit)
+    return reader
 
 
 # Automatically include the system and built-in capnp paths
