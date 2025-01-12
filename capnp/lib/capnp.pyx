@@ -37,6 +37,7 @@ import traceback as _traceback
 import warnings as _warnings
 import weakref as _weakref
 import traceback as _traceback
+import numpy as np
 
 from types import ModuleType as _ModuleType
 from operator import attrgetter as _attrgetter
@@ -1245,6 +1246,36 @@ cdef class _DynamicStructReader:
     def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.as_builder().to_bytes())
 
+    def get_list(self, field_name):
+        return _DynamicListReader([], dtype=dtype)
+    def get_numpy_array(self, field_name):
+        list_reader = self.get_list(field_name)
+        length = list_reader.length()
+
+        if length == 0:
+            return np.array([], dtype='float64') 
+
+        dtype = list_reader.get(-1)
+
+        try:
+            np_dtype = np.dtype(dtype)
+        except TypeError:
+            raise ValueError(f"Invalid dtype: {dtype}")
+
+        sub_arrays = []
+
+        for i in range(length - 1): 
+            sub_array = self.deserialize_sub_array(list_reader.get(i), dtype)
+            sub_arrays.append(sub_array)
+
+        return np.array(sub_arrays, dtype=np_dtype)
+    def deserialize_sub_array(self, sub_list_reader, dtype):
+        length = sub_list_reader.length()
+        sub_array = np.empty(length, dtype=dtype)
+        for j in range(length):
+            value = sub_list_reader.get(j)
+            sub_array[j] = value  
+        return sub_array
 
 cdef class _DynamicStructBuilder:
     """Builds Cap'n Proto structs
@@ -1627,6 +1658,38 @@ cdef class _DynamicStructBuilder:
 
     def __reduce_ex__(self, proto):
         return _struct_reducer, (self.schema.node.id, self.to_bytes())
+
+    def init_list(self, field_name, length):
+        return _DynamicListBuilder(field_name, length)
+
+    def add_numpy_array(self, field_name, array):
+        """Serialize a NumPy array and add it to the dynamic struct."""
+        if not isinstance(array, np.ndarray):
+            raise ValueError("Input must be a NumPy array.")
+
+        shape = array.shape
+        num_dimensions = len(shape)
+        dtype = array.dtype  
+        list_builder = self.init_list(field_name, shape[0])
+        list_builder.set(-1, dtype)  
+        if num_dimensions > 1:
+            for i in range(shape[0]):
+                sub_array = array[i]
+                list_builder.set(i, self.serialize_sub_array(sub_array))
+        else:
+            for i in range(shape[0]):
+                list_builder.set(i, array[i])  
+        return list_builder
+
+    def serialize_sub_array(self, sub_array):
+        """Serialize a sub-array (1D or higher) into a dynamic list."""
+        length = sub_array.shape[0]
+        sub_list_builder = self.init_list("sub_array", length)
+
+        for j in range(length):
+            value = sub_array[j]
+            sub_list_builder.set(j, value) 
+        return sub_list_builder
 
 
 cdef class _DynamicStructPipeline:
