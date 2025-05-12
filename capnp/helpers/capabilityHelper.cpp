@@ -68,14 +68,14 @@ kj::Promise<kj::Own<PyRefCounter>> wrapPyFunc(kj::Own<PyRefCounter> func, kj::Ow
 ::kj::Promise<kj::Own<PyRefCounter>> then(kj::Promise<kj::Own<PyRefCounter>> promise,
                                           kj::Own<PyRefCounter> func, kj::Own<PyRefCounter> error_func) {
   if(error_func->obj == Py_None)
-    return promise.then(kj::mvCapture(func, [](auto func, kj::Own<PyRefCounter> arg) {
-      return wrapPyFunc(kj::mv(func), kj::mv(arg)); } ));
+    return promise.then([func=kj::mv(func)](kj::Own<PyRefCounter> arg) mutable {
+      return wrapPyFunc(kj::mv(func), kj::mv(arg)); } );
   else
     return promise.then
-      (kj::mvCapture(func, [](auto func, kj::Own<PyRefCounter> arg) {
-        return wrapPyFunc(kj::mv(func), kj::mv(arg)); }),
-        kj::mvCapture(error_func, [](auto error_func, kj::Exception arg) {
-          return wrapPyFunc(kj::mv(error_func), stealPyRef(wrap_kj_exception(arg))); } ));
+      ([func=kj::mv(func)](kj::Own<PyRefCounter> arg) mutable {
+        return wrapPyFunc(kj::mv(func), kj::mv(arg)); },
+        [error_func=kj::mv(error_func)](kj::Exception arg) mutable {
+          return wrapPyFunc(kj::mv(error_func), stealPyRef(wrap_kj_exception(arg))); } );
 }
 
 kj::Promise<void> PythonInterfaceDynamicImpl::call(capnp::InterfaceSchema::Method method,
