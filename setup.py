@@ -237,7 +237,7 @@ setup(
     description="A cython wrapping of the C++ Cap'n Proto library",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    license="BSD",
+    license="BSD-2-Clause",
     # (setup.py only supports 1 author...)
     author="Jacob Alexander",  # <- Current maintainer; Original author -> Jason Paryani
     author_email="haata@kiibohd.com",
@@ -247,7 +247,6 @@ setup(
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows :: Windows 10",
         "Operating System :: POSIX",
