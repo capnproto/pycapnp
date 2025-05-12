@@ -429,7 +429,8 @@ cdef class _DynamicListReader:
         return self
 
     cpdef _get(self, int64_t index):
-        return to_python_reader(self.thisptr[index], self._parent)
+        ptr = self.thisptr[index]
+        return to_python_reader(ptr, self._parent)
 
     def __getitem__(self, int64_t index):
         cdef uint size = self.thisptr.size()
@@ -551,7 +552,8 @@ cdef class _DynamicListBuilder:
         return self
 
     cpdef _get(self, int64_t index):
-        return to_python_builder(self.thisptr[index], self._parent)
+        ptr = self.thisptr[index]
+        return to_python_builder(ptr, self._parent)
 
     def __getitem__(self, int64_t index):
         cdef uint size = self.thisptr.size()
@@ -610,7 +612,8 @@ cdef class _DynamicListBuilder:
         :type size: int
         :param size: Size of the element to be initialized.
         """
-        return to_python_builder(self.thisptr.init(index, size), self._parent)
+        ptr = self.thisptr.init(index, size)
+        return to_python_builder(ptr, self._parent)
 
     def __str__(self):
         return <char*>printListBuilder(self.thisptr).flatten().cStr()
@@ -804,17 +807,21 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
     elif isinstance(value, basestring):
         _setBaseString(thisptr, field, value)
     elif value_type is list:
-        builder = to_python_builder(thisptr.init(field, len(value)), parent)
+        ptr = thisptr.init(field, len(value))
+        builder = to_python_builder(ptr, parent)
         _from_list(builder, value)
     elif value_type is tuple:
-        builder = to_python_builder(thisptr.init(field, len(value)), parent)
+        ptr = thisptr.init(field, len(value))
+        builder = to_python_builder(ptr, parent)
         _from_tuple(builder, value)
     elif value_type is dict:
         if _DynamicSetterClasses is DynamicStruct_Builder:
-            builder = to_python_builder(thisptr.get(field), parent)
+            ptr = thisptr.get(field)
+            builder = to_python_builder(ptr, parent)
             builder.from_dict(value)
         else:
-            builder = to_python_builder(thisptr[field], parent)
+            ptr = thisptr[field]
+            builder = to_python_builder(ptr, parent)
             builder.from_dict(value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
@@ -865,10 +872,12 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
     elif isinstance(value, basestring):
         _setBaseStringField(thisptr, field, value)
     elif value_type is list:
-        builder = to_python_builder(thisptr.init(field.proto.name, len(value)), parent)
+        ptr = thisptr.init(field.proto.name, len(value))
+        builder = to_python_builder(ptr, parent)
         _from_list(builder, value)
     elif value_type is dict:
-        builder = to_python_builder(thisptr.getByField(field.thisptr), parent)
+        ptr = thisptr.getByField(field.thisptr)
+        builder = to_python_builder(ptr, parent)
         builder.from_dict(value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
@@ -919,10 +928,12 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
     elif isinstance(value, basestring):
         _setBaseString(thisptr, field, value)
     elif value_type is list:
-        builder = to_python_builder(thisptr.init(field, len(value)), parent)
+        ptr = thisptr.init(field, len(value))
+        builder = to_python_builder(ptr, parent)
         _from_list(builder, value)
     elif value_type is dict:
-        builder = to_python_builder(thisptr.get(field), parent)
+        ptr = thisptr.get(field)
+        builder = to_python_builder(ptr, parent)
         builder.from_dict(value)
     elif value is None:
         temp = C_DynamicValue.Reader(VOID)
@@ -1151,7 +1162,8 @@ cdef class _DynamicStructReader:
         return self
 
     cpdef _get(self, field):
-        return to_python_reader(self.thisptr.get(field), self)
+        ptr = self.thisptr.get(field)
+        return to_python_reader(ptr, self)
 
     def __getattr__(self, field):
         try:
@@ -1160,7 +1172,8 @@ cdef class _DynamicStructReader:
             raise e._to_python() from None
 
     cpdef _get_by_field(self, _StructSchemaField field):
-        return to_python_reader(self.thisptr.getByField(field.thisptr), self)
+        ptr = self.thisptr.getByField(field.thisptr)
+        return to_python_reader(ptr, self)
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
@@ -1395,10 +1408,12 @@ cdef class _DynamicStructBuilder:
         return ret
 
     cpdef _get(self, field):
-        return to_python_builder(self.thisptr.get(field), self._parent)
+        ptr = self.thisptr.get(field)
+        return to_python_builder(ptr, self._parent)
 
     cpdef _get_by_field(self, _StructSchemaField field):
-        return to_python_builder(self.thisptr.getByField(field.thisptr), self._parent)
+        ptr = self.thisptr.getByField(field.thisptr)
+        return to_python_builder(ptr, self._parent)
 
     def __getattr__(self, field):
         try:
@@ -1442,9 +1457,11 @@ cdef class _DynamicStructBuilder:
         if isinstance(field, _StructModuleWhich):
             field = field.name[0].lower() + field.name[1:]
         if size is None:
-            return to_python_builder(self.thisptr.init(field), self._parent)
+            ptr = self.thisptr.init(field)
+            return to_python_builder(ptr, self._parent)
         else:
-            return to_python_builder(self.thisptr.init(field, size), self._parent)
+            ptr = self.thisptr.init(field, size)
+            return to_python_builder(ptr, self._parent)
 
     cpdef _init_by_field(self, _StructSchemaField field, size=None):
         """Method for initializing fields that are of type union/struct/list
@@ -1462,9 +1479,11 @@ cdef class _DynamicStructBuilder:
         :Raises: :exc:`KjException` if the field isn't in this struct
         """
         if size is None:
-            return to_python_builder(self.thisptr.initByField(field.thisptr), self._parent)
+            ptr = self.thisptr.initByField(field.thisptr)
+            return to_python_builder(ptr, self._parent)
         else:
-            return to_python_builder(self.thisptr.initByField(field.thisptr, size), self._parent)
+            ptr = self.thisptr.initByField(field.thisptr, size)
+            return to_python_builder(ptr, self._parent)
 
     cpdef init_resizable_list(self, field):
         """Method for initializing fields that are of type list (of structs)
@@ -1770,7 +1789,8 @@ cdef class _DynamicObjectBuilder:
         else:
             s = schema
 
-        return _DynamicStructBuilder()._init(self.thisptr.getAs(s._thisptr()), self._parent)
+        ptr = s._thisptr()
+        return _DynamicStructBuilder()._init(self.thisptr.getAs(ptr), self._parent)
 
     cpdef as_interface(self, schema):
         cdef _InterfaceSchema s
@@ -2702,7 +2722,8 @@ cdef class _Schema:
         return self
 
     cpdef as_const_value(self):
-        return to_python_reader(<C_DynamicValue.Reader>self.thisptr.asConst(), self)
+        ptr = <C_DynamicValue.Reader>self.thisptr.asConst()
+        return to_python_reader(ptr, self)
 
     cpdef as_struct(self):
         return _StructSchema()._init_child(self.thisptr.asStruct())
@@ -3612,7 +3633,8 @@ cdef class _MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(s._thisptr()), self, True)
+        ptr = s._thisptr()
+        return _DynamicStructBuilder()._init(self.thisptr.initRootDynamicStruct(ptr), self, True)
 
     cpdef get_root(self, schema):
         """A method for instantiating Cap'n Proto structs, from an already pre-written buffer
@@ -3637,7 +3659,8 @@ cdef class _MessageBuilder:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(s._thisptr()), self, True)
+        ptr = s._thisptr()
+        return _DynamicStructBuilder()._init(self.thisptr.getRootDynamicStruct(ptr), self, True)
 
     cpdef get_root_as_any(self):
         """A method for getting a Cap'n Proto AnyPointer, from an already pre-written buffer
@@ -3698,8 +3721,8 @@ cdef class _MessageBuilder:
             s = schema.schema
         else:
             s = schema
-
-        return _DynamicOrphan()._init(self.thisptr.newOrphan(s._thisptr()), self)
+        ptr = s._thisptr()
+        return _DynamicOrphan()._init(self.thisptr.newOrphan(ptr), self)
 
 
 cdef class _MallocMessageBuilder(_MessageBuilder):
@@ -3757,7 +3780,8 @@ cdef class _MessageReader:
             s = schema.schema
         else:
             s = schema
-        return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(s._thisptr()), self)
+        ptr = s._thisptr()
+        return _DynamicStructReader()._init(self.thisptr.getRootDynamicStruct(ptr), self)
 
     cpdef get_root_as_any(self):
         """A method for getting a Cap'n Proto AnyPointer, from an already pre-written buffer
