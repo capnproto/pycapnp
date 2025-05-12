@@ -80,7 +80,7 @@ def test_spaces_import():
 
 
 def test_add_import_hook():
-    capnp.add_import_hook([this_dir])
+    capnp.add_import_hook()
 
     # Make sure any previous imports of addressbook_capnp are gone
     capnp.cleanup_global_schema_parser()
@@ -93,7 +93,6 @@ def test_add_import_hook():
 def test_multiple_add_import_hook():
     capnp.add_import_hook()
     capnp.add_import_hook()
-    capnp.add_import_hook([this_dir])
 
     # Make sure any previous imports of addressbook_capnp are gone
     capnp.cleanup_global_schema_parser()
@@ -104,7 +103,7 @@ def test_multiple_add_import_hook():
 
 
 def test_remove_import_hook():
-    capnp.add_import_hook([this_dir])
+    capnp.add_import_hook()
     capnp.remove_import_hook()
 
     if "addressbook_capnp" in sys.modules:
@@ -118,7 +117,12 @@ def test_remove_import_hook():
 def test_bundled_import_hook():
     # stream.capnp should be bundled, or provided by the system capnproto
     capnp.add_import_hook()
-    import stream_capnp  # noqa: F401
+    from capnp import stream_capnp  # noqa: F401
+
+
+def test_nested_import():
+    import schemas.parent_capnp  # noqa: F401
+    import schemas.child_capnp  # noqa: F401
 
 
 async def test_load_capnp(foo):

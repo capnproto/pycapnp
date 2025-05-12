@@ -25,7 +25,7 @@ from buildutils.bundle import fetch_libcapnp
 MAJOR = 2
 MINOR = 0
 MICRO = 0
-TAG = "b1"
+TAG = ""
 VERSION = "%d.%d.%d%s" % (MAJOR, MINOR, MICRO, TAG)
 
 
@@ -221,7 +221,6 @@ setup(
             "*.capnp",
             "helpers/*.pxd",
             "helpers/*.h",
-            "helpers/*.cpp",
             "includes/*.pxd",
             "lib/*.pxd",
             "lib/*.py",

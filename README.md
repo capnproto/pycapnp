@@ -4,7 +4,7 @@
 [![manylinux2014 Status](https://github.com/capnproto/pycapnp/workflows/manylinux2014/badge.svg)](https://github.com/capnproto/pycapnp/actions)
 [![PyPI version](https://badge.fury.io/py/pycapnp.svg)](https://badge.fury.io/py/pycapnp)
 
-[Cap'n'proto Mailing List](https://groups.google.com/forum/#!forum/capnproto) [Documentation](https://capnproto.github.io/pycapnp)
+[Cap'n'proto Mailing List](https://github.com/capnproto/capnproto/discussions) [Documentation](https://capnproto.github.io/pycapnp)
 
 
 ## Requirements
@@ -77,7 +77,7 @@ While not directly supported by pycapnp, a tool has been created to help generat
 
 ## Python Versions
 
-Python 3.7+ is supported.
+Python 3.8+ is supported.
 
 
 ## Development
@@ -174,6 +174,7 @@ if __name__ == '__main__':
 Also, pycapnp has gained RPC features that include pipelining and a promise style API. Refer to the calculator example in the examples directory for a much better demonstration:
 
 ```python
+import asyncio
 import capnp
 import socket
 
@@ -185,31 +186,33 @@ class Server(test_capability_capnp.TestInterface.Server):
     def __init__(self, val=1):
         self.val = val
 
-    def foo(self, i, j, **kwargs):
+    async def foo(self, i, j, **kwargs):
         return str(i * 5 + self.val)
 
 
-def server(write_end):
-    server = capnp.TwoPartyServer(write_end, bootstrap=Server(100))
-
-
-def client(read_end):
+async def client(read_end):
     client = capnp.TwoPartyClient(read_end)
 
     cap = client.bootstrap()
     cap = cap.cast_as(test_capability_capnp.TestInterface)
 
     remote = cap.foo(i=5)
-    response = remote.wait()
+    response = await remote
 
     assert response.x == '125'
 
-
-if __name__ == '__main__':
-    read_end, write_end = socket.socketpair(socket.AF_UNIX)
+async def main():
+    client_end, server_end = socket.socketpair(socket.AF_UNIX)
     # This is a toy example using socketpair.
     # In real situations, you can use any socket.
 
-    server(write_end)
-    client(read_end)
+    client_end = await capnp.AsyncIoStream.create_connection(sock=client_end)
+    server_end = await capnp.AsyncIoStream.create_connection(sock=server_end)
+
+    _ = capnp.TwoPartyServer(server_end, bootstrap=Server(100))
+    await client(client_end)
+
+
+if __name__ == '__main__':
+    asyncio.run(capnp.run(main()))
 ```

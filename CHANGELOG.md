@@ -1,3 +1,25 @@
+## v2.0.0 (2024-01-19)
+- Updated link for mailing list in README
+
+## v2.0.0b2 (2023-11-25)
+- Fix broken test in test_load (#329)
+- Update README example to async code (#331)
+- Fix 'AttributeError: '_UnixSelectorEventLoop' object has no attribute 'call_soon'
+- Delete and update some Python 3.7-specific todo notes
+- Make a server fail early when the KJ loop is not running
+- Update documentation to async code (#331) (#332)
+- Fix retransmit bug for large messages causing message corruption
+- Unlock the GIL for all capnp functions that do IO
+- Handle exceptions from server callbacks
+- Disable the use of ninja for windows builds
+- DynamicCapabilityClient fix
+- Make `reraise_kj_exception` available to downstream
+- Support `_DynamicListReader` in `_setDynamicField`
+- Fix re-raising of KjException
+- Allow cancellation of all capability contexts
+- Corner case for cancelled server methods that raise exceptions
+- Some fixes to the magic import system
+
 ## v2.0.0b1 (2023-10-03)
 - Update to bundled capnproto-1.0.1
 - Remove support for Python 3.7

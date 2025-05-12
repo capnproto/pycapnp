@@ -63,7 +63,7 @@ inline ::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(kj::Promise<voi
     });
 }
 
-void reraise_kj_exception();
+void c_reraise_kj_exception();
 
 void check_py_error();
 
@@ -75,10 +75,19 @@ public:
   kj::Own<PyRefCounter> py_server;
   kj::Own<PyRefCounter> kj_loop;
 
+#if (CAPNP_VERSION_MAJOR < 1)
   PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema,
                              kj::Own<PyRefCounter> _py_server,
                              kj::Own<PyRefCounter> kj_loop)
-    : capnp::DynamicCapability::Server(schema), py_server(kj::mv(_py_server)), kj_loop(kj::mv(kj_loop)) { }
+    : capnp::DynamicCapability::Server(schema),
+      py_server(kj::mv(_py_server)), kj_loop(kj::mv(kj_loop)) { }
+#else
+  PythonInterfaceDynamicImpl(capnp::InterfaceSchema & schema,
+                             kj::Own<PyRefCounter> _py_server,
+                             kj::Own<PyRefCounter> kj_loop)
+    : capnp::DynamicCapability::Server(schema, { true }),
+      py_server(kj::mv(_py_server)), kj_loop(kj::mv(kj_loop)) { }
+#endif
 
   ~PythonInterfaceDynamicImpl() {
   }
@@ -86,6 +95,12 @@ public:
   kj::Promise<void> call(capnp::InterfaceSchema::Method method,
                          capnp::CallContext< capnp::DynamicStruct, capnp::DynamicStruct> context);
 };
+
+inline void allowCancellation(capnp::CallContext<capnp::DynamicStruct, capnp::DynamicStruct> context) {
+#if (CAPNP_VERSION_MAJOR < 1)
+  context.allowCancellation();
+#endif
+}
 
 class PyAsyncIoStream: public kj::AsyncIoStream {
 public:

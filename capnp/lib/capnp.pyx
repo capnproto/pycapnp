@@ -77,6 +77,15 @@ cdef class _VoidPromiseFulfiller:
 
 def void_task_done_callback(method_name, _VoidPromiseFulfiller fulfiller, task):
     if fulfiller.fulfiller == NULL:
+        if not task.cancelled():
+            exc = task.exception()
+            if exc is not None:
+                context = {
+                    'message': f"Cancelled server method {method_name} raised an exception",
+                    'exception': exc,
+                    'task': task,
+                }
+                asyncio.get_running_loop().call_exception_handler(context)
         return
 
     if task.cancelled():
@@ -261,9 +270,9 @@ class KjException(Exception):
 
     def _to_python(self):
         message = self.message
-        if self.wrapper.type == 'FAILED':
+        if self.wrapper is not None and self.wrapper.type == 'FAILED':
             if 'has no such' in self.message:
-                return AttributeError(message)
+                return AttributeError(message).with_traceback(self.__traceback__)
         return self
 
 
@@ -280,6 +289,10 @@ cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with 
 
     ret = KjException(wrapper=wrapper)
     return ret
+
+
+cdef void reraise_kj_exception():
+    helpers.reraise_kj_exception()
 
 
 cdef api object get_exception_info(object exc_type, object exc_obj, object exc_tb) with gil:
@@ -439,8 +452,10 @@ cdef class _DynamicListReader:
 cdef class _DynamicResizableListBuilder:
     """Class for building growable Cap'n Proto Lists
 
-    .. warning:: You need to call :meth:`finish` on this object before serializing the Cap'n Proto message.
-    Failure to do so will cause your objects not to be written out as well as leaking orphan structs into your message.
+    .. warning::
+        You need to call :meth:`finish` on this object before serializing the
+        Cap'n Proto message. Failure to do so will cause your objects not to be
+        written out as well as leaking orphan structs into your message.
 
     This class works much like :class:`_DynamicListBuilder`, but it allows growing the list dynamically.
     It is meant for lists of structs, since for primitive types like int or float, you're much better off
@@ -709,6 +724,14 @@ cdef C_DynamicValue.Reader _extract_dynamic_struct_reader(_DynamicStructReader v
     return C_DynamicValue.Reader(value.thisptr)
 
 
+cdef C_DynamicValue.Reader _extract_dynamic_list_builder(_DynamicListBuilder value):
+    return C_DynamicValue.Reader(value.thisptr.asReader())
+
+
+cdef C_DynamicValue.Reader _extract_dynamic_list_reader(_DynamicListReader value):
+    return C_DynamicValue.Reader(value.thisptr)
+
+
 cdef C_DynamicValue.Reader _extract_dynamic_client(_DynamicCapabilityClient value):
     return C_DynamicValue.Reader(value.thisptr)
 
@@ -800,6 +823,10 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
         thisptr.set(field, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
         thisptr.set(field, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicListBuilder:
+        thisptr.set(field, _extract_dynamic_list_builder(value))
+    elif value_type is _DynamicListReader:
+        thisptr.set(field, _extract_dynamic_list_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
     elif isinstance(value, _DynamicCapabilityServer):
@@ -816,6 +843,7 @@ cdef _setDynamicField(_DynamicSetterClasses thisptr, field, value, parent):
             .format(field, str(value), str(type(value))))
 
 
+# TODO: Is this function used by anyone? Can it be removed?
 cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
@@ -849,6 +877,10 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
         thisptr.setByField(field.thisptr, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
         thisptr.setByField(field.thisptr, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicListBuilder:
+        thisptr.setByField(field.thisptr, _extract_dynamic_list_builder(value))
+    elif value_type is _DynamicListReader:
+        thisptr.setByField(field.thisptr, _extract_dynamic_list_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.setByField(field.thisptr, _extract_dynamic_client(value))
     elif isinstance(value, _DynamicCapabilityServer):
@@ -865,6 +897,7 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
             .format(field, str(value), str(type(value))))
 
 
+# TODO: Is this function used by anyone? Can it be removed?
 cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent):
     cdef C_DynamicValue.Reader temp
     value_type = type(value)
@@ -898,6 +931,10 @@ cdef _setDynamicFieldStatic(DynamicStruct_Builder thisptr, field, value, parent)
         thisptr.set(field, _extract_dynamic_struct_builder(value))
     elif value_type is _DynamicStructReader:
         thisptr.set(field, _extract_dynamic_struct_reader(value))
+    elif value_type is _DynamicListBuilder:
+        thisptr.set(field, _extract_dynamic_list_builder(value))
+    elif value_type is _DynamicListReader:
+        thisptr.set(field, _extract_dynamic_list_reader(value))
     elif value_type is _DynamicCapabilityClient:
         thisptr.set(field, _extract_dynamic_client(value))
     elif isinstance(value, _DynamicCapabilityServer):
@@ -1120,7 +1157,7 @@ cdef class _DynamicStructReader:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
+            raise e._to_python() from None
 
     cpdef _get_by_field(self, _StructSchemaField field):
         return to_python_reader(self.thisptr.getByField(field.thisptr), self)
@@ -1367,7 +1404,7 @@ cdef class _DynamicStructBuilder:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
+            raise e._to_python() from None
 
     cpdef _set(self, field, value):
         _setDynamicField(self.thisptr, field, value, self._parent)
@@ -1379,7 +1416,7 @@ cdef class _DynamicStructBuilder:
         try:
             self._set(field, value)
         except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
+            raise e._to_python() from None
 
     cpdef _has(self, field):
         return self.thisptr.has(field)
@@ -1437,9 +1474,11 @@ cdef class _DynamicStructBuilder:
         This is only meant for lists of Cap'n Proto objects, since for primitive types
         you can just define a normal python list and fill it yourself.
 
-        .. warning:: You need to call :meth:`_DynamicResizableListBuilder.finish` on the
-        list object before serializing the Cap'n Proto message. Failure to do so will cause
-        your objects not to be written out as well as leaking orphan structs into your message.
+        .. warning::
+            You need to call :meth:`_DynamicResizableListBuilder.finish` on the
+            list object before serializing the Cap'n Proto message. Failure to do
+            so will cause your objects not to be written out as well as leaking
+            orphan structs into your message.
 
         :type field: str
         :param field: The field name to initialize
@@ -1629,7 +1668,7 @@ cdef class _DynamicStructPipeline:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
+            raise e._to_python() from None
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -1807,7 +1846,17 @@ cdef cppclass AsyncIoEventPort(EventPort):
         if runnable:
             assert this.runHandle is None
             us = <void*>this;
-            this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
+            while True:
+                # TODO: This loop is a workaround for the following occasional nondeterministic bug
+                #       that appears on Python 3.8 and 3.9:
+                # AttributeError: '_UnixSelectorEventLoop' object has no attribute 'call_soon'
+                # The cause of this is unknown (either a bug in our code, Cython, or Python).
+                # It appears to no longer exist in Python 3.10. This can be removed once 3.9 is EOL.
+                try:
+                    this.runHandle = this.asyncioLoop.call_soon(lambda: kjloop_runnable_callback(us))
+                    break
+                except AttributeError:
+                    pass
         else:
             assert this.runHandle is not None
             this.runHandle.cancel()
@@ -1851,6 +1900,16 @@ cdef class _EventLoop:
 
 @_asynccontextmanager
 async def kj_loop():
+    """Context manager for running the KJ event loop
+
+    As long as the context manager is active it is guaranteed that the KJ event
+    loop is running. When the context manager is exited, the KJ event loop is
+    shut down properly and pending tasks are cancelled.
+
+    :raises [RuntimeError]: If the KJ event loop is already running (on this thread).
+
+    .. warning:: Every capnp rpc call required a running KJ event loop.
+    """
     asyncio_loop = asyncio.get_running_loop()
     if hasattr(asyncio_loop, '_kj_loop'):
         raise RuntimeError("The KJ event-loop is already running (on this thread).")
@@ -1877,6 +1936,12 @@ async def kj_loop():
         kj_loop.close()
 
 async def run(coro):
+    """Ensure that the coroutine runs while the KJ event loop is running
+
+    This is a shortcut for wrapping the coroutine in a :py:meth:`capnp.kj_loop` context manager.
+
+    :param coro: Coroutine to run
+    """
     async with kj_loop():
         return await coro
 
@@ -1894,6 +1959,7 @@ cdef class _CallContext:
     cdef CallContext * thisptr
 
     cdef _init(self, CallContext other):
+        helpers.allowCancellation(other)
         self.thisptr = new CallContext(move(other))
         return self
 
@@ -1989,7 +2055,7 @@ cdef class _RemotePromise:
         try:
             return self._get(field)
         except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
+            raise e._to_python() from None
 
     property schema:
         """A property that returns the _StructSchema object matching this reader"""
@@ -2053,7 +2119,7 @@ cdef class _DynamicCapabilityClient:
     cdef public object _parent, _cached_schema
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = C_DynamicCapability.Client()
 
@@ -2143,7 +2209,7 @@ cdef class _DynamicCapabilityClient:
                 raise AttributeError('Method named %s not found' % name)
             return _partial(self._send, name)
         except KjException as e:
-            raise e._to_python(), None, _sys.exc_info()[2]
+            raise e._to_python() from None
 
     cpdef upcast(self, schema):
         cdef _InterfaceSchema s
@@ -2170,7 +2236,7 @@ cdef class _DynamicCapabilityClient:
             return self._cached_schema
 
     def __dir__(self):
-        return list(set(self.schema.method_names_inherited) + tuple(dir(self.__class__)))
+        return list(set(self.schema.method_names_inherited) | set(dir(self.__class__)))
 
 
 cdef class _CapabilityClient:
@@ -2221,7 +2287,7 @@ cdef class TwoPartyClient:
     cdef cbool closed
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[RpcSystem]()
 
@@ -2268,7 +2334,7 @@ cdef class TwoPartyServer:
     cdef cbool closed
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[RpcSystem]()
 
@@ -2329,7 +2395,7 @@ cdef class _AsyncIoStream:
             protocol.transport.close()
 
     def __dealloc__(self):
-        # Needed to make Python 3.7 happy, which seems to have trouble deallocating stack objects
+        # Needed to make Python <=3.9 happy, which seems to have trouble deallocating stack objects
         # appropriately
         self.thisptr = Own[AsyncIoStream]()
 
@@ -2339,6 +2405,7 @@ cdef class _AsyncIoStream:
         elif self.protocol.transport is not None and hasattr(self.protocol.transport, "close"):
             self.protocol.transport.close()
             # Call connection_lost immediately, instead of waiting for the transport to do it.
+            # TODO: This might be a questionable thing to do...
             self.protocol.connection_lost("Stream is closing")
 
     async def wait_closed(self):
@@ -2391,6 +2458,9 @@ cdef class _AsyncIoStream:
         for `callback` will be passed directly to that function, and the server returned is similar as well.
         See that function for documentation on the possible arguments.
         """
+        # Fail early in case the kj loop is not running. Without this, the error is thrown when a connection is made.
+        # Unless asyncio is in debug mode, that error is swallowed.
+        C_DEFAULT_EVENT_LOOP_GETTER()
         loop = asyncio.get_running_loop()
         return await loop.create_server(lambda: _AsyncIoStream._connect(callback), host, port, **kwargs)
 
@@ -2405,6 +2475,9 @@ cdef class _AsyncIoStream:
         for `callback` will be passed directly to that function, and the server returned is similar as well.
         See that function for documentation on the possible arguments.
         """
+        # Fail early in case the kj loop is not running. Without this, the error is thrown when a connection is made.
+        # Unless asyncio is in debug mode, that error is swallowed.
+        C_DEFAULT_EVENT_LOOP_GETTER()
         loop = asyncio.get_running_loop()
         return await loop.create_unix_server(lambda: _AsyncIoStream._connect(callback), path, **kwargs)
 
@@ -2412,9 +2485,7 @@ cdef class DummyBaseClass:
     pass
 
 cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
-    # TODO: Temporary. Needed due to a missing __slots__ definitions in BufferedProtocol on Python 3.7.
-    #       See https://github.com/python/cpython/issues/79575. Can be removed once Python 3.7 is unsupported.
-    cdef dict __dict__
+    cdef object _task
 
     cdef public object transport
     cdef object connected_callback
@@ -2465,10 +2536,24 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
         self.write_in_progress = False
         self.read_eof = False
         self.read_overflow_buffer = bytearray()
+        def done(task):
+            if self.transport is not None:
+                self.transport.close()
+            exc = task.exception()
+            if exc is not None:
+                context = {
+                    'message': "Exception in pycapnp server callback",
+                    'exception': exc,
+                    'task': task,
+                    'protocol': self,
+                    'transport': self.transport
+                }
+                asyncio.get_running_loop().call_exception_handler(context)
         if self.connected_callback is not None:
             callback_res = self.connected_callback(self.callback_arg)
             if asyncio.iscoroutine(callback_res):
-                self._task = asyncio.get_running_loop().create_task(callback_res)
+                self._task = asyncio.create_task(callback_res)
+                self._task.add_done_callback(done)
             self.connected_callback = None
             self.callback_arg = None
 
@@ -2522,15 +2607,15 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
             self.read_reset()
 
     cdef write_loop(self):
-        if not self.write_in_progress: return
+        if self.write_paused or not self.write_in_progress: return
         cdef const ArrayPtr[const uint8_t]* piece
         for i in range(self.write_index, self.write_pieces.size()):
-            if self.write_paused:
-                self.write_index = i
-                break
             piece = &self.write_pieces[i]
             view = PyMemoryView_FromMemory(<char*>piece.begin(), piece.size(), PyBUF_READ)
             self.transport.write(view)
+            if self.write_paused:
+                self.write_index = i+1
+                break
         if not self.write_paused:
             self.write_fulfiller.fulfill()
             self.write_reset()
@@ -3702,7 +3787,9 @@ cdef class _StreamFdMessageReader(_MessageReader):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
-        self.thisptr = new schema_cpp.StreamFdMessageReader(file.fileno(), opts)
+        cdef int fd = file.fileno()
+        with nogil:
+            self.thisptr = new schema_cpp.StreamFdMessageReader(fd, opts)
 
     def __dealloc__(self):
         del self.thisptr
@@ -3805,7 +3892,9 @@ cdef class _PackedFdMessageReader(_MessageReader):
         cdef schema_cpp.ReaderOptions opts = make_reader_opts(traversal_limit_in_words, nesting_limit)
 
         self._parent = file
-        self.thisptr = new schema_cpp.PackedFdMessageReader(file.fileno(), opts)
+        cdef int fd = file.fileno()
+        with nogil:
+            self.thisptr = new schema_cpp.PackedFdMessageReader(fd, opts)
 
     def __dealloc__(self):
         del self.thisptr
@@ -4214,7 +4303,8 @@ def _write_message_to_fd(int fd, _MessageBuilder message):
 
     :rtype: void
     """
-    schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
+    with nogil:
+        schema_cpp.writeMessageToFd(fd, deref(message.thisptr))
 
 
 def _write_packed_message_to_fd(int fd, _MessageBuilder message):
@@ -4241,7 +4331,8 @@ def _write_packed_message_to_fd(int fd, _MessageBuilder message):
 
     :rtype: void
     """
-    schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
+    with nogil:
+        schema_cpp.writePackedMessageToFd(fd, deref(message.thisptr))
 
 
 _global_schema_parser = None
@@ -4292,24 +4383,25 @@ def load(file_name, display_name=None, imports=[]):
     return _global_schema_parser.load(file_name, display_name, imports)
 
 
+# Automatically include the system and built-in capnp paths
+# Highest priority at position 0
+_capnp_paths = [
+    # Common macOS brew location
+    '/usr/local/include',
+    # Common posix location
+    '/usr/include',
+]
+
 class _Loader:
-    def __init__(self, fullname, path, additional_paths):
+    def __init__(self, fullname, path):
         self.fullname = fullname
         self.path = path
-
-        # Add current directory of the capnp schema to search path
-        dir_name = _os.path.dirname(path)
-        if path is not '':
-            additional_paths = [dir_name] + additional_paths
-
-        self.additional_paths = additional_paths
 
     def load_module(self, fullname):
         assert self.fullname == fullname, (
             "invalid module, expected {}, got {}".format(self.fullname, fullname))
 
-        imports = self.additional_paths + _sys.path
-        imports = [path if path != '' else '.' for path in imports] # convert empty path '' to '.'
+        imports = _capnp_paths + [path if path != '' else '.' for path in _sys.path]
         module = load(self.path, fullname, imports=imports)
         _sys.modules[fullname] = module
 
@@ -4317,9 +4409,6 @@ class _Loader:
 
 
 class _Importer:
-    def __init__(self, additional_paths):
-        self.extension = '.capnp'
-        self.additional_paths = additional_paths
 
     def find_spec(self, fullname, package_path, target=None):
         if fullname in _sys.modules: # Don't allow re-imports
@@ -4335,45 +4424,38 @@ class _Importer:
             return None
 
         module_name = module_name[:-len('_capnp')]
-        capnp_module_name = module_name + self.extension
-        has_underscores = False
+        capnp_module_name = module_name + '.capnp'
 
+        capnp_module_names = set()
+        capnp_module_names.add(capnp_module_name)
         if '_' in capnp_module_name:
-            capnp_module_name_dashes = capnp_module_name.replace('_', '-')
-            capnp_module_name_spaces = capnp_module_name.replace('_', ' ')
-            has_underscores = True
+            capnp_module_names.add(capnp_module_name.replace('_', '-'))
+            capnp_module_names.add(capnp_module_name.replace('_', ' '))
 
         if package_path:
             paths = list(package_path)
         else:
             paths = _sys.path
-        join_path = _os.path.join
-        is_file = _os.path.isfile
-        is_abs = _os.path.isabs
-        abspath = _os.path.abspath
-        #is_dir = os.path.isdir
-        sep = _os.path.sep
 
-        paths = self.additional_paths + paths
+        # Special case for the 'capnp' namespace, which can be resolved to system paths
+        if fullname.startswith('capnp.'):
+            paths += [path + '/capnp' for path in _capnp_paths]
+
         for path in paths:
             if not path:
                 path = _os.getcwd()
-            elif not is_abs(path):
-                path = abspath(path)
+            elif not _os.path.isabs(path):
+                path = _os.path.abspath(path)
 
-            if is_file(path+sep+capnp_module_name):
-                return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name), self.additional_paths))
-            if has_underscores:
-                if is_file(path+sep+capnp_module_name_dashes):
-                    return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name_dashes), self.additional_paths))
-                if is_file(path+sep+capnp_module_name_spaces):
-                    return ModuleSpec(fullname, _Loader(fullname, join_path(path, capnp_module_name_spaces), self.additional_paths))
+            for capnp_module_name in capnp_module_names:
+                if _os.path.isfile(path+_os.path.sep+capnp_module_name):
+                    return ModuleSpec(fullname, _Loader(fullname, _os.path.join(path, capnp_module_name)))
 
 
 _importer = None
 
 
-def add_import_hook(additional_paths=[]):
+def add_import_hook():
     """Add a hook to the python import system, so that Cap'n Proto modules are directly importable
 
     After calling this function, you can use the python import syntax to directly import capnproto schemas.
@@ -4387,36 +4469,12 @@ def add_import_hook(additional_paths=[]):
         # equivalent to capnp.load('addressbook.capnp', 'addressbook', sys.path),
         # except it will search for 'addressbook.capnp' in all directories of sys.path
 
-    :type additional_paths: list
-    :param additional_paths: Additional paths, listed as strings, to be used to search for the .capnp files.
-    It is prepended to the beginning of sys.path. It also affects imports inside of Cap'n Proto schemas.
     """
     global _importer
     if _importer is not None:
         remove_import_hook()
 
-    # Automatically include the system and built-in capnp paths
-    # Highest priority at position 0
-    try:
-        this_file_path = __file__
-    except NameError:
-        this_file_path = None
-    extra_paths = ([
-        _os.path.join(_os.path.dirname(this_file_path), '..'), # Built-in (only used if bundled)
-    ] if this_file_path else []) + [
-        # Common macOS brew location
-        '/usr/local/include/capnp',
-        '/usr/local/include',
-        # Common posix location
-        '/usr/include/capnp',
-        '/usr/include',
-    ]
-    for path in extra_paths:
-        if _os.path.isdir(path):
-            if path not in additional_paths:
-                additional_paths.append(path)
-
-    _importer = _Importer(additional_paths)
+    _importer = _Importer()
     _sys.meta_path.append(_importer)
 
 

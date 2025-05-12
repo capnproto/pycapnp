@@ -58,7 +58,6 @@ class ValueImpl(calculator_capnp.Calculator.Value.Server):
 
 
 class FunctionImpl(calculator_capnp.Calculator.Function.Server):
-
     """Implementation of the Calculator.Function Cap'n Proto interface, where the
     function is defined by a Calculator.Expression."""
 
@@ -77,7 +76,6 @@ class FunctionImpl(calculator_capnp.Calculator.Function.Server):
 
 
 class OperatorImpl(calculator_capnp.Calculator.Function.Server):
-
     """Implementation of the Calculator.Function Cap'n Proto interface, wrapping
     basic binary arithmetic operators."""
 

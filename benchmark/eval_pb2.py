@@ -218,7 +218,7 @@ Expression = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_EXPRESSION,
-        __module__="eval_pb2"
+        __module__="eval_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.Expression)
     ),
 )
@@ -229,7 +229,7 @@ EvaluationResult = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_EVALUATIONRESULT,
-        __module__="eval_pb2"
+        __module__="eval_pb2",
         # @@protoc_insertion_point(class_scope:capnp.benchmark.protobuf.EvaluationResult)
     ),
 )

@@ -2,7 +2,7 @@
 # distutils: language = c++
 
 from libc.stdint cimport *
-from capnp.helpers.non_circular cimport reraise_kj_exception
+from capnp.helpers.non_circular cimport c_reraise_kj_exception as reraise_kj_exception
 
 from capnp.includes.types cimport *
 

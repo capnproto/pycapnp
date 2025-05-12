@@ -5,7 +5,7 @@ cdef extern from "capnp/helpers/checkCompiler.h":
 
 from libcpp cimport bool
 from capnp.helpers.non_circular cimport (
-    reraise_kj_exception, PyRefCounter,
+    c_reraise_kj_exception as reraise_kj_exception, PyRefCounter,
 )
 from capnp.includes.schema_cpp cimport (
     Node, Data, StructNode, EnumNode, InterfaceNode, MessageBuilder, MessageReader, ReaderOptions,
@@ -348,6 +348,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
             void adopt(uint, DynamicOrphan) except +reraise_kj_exception
             DynamicOrphan disown(uint)
             StructSchema getStructElementType'getSchema().getStructElementType'()
+            DynamicList.Reader asReader() except +reraise_kj_exception
 
 cdef extern from "capnp/any.h" namespace " ::capnp":
     cdef cppclass AnyPointer nogil:

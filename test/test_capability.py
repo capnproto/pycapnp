@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 
 import capnp
 import test_capability_capnp as capability
@@ -25,6 +26,12 @@ class Server(capability.TestInterface.Server):
 
     async def bam(self, i, **kwargs):
         return str(i) + "_test", i
+
+    async def bak1(self, **kwargs):
+        return [1, 2, 3, 4, 5]
+
+    async def bak2(self, i, **kwargs):
+        assert i[4] == 5
 
 
 class PipelineServer(capability.TestPipeline.Server):
@@ -66,6 +73,12 @@ async def test_client():
 
     with pytest.raises(AttributeError):
         req.baz = 1
+
+    resp = await client.bak1()
+    # Used to fail with
+    # capnp.lib.capnp.KjException: Tried to set field: 'i' with a value of: '[1, 2, 3, 4, 5]'
+    # which is an unsupported type: '<class 'capnp.lib.capnp._DynamicListReader'>'
+    await client.bak2(resp.i)
 
 
 async def test_simple_client():
@@ -377,3 +390,22 @@ async def test_generic():
     obj = capnp._MallocMessageBuilder().get_root_as_any()
     obj.set_as_text("anypointer_")
     assert (await client.foo(obj)).b == "anypointer_test"
+
+
+class CancelServer(capability.TestInterface.Server):
+    def __init__(self, val=1):
+        self.val = val
+
+    async def foo(self, i, j, **kwargs):
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.sleep(10)
+
+
+async def test_cancel2():
+    client = capability.TestInterface._new_client(CancelServer())
+
+    task = asyncio.ensure_future(client.foo(1, True))
+    await asyncio.sleep(0)  # Make sure that the task runs
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task

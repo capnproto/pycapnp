@@ -251,12 +251,12 @@ Person = _reflection.GeneratedProtocolMessageType(
             (_message.Message,),
             dict(
                 DESCRIPTOR=_PERSON_PHONENUMBER,
-                __module__="addressbook_pb2"
+                __module__="addressbook_pb2",
                 # @@protoc_insertion_point(class_scope:tutorial.Person.PhoneNumber)
             ),
         ),
         DESCRIPTOR=_PERSON,
-        __module__="addressbook_pb2"
+        __module__="addressbook_pb2",
         # @@protoc_insertion_point(class_scope:tutorial.Person)
     ),
 )
@@ -268,7 +268,7 @@ AddressBook = _reflection.GeneratedProtocolMessageType(
     (_message.Message,),
     dict(
         DESCRIPTOR=_ADDRESSBOOK,
-        __module__="addressbook_pb2"
+        __module__="addressbook_pb2",
         # @@protoc_insertion_point(class_scope:tutorial.AddressBook)
     ),
 )
