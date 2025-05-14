@@ -115,22 +115,10 @@ class build_libcapnp_ext(build_ext_c):
         build_ext_c.build_extension(self, ext)
 
     def run(self):  # noqa: C901
-        # capnp_include = os.environ.get("CAPNP_INCLUDE_DIR")
-        # capnp_lib = os.environ.get("CAPNP_LIB_DIR")
-        # print('test111')
-        # print(capnp_include)
         if self.force_bundled_libcapnp:
             need_build = True
         elif self.force_system_libcapnp:
             need_build = False
-        # elif capnp_include and capnp_lib:
-        #     print(f"Using CAPNP_INCLUDE_DIR={capnp_include}")
-        #     print(f"Using CAPNP_LIB_DIR={capnp_lib}")
-        #     self.include_dirs.insert(0, capnp_include)
-        #     self.library_dirs.insert(0, capnp_lib)
-        #
-        #     need_build = False
-        #     print('test123')
         else:
             # Try to use capnp executable to find include and lib path
             capnp_executable = shutil.which("capnp")

@@ -703,7 +703,6 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
     elif type == capnp.TYPE_DATA:
         temp_data = self.asData()
         return memoryview.PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), buffer.PyBUF_WRITE)
-        # return <bytes> ((<char *> temp_data.begin())[:temp_data.size()])
     elif type == capnp.TYPE_LIST:
         return _DynamicListBuilder()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
@@ -774,7 +773,7 @@ cdef _setMemoryview(_DynamicSetterClasses thisptr, field, value):
     cdef C_DynamicValue.Reader temp
     if PyObject_GetBuffer(value, &buf, PyBUF_CONTIG_RO) != 0:
         raise KjException(
-            "cannot get buffer from memory view，for field '{}'".format(field)
+            "cannot get buffer from memory view, for field '{}'".format(field)
         )
     try:
         ptr = capnp.StringPtr(<char *> buf.buf, buf.len)
@@ -795,6 +794,20 @@ cdef _setBytesField(DynamicStruct_Builder thisptr, _StructSchemaField field, val
     cdef C_DynamicValue.Reader temp = C_DynamicValue.Reader(temp_string)
     thisptr.setByField(field.thisptr, temp)
 
+cdef _setMemoryviewField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
+    cdef Py_buffer buf
+    cdef capnp.StringPtr ptr
+    cdef C_DynamicValue.Reader temp
+    if PyObject_GetBuffer(value, &buf, PyBUF_CONTIG_RO) != 0:
+        raise KjException(
+            "cannot get buffer from memory view, for field '{}'".format(field)
+        )
+    try:
+        ptr = capnp.StringPtr(<char *>buf.buf, buf.len)
+        temp = C_DynamicValue.Reader(ptr)
+        thisptr.setByField(field.thisptr, temp)
+    finally:
+        PyBuffer_Release(&buf)
 
 cdef _setBaseStringField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
     encoded_value = value.encode('utf-8')
@@ -888,6 +901,8 @@ cdef _setDynamicFieldWithField(DynamicStruct_Builder thisptr, _StructSchemaField
         thisptr.setByField(field.thisptr, temp)
     elif value_type is bytes:
         _setBytesField(thisptr, field, value)
+    elif isinstance(value, BuiltinsMemoryview):
+        _setMemoryviewField(thisptr, field, value)
     elif isinstance(value, basestring):
         _setBaseStringField(thisptr, field, value)
     elif value_type is list:
