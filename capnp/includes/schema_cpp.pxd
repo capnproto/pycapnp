@@ -714,6 +714,10 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
     enum Void:
         VOID
 
+cdef extern from "PyCustomMessageBuilder.h" namespace " ::capnp":
+    cdef cppclass PyCustomMessageBuilder(MessageBuilder):
+        PyCustomMessageBuilder(PyObject* allocateSegmentFunc)
+
 cdef extern from "capnp/common.h" namespace " ::capnp":
     cdef cppclass word nogil:
         pass
