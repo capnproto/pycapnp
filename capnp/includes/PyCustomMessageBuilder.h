@@ -16,6 +16,8 @@ public:
   kj::ArrayPtr<capnp::word> allocateSegment(capnp::uint minimumSize) override;
 
 private:
+  uint curSize;
+
   PyObject* allocateSegmentFunc;
   std::vector<PyObject*> allocatedBuffers;
 };

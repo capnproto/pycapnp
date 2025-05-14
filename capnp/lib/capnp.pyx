@@ -702,7 +702,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
         return (<char*>temp_text.begin())[:temp_text.size()]
     elif type == capnp.TYPE_DATA:
         temp_data = self.asData()
-        return memoryview.PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), buffer.PyBUF_WRITE)
+        return PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), buffer.PyBUF_WRITE)
     elif type == capnp.TYPE_LIST:
         return _DynamicListBuilder()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
