@@ -30,7 +30,7 @@ print(bytes(struct_builder._get('extraData')))
 print(type(struct_builder._get('extraData')))
 print()
 
-struct_builder.extraData = b'hell'
+struct_builder.extraData = b'hello'
 print(struct_builder._get('extraData'))
 print(bytes(struct_builder._get('extraData')))
 print(type(struct_builder._get('extraData')))
