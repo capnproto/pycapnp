@@ -769,15 +769,15 @@ cdef _setBytes(_DynamicSetterClasses thisptr, field, value):
 
 cdef _setMemoryview(_DynamicSetterClasses thisptr, field, value):
     cdef Py_buffer buf
-    cdef capnp.StringPtr ptr
+    cdef capnp.StringPtr temp_string
     cdef C_DynamicValue.Reader temp
     if PyObject_GetBuffer(value, &buf, PyBUF_CONTIG_RO) != 0:
         raise KjException(
             "cannot get buffer from memory view, for field '{}'".format(field)
         )
     try:
-        ptr = capnp.StringPtr(<char *> buf.buf, buf.len)
-        temp = C_DynamicValue.Reader(ptr)
+        temp_string = capnp.StringPtr(<char *> buf.buf, buf.len)
+        temp = C_DynamicValue.Reader(temp_string)
         thisptr.set(field, temp)
     finally:
         PyBuffer_Release(&buf)
@@ -796,15 +796,15 @@ cdef _setBytesField(DynamicStruct_Builder thisptr, _StructSchemaField field, val
 
 cdef _setMemoryviewField(DynamicStruct_Builder thisptr, _StructSchemaField field, value):
     cdef Py_buffer buf
-    cdef capnp.StringPtr ptr
+    cdef capnp.StringPtr temp_string
     cdef C_DynamicValue.Reader temp
     if PyObject_GetBuffer(value, &buf, PyBUF_CONTIG_RO) != 0:
         raise KjException(
             "cannot get buffer from memory view, for field '{}'".format(field)
         )
     try:
-        ptr = capnp.StringPtr(<char *>buf.buf, buf.len)
-        temp = C_DynamicValue.Reader(ptr)
+        temp_string = capnp.StringPtr(<char *>buf.buf, buf.len)
+        temp = C_DynamicValue.Reader(temp_string)
         thisptr.setByField(field.thisptr, temp)
     finally:
         PyBuffer_Release(&buf)
