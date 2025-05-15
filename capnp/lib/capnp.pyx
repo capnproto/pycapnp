@@ -3811,8 +3811,8 @@ cdef class _PyCustomMessageBuilder(_MessageBuilder):
                 minimum_size = max(minimum_size, cur_size)
                 WORD_SIZE = 8
                 byte_count = minimum_size * WORD_SIZE
-                buf = bytearray(byte_count)
-                return buf
+                return bytearray(byte_count)
+
             addressbook = capnp.load('addressbook.capnp')
             message = capnp._PyCustomMessageBuilder(allocate_segment)
             person = message.init_root(addressbook.Person)
