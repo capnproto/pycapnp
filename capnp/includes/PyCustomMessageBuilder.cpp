@@ -3,9 +3,9 @@
 
 namespace capnp {
 
-PyCustomMessageBuilder::PyCustomMessageBuilder(PyObject* allocateSegmentFunc)
-    :capnp::MessageBuilder(),
-      allocateSegmentFunc(allocateSegmentFunc)
+PyCustomMessageBuilder::PyCustomMessageBuilder(
+    PyObject* allocateSegmentFunc, uint firstSegmentWords)
+    : allocateSegmentFunc(allocateSegmentFunc), firstSize(firstSegmentWords)
 {
   KJ_REQUIRE(PyCallable_Check(allocateSegmentFunc),
                "allocateSegmentFunc must be callable");
@@ -27,7 +27,10 @@ PyCustomMessageBuilder::~PyCustomMessageBuilder() noexcept(false) {
 kj::ArrayPtr<capnp::word> PyCustomMessageBuilder::allocateSegment(capnp::uint minimumSize) {
   PyGILState_STATE gstate = PyGILState_Ensure();
   KJ_DEFER({ PyGILState_Release(gstate); });
-  PyObject* pyBufObj = PyObject_CallFunction(allocateSegmentFunc, "II", minimumSize, curSize);
+  if (curSize == 0) {
+    minimumSize = kj::max(minimumSize, firstSize);
+  }
+  PyObject* pyBufObj = PyObject_CallFunction(allocateSegmentFunc, "III", minimumSize, lastSize, curSize);
   KJ_REQUIRE(pyBufObj, "PyCustomMessageBuilder: allocateSegment failed");
   allocatedBuffers.push_back(pyBufObj);
 
@@ -42,7 +45,8 @@ kj::ArrayPtr<capnp::word> PyCustomMessageBuilder::allocateSegment(capnp::uint mi
   KJ_REQUIRE(wordCount >= minimumSize, "PyCustomMessageBuilder: buffer too small for minimumSize");
 
   auto seg = kj::arrayPtr(reinterpret_cast<capnp::word*>(view.buf), wordCount);
-  curSize += wordCount;
+  lastSize = wordCount;
+  curSize += lastSize;
   return seg;
 }
 

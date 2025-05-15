@@ -9,16 +9,20 @@ namespace capnp {
 
 class PyCustomMessageBuilder : public capnp::MessageBuilder {
 public:
-  explicit PyCustomMessageBuilder(PyObject* allocateSegmentFunc);
+  explicit PyCustomMessageBuilder(PyObject* allocateSegmentFunc,
+  uint firstSegmentWords = capnp::SUGGESTED_FIRST_SEGMENT_WORDS);
 
   ~PyCustomMessageBuilder() noexcept(false) override;
 
   kj::ArrayPtr<capnp::word> allocateSegment(capnp::uint minimumSize) override;
 
 private:
+  PyObject* allocateSegmentFunc;
+
+  uint firstSize;
+  uint lastSize;
   uint curSize;
 
-  PyObject* allocateSegmentFunc;
   std::vector<PyObject*> allocatedBuffers;
 };
 

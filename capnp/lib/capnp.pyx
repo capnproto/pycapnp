@@ -3792,8 +3792,36 @@ cdef class _MallocMessageBuilder(_MessageBuilder):
 
 
 cdef class _PyCustomMessageBuilder(_MessageBuilder):
-    def __init__(self, allocate_seg_func):
-        self.thisptr = new schema_cpp.PyCustomMessageBuilder(<PyObject*>allocate_seg_func)
+    """The class for building Cap'n Proto messages,
+    with customised memory allocation strategy
+
+    You will use this class if you want to customise the allocateSegment method,
+    and define your own memory allocation strategy.
+    """
+    def __init__(self, allocate_seg_func, size=None):
+        """ The constructor requires you to provide a Python callable as a parameter.
+        This callable will be invoked in the allocateSegment method of the MessageBuilder
+        to allocate memory. The allocated memory will be managed within the MessageBuilder.
+
+        Required function signature is like this:
+        def allocate_segment(minimum_size: int, last_size: int, cur_size: int) -> bytearray:
+        Note that the unit of size is WORD, and each WORD is 8 bytes.
+
+            def allocate_segment(minimum_size: int, last_size: int, cur_size: int) -> bytearray:
+                minimum_size = max(minimum_size, cur_size)
+                WORD_SIZE = 8
+                byte_count = minimum_size * WORD_SIZE
+                buf = bytearray(byte_count)
+                return buf
+            addressbook = capnp.load('addressbook.capnp')
+            message = capnp._PyCustomMessageBuilder(allocate_segment)
+            person = message.init_root(addressbook.Person)
+        """
+        if size is None:
+            self.thisptr = new schema_cpp.PyCustomMessageBuilder(<PyObject*>allocate_seg_func)
+        else:
+            self.thisptr = new schema_cpp.PyCustomMessageBuilder(<PyObject*>allocate_seg_func, size)
+
 
 cdef class _MessageReader:
     """An abstract base class for reading Cap'n Proto messages
