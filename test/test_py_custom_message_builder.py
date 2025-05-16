@@ -11,17 +11,19 @@ def all_types():
     return capnp.load(os.path.join(this_dir, "all_types.capnp"))
 
 def test_addressbook(all_types):
-    print()
-    def allocate_segment(minimum_size: int, last_size: int, cur_size: int) -> bytearray:
-        # note, the unit of size is WORD, and each WORD is 8 bytes
-        if minimum_size <= 0:
-            minimum_size = 1
-        minimum_size = max(minimum_size, cur_size)
-        WORD_SIZE = 8
-        byte_count = minimum_size * WORD_SIZE
-        return bytearray(byte_count)
+    class Allocator:
+        def __init__(self):
+            self.cur_size = 0
+            self.last_size = 0
+        def __call__(self, minimum_size: int) -> bytearray:
+            actual_size = max(minimum_size, self.cur_size)
+            self.last_size = actual_size
+            self.cur_size += actual_size
+            WORD_SIZE = 8
+            byte_count = actual_size * WORD_SIZE
+            return bytearray(byte_count)
 
-    msg_builder = capnp._PyCustomMessageBuilder(allocate_segment, 1)
+    msg_builder = capnp._PyCustomMessageBuilder(Allocator(), 3)
     struct_builder = msg_builder.init_root(all_types.TestAllTypes)
     struct_builder.init("dataField", 5)
     assert struct_builder._get('dataField') == b'\x00\x00\x00\x00\x00'

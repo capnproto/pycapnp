@@ -4,17 +4,22 @@ import capnp  # noqa: F401
 
 import addressbook_capnp
 
-def allocate_segment(minimum_size: int, last_size: int, cur_size: int) -> bytearray:
-    # note, the unit of size is WORD, and each WORD is 8 bytes
-    print(str(minimum_size) + " " + str(last_size) + " " + str(cur_size))
-    if minimum_size <= 0:
-        minimum_size = 1
-    minimum_size = max(minimum_size, cur_size)
-    WORD_SIZE = 8
-    byte_count = minimum_size * WORD_SIZE
-    return bytearray(byte_count)
+class Allocator:
+    def __init__(self):
+        self.cur_size = 0
+        self.last_size = 0
 
-msg_builder = capnp._PyCustomMessageBuilder(allocate_segment, 1)
+    def __call__(self, minimum_size: int) -> bytearray:
+        print(f"minimum_size: {minimum_size}, last_size: {self.last_size}, cur_size: {self.cur_size}")
+        actual_size = max(minimum_size, self.cur_size)
+        self.last_size = actual_size
+        self.cur_size += actual_size
+
+        WORD_SIZE = 8
+        byte_count = actual_size * WORD_SIZE
+        return bytearray(byte_count)
+
+msg_builder = capnp._PyCustomMessageBuilder(Allocator(), 3)
 struct_builder = msg_builder.init_root(addressbook_capnp.Person)
 print()
 

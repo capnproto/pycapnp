@@ -20,7 +20,6 @@ private:
   PyObject* allocateSegmentFunc;
 
   uint firstSize;
-  uint lastSize;
   uint curSize;
 
   std::vector<PyObject*> allocatedBuffers;

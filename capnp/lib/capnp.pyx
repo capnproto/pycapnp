@@ -3799,22 +3799,26 @@ cdef class _PyCustomMessageBuilder(_MessageBuilder):
     and define your own memory allocation strategy.
     """
     def __init__(self, allocate_seg_func, size=None):
-        """ The constructor requires you to provide a Python callable as a parameter.
-        This callable will be invoked in the allocateSegment method of the MessageBuilder
+        """ The constructor requires you to provide a Python callable object as a parameter.
+        This callable object will be invoked in the allocateSegment method of the MessageBuilder
         to allocate memory. The allocated memory will be managed within the MessageBuilder.
 
         Required function signature is like this:
-        def allocate_segment(minimum_size: int, last_size: int, cur_size: int) -> bytearray:
+        def __call__(self, minimum_size: int) -> bytearray:
         Note that the unit of size is WORD, and each WORD is 8 bytes.
 
-            def allocate_segment(minimum_size: int, last_size: int, cur_size: int) -> bytearray:
-                minimum_size = max(minimum_size, cur_size)
-                WORD_SIZE = 8
-                byte_count = minimum_size * WORD_SIZE
-                return bytearray(byte_count)
+            class Allocator:
+                def __init__(self):
+                    self.cur_size = 0
+                def __call__(self, minimum_size: int) -> bytearray:
+                    size = max(minimum_size, self.cur_size)
+                    self.cur_size += size
+                    WORD_SIZE = 8
+                    byte_count = size * WORD_SIZE
+                    return bytearray(byte_count)
 
             addressbook = capnp.load('addressbook.capnp')
-            message = capnp._PyCustomMessageBuilder(allocate_segment)
+            message = capnp._PyCustomMessageBuilder(allocator)
             person = message.init_root(addressbook.Person)
         """
         if size is None:
