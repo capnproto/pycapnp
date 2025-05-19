@@ -716,8 +716,8 @@ cdef extern from "capnp/message.h" namespace " ::capnp":
 
 cdef extern from "PyCustomMessageBuilder.h" namespace " ::capnp":
     cdef cppclass PyCustomMessageBuilder(MessageBuilder):
-        PyCustomMessageBuilder(PyObject* allocateSegmentFunc)
-        PyCustomMessageBuilder(PyObject* allocateSegmentFunc, int firstSegmentSize)
+        PyCustomMessageBuilder(PyObject* allocateSegmentCallable)
+        PyCustomMessageBuilder(PyObject* allocateSegmentCallable, int firstSegmentSize)
 
 cdef extern from "capnp/common.h" namespace " ::capnp":
     cdef cppclass word nogil:

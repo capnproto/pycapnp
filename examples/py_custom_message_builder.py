@@ -20,28 +20,26 @@ class Allocator:
         byte_count = actual_size * WORD_SIZE
         return bytearray(byte_count)
 
-msg_builder = capnp._PyCustomMessageBuilder(Allocator(), 3)
-struct_builder = msg_builder.init_root(addressbook_capnp.Person)
+person = addressbook_capnp.Person.new_message(allocate_seg_callable=Allocator())
+
+person.init("extraData", 5)
+print(person.extraData)
+print(bytes(person.extraData))
+print(type(person.extraData))
 print()
 
-struct_builder.init("extraData", 5)
-print(struct_builder.extraData)
-print(bytes(struct_builder.extraData))
-print(type(struct_builder.extraData))
+person.extraData[1] = 0xff
+print(person.extraData)
+print(bytes(person.extraData))
 print()
 
-struct_builder.extraData[1] = 0xff
-print(struct_builder.extraData)
-print(bytes(struct_builder.extraData))
+person.extraData = b'hello'
+print(person.extraData)
+print(bytes(person.extraData))
+print(type(person.extraData))
 print()
 
-struct_builder.extraData = b'hello'
-print(struct_builder.extraData)
-print(bytes(struct_builder.extraData))
-print(type(struct_builder.extraData))
-print()
-
-struct_builder = struct_builder.as_reader()
-print(struct_builder.extraData)
-print(bytes(struct_builder.extraData))
-print(type(struct_builder.extraData))
+person = person.as_reader()
+print(person.extraData)
+print(bytes(person.extraData))
+print(type(person.extraData))

@@ -17,14 +17,22 @@ def test_addressbook(all_types):
             self.last_size = 0
         def __call__(self, minimum_size: int) -> bytearray:
             actual_size = max(minimum_size, self.cur_size)
+            print(f"minimum_size: {minimum_size}, last_size: {self.last_size}, "
+                  f"actual_size: {actual_size}, cur_size: {self.cur_size}")
             self.last_size = actual_size
             self.cur_size += actual_size
             WORD_SIZE = 8
             byte_count = actual_size * WORD_SIZE
             return bytearray(byte_count)
 
-    msg_builder = capnp._PyCustomMessageBuilder(Allocator(), 3)
+    allocator = Allocator()
+    assert allocator.cur_size == 0
+    assert allocator.last_size == 0
+    msg_builder = capnp._PyCustomMessageBuilder(allocator, 1024)
     struct_builder = msg_builder.init_root(all_types.TestAllTypes)
+    assert allocator.cur_size == 1024
+    assert allocator.last_size == 1024
+
     struct_builder.init("dataField", 5)
     assert struct_builder._get('dataField') == b'\x00\x00\x00\x00\x00'
 

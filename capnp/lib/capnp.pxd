@@ -66,7 +66,7 @@ cdef class _DynamicStructReader:
     cpdef _get_by_field(self, _StructSchemaField field)
     cpdef _has_by_field(self, _StructSchemaField field)
 
-    cpdef as_builder(self, num_first_segment_words=?)
+    cpdef as_builder(self, num_first_segment_words=?, allocate_seg_callable=?)
 
 
 cdef class _DynamicStructBuilder:
@@ -99,7 +99,7 @@ cdef class _DynamicStructBuilder:
     cpdef disown(self, field)
 
     cpdef as_reader(self)
-    cpdef copy(self, num_first_segment_words=?)
+    cpdef copy(self, num_first_segment_words=?, allocate_seg_callable=?)
 
 cdef class _DynamicEnumField:
     cdef object thisptr
