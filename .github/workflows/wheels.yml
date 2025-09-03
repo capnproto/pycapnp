@@ -22,31 +22,31 @@ jobs:
           - os: ubuntu-latest
             arch: s390x
 
-          - os: macOS-latest
+          - os: macos-13
             arch: x86_64
-          - os: macOS-latest
+          - os: macos-14
             arch: arm64
           # Disabled until someone figures out how to build capnproto for arm64 and x86_64 simultaneously
           # - os: macOS-latest
           #   arch: universal2
 
-          - os: windows-2019
+          - os: windows-2022
             arch: AMD64
-          - os: windows-2019
+          - os: windows-2022
             arch: x86
           # Does not build currently
           # - os: windows-2019
           #   arch: ARM64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.3
+        uses: pypa/cibuildwheel@v3.1.4
         with:
           output-dir: wheelhouse
         env:
@@ -68,7 +68,7 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Build sdist
         run: pipx run build --sdist
@@ -82,7 +82,7 @@ jobs:
     name: Lint with flake8 and check black
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Lint with flake8 and check black
         run: |
