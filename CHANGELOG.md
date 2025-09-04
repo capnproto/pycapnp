@@ -1,10 +1,23 @@
+## v2.1.0 (2025-09-04)
+- Add Python 3.13 support
+  * Python 3.8 is still enabled but will be disabled if changes are needed that prevent compatibility with newer versions of Python (e.g. 3.14)
+  * Disabling experimental Python 3.14 build as it currently causes build issues
+- Upgrade to Cython version 3
+- Include \_custom_build in sdist
+- Remove usage of deprecated kj::mvCapture functions
+- Make license information SPDX-compatible
+- Generate a new certificate that is compatible with strict x509 checking
+- Avoid storm of 'warning: moving a temporary object prevents copy elision'
+- cibuildwheel updates
+- Fix deprecation warning when importing a schema
+
 ## v2.0.0 (2024-01-19)
 - Updated link for mailing list in README
 
 ## v2.0.0b2 (2023-11-25)
 - Fix broken test in test_load (#329)
 - Update README example to async code (#331)
-- Fix 'AttributeError: '_UnixSelectorEventLoop' object has no attribute 'call_soon'
+- Fix 'AttributeError: '\_UnixSelectorEventLoop' object has no attribute 'call_soon'
 - Delete and update some Python 3.7-specific todo notes
 - Make a server fail early when the KJ loop is not running
 - Update documentation to async code (#331) (#332)
