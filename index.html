@@ -1,23 +1,21 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pycapnp &#8212; capnp 1.0.0 documentation</title>
-    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pycapnp &#8212; capnp 2.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
+    <script src="_static/documentation_options.js?v=20623aea"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Installation" href="install.html" /> 
   </head><body>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -29,7 +27,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="N">next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">capnp 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="#">capnp 2.1.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">pycapnp</a></li> 
       </ul>
     </div>  
@@ -39,8 +37,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="pycapnp">
-<h1>pycapnp<a class="headerlink" href="#pycapnp" title="Permalink to this headline">¶</a></h1>
+  <section id="pycapnp">
+<h1>pycapnp<a class="headerlink" href="#pycapnp" title="Link to this heading">¶</a></h1>
 <p>This is a python wrapping of the C++ implementation of the <a class="reference external" href="https://capnproto.org/">Cap’n Proto</a> library. Here is a short description, quoted from its docs:</p>
 <blockquote>
 <div><p>Cap’n Proto is an insanely fast data interchange format and capability-based RPC system. Think JSON, except binary. Or think Protocol Buffers, except faster. In fact, in benchmarks, Cap’n Proto is INFINITY TIMES faster than Protocol Buffers.</p>
@@ -71,10 +69,12 @@
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#enums">Enums</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#unions">Unions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#writing-to-a-file">Writing to a File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#writing-to-a-socket">Writing to a socket</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quickstart.html#read-a-message">Read a message</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#reading-from-a-file">Reading from a file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#reading-from-a-socket">Reading from a socket</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#reading-fields">Reading Fields</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#reading-unions">Reading Unions</a></li>
 </ul>
@@ -88,9 +88,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quickstart.html#rpc">RPC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#kj-event-loop">KJ Event Loop</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#client">Client</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="quickstart.html#starting-a-client">Starting a Client</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quickstart.html#starting-a-client-asyncio">Starting a Client (asyncio)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="quickstart.html#bootstrap">Bootstrap</a></li>
 <li class="toctree-l4"><a class="reference internal" href="quickstart.html#calling-methods">Calling methods</a></li>
 <li class="toctree-l4"><a class="reference internal" href="quickstart.html#pipelining">Pipelining</a></li>
@@ -98,7 +98,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="quickstart.html#server">Server</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="quickstart.html#starting-a-server">Starting a Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quickstart.html#starting-a-server-asyncio">Starting a Server (asyncio)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="quickstart.html#implementing-a-server">Implementing a Server</a></li>
 </ul>
 </li>
@@ -110,36 +109,72 @@
 <li class="toctree-l1"><a class="reference internal" href="capnp.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="capnp.html#classes">Classes</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="capnp.html#rpc">RPC</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="capnp.html#promise">Promise</a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp.lib.capnp._RemotePromise"><code class="docutils literal notranslate"><span class="pre">_RemotePromise</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="capnp.html#communication">Communication</a></li>
 <li class="toctree-l4"><a class="reference internal" href="capnp.html#capability">Capability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="capnp.html#response">Response</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="capnp.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#miscellaneous">Miscellaneous</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp.KjException"><code class="docutils literal notranslate"><span class="pre">KjException</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp.SchemaParser"><code class="docutils literal notranslate"><span class="pre">SchemaParser</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp.SchemaLoader"><code class="docutils literal notranslate"><span class="pre">SchemaLoader</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="capnp.html#functions">Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="capnp.html#functions">Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#capnp.add_import_hook"><code class="docutils literal notranslate"><span class="pre">add_import_hook()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#capnp.remove_import_hook"><code class="docutils literal notranslate"><span class="pre">remove_import_hook()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#capnp.cleanup_global_schema_parser"><code class="docutils literal notranslate"><span class="pre">cleanup_global_schema_parser()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#capnp.kj_loop"><code class="docutils literal notranslate"><span class="pre">kj_loop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#capnp.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#capnp.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="capnp.html#internal-classes">Internal Classes</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="capnp.html#modules">Modules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="capnp.html#readers">Readers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="capnp.html#builders">Builders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="capnp.html#id1">RPC</a></li>
-<li class="toctree-l3"><a class="reference internal" href="capnp.html#id2">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#modules">Modules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._InterfaceModule"><code class="docutils literal notranslate"><span class="pre">_InterfaceModule</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._StructModule"><code class="docutils literal notranslate"><span class="pre">_StructModule</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#readers">Readers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._DynamicListReader"><code class="docutils literal notranslate"><span class="pre">_DynamicListReader</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._DynamicStructReader"><code class="docutils literal notranslate"><span class="pre">_DynamicStructReader</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._PackedFdMessageReader"><code class="docutils literal notranslate"><span class="pre">_PackedFdMessageReader</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._StreamFdMessageReader"><code class="docutils literal notranslate"><span class="pre">_StreamFdMessageReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#builders">Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._DynamicResizableListBuilder"><code class="docutils literal notranslate"><span class="pre">_DynamicResizableListBuilder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._DynamicListBuilder"><code class="docutils literal notranslate"><span class="pre">_DynamicListBuilder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._DynamicStructBuilder"><code class="docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._MallocMessageBuilder"><code class="docutils literal notranslate"><span class="pre">_MallocMessageBuilder</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#id1">RPC</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._CapabilityClient"><code class="docutils literal notranslate"><span class="pre">_CapabilityClient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._DynamicCapabilityClient"><code class="docutils literal notranslate"><span class="pre">_DynamicCapabilityClient</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="capnp.html#id2">Miscellaneous</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="capnp.html#capnp._DynamicOrphan"><code class="docutils literal notranslate"><span class="pre">_DynamicOrphan</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </div>
-</div>
+</section>
 
 
             <div class="clearer"></div>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h3><a href="#">Table of Contents</a></h3>
 <ul>
@@ -148,9 +183,11 @@
 <li class="toctree-l1"><a class="reference internal" href="capnp.html">API Reference</a></li>
 </ul>
 
-  <h4>Next topic</h4>
-  <p class="topless"><a href="install.html"
-                        title="next chapter">Installation</a></p>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="install.html"
+                          title="next chapter">Installation</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -158,21 +195,21 @@
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
-<script>$('#searchbox').show(0);</script>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -184,13 +221,13 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              >next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">capnp 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="#">capnp 2.1.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">pycapnp</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander).
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.0.
+    &#169; Copyright 2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>

@@ -1,24 +1,22 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Installation &#8212; capnp 1.0.0 documentation</title>
-    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Installation &#8212; capnp 2.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
+    <script src="_static/documentation_options.js?v=20623aea"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Quickstart" href="quickstart.html" />
     <link rel="prev" title="pycapnp" href="index.html" /> 
   </head><body>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -33,7 +31,7 @@
         <li class="right" >
           <a href="index.html" title="pycapnp"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.1.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
       </ul>
     </div>  
@@ -43,10 +41,10 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="installation">
-<span id="install"></span><h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="pip">
-<h2>Pip<a class="headerlink" href="#pip" title="Permalink to this headline">¶</a></h2>
+  <section id="installation">
+<span id="install"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
+<section id="pip">
+<h2>Pip<a class="headerlink" href="#pip" title="Link to this heading">¶</a></h2>
 <p>The pip installation will using the binary versions of the package (if possible). These contain a bundled version of capnproto (on Linux compiled with <a class="reference external" href="https://github.com/pypa/manylinux">manylinux</a>). Starting from v1.0.0b1 binary releases are available for Windows, macOS and Linux from <a class="reference external" href="https://pypi.org/project/pycapnp/#history">pypi</a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">pycapnp</span>
 </pre></div>
@@ -55,9 +53,9 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="n">pycapnp</span>
 </pre></div>
 </div>
-<p>To force bundling libcapnp (or force system libcapnp), just in case setup.py isn’t doing the right thing:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--force-bundled-libcapnp&quot;</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--force-system-libcapnp&quot;</span>
+<p>To force bundling libcapnp (or force system libcapnp), just in case pip isn’t doing the right thing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">-</span><span class="n">C</span> <span class="n">force</span><span class="o">-</span><span class="n">bundled</span><span class="o">-</span><span class="n">libcapnp</span><span class="o">=</span><span class="kc">True</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">-</span><span class="n">C</span> <span class="n">force</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">libcapnp</span><span class="o">=</span><span class="kc">True</span>
 </pre></div>
 </div>
 <p>If you’re using an older Linux distro (e.g. CentOS 6) you many need to set <cite>LDFLAGS=”-Wl,–no-as-needed -lrt”</cite>:</p>
@@ -65,19 +63,19 @@
 </pre></div>
 </div>
 <p>It’s also possible to specify the libcapnp url when bundling (this may not work, there be dragons):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--force-bundled-libcapnp&quot;</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;--libcapnp-url&quot;</span> <span class="o">--</span><span class="n">install</span><span class="o">-</span><span class="n">option</span> <span class="s2">&quot;https://github.com/capnproto/capnproto/archive/master.tar.gz&quot;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span> <span class="o">-</span><span class="n">C</span> <span class="n">force</span><span class="o">-</span><span class="n">bundled</span><span class="o">-</span><span class="n">libcapnp</span><span class="o">=</span><span class="kc">True</span> <span class="o">-</span><span class="n">C</span> <span class="n">libcapnp</span><span class="o">-</span><span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://github.com/capnproto/capnproto/archive/master.tar.gz&quot;</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="from-source">
-<h2>From Source<a class="headerlink" href="#from-source" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="from-source">
+<h2>From Source<a class="headerlink" href="#from-source" title="Link to this heading">¶</a></h2>
 <p>Source installation is generally not needed unless you’re looking into an issue with capnproto or pycapnp itself.</p>
-<div class="section" id="c-cap-n-proto-library">
-<h3>C++ Cap’n Proto Library<a class="headerlink" href="#c-cap-n-proto-library" title="Permalink to this headline">¶</a></h3>
+<section id="c-cap-n-proto-library">
+<h3>C++ Cap’n Proto Library<a class="headerlink" href="#c-cap-n-proto-library" title="Link to this heading">¶</a></h3>
 <p>You need to install the C++ Cap’n Proto library first. It requires a C++ compiler with C++14 support, such as GCC 5+ or Clang 5+. Follow installation docs at <a class="reference external" href="https://capnproto.org/install.html">https://capnproto.org/install.html</a>.</p>
-</div>
-<div class="section" id="pycapnp-from-git">
-<h3>pycapnp from git<a class="headerlink" href="#pycapnp-from-git" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="pycapnp-from-git">
+<h3>pycapnp from git<a class="headerlink" href="#pycapnp-from-git" title="Link to this heading">¶</a></h3>
 <p>If you want the latest development version, you can clone the github repo:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">capnproto</span><span class="o">/</span><span class="n">pycapnp</span><span class="o">.</span><span class="n">git</span>
 </pre></div>
@@ -92,15 +90,10 @@
 <span class="n">pip</span> <span class="n">install</span> <span class="o">.</span>
 </pre></div>
 </div>
-<p>or:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">pycapnp</span>
-<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
-</pre></div>
-</div>
-</div>
-</div>
-<div class="section" id="development">
-<h2>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="development">
+<h2>Development<a class="headerlink" href="#development" title="Link to this heading">¶</a></h2>
 <p>Clone the repo from <a class="reference external" href="https://github.com/capnproto/pycapnp.git">https://github.com/capnproto/pycapnp.git</a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">capnproto</span><span class="o">/</span><span class="n">pycapnp</span><span class="o">.</span><span class="n">git</span>
 </pre></div>
@@ -115,20 +108,14 @@
 <span class="n">pip</span> <span class="n">install</span> <span class="o">.</span>
 </pre></div>
 </div>
-<p>or:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">pycapnp</span>
-<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
-</pre></div>
-</div>
 <p>Useful targets for setup.py:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">build</span>
-<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">clean</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">clean</span>
 </pre></div>
 </div>
-<p>Useful command-line arguments are available for setup.py:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">force</span><span class="o">-</span><span class="n">bundled</span><span class="o">-</span><span class="n">libcapnp</span>
-<span class="o">--</span><span class="n">force</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">libcapnp</span>
-<span class="o">--</span><span class="n">libcapnp</span><span class="o">-</span><span class="n">url</span>
+<p>Useful command-line arguments are available for pip install:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">C</span> <span class="n">force</span><span class="o">-</span><span class="n">bundled</span><span class="o">-</span><span class="n">libcapnp</span><span class="o">=</span><span class="kc">True</span>
+<span class="o">-</span><span class="n">C</span> <span class="n">force</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">libcapnp</span><span class="o">=</span><span class="kc">True</span>
+<span class="o">-</span><span class="n">C</span> <span class="n">libcapnp</span><span class="o">-</span><span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://github.com/capnproto/capnproto/archive/master.tar.gz&quot;</span>
 </pre></div>
 </div>
 <p>Testing is done through pytest:</p>
@@ -138,15 +125,15 @@
 </pre></div>
 </div>
 <p>Once you’re done installing, take a look at the <a class="reference internal" href="quickstart.html#quickstart"><span class="std std-ref">Quickstart</span></a></p>
-</div>
-</div>
+</section>
+</section>
 
 
             <div class="clearer"></div>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h3><a href="index.html">Table of Contents</a></h3>
 <ul class="current">
@@ -164,12 +151,16 @@
 <li class="toctree-l1"><a class="reference internal" href="capnp.html">API Reference</a></li>
 </ul>
 
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">pycapnp</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="quickstart.html"
-                        title="next chapter">Quickstart</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">pycapnp</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="quickstart.html"
+                          title="next chapter">Quickstart</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -177,21 +168,21 @@
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
-<script>$('#searchbox').show(0);</script>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -206,13 +197,13 @@
         <li class="right" >
           <a href="index.html" title="pycapnp"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.1.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander).
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.0.
+    &#169; Copyright 2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>
