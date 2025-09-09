@@ -1,6 +1,5 @@
 import os
 import capnp
-import base64
 import pytest
 
 this_dir = os.path.dirname(__file__)
