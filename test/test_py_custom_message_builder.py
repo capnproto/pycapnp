@@ -6,19 +6,24 @@ import os
 
 this_dir = os.path.dirname(__file__)
 
+
 @pytest.fixture
 def all_types():
     return capnp.load(os.path.join(this_dir, "all_types.capnp"))
+
 
 def test_addressbook(all_types):
     class Allocator:
         def __init__(self):
             self.cur_size = 0
             self.last_size = 0
+
         def __call__(self, minimum_size: int) -> bytearray:
             actual_size = max(minimum_size, self.cur_size)
-            print(f"minimum_size: {minimum_size}, last_size: {self.last_size}, "
-                  f"actual_size: {actual_size}, cur_size: {self.cur_size}")
+            print(
+                f"minimum_size: {minimum_size}, last_size: {self.last_size}, "
+                f"actual_size: {actual_size}, cur_size: {self.cur_size}"
+            )
             self.last_size = actual_size
             self.cur_size += actual_size
             WORD_SIZE = 8
