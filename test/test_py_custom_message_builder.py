@@ -39,13 +39,13 @@ def test_addressbook(all_types):
     assert allocator.last_size == 1024
 
     struct_builder.init("dataField", 5)
-    assert struct_builder._get('dataField') == b'\x00\x00\x00\x00\x00'
+    assert struct_builder._get("dataField") == b"\x00\x00\x00\x00\x00"
 
-    struct_builder._get('dataField')[1] = 0xff
-    assert struct_builder._get('dataField') == b'\x00\xff\x00\x00\x00'
+    struct_builder._get("dataField")[1] = 0xFF
+    assert struct_builder._get("dataField") == b"\x00\xff\x00\x00\x00"
 
-    struct_builder.dataField = b'hello'
-    assert struct_builder._get('dataField') == b'hello'
+    struct_builder.dataField = b"hello"
+    assert struct_builder._get("dataField") == b"hello"
 
     struct_builder = struct_builder.as_reader()
-    assert struct_builder._get('dataField') == b'hello'
+    assert struct_builder._get("dataField") == b"hello"
