@@ -154,18 +154,17 @@ Also, one weird case is for Void types in Unions (and in general, but Void is re
 
     bob.employment.unemployed = None
 
-.. note:: One caveat for unions is having structs as union members. Let us assume `employment.school` was actually a struct with a field of type `Text` called `name`::
+.. note:: One caveat for unions is having structs as union members. Let us assume `employment.school` was actually a struct with a field of type `Text` called `name`
 
-        alice.employment.school.name = "MIT"
-        # Raises a KjException
+    alice.employment.school.name = "MIT"
+    # Raises a KjException
 
-    The problem is that a struct within a union isn't initialized automatically. You have to do the following::
+The problem is that a struct within a union isn't initialized automatically. You have to do the following::
 
-        TODO Broken
-        school = alice.employment.init('school')
-        school.name = "MIT"
+    school = alice.employment.init('school')
+    school.name = "MIT"
 
-    Note that this is similar to `init` for lists, but you don't pass a size. Requiring the `init` makes it more clear that a memory allocation is occurring, and will hopefully make you mindful that you shouldn't set more than 1 field inside of a union, else you risk a memory leak
+Note that this is similar to `init` for lists, but you don't pass a size. Requiring the `init` makes it more clear that a memory allocation is occurring, and will hopefully make you mindful that you shouldn't set more than 1 field inside of a union, else you risk a memory leak
 
 
 Writing to a File
@@ -180,13 +179,12 @@ There is also a `write_packed` function, that writes out the message more space-
 Writing to a socket
 ~~~~~~~~~~~~~~~~~~~
 Alternatively, you can write to a socket. This is useful if you want to send the message over the network or to another process.
-A full example of this is available on GitHub `examples/async_socket_message_client.py <https://github.com/capnproto/pycapnp/blob/master/examples/async_socket_message_client.py>`_.
-
-.. important:: Writing to a socket is implemented using asyncio and requires a running event loop both for the python part (asyncio) and the C++ part (KJ). See :ref:`RPC <kj-event-loop>` for more information.
-::
+A full example of this is available on GitHub `examples/async_socket_message_client.py <https://github.com/capnproto/pycapnp/blob/master/examples/async_socket_message_client.py>`_.::
 
     stream = await capnp.AsyncIoStream.create_connection(host="localhost", port=6000)
     await addresses.write_async(stream)
+
+.. important:: Writing to a socket is implemented using asyncio and requires a running event loop both for the python part (asyncio) and the C++ part (KJ). See :ref:`RPC <kj-event-loop>` for more information.
 
 Read a message
 --------------
@@ -211,13 +209,12 @@ Reading from a socket
 ~~~~~~~~~~~~~~~~~~~~~
 
 The same as for writing, you can read from a socket. This is useful if you want to receive the message over the network or from another process.
-A full example of this is available on GitHub `examples/async_socket_message_client.py <https://github.com/capnproto/pycapnp/blob/master/examples/async_socket_message_client.py>`_.
-
-.. important:: Reading from a socket is implemented using asyncio and requires a running event loop both for the python part (asyncio) and the C++ part (KJ). See :ref:`RPC <kj-event-loop>` for more information.
-::
+A full example of this is available on GitHub `examples/async_socket_message_client.py <https://github.com/capnproto/pycapnp/blob/master/examples/async_socket_message_client.py>`_.::
 
     stream = await capnp.AsyncIoStream.create_connection(host="localhost", port=6000)
     message = await addressbook_capnp.AddressBook.read_async(stream)
+
+.. important:: Reading from a socket is implemented using asyncio and requires a running event loop both for the python part (asyncio) and the C++ part (KJ). See :ref:`RPC <kj-event-loop>` for more information.
 
 
 Reading Fields
@@ -284,7 +281,7 @@ The above methods only guaranteed to work if your file contains a single message
         addresses.write(f)
         addresses.write(f)
         addresses.write(f) # write 3 messages
-    
+
     with open('example.bin', 'rb') as f:
         for addresses in addressbook_capnp.AddressBook.read_multiple(f):
             print(addresses)
@@ -375,7 +372,7 @@ To ensure proper creation, usage, and cleanup of the KJ event loop, a context ma
     async def main():
         async with capnp.kj_loop():
             # RPC calls here
-    
+
     asyncio.run(main())
 
 To simplify the usage, the helper function:py:meth:`capnp.run` can execute a asyncio coroutine within the :py:meth:`capnp.kj_loop` context manager::
@@ -395,10 +392,10 @@ Client
 
 Thanks to the integration into the asyncio library, most of the boiler plate code is handled by pycapnp directly. The only thing that needs to be done is to create a client object and bootstrap the server capability.
 
-Starting a Client 
+Starting a Client
 #################
 
-The first step is to open a socket to the server. For now this needs to be done 
+The first step is to open a socket to the server. For now this needs to be done
 through :py:meth:`~._AsyncIoStream.create_connection`. A thin wrapper around :py:meth:`asyncio.get_running_loop().create_connection()`
 that adds all required Protocol handling::
 
@@ -406,7 +403,7 @@ that adds all required Protocol handling::
         host = 'localhost'
         port = '6000'
         connection = await capnp.AsyncIoStream.create_connection(host=host, port=port)
-    
+
     asyncio.run(capnp.run(main()))
 
 .. note:: :py:meth:`~._AsyncIoStream.create_connection` forwards all calls to the underlying asyncio create_connection function.
@@ -500,7 +497,7 @@ The first argument to :py:meth:`~._AsyncIoStream.create_server` must be a callba
 used by the pycapnp protocol implementation. The :py:obj:`callback` parameter will be called
 whenever a new connection is made. It receives a py:obj:`AsyncIoStream` instance as its
 only argument. If the result of py:obj:`callback` is a coroutine, it will be scheduled as a
-task. At minimum, the callback should create a :py:class:`capnp.TwoPartyServer` for the 
+task. At minimum, the callback should create a :py:class:`capnp.TwoPartyServer` for the
 passed stream. :py:class:`capnp.TwoPartyServer` also exposes a
 :py:meth:`~.TwoPartyServer.on_disconnect()` function, which can be used as a task to handle
 the lifetime properly::
