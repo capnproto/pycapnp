@@ -1,3 +1,8 @@
+## v2.2.0 (2025-09-12)
+- Add binary support in dictionaries via base64 encoding (#351)
+- Add structure-free read_multiple_bytes_packed (#378)
+- Support python custom message builder and make Data field's type return MemoryView (#380)
+
 ## v2.1.0 (2025-09-04)
 - Add Python 3.13 support
   * Python 3.8 is still enabled but will be disabled if changes are needed that prevent compatibility with newer versions of Python (e.g. 3.14)
