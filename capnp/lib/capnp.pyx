@@ -1056,10 +1056,6 @@ cdef _to_dict(msg, bint verbose, bint ordered, bint encode_bytes_as_base64=False
     if msg_type is _DynamicEnum:
         return str(msg)
 
-    if encode_bytes_as_base64:
-        if msg_type is bytes:
-            # encode the message as base64 and return utf-8 string
-
     if encode_bytes_as_base64 and msg_type is bytes:
         # encode the message as base64 and return utf-8 string
         return base64.b64encode(msg).decode('utf-8')
