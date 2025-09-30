@@ -1058,11 +1058,16 @@ cdef _to_dict(msg, bint verbose, bint ordered, bint encode_bytes_as_base64=False
 
     if encode_bytes_as_base64:
         if msg_type is bytes:
-            return base64.b64encode(msg).decode('utf-8')
-        elif msg_type is memoryview:
+            # encode the message as base64 and return utf-8 string
+
+    if encode_bytes_as_base64 and msg_type is bytes:
+        # encode the message as base64 and return utf-8 string
+        return base64.b64encode(msg).decode('utf-8')
+
+    if msg_type is memoryview:
+        if encode_bytes_as_base64:
             return base64.b64encode(bytes(msg)).decode('utf-8')
-    else:
-        if msg_type is memoryview:
+        else:
             return bytes(msg)
 
     return msg
