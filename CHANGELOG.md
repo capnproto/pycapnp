@@ -1,3 +1,6 @@
+## v2.2.1 (2025-10-21)
+- Make `message.to_dict()` return bytes for DATA type field (#386)
+
 ## v2.2.0 (2025-09-12)
 - Add binary support in dictionaries via base64 encoding (#351)
 - Add structure-free read_multiple_bytes_packed (#378)
