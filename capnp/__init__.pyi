@@ -1098,6 +1098,62 @@ class _MessageReader:
         """
         ...
 
+class _PackedFdMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor in packed format.
+
+    This class reads messages that were written with _write_packed_message_to_fd.
+    """
+
+    def __init__(
+        self,
+        fd: int,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> None:
+        """Create a reader from a file descriptor.
+
+        Args:
+            fd: File descriptor to read from
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+        """
+        ...
+
+class _StreamFdMessageReader(_MessageReader):
+    """Read a Cap'n Proto message from a file descriptor in stream format.
+
+    This class reads messages that were written with _write_message_to_fd.
+    """
+
+    def __init__(
+        self,
+        fd: int,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> None:
+        """Create a reader from a file descriptor.
+
+        Args:
+            fd: File descriptor to read from
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+        """
+        ...
+
+class _PyCustomMessageBuilder(_MessageBuilder):
+    """Custom message builder with user-provided segments.
+
+    This allows building messages with custom memory management.
+    """
+
+    def __init__(self, segments: list[bytes]) -> None:
+        """Create a message builder from pre-allocated segments.
+
+        Args:
+            segments: List of byte arrays for message segments
+        """
+        ...
+
 class GeneratedModule(ModuleType):
     schema: StructSchema
     __file__: str | None
@@ -1232,6 +1288,49 @@ def read_multiple_bytes_packed(
     """
     ...
 
+def _write_message_to_fd(fd: int, message: _MessageBuilder) -> None:
+    """Write a Cap'n Proto message to a file descriptor.
+
+    Writes the message in unpacked format with a segment table header.
+
+    Args:
+        fd: File descriptor to write to
+        message: Message to write
+    """
+    ...
+
+def _write_packed_message_to_fd(fd: int, message: _MessageBuilder) -> None:
+    """Write a Cap'n Proto message to a file descriptor in packed format.
+
+    Writes the message using Cap'n Proto's packing algorithm which compresses
+    runs of zero bytes.
+
+    Args:
+        fd: File descriptor to write to
+        message: Message to write
+    """
+    ...
+
+def fill_context(method_name: str, context: _CallContext, returned_data: Any) -> None:
+    """Internal helper for filling RPC call context with returned data.
+
+    Args:
+        method_name: Name of the RPC method
+        context: Call context to fill
+        returned_data: Data to return to the caller
+    """
+    ...
+
+def void_task_done_callback(method_name: str, fulfiller: Any, task: Any) -> None:
+    """Internal callback for void RPC methods when async task completes.
+
+    Args:
+        method_name: Name of the RPC method
+        fulfiller: Promise fulfiller to complete
+        task: Async task that completed
+    """
+    ...
+
 class _CapnpLibCapnpModule:
     """The capnp.lib.capnp submodule containing implementation classes.
 
@@ -1269,7 +1368,10 @@ class _CapnpLibCapnpModule:
     # Message types
     _MessageBuilder: type[_MessageBuilder]
     _MallocMessageBuilder: type[_MallocMessageBuilder]
+    _PyCustomMessageBuilder: type[_PyCustomMessageBuilder]
     _MessageReader: type[_MessageReader]
+    _PackedFdMessageReader: type[_PackedFdMessageReader]
+    _StreamFdMessageReader: type[_StreamFdMessageReader]
 
     # Exception types
     KjException: type[KjException]
@@ -1282,6 +1384,17 @@ class _CapnpLibCapnpModule:
     TwoPartyClient: type[TwoPartyClient]
     TwoPartyServer: type[TwoPartyServer]
     AsyncIoStream: type[AsyncIoStream]
+
+    # Functions
+    _write_message_to_fd: Callable[[int, _MessageBuilder], None]
+    _write_packed_message_to_fd: Callable[[int, _MessageBuilder], None]
+    read_multiple_bytes_packed: Callable[
+        [bytes, int | None, int | None], Iterator[_DynamicStructReader]
+    ]
+
+    # Module-level attributes
+    _global_schema_parser: SchemaParser | None
+    """Global schema parser instance (may be None)."""
 
 class _CapnpLibModule:
     """The capnp.lib submodule."""
@@ -1297,6 +1410,42 @@ class _CapnpLib:
     capnp: _CapnpLibCapnpModule
 
 lib: _CapnpLib
+
+# Version information
+__version__: str
+"""Version string for pycapnp (e.g. '2.2.1')."""
+
+class _VersionModule:
+    """The capnp.version module containing version information."""
+
+    version: str
+    """Version string for pycapnp (e.g. '2.2.1')."""
+
+    short_version: str
+    """Short version string for pycapnp."""
+
+    LIBCAPNP_VERSION: int
+    """Version number of the underlying libcapnp library (e.g. 1002000)."""
+
+    LIBCAPNP_VERSION_MAJOR: int
+    """Major version of libcapnp."""
+
+    LIBCAPNP_VERSION_MINOR: int
+    """Minor version of libcapnp."""
+
+    LIBCAPNP_VERSION_MICRO: int
+    """Micro version of libcapnp."""
+
+version: _VersionModule
+"""Module containing version information."""
+
+# Internal/private module attributes
+_global_schema_parser: SchemaParser | None
+"""Global schema parser instance used by import hooks and pickling (may be None).
+
+Note: This is actually defined in capnp.lib.capnp but referenced at module level
+in some internal code like pickle_helper.py.
+"""
 
 class _SchemaType:
     """Internal schema type representation.
@@ -1626,20 +1775,29 @@ __all__ = [
     # Message types
     "_MessageBuilder",
     "_MallocMessageBuilder",
+    "_PyCustomMessageBuilder",
     "_MessageReader",
+    "_PackedFdMessageReader",
+    "_StreamFdMessageReader",
     # Exceptions
     "KjException",
     # Functions
     "add_import_hook",
     "cleanup_global_schema_parser",
     "deregister_all_types",
+    "fill_context",
     "kj_loop",
     "load",
     "read_multiple_bytes_packed",
     "register_type",
     "remove_import_hook",
     "run",
-    # Modules
+    "void_task_done_callback",
+    "_write_message_to_fd",
+    "_write_packed_message_to_fd",
+    # Modules and version
     "lib",
     "types",
+    "version",
+    "__version__",
 ]
