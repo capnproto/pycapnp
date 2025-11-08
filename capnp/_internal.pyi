@@ -1,18 +1,17 @@
 """Internal types for pycapnp stubs - NOT part of public API.
 
-This module contains all internal type definitions including:
-- Protocol classes for schema nodes
+This module contains internal type definitions including:
+- Protocol classes for schema nodes that exist in the pycapnp runtime
 - TypeVars used in generic types
 - Helper types for type annotations
-- Types from imports (asyncio, ModuleType, etc.)
 
-These are imported by __init__.pyi for type annotations but NOT re-exported.
+These are imported by lib/capnp.pyi for type annotations but NOT re-exported.
 """
 
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from types import ModuleType
 from typing import Any, Generic, Protocol, TypeVar
 
@@ -23,143 +22,42 @@ TReader = TypeVar("TReader")
 TBuilder = TypeVar("TBuilder")
 TInterface = TypeVar("TInterface")
 
-# Protocol classes for schema introspection
-
-class NestedNode(Protocol):
-    name: str
-    id: int
-
-class ParameterNode(Protocol):
-    name: str
-
-class Enumerant(Protocol):
-    name: str
-
-class EnumNode(Protocol):
-    enumerants: Sequence[Enumerant]
-
-class AnyPointerParameter(Protocol):
-    parameterIndex: int
-    scopeId: int
-
-class AnyPointerType(Protocol):
-    def which(self) -> str: ...
-    parameter: AnyPointerParameter
-
-class BrandBinding(Protocol):
-    type: TypeReader
-
-class BrandScope(Protocol):
-    def which(self) -> str: ...
-    scopeId: int
-    bind: Sequence[BrandBinding]
-
-class Brand(Protocol):
-    scopes: Sequence[BrandScope]
-
-class ListElementType(Protocol):
-    elementType: TypeReader
-
-class ListType(ListElementType, Protocol): ...
+# Protocol classes for types imported from capnp runtime
 
 class EnumType(Protocol):
     typeId: int
 
 class StructType(Protocol):
     typeId: int
-    brand: Brand
 
 class InterfaceType(Protocol):
     typeId: int
 
-class TypeReader(Protocol):
-    def which(self) -> str: ...
-    list: ListType
-    enum: EnumType
-    struct: StructType
-    interface: InterfaceType
-    anyPointer: AnyPointerType
-    elementType: TypeReader
-
-class SlotNode(Protocol):
-    type: TypeReader
-
-class FieldNode(Protocol):
-    name: str
-    slot: SlotNode
-    discriminantValue: int
-    def which(self) -> str: ...
-
-class StructNode(Protocol):
-    fields: Sequence[FieldNode]
-    discriminantCount: int
-
-class ConstNode(Protocol):
-    type: TypeReader
-
-class InterfaceNode(Protocol):
-    methods: Sequence[InterfaceMethod]
-    superclasses: Sequence[SuperclassNode]
-
-class SuperclassNode(Protocol):
-    id: int
+class SlotRuntime(Protocol): ...
 
 class SchemaNode(Protocol):
     id: int
     scopeId: int
     displayName: str
     displayNamePrefixLength: int
-    nestedNodes: Sequence[NestedNode]
-    parameters: Sequence[ParameterNode]
     isGeneric: bool
-    struct: StructNode
-    enum: EnumNode
-    const: ConstNode
-    interface: InterfaceNode
     def which(self) -> str: ...
 
-class DefaultValueReader(Protocol):
-    def as_bool(self) -> bool: ...
-    def __str__(self) -> str: ...
+class StructSchema(Protocol, Generic[TReader, TBuilder]): ...
 
-class StructRuntime(Protocol):
-    fields_list: Sequence[Any]
+# Protocol classes for types that exist in pycapnp runtime but are accessed
+# as attributes or return values (not directly imported)
 
-class StructSchema(Protocol, Generic[TReader, TBuilder]):
-    node: SchemaNode
-    elementType: TypeReader
-    def as_struct(self) -> StructRuntime: ...
-    def get_nested(self, name: str) -> StructSchema: ...
-
-class ListSchema(Protocol):
-    node: SchemaNode
-    elementType: TypeReader
-    def as_struct(self) -> StructRuntime: ...
-    def get_nested(self, name: str) -> StructSchema: ...
-
-class DynamicListReader(Protocol):
-    elementType: TypeReader
-    list: DynamicListReader
-
-class SlotRuntime(Protocol):
-    type: TypeReader
-
-class InterfaceMethod(Protocol):
-    param_type: StructSchema
-    result_type: StructSchema
+class DynamicListReader(Protocol): ...
 
 class InterfaceSchema(Protocol):
-    methods: Mapping[str, InterfaceMethod]
+    methods: Mapping[str, Any]
 
-class InterfaceRuntime(Protocol):
-    schema: InterfaceSchema
-
-class CastableBootstrap(Protocol):
-    def cast_as(self, interface: type[TInterface]) -> TInterface: ...
+class ListSchema(Protocol): ...
 
 class StructModule(Protocol, Generic[TReader, TBuilder]):
     schema: StructSchema[TReader, TBuilder]
 
-# Re-export commonly used types with underscore prefix for internal use
+# Re-export commonly used types
 ModuleType = ModuleType
 Server = asyncio.Server
