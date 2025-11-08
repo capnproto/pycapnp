@@ -6,6 +6,10 @@ include buildutils/*
 include _custom_build/*
 include capnp/lib/capnp_api.h
 include capnp/__init__.pyi
+include capnp/_internal.pyi
+include capnp/version.pyi
+include capnp/lib/__init__.pyi
+include capnp/lib/capnp.pyi
 include capnp/py.typed
 include Pipfile
 include tox.ini

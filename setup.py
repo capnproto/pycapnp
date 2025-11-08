@@ -228,6 +228,7 @@ setup(
             "includes/*.pxd",
             "lib/*.pxd",
             "lib/*.py",
+            "lib/*.pyi",
             "lib/*.pyx",
             "lib/*.h",
             "templates/*",
