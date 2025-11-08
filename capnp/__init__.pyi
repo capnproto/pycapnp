@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import (
+    AsyncIterator,
     Awaitable,
     Callable,
     Iterator,
@@ -9,7 +10,7 @@ from collections.abc import (
     MutableMapping,
     Sequence,
 )
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from types import ModuleType
 from typing import Any, Generic, Protocol, TypeVar, overload
 
@@ -1552,8 +1553,8 @@ async def run(coro: Awaitable[T]) -> T:
     """
     ...
 
-@contextmanager
-def kj_loop() -> Iterator[None]:
+@asynccontextmanager
+def kj_loop() -> AsyncIterator[None]:
     """Context manager for running the KJ event loop.
 
     Usage:
