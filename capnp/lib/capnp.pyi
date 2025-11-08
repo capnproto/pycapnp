@@ -30,9 +30,6 @@ from capnp._internal import (
     SlotRuntime as _SlotRuntime,
 )
 from capnp._internal import (
-    StructRuntime as _StructRuntime,
-)
-from capnp._internal import (
     StructSchema as _StructSchema,
 )
 from capnp._internal import (
@@ -44,9 +41,6 @@ from capnp._internal import (
     TBuilder,
     TInterface,
     TReader,
-)
-from capnp._internal import (
-    TypeReader as _TypeReader,
 )
 
 class KjException(Exception):
@@ -634,14 +628,24 @@ class _ListSchema:
     Can be instantiated to create list schemas for different element types.
     """
 
-    elementType: (
-        _TypeReader
-        | _StructSchema
-        | _EnumSchema
-        | _InterfaceSchema
-        | _ListSchema
-        | _SchemaType
-    )
+    @property
+    def elementType(
+        self,
+    ) -> _StructSchema | _EnumSchema | _InterfaceSchema | _ListSchema:
+        """The schema of the element type of this list.
+
+        Returns:
+            Schema of the list element type:
+            - _StructSchema for struct elements
+            - _EnumSchema for enum elements
+            - _InterfaceSchema for interface elements
+            - _ListSchema for nested list elements
+
+        Raises:
+            KjException: When the element type is a primitive type (Int32, Text, Bool, etc.)
+                with message "Schema type is unknown"
+        """
+        ...
 
     def __init__(
         self,
@@ -651,7 +655,6 @@ class _ListSchema:
             | _InterfaceSchema
             | _ListSchema
             | _SchemaType
-            | _StructSchema
             | Any
             | None
         ) = None,
@@ -669,9 +672,6 @@ class _ListSchema:
                 - None (creates uninitialized schema)
         """
         ...
-
-    def as_struct(self) -> _StructRuntime: ...
-    def get_nested(self, name: str) -> _StructSchema: ...
 
 # RPC Request/Response Types
 class _Request(_DynamicStructBuilder, Protocol):
