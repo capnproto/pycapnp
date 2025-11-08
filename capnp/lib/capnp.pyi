@@ -17,20 +17,12 @@ from capnp._internal import (
 from capnp._internal import (
     InterfaceType as _InterfaceType,
 )
-from capnp._internal import (
-    ModuleType as _ModuleType,
-)
-from capnp._internal import (
-    SchemaNode as _SchemaNode,
-)
+from capnp._internal import SchemaNode as _SchemaNode
 from capnp._internal import (
     Server as _Server,
 )
 from capnp._internal import (
     SlotRuntime as _SlotRuntime,
-)
-from capnp._internal import (
-    StructSchema as _StructSchema,
 )
 from capnp._internal import (
     StructType as _StructType,
@@ -97,6 +89,15 @@ class KjException(Exception):
     def _to_python(self) -> Exception:
         """Convert to a more specific Python exception if appropriate."""
         ...
+
+class _StructSchema(Protocol, Generic[TReader, TBuilder]):
+    def which(self) -> str: ...
+    node: _SchemaNode
+    def as_struct(self) -> Any: ...
+    def get_nested(self, name: str) -> Any: ...
+
+class _StructModule(Protocol, Generic[TReader, TBuilder]):
+    schema: _StructSchema[TReader, TBuilder]
 
 class _DynamicObjectReader(Protocol):
     """Reader for Cap'n Proto AnyPointer type.
@@ -1011,7 +1012,7 @@ class _PyCustomMessageBuilder(_MessageBuilder):
         """
         ...
 
-class _GeneratedModule(_ModuleType):
+class _GeneratedModule:
     schema: _StructSchema
     __file__: str | None
 
@@ -1188,86 +1189,6 @@ def void_task_done_callback(method_name: str, fulfiller: Any, task: Any) -> None
     """
     ...
 
-class _CapnpLibCapnpModule:
-    """The capnp.lib.capnp submodule containing implementation classes.
-
-    This module contains the low-level C++ wrapper classes.
-    """
-
-    # Dynamic types
-    _DynamicStructReader: type[_DynamicStructReader]
-    _DynamicStructBuilder: type[_DynamicStructBuilder]
-    _DynamicListReader: type[_DynamicListReader]
-    _DynamicListBuilder: type[_DynamicListBuilder]
-    _DynamicObjectReader: type[_DynamicObjectReader]
-    _DynamicObjectBuilder: type[_DynamicObjectBuilder]
-
-    # Schema types
-    _EnumSchema: type[_EnumSchema]
-    _InterfaceSchema: type[_InterfaceSchema]
-    _ListSchema: type[_ListSchema]
-    _SchemaType: type[_SchemaType]
-    _StructSchema: type[_StructSchema]
-
-    # RPC types
-    _Request: type[_Request]
-    _Response: type[_Response]
-    _CallContext: type[_CallContext]
-    _DynamicCapabilityClient: type[_DynamicCapabilityClient]
-    _DynamicCapabilityServer: type[_DynamicCapabilityServer]
-    _CapabilityClient: type[_CapabilityClient]
-
-    # Promise and Pipeline types
-    _Promise: type[_Promise]
-    _RemotePromise: type[_RemotePromise]
-    _DynamicStructPipeline: type[_DynamicStructPipeline]
-
-    # Message types
-    _MessageBuilder: type[_MessageBuilder]
-    _MallocMessageBuilder: type[_MallocMessageBuilder]
-    _PyCustomMessageBuilder: type[_PyCustomMessageBuilder]
-    _MessageReader: type[_MessageReader]
-    _PackedFdMessageReader: type[_PackedFdMessageReader]
-    _StreamFdMessageReader: type[_StreamFdMessageReader]
-
-    # Exception types
-    KjException: type[KjException]
-
-    # Parser types
-    SchemaParser: type[SchemaParser]
-    SchemaLoader: type[SchemaLoader]
-
-    # RPC classes
-    TwoPartyClient: type[TwoPartyClient]
-    TwoPartyServer: type[TwoPartyServer]
-    AsyncIoStream: type[AsyncIoStream]
-
-    # Functions
-    _write_message_to_fd: Callable[[int, _MessageBuilder], None]
-    _write_packed_message_to_fd: Callable[[int, _MessageBuilder], None]
-    read_multiple_bytes_packed: Callable[
-        [bytes, int | None, int | None], Iterator[_DynamicStructReader]
-    ]
-
-    # Module-level attributes
-    _global_schema_parser: SchemaParser | None
-    """Global schema parser instance (may be None)."""
-
-class _CapnpLibModule:
-    """The capnp.lib submodule."""
-
-    capnp: _CapnpLibCapnpModule
-
-class _CapnpLib:
-    """The capnp.lib namespace.
-
-    Provides access to low-level Cap'n Proto implementation classes.
-    """
-
-    capnp: _CapnpLibCapnpModule
-
-lib: _CapnpLib
-
 # Internal/private module attributes
 _global_schema_parser: SchemaParser | None
 """Global schema parser instance used by import hooks and pickling (may be None).
@@ -1372,6 +1293,8 @@ class _DynamicListReader(Generic[T_co]):
 
     Provides read-only list-like interface.
     """
+
+    elementType: Any
     def __len__(self) -> int: ...
     def __getitem__(self, index: int) -> T_co: ...
     def __iter__(self) -> Iterator[T_co]: ...
@@ -1610,7 +1533,6 @@ __all__ = [
     "run",
     "void_task_done_callback",
     # Modules
-    "lib",
     "types",
     # Internal classes that are exposed but prefixed with underscore
     "_CapabilityClient",
@@ -1629,6 +1551,7 @@ __all__ = [
     "_PyCustomMessageBuilder",
     "_StreamFdMessageReader",
     "_StructModule",
+    "_StructSchema",
     "_init_capnp_api",
     "_write_message_to_fd",
     "_write_packed_message_to_fd",

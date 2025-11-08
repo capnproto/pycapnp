@@ -11,9 +11,7 @@ These are imported by lib/capnp.pyi for type annotations but NOT re-exported.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
-from types import ModuleType
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar
 
 # TypeVars used throughout the stubs
 T = TypeVar("T")
@@ -29,11 +27,13 @@ class EnumType(Protocol):
 
 class StructType(Protocol):
     typeId: int
+    brand: Any
 
 class InterfaceType(Protocol):
     typeId: int
 
-class SlotRuntime(Protocol): ...
+class SlotRuntime(Protocol):
+    type: Any
 
 class SchemaNode(Protocol):
     id: int
@@ -41,23 +41,13 @@ class SchemaNode(Protocol):
     displayName: str
     displayNamePrefixLength: int
     isGeneric: bool
-    def which(self) -> str: ...
-
-class StructSchema(Protocol, Generic[TReader, TBuilder]): ...
-
-# Protocol classes for types that exist in pycapnp runtime but are accessed
-# as attributes or return values (not directly imported)
-
-class DynamicListReader(Protocol): ...
-
-class InterfaceSchema(Protocol):
-    methods: Mapping[str, Any]
-
-class ListSchema(Protocol): ...
-
-class StructModule(Protocol, Generic[TReader, TBuilder]):
-    schema: StructSchema[TReader, TBuilder]
+    nestedNodes: Any
+    parameters: Any
+    struct: Any
+    enum: Any
+    interface: Any
+    const: Any
+    annotation: Any
 
 # Re-export commonly used types
-ModuleType = ModuleType
 Server = asyncio.Server
