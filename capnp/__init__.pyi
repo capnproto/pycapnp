@@ -1,12 +1,3 @@
-"""Type stubs for pycapnp.
-
-This stub file provides type information for the pycapnp package, enabling
-static type checkers to understand the Cap'n Proto Python bindings.
-
-Version: 2.2.1
-Compatible with: pycapnp >= 2.0.0
-"""
-
 from __future__ import annotations
 
 import asyncio
