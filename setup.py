@@ -220,6 +220,8 @@ setup(
             "*.pxd",
             "*.h",
             "*.capnp",
+            "*.pyi",
+            "py.typed",
             "helpers/*.pxd",
             "helpers/*.h",
             "includes/*.h",
@@ -261,5 +263,6 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Communications",
+        "Typing :: Typed",
     ],
 )

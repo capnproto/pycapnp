@@ -5,6 +5,8 @@ include requirements.txt
 include buildutils/*
 include _custom_build/*
 include capnp/lib/capnp_api.h
+include capnp/__init__.pyi
+include capnp/py.typed
 include Pipfile
 include tox.ini
 recursive-include examples *.capnp
