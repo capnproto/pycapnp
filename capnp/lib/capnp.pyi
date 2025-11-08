@@ -1013,10 +1013,6 @@ class _PyCustomMessageBuilder(_MessageBuilder):
         """
         ...
 
-class _GeneratedModule:
-    schema: _StructSchema
-    __file__: str | None
-
 class SchemaParser:
     """Parser for loading Cap'n Proto schema files.
 
@@ -1024,14 +1020,14 @@ class SchemaParser:
     Use the convenience method :func:`load` instead.
     """
 
-    modules_by_id: MutableMapping[int, _GeneratedModule]
+    modules_by_id: MutableMapping[int, Any]
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def load(
         self,
         file_name: str,
         display_name: str | None = None,
         imports: Sequence[str] = [],
-    ) -> _GeneratedModule:
+    ) -> Any:
         """Load a Cap'n Proto schema file.
 
         Args:
@@ -1098,7 +1094,7 @@ def load(
     file_name: str,
     display_name: str | None = None,
     imports: Sequence[str] = [],
-) -> _GeneratedModule:
+) -> Any:
     """Load a Cap'n Proto schema from a file.
 
     Args:
