@@ -5,7 +5,6 @@ from collections.abc import (
     Awaitable,
     Callable,
     Iterator,
-    Mapping,
     MutableMapping,
     Sequence,
 )
@@ -14,23 +13,41 @@ from typing import Any, Generic, Protocol, overload
 
 from capnp._internal import (
     EnumType as _EnumType,
+)
+from capnp._internal import (
     InterfaceType as _InterfaceType,
+)
+from capnp._internal import (
     ModuleType as _ModuleType,
+)
+from capnp._internal import (
     SchemaNode as _SchemaNode,
+)
+from capnp._internal import (
     Server as _Server,
+)
+from capnp._internal import (
     SlotRuntime as _SlotRuntime,
-    StructModule as _StructModuleProtocol,
+)
+from capnp._internal import (
     StructRuntime as _StructRuntime,
+)
+from capnp._internal import (
     StructSchema as _StructSchema,
+)
+from capnp._internal import (
     StructType as _StructType,
+)
+from capnp._internal import (
     T,
     T_co,
     TBuilder,
     TInterface,
     TReader,
+)
+from capnp._internal import (
     TypeReader as _TypeReader,
 )
-
 
 class KjException(Exception):
     """Exception raised by Cap'n Proto operations.
@@ -593,19 +610,21 @@ class _DynamicStructBuilder(Protocol):
 
 class _EnumSchema:
     """Schema for enum types.
-    
+
     Provides access to enum schema information.
     Only accessible from capnp.lib.capnp, not from capnp directly.
     """
+
     enumerants: dict[str, int]
     node: _SchemaNode
 
 class _InterfaceSchema(Generic[TInterface]):
     """Schema for interface types, parameterized by the interface type.
-    
+
     Provides access to interface schema information.
     Only accessible from capnp.lib.capnp, not from capnp directly.
     """
+
     method_names: tuple[str, ...]
     method_names_inherited: set[str]
 
@@ -1267,7 +1286,6 @@ class _SchemaType:
     pass
 
 class _CapnpTypesModule:
-
     Void: _SchemaType
     Bool: _SchemaType
     Int8: _SchemaType
@@ -1360,15 +1378,16 @@ class _DynamicListReader(Generic[T_co]):
 
 class _DynamicOrphan:
     """Orphaned Cap'n Proto message.
-    
+
     An orphan is a message that has been disowned from its parent.
     Don't use this class unless you know what you're doing.
     """
+
     pass
 
 class _DynamicResizableListBuilder:
     """Resizable list builder for Cap'n Proto lists.
-    
+
     Returned by init_resizable_list(). Allows adding elements one at a time
     without knowing the final size upfront.
     """
@@ -1381,29 +1400,32 @@ class _DynamicResizableListBuilder:
 
 class _EventLoop:
     """Cap'n Proto event loop integration.
-    
+
     Internal class for managing the KJ event loop.
     """
+
     pass
 
 class _InterfaceModule:
     """Module/class for a generated interface.
-    
+
     This is what you get when you access an interface class from a loaded schema.
     """
+
     pass
 
 class _StructModule(Generic[TReader, TBuilder]):
     """Module/class for a generated struct.
-    
+
     This is what you get when you access a struct class from a loaded schema.
     It has a .schema attribute and static methods like .new_message().
     """
+
     schema: _StructSchema[TReader, TBuilder]
 
 def _init_capnp_api() -> None:
     """Initialize the Cap'n Proto API.
-    
+
     Internal function called during module initialization.
     """
     ...

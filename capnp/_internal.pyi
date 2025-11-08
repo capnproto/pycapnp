@@ -12,7 +12,7 @@ These are imported by __init__.pyi for type annotations but NOT re-exported.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from types import ModuleType
 from typing import Any, Generic, Protocol, TypeVar
 
