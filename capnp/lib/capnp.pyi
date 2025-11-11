@@ -9,7 +9,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import asynccontextmanager
-from typing import Any, Generic, Protocol, overload
+from typing import Any
 
 from capnp._internal import CapnpTypesModule as _CapnpTypesModule
 from capnp._internal import (
@@ -30,7 +30,6 @@ from capnp._internal import (
 )
 from capnp._internal import (
     T,
-    T_co,
     TBuilder,
     TInterface,
     TReader,
@@ -91,23 +90,28 @@ class KjException(Exception):
         """Convert to a more specific Python exception if appropriate."""
         ...
 
-class _StructSchema(Protocol, Generic[TReader, TBuilder]):
-    def which(self) -> str: ...
+class _StructSchema:
     node: _SchemaNode
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    def which(self) -> str: ...
     def as_struct(self) -> Any: ...
     def get_nested(self, name: str) -> Any: ...
 
-class _StructModule(Protocol, Generic[TReader, TBuilder]):
-    schema: _StructSchema[TReader, TBuilder]
+class _StructModule:
+    schema: _StructSchema
 
-class _DynamicObjectReader(Protocol):
+    def __init__(self, schema: _StructSchema, name: str) -> None: ...
+
+class _DynamicObjectReader:
     """Reader for Cap'n Proto AnyPointer type.
 
     This class wraps the Cap'n Proto C++ DynamicObject::Reader.
     AnyPointer can be cast to different pointer types (struct, list, text, interface).
     """
 
-    def as_interface(self, schema: _InterfaceSchema[TInterface]) -> TInterface:
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    def as_interface(self, schema: _InterfaceSchema | _InterfaceModule) -> Any:
         """Cast this AnyPointer to an interface capability.
 
         The return type matches the interface type parameterized in the schema.
@@ -123,7 +127,7 @@ class _DynamicObjectReader(Protocol):
         """
         ...
 
-    def as_list(self, schema: Any) -> _DynamicListReader[Any]:
+    def as_list(self, schema: _ListSchema) -> Any:
         """Cast this AnyPointer to a list.
 
         Args:
@@ -134,33 +138,7 @@ class _DynamicObjectReader(Protocol):
         """
         ...
 
-    @overload
-    def as_struct(self, schema: _StructSchema[TReader, Any]) -> TReader:
-        """Cast this AnyPointer to a struct reader using .schema attribute.
-
-        Args:
-            schema: The struct schema (e.g., MyStruct.schema).
-
-        Returns:
-            A struct reader of the appropriate type.
-        """
-        ...
-
-    @overload
-    def as_struct(self, schema: type[_StructModule[TReader, Any]]) -> TReader:
-        """Cast this AnyPointer to a struct reader using the struct class directly.
-
-        Args:
-            schema: The struct class itself (e.g., MyStruct).
-
-        Returns:
-            A struct reader of the appropriate type.
-        """
-        ...
-
-    def as_struct(
-        self, schema: _StructSchema[TReader, Any] | type[_StructModule[TReader, Any]]
-    ) -> TReader:
+    def as_struct(self, schema: _StructSchema | type[_StructModule]) -> Any:
         """Cast this AnyPointer to a struct reader.
 
         The return type matches the Reader type parameterized in the schema.
@@ -186,14 +164,15 @@ class _DynamicObjectReader(Protocol):
         """
         ...
 
-class _DynamicObjectBuilder(Protocol):
+class _DynamicObjectBuilder:
     """Builder for Cap'n Proto AnyPointer type.
 
     This class wraps the Cap'n Proto C++ DynamicObject::Builder.
     AnyPointer can be initialized or cast to different pointer types.
     """
 
-    def as_interface(self, schema: _InterfaceSchema[TInterface]) -> TInterface:
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    def as_interface(self, schema: _InterfaceSchema | _InterfaceModule) -> Any:
         """Cast this AnyPointer to an interface capability.
 
         The return type matches the interface type parameterized in the schema.
@@ -209,7 +188,7 @@ class _DynamicObjectBuilder(Protocol):
         """
         ...
 
-    def as_list(self, schema: Any) -> _DynamicListBuilder[Any]:
+    def as_list(self, schema: _ListSchema) -> Any:
         """Cast this AnyPointer to a list.
 
         Args:
@@ -228,33 +207,7 @@ class _DynamicObjectBuilder(Protocol):
         """
         ...
 
-    @overload
-    def as_struct(self, schema: _StructSchema[Any, TBuilder]) -> TBuilder:
-        """Cast this AnyPointer to a struct builder using .schema attribute.
-
-        Args:
-            schema: The struct schema (e.g., MyStruct.schema).
-
-        Returns:
-            A struct builder of the appropriate type.
-        """
-        ...
-
-    @overload
-    def as_struct(self, schema: type[_StructModule[Any, TBuilder]]) -> TBuilder:
-        """Cast this AnyPointer to a struct builder using the struct class directly.
-
-        Args:
-            schema: The struct class itself (e.g., MyStruct).
-
-        Returns:
-            A struct builder of the appropriate type.
-        """
-        ...
-
-    def as_struct(
-        self, schema: _StructSchema[Any, TBuilder] | type[_StructModule[Any, TBuilder]]
-    ) -> TBuilder:
+    def as_struct(self, schema: _StructSchema | type[_StructModule]) -> Any:
         """Cast this AnyPointer to a struct builder.
 
         The return type matches the Builder type parameterized in the schema.
@@ -280,7 +233,7 @@ class _DynamicObjectBuilder(Protocol):
         """
         ...
 
-    def init_as_list(self, schema: Any, size: int) -> _DynamicListBuilder[Any]:
+    def init_as_list(self, schema: Any, size: int) -> _DynamicListBuilder:
         """Initialize this AnyPointer as a list of the given size.
 
         Args:
@@ -310,7 +263,7 @@ class _DynamicObjectBuilder(Protocol):
         """
         ...
 
-class _DynamicStructReader(Protocol):
+class _DynamicStructReader:
     """Reader for Cap'n Proto structs.
 
     This class is almost a 1:1 wrapping of the Cap'n Proto C++ DynamicStruct::Reader.
@@ -324,7 +277,6 @@ class _DynamicStructReader(Protocol):
         print(getattr(person, 'field-with-hyphens'))  # for names that are invalid for python
     """
 
-    name: str
     slot: _SlotRuntime
     schema: _StructSchema
     list: _DynamicListReader
@@ -332,6 +284,9 @@ class _DynamicStructReader(Protocol):
     enum: _EnumType
     interface: _InterfaceType
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    @property
+    def name(self) -> str: ...
     def which(self) -> str:
         """Return the name of the currently set union field."""
         ...
@@ -393,7 +348,7 @@ class _DynamicStructReader(Protocol):
         """
         ...
 
-class _DynamicStructBuilder(Protocol):
+class _DynamicStructBuilder:
     """Builder for Cap'n Proto structs.
 
     This class is almost a 1:1 wrapping of the Cap'n Proto C++ DynamicStruct::Builder.
@@ -412,9 +367,11 @@ class _DynamicStructBuilder(Protocol):
         print(getattr(person, 'field-with-hyphens'))
     """
 
-    name: str
     schema: _StructSchema
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    @property
+    def name(self) -> str: ...
     def which(self) -> str:
         """Return the name of the currently set union field."""
         ...
@@ -486,7 +443,7 @@ class _DynamicStructBuilder(Protocol):
         """
         ...
 
-    def init_resizable_list(self, field: str) -> _DynamicListBuilder[Any]:
+    def init_resizable_list(self, field: str) -> _DynamicListBuilder:
         """Initialize a resizable list field (for lists of structs).
 
         This version of init returns a _DynamicResizableListBuilder that allows
@@ -614,7 +571,9 @@ class _EnumSchema:
     enumerants: dict[str, int]
     node: _SchemaNode
 
-class _InterfaceSchema(Generic[TInterface]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+
+class _InterfaceSchema:
     """Schema for interface types, parameterized by the interface type.
 
     Provides access to interface schema information.
@@ -623,6 +582,8 @@ class _InterfaceSchema(Generic[TInterface]):
 
     method_names: tuple[str, ...]
     method_names_inherited: set[str]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
 class _ListSchema:
     """Schema for list types.
@@ -676,7 +637,7 @@ class _ListSchema:
         ...
 
 # RPC Request/Response Types
-class _Request(_DynamicStructBuilder, Protocol):
+class _Request(_DynamicStructBuilder):
     """RPC request builder.
 
     Extends DynamicStructBuilder with RPC-specific send() method.
@@ -689,7 +650,7 @@ class _Request(_DynamicStructBuilder, Protocol):
         """
         ...
 
-class _Response(_DynamicStructReader, Protocol):
+class _Response(_DynamicStructReader):
     """RPC response reader.
 
     Extends DynamicStructReader for reading RPC responses.
@@ -698,11 +659,16 @@ class _Response(_DynamicStructReader, Protocol):
 
     pass
 
-class _CallContext(Protocol):
+class _CallContext:
     """Context for an RPC call on the server side.
 
     Provides methods for handling server-side RPC calls.
+
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    @property
+    def params(self) -> _DynamicStructReader: ...
     def release_params(self) -> None:
         """Release the parameter struct.
 
@@ -720,11 +686,13 @@ class _CallContext(Protocol):
         ...
 
 # Capability Types
-class _DynamicCapabilityClient(Protocol):
+class _DynamicCapabilityClient:
     """Dynamic capability client.
 
     Represents a reference to a remote capability.
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def cast_as(self, schema: type[T]) -> T:
         """Cast this capability to a specific interface type.
 
@@ -747,13 +715,13 @@ class _DynamicCapabilityClient(Protocol):
         """
         ...
 
-class _DynamicCapabilityServer(Protocol):
+class _DynamicCapabilityServer:
     """Dynamic capability server base class.
 
     Implement this to create server-side capability implementations.
     """
 
-    pass
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
 class _CapabilityClient:
     """Base class for capability clients.
@@ -761,6 +729,7 @@ class _CapabilityClient:
     Wraps Cap'n Proto capability references.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def cast_as(self, schema: type[T]) -> T:
         """Cast this capability to a specific interface type.
 
@@ -779,6 +748,7 @@ class _Promise:
     Can be awaited in async contexts.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def cancel(self) -> None:
         """Cancel the promise."""
         ...
@@ -790,6 +760,7 @@ class _RemotePromise(_Promise):
     accessing pipelined capabilities.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def to_dict(
         self,
         verbose: bool = False,
@@ -822,6 +793,7 @@ class _DynamicStructPipeline:
         result.field.another_method()  # Pipelined call
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def to_dict(
         self,
         verbose: bool = False,
@@ -848,7 +820,7 @@ class _MessageBuilder:
         Don't ever instantiate this class directly. It is only used for inheritance.
     """
 
-    def init_root(self, schema: _StructSchema[Any, TBuilder]) -> TBuilder:
+    def init_root(self, schema: _StructSchema) -> TBuilder:
         """Initialize the message root as a struct of the given type.
 
         Args:
@@ -859,7 +831,7 @@ class _MessageBuilder:
         """
         ...
 
-    def get_root(self, schema: _StructSchema[TReader, Any]) -> TReader:
+    def get_root(self, schema: _StructSchema) -> TReader:
         """Get the message root as a struct of the given type.
 
         Args:
@@ -886,7 +858,7 @@ class _MessageBuilder:
         """
         ...
 
-    def new_orphan(self, schema: _StructSchema[Any, TBuilder]) -> Any:
+    def new_orphan(self, schema: _StructSchema) -> Any:
         """Create a new orphaned struct.
 
         Don't use this method unless you know what you're doing.
@@ -938,7 +910,7 @@ class _MessageReader:
         Don't ever instantiate this class. It is only used for inheritance.
     """
 
-    def get_root(self, schema: _StructSchema[TReader, Any]) -> TReader:
+    def get_root(self, schema: _StructSchema) -> TReader:
         """Get the message root as a struct of the given type.
 
         Args:
@@ -965,14 +937,14 @@ class _PackedFdMessageReader(_MessageReader):
 
     def __init__(
         self,
-        fd: int,
+        file: Any,
         traversal_limit_in_words: int | None = None,
         nesting_limit: int | None = None,
     ) -> None:
-        """Create a reader from a file descriptor.
+        """Create a reader from a file object.
 
         Args:
-            fd: File descriptor to read from
+            file: File object to read from (must have a fileno() method)
             traversal_limit_in_words: Optional limit on pointer dereferences
             nesting_limit: Optional limit on nesting depth
         """
@@ -986,14 +958,14 @@ class _StreamFdMessageReader(_MessageReader):
 
     def __init__(
         self,
-        fd: int,
+        file: Any,
         traversal_limit_in_words: int | None = None,
         nesting_limit: int | None = None,
     ) -> None:
-        """Create a reader from a file descriptor.
+        """Create a reader from a file object.
 
         Args:
-            fd: File descriptor to read from
+            file: File object to read from (must have a fileno() method)
             traversal_limit_in_words: Optional limit on pointer dereferences
             nesting_limit: Optional limit on nesting depth
         """
@@ -1005,11 +977,13 @@ class _PyCustomMessageBuilder(_MessageBuilder):
     This allows building messages with custom memory management.
     """
 
-    def __init__(self, segments: list[bytes]) -> None:
-        """Create a message builder from pre-allocated segments.
+    def __init__(self, allocate_seg_callable: Callable[[int], bytearray]) -> None:
+        """Create a message builder with custom memory allocation.
 
         Args:
-            segments: List of byte arrays for message segments
+            allocate_seg_callable: A callable that takes the minimum number of 8-byte
+                words to allocate (as an int) and returns a bytearray. This is used to
+                customize the memory allocation strategy.
         """
         ...
 
@@ -1201,12 +1175,12 @@ class _SchemaType:
     Instances are used for type comparisons and type checking.
     """
 
-    pass
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
 types: _CapnpTypesModule
 
-class _DynamicListBuilder(Generic[T]):
-    """Generic list builder type returned by init() for list fields.
+class _DynamicListBuilder:
+    """List builder type returned by init() for list fields.
 
     This class wraps the Cap'n Proto C++ DynamicList::Builder.
     __getitem__, __setitem__, __len__ and __iter__ have been defined properly,
@@ -1222,14 +1196,16 @@ class _DynamicListBuilder(Generic[T]):
         for phone in phones:
             print(phone.number)
 
-    For struct element types, both T instances and dict[str, Any] are accepted
+    For struct element types, both element instances and dict[str, Any] are accepted
     for convenient initialization, e.g.:
         list_builder[0] = {"field": value}
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def __len__(self) -> int: ...
-    def __getitem__(self, index: int) -> T: ...
-    def __setitem__(self, index: int, value: T | dict[str, Any]) -> None: ...
-    def __iter__(self) -> Iterator[T]: ...
+    def __getitem__(self, index: int) -> Any: ...
+    def __setitem__(self, index: int, value: Any) -> None: ...
+    def __iter__(self) -> Iterator[Any]: ...
     def adopt(self, index: int, orphan: Any) -> None:
         """Adopt an orphaned message at the given index.
 
@@ -1254,8 +1230,8 @@ class _DynamicListBuilder(Generic[T]):
         """
         ...
 
-class _DynamicListReader(Generic[T_co]):
-    """Generic list reader type for reading Cap'n Proto list fields.
+class _DynamicListReader:
+    """List reader type for reading Cap'n Proto list fields.
 
     This class thinly wraps the C++ Cap'n Proto DynamicList::Reader class.
     __getitem__ and __len__ have been defined properly, so you can treat this
@@ -1275,9 +1251,11 @@ class _DynamicListReader(Generic[T_co]):
     """
 
     elementType: Any
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def __len__(self) -> int: ...
-    def __getitem__(self, index: int) -> T_co: ...
-    def __iter__(self) -> Iterator[T_co]: ...
+    def __getitem__(self, index: int) -> Any: ...
+    def __iter__(self) -> Iterator[Any]: ...
 
 class _DynamicOrphan:
     """Orphaned Cap'n Proto message.
@@ -1286,7 +1264,7 @@ class _DynamicOrphan:
     Don't use this class unless you know what you're doing.
     """
 
-    pass
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
 class _DynamicResizableListBuilder:
     """Resizable list builder for Cap'n Proto lists.
@@ -1307,7 +1285,7 @@ class _EventLoop:
     Internal class for managing the KJ event loop.
     """
 
-    pass
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
 class _InterfaceModule:
     """Module/class for a generated interface.
@@ -1315,16 +1293,7 @@ class _InterfaceModule:
     This is what you get when you access an interface class from a loaded schema.
     """
 
-    pass
-
-class _StructModule(Generic[TReader, TBuilder]):
-    """Module/class for a generated struct.
-
-    This is what you get when you access a struct class from a loaded schema.
-    It has a .schema attribute and static methods like .new_message().
-    """
-
-    schema: _StructSchema[TReader, TBuilder]
+    def __init__(self, schema: _InterfaceSchema, name: str) -> None: ...
 
 def _init_capnp_api() -> None:
     """Initialize the Cap'n Proto API.
@@ -1334,7 +1303,8 @@ def _init_capnp_api() -> None:
     ...
 
 # RPC Classes
-class _CastableBootstrap(Protocol):
+class _CastableBootstrap:
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def cast_as(self, interface: type[TInterface]) -> TInterface: ...
 
 class TwoPartyClient:
@@ -1389,6 +1359,8 @@ class AsyncIoStream:
 
     Provides async I/O operations for Cap'n Proto RPC over TCP and Unix domain sockets.
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     @staticmethod
     async def create_connection(
         host: str | None = None, port: int | None = None, **kwargs: Any

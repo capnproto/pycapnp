@@ -11,7 +11,8 @@ These are imported by lib/capnp.pyi for type annotations but NOT re-exported.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Protocol, TypeVar
+from typing import Any, Literal, Protocol, TypeVar
+
 from capnp.lib.capnp import _SchemaType
 
 # TypeVars used throughout the stubs
@@ -49,6 +50,7 @@ class SchemaNode(Protocol):
     interface: Any
     const: Any
     annotation: Any
+    def which(self) -> Literal["interface", "struct"]: ...
 
 class CapnpTypesModule:
     Void: _SchemaType
