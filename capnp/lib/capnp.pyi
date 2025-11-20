@@ -8,8 +8,8 @@ from collections.abc import (
     MutableMapping,
     Sequence,
 )
-from contextlib import asynccontextmanager
-from typing import Any
+from contextlib import AbstractContextManager, asynccontextmanager
+from typing import IO, Any, Literal, overload
 
 from capnp._internal import CapnpTypesModule as _CapnpTypesModule
 from capnp._internal import (
@@ -31,8 +31,17 @@ from capnp._internal import (
 from capnp._internal import (
     T,
     TBuilder,
-    TInterface,
     TReader,
+)
+
+# Type alias for anypointer to reflect what is really allowed for anypointer inputs
+type AnyPointer = (
+    str
+    | bytes
+    | _DynamicStructBuilder
+    | _DynamicStructReader
+    | _DynamicCapabilityClient
+    | _DynamicCapabilityServer
 )
 
 class KjException(Exception):
@@ -58,22 +67,18 @@ class KjException(Exception):
     durability: str | None
     wrapper: Any
 
-    @property
     def file(self) -> str:
         """Source file where the exception occurred."""
         ...
 
-    @property
     def line(self) -> int:
         """Line number where the exception occurred."""
         ...
 
-    @property
     def type(self) -> str | None:
         """Exception type (one of the Type enum values)."""
         ...
 
-    @property
     def description(self) -> str:
         """Human-readable description of the exception."""
         ...
@@ -91,17 +96,298 @@ class KjException(Exception):
         ...
 
 class _StructSchema:
-    node: _SchemaNode
-
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    @property
+    def node(self) -> _SchemaNode: ...
     def which(self) -> str: ...
     def as_struct(self) -> Any: ...
     def get_nested(self, name: str) -> Any: ...
 
 class _StructModule:
-    schema: _StructSchema
+    """Module/class for a generated struct type.
+
+    Instances of this class are what you get when you access a struct class from
+    a loaded schema (e.g. `addressbook.Person`). The module exposes factory and
+    I/O helpers for that struct type.
+
+    Nested types (structs, enums, interfaces) are accessed as attributes, not methods.
+    """
 
     def __init__(self, schema: _StructSchema, name: str) -> None: ...
+    @property
+    def schema(self) -> _StructSchema: ...
+    def new_message(
+        self,
+        num_first_segment_words: int | None = None,
+        allocate_seg_callable: Callable[[int], bytearray] | None = None,
+        **kwargs: Any,
+    ) -> _DynamicStructBuilder:
+        """Create a new in-memory message builder for this struct type.
+
+        Args:
+            num_first_segment_words: Initial size of the first segment in 8-byte words
+            allocate_seg_callable: Custom allocator function that takes the minimum
+                number of 8-byte words to allocate and returns a bytearray
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            A builder instance for this struct type
+        """
+        ...
+
+    def read(
+        self,
+        file: IO[str] | IO[bytes],
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> _DynamicStructReader:
+        """Read a struct of this type from a file-like object and return a reader.
+
+        Args:
+            file: File-like object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            A reader for this struct type
+        """
+        ...
+
+    def read_packed(
+        self,
+        file: IO[str] | IO[bytes],
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> _DynamicStructReader:
+        """Read a packed-format struct from a file-like object and return a reader.
+
+        Args:
+            file: File-like object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            A reader for this struct type
+        """
+        ...
+
+    @overload
+    def from_bytes(
+        self,
+        buf: bytes,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> AbstractContextManager[_DynamicStructReader]:
+        """Create a reader for this struct type from a bytes buffer (unpacked).
+
+        Returns a context manager that yields a reader. The context manager must be
+        used to ensure proper memory management.
+
+        Args:
+            buf: Bytes buffer containing the serialized message
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            Context manager yielding a reader for this struct type
+
+        Example:
+            with Person.from_bytes(data) as reader:
+                print(reader.name)
+        """
+        ...
+
+    @overload
+    def from_bytes(
+        self,
+        buf: bytes,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+        *,
+        builder: Literal[False],
+    ) -> AbstractContextManager[_DynamicStructReader]:
+        """Create a reader for this struct type from a bytes buffer (unpacked).
+
+        Returns a context manager that yields a reader. The context manager must be
+        used to ensure proper memory management.
+
+        Args:
+            buf: Bytes buffer containing the serialized message
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+            builder: If False, returns a reader
+
+        Returns:
+            Context manager yielding a reader for this struct type
+
+        Example:
+            with Person.from_bytes(data, builder=False) as reader:
+                print(reader.name)
+        """
+        ...
+
+    @overload
+    def from_bytes(
+        self,
+        buf: bytes,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+        *,
+        builder: Literal[True],
+    ) -> AbstractContextManager[_DynamicStructBuilder]:
+        """Create a builder for this struct type from a bytes buffer (unpacked).
+
+        Returns a context manager that yields a builder. The context manager must be
+        used to ensure proper memory management.
+
+        Args:
+            buf: Bytes buffer containing the serialized message
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+            builder: If True, returns a builder (mutable)
+
+        Returns:
+            Context manager yielding a builder for this struct type
+
+        Example:
+            with Person.from_bytes(data, builder=True) as builder:
+                builder.name = "New Name"
+        """
+        ...
+
+    def from_bytes_packed(
+        self,
+        buf: bytes,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> _DynamicStructReader:
+        """Create a reader for this struct type from a packed bytes buffer.
+
+        Args:
+            buf: Packed bytes buffer containing the serialized message
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            A reader for this struct type
+        """
+        ...
+
+    def from_segments(
+        self,
+        segments: Sequence[bytes],
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> _DynamicStructReader:
+        """Create a reader for this struct type from a list of segment bytes.
+
+        Args:
+            segments: List of byte arrays, one for each segment
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            A reader for this struct type
+        """
+        ...
+
+    async def read_async(
+        self,
+        stream: AsyncIoStream,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> _DynamicStructReader:
+        """Asynchronously read a struct of this type from an AsyncIoStream.
+
+        Args:
+            stream: AsyncIoStream to read from
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            A reader for this struct type
+        """
+        ...
+
+    def read_multiple(
+        self,
+        file: IO[str] | IO[bytes],
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+        skip_copy: bool = False,
+    ) -> Iterator[_DynamicStructReader]:
+        """Read multiple structs of this type from a file-like object.
+
+        Args:
+            file: File-like object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+            skip_copy: If True, skip copying data (use with caution)
+
+        Returns:
+            Iterator yielding readers for each message in the file
+        """
+        ...
+
+    def read_multiple_bytes(
+        self,
+        buf: bytes,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> Iterator[_DynamicStructReader]:
+        """Read multiple structs of this type from a bytes buffer.
+
+        Args:
+            buf: Bytes buffer containing multiple serialized messages
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            Iterator yielding readers for each message in the buffer
+        """
+        ...
+
+    def read_multiple_bytes_packed(
+        self,
+        buf: bytes,
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+    ) -> Iterator[_DynamicStructReader]:
+        """Read multiple packed structs of this type from a bytes buffer.
+
+        Args:
+            buf: Packed bytes buffer containing multiple serialized messages
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+
+        Returns:
+            Iterator yielding readers for each message in the buffer
+        """
+        ...
+
+    def read_multiple_packed(
+        self,
+        file: IO[str] | IO[bytes],
+        traversal_limit_in_words: int | None = None,
+        nesting_limit: int | None = None,
+        skip_copy: bool = False,
+    ) -> Iterator[_DynamicStructReader]:
+        """Read multiple packed structs of this type from a file-like object.
+
+        Args:
+            file: File-like object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
+            traversal_limit_in_words: Optional limit on pointer dereferences
+            nesting_limit: Optional limit on nesting depth
+            skip_copy: If True, skip copying data (use with caution)
+
+        Returns:
+            Iterator yielding readers for each message in the file
+        """
+        ...
 
 class _DynamicObjectReader:
     """Reader for Cap'n Proto AnyPointer type.
@@ -111,7 +397,9 @@ class _DynamicObjectReader:
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
-    def as_interface(self, schema: _InterfaceSchema | _InterfaceModule) -> Any:
+    def as_interface(
+        self, schema: _InterfaceSchema | _InterfaceModule
+    ) -> _DynamicCapabilityClient:
         """Cast this AnyPointer to an interface capability.
 
         The return type matches the interface type parameterized in the schema.
@@ -138,7 +426,7 @@ class _DynamicObjectReader:
         """
         ...
 
-    def as_struct(self, schema: _StructSchema | type[_StructModule]) -> Any:
+    def as_struct(self, schema: _StructSchema | _StructModule) -> _DynamicStructReader:
         """Cast this AnyPointer to a struct reader.
 
         The return type matches the Reader type parameterized in the schema.
@@ -207,7 +495,7 @@ class _DynamicObjectBuilder:
         """
         ...
 
-    def as_struct(self, schema: _StructSchema | type[_StructModule]) -> Any:
+    def as_struct(self, schema: _StructSchema | _StructModule) -> _DynamicStructBuilder:
         """Cast this AnyPointer to a struct builder.
 
         The return type matches the Builder type parameterized in the schema.
@@ -263,6 +551,12 @@ class _DynamicObjectBuilder:
         """
         ...
 
+class _MessageSize:
+    @property
+    def cap_count(self) -> int: ...
+    @property
+    def word_count(self) -> int: ...
+
 class _DynamicStructReader:
     """Reader for Cap'n Proto structs.
 
@@ -277,18 +571,31 @@ class _DynamicStructReader:
         print(getattr(person, 'field-with-hyphens'))  # for names that are invalid for python
     """
 
-    slot: _SlotRuntime
-    schema: _StructSchema
-    list: _DynamicListReader
-    struct: _StructType
-    enum: _EnumType
-    interface: _InterfaceType
-
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    @property
+    def slot(self) -> _SlotRuntime: ...
+    @property
+    def schema(self) -> _StructSchema: ...
+    @property
+    def list(self) -> _DynamicListReader: ...
+    @property
+    def struct(self) -> _StructType: ...
+    @property
+    def enum(self) -> _EnumType: ...
+    @property
+    def interface(self) -> _InterfaceType: ...
+    @property
+    def is_root(self) -> bool: ...
+    @property
+    def total_size(self) -> _MessageSize: ...
     @property
     def name(self) -> str: ...
     def which(self) -> str:
-        """Return the name of the currently set union field."""
+        """Return the name of the currently set union field.
+
+        Raises:
+            KjException: if this struct doesn't contain a union
+        """
         ...
 
     def _get(self, field: str) -> Any:
@@ -368,12 +675,18 @@ class _DynamicStructBuilder:
     """
 
     schema: _StructSchema
+    is_root: bool  # True if this is the root struct of a message
+    total_size: Any  # Message size information
 
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     @property
     def name(self) -> str: ...
     def which(self) -> str:
-        """Return the name of the currently set union field."""
+        """Return the name of the currently set union field.
+
+        Raises:
+            KjException: if this struct doesn't contain a union
+        """
         ...
 
     def _get(self, field: str) -> Any:
@@ -431,7 +744,7 @@ class _DynamicStructBuilder:
         """
         ...
 
-    def init(self, field: str, size: int | None = None) -> Any:
+    def init(self, field: Any, size: int | None = None) -> Any:
         """Initialize a struct or list field.
 
         Args:
@@ -537,19 +850,21 @@ class _DynamicStructBuilder:
         """
         ...
 
-    def write(self, file: Any) -> None:
+    def write(self, file: IO[str] | IO[bytes]) -> None:
         """Write the struct to a file.
 
         Args:
-            file: File-like object to write to
+            file: File-like object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
         """
         ...
 
-    def write_packed(self, file: Any) -> None:
+    def write_packed(self, file: IO[str] | IO[bytes]) -> None:
         """Write the struct to a file in packed format.
 
         Args:
-            file: File-like object to write to
+            file: File-like object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
         """
         ...
 
@@ -582,6 +897,10 @@ class _InterfaceSchema:
 
     method_names: tuple[str, ...]
     method_names_inherited: set[str]
+    methods: dict[str, Any]  # Maps method name to _InterfaceMethod object
+    methods_inherited: dict[str, Any]  # Maps method name to _InterfaceMethod object
+    node: _DynamicStructReader  # The raw schema node
+    superclasses: list[Any]  # List of parent interface schemas
 
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
@@ -590,8 +909,6 @@ class _ListSchema:
 
     Can be instantiated to create list schemas for different element types.
     """
-
-    @property
     def elementType(
         self,
     ) -> _StructSchema | _EnumSchema | _InterfaceSchema | _ListSchema:
@@ -650,6 +967,14 @@ class _Request(_DynamicStructBuilder):
         """
         ...
 
+    def is_consumed(self) -> bool:
+        """Check if the request has been consumed (sent).
+
+        Returns:
+            True if the request has been sent
+        """
+        ...
+
 class _Response(_DynamicStructReader):
     """RPC response reader.
 
@@ -667,7 +992,6 @@ class _CallContext:
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
-    @property
     def params(self) -> _DynamicStructReader: ...
     def release_params(self) -> None:
         """Release the parameter struct.
@@ -686,25 +1010,17 @@ class _CallContext:
         ...
 
 # Capability Types
-class _DynamicCapabilityClient:
+class _DynamicCapabilityClient(_CapabilityClient):
     """Dynamic capability client.
 
     Represents a reference to a remote capability.
+    This is the base class for all generated capability client classes.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
-    def cast_as(self, schema: type[T]) -> T:
-        """Cast this capability to a specific interface type.
-
-        Args:
-            schema: Interface type to cast to
-
-        Returns:
-            Capability cast to the specified interface
-        """
-        ...
-
-    def upcast(self, schema: type[T]) -> T:
+    @property
+    def schema(self) -> _InterfaceSchema: ...
+    def upcast(self, schema: Any) -> _DynamicCapabilityClient:
         """Upcast this capability to a parent interface type.
 
         Args:
@@ -721,8 +1037,6 @@ class _DynamicCapabilityServer:
     Implement this to create server-side capability implementations.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
-
 class _CapabilityClient:
     """Base class for capability clients.
 
@@ -730,11 +1044,13 @@ class _CapabilityClient:
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
-    def cast_as(self, schema: type[T]) -> T:
+    def cast_as(
+        self, schema: _InterfaceSchema | _InterfaceModule
+    ) -> _DynamicCapabilityClient:
         """Cast this capability to a specific interface type.
 
         Args:
-            schema: Interface schema to cast to
+            schema: Interface schema or module to cast to
 
         Returns:
             Capability cast to the specified interface
@@ -937,14 +1253,15 @@ class _PackedFdMessageReader(_MessageReader):
 
     def __init__(
         self,
-        file: Any,
+        file: IO[str] | IO[bytes],
         traversal_limit_in_words: int | None = None,
         nesting_limit: int | None = None,
     ) -> None:
         """Create a reader from a file object.
 
         Args:
-            file: File object to read from (must have a fileno() method)
+            file: File object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
             traversal_limit_in_words: Optional limit on pointer dereferences
             nesting_limit: Optional limit on nesting depth
         """
@@ -958,14 +1275,15 @@ class _StreamFdMessageReader(_MessageReader):
 
     def __init__(
         self,
-        file: Any,
+        file: IO[str] | IO[bytes],
         traversal_limit_in_words: int | None = None,
         nesting_limit: int | None = None,
     ) -> None:
         """Create a reader from a file object.
 
         Args:
-            file: File object to read from (must have a fileno() method)
+            file: File object with a fileno() method (opened file, socket, etc.)
+                  Does NOT accept BytesIO or other pure-Python file-like objects
             traversal_limit_in_words: Optional limit on pointer dereferences
             nesting_limit: Optional limit on nesting depth
         """
@@ -1291,9 +1609,41 @@ class _InterfaceModule:
     """Module/class for a generated interface.
 
     This is what you get when you access an interface class from a loaded schema.
+    Instances of this class are what you get when you access an interface from
+    a loaded schema (e.g. `calculator.Calculator`). The module exposes factory and
+    RPC helpers for that interface type.
+
+    Nested types (structs, enums) are accessed as attributes.
+    The Server base class is accessed via the `Server` attribute.
     """
 
     def __init__(self, schema: _InterfaceSchema, name: str) -> None: ...
+    @property
+    def schema(self) -> _InterfaceSchema: ...
+    def _new_client(self, server: _DynamicCapabilityServer) -> _DynamicCapabilityClient:
+        """Create a new client from a server implementation.
+
+        Note: Requires an active event loop (use within capnp.kj_loop() or async context).
+
+        Args:
+            server: Server implementation instance (subclass of this interface's Server class)
+
+        Returns:
+            Client capability for this interface
+
+        Raises:
+            RuntimeError: If there is no running event loop
+
+        Example:
+            class MyCalculator(Calculator.Server):
+                def evaluate(self, expression, **kwargs):
+                    return 42.0
+
+            with capnp.kj_loop():
+                server = MyCalculator()
+                client = Calculator._new_client(server)
+        """
+        ...
 
 def _init_capnp_api() -> None:
     """Initialize the Cap'n Proto API.
@@ -1303,9 +1653,6 @@ def _init_capnp_api() -> None:
     ...
 
 # RPC Classes
-class _CastableBootstrap:
-    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
-    def cast_as(self, interface: type[TInterface]) -> TInterface: ...
 
 class TwoPartyClient:
     """Two-party RPC client for Cap'n Proto.
@@ -1321,7 +1668,7 @@ class TwoPartyClient:
         traversal_limit_in_words: int | None = None,
         nesting_limit: int | None = None,
     ) -> None: ...
-    def bootstrap(self) -> _CastableBootstrap:
+    def bootstrap(self) -> _CapabilityClient:
         """Get the bootstrap interface for this client."""
         ...
     def close(self) -> None:

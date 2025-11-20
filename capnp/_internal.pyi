@@ -50,7 +50,9 @@ class SchemaNode(Protocol):
     interface: Any
     const: Any
     annotation: Any
-    def which(self) -> Literal["interface", "struct"]: ...
+    def which(
+        self,
+    ) -> Literal["interface", "struct", "const", "enum", "annotation"]: ...
 
 class CapnpTypesModule:
     Void: _SchemaType
