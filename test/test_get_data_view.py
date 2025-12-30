@@ -7,7 +7,7 @@ import capnp
 def all_types():
     """Load the standard all_types.capnp schema."""
     directory = os.path.dirname(__file__)
-    return capnp.load(os.path.join(directory, 'all_types.capnp'))
+    return capnp.load(os.path.join(directory, "all_types.capnp"))
 
 
 def test_set_bytes_get_bytes(all_types):
@@ -72,7 +72,7 @@ def test_set_bytes_get_view_and_modify(all_types):
     assert view.tobytes() == b"ABCDE"
 
     # Verify in-place modification
-    view[0] = ord('Z')  # Change 'A' to 'Z'
+    view[0] = ord("Z")  # Change 'A' to 'Z'
 
     # Verify modification is reflected in standard access
     assert msg.dataField == b"ZBCDE"
@@ -88,7 +88,7 @@ def test_reader_vs_builder_view(all_types):
 
     builder_view = builder.get_data_as_view("dataField")
     assert builder_view.readonly is False
-    builder_view[0] = ord('T')  # Modification allowed
+    builder_view[0] = ord("T")  # Modification allowed
 
     # 2. Reader phase
     reader = builder.as_reader()
@@ -103,7 +103,7 @@ def test_reader_vs_builder_view(all_types):
 
     # Attempting to modify Reader view should raise TypeError
     with pytest.raises(TypeError):
-        reader_view[0] = ord('X')
+        reader_view[0] = ord("X")
 
 
 def test_nested_struct_data(all_types):
@@ -127,7 +127,7 @@ def test_nested_struct_data(all_types):
     assert view.tobytes() == b"nested_data"
 
     # Modify nested data
-    view[0] = ord('N')
+    view[0] = ord("N")
     assert msg.structField.dataField == b"Nested_data"
 
 
