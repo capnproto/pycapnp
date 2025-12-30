@@ -669,7 +669,7 @@ cdef to_python_reader(C_DynamicValue.Reader self, object parent):
         return (<char*>temp_text.begin())[:temp_text.size()]
     elif type == capnp.TYPE_DATA:
         temp_data = self.asData()
-        return PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), PyBUF_READ)
+        return <bytes>((<char*>temp_data.begin())[:temp_data.size()])
     elif type == capnp.TYPE_LIST:
         return _DynamicListReader()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
@@ -703,7 +703,7 @@ cdef to_python_builder(C_DynamicValue.Builder self, object parent):
         return (<char*>temp_text.begin())[:temp_text.size()]
     elif type == capnp.TYPE_DATA:
         temp_data = self.asData()
-        return PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), PyBUF_WRITE)
+        return <bytes>((<char*>temp_data.begin())[:temp_data.size()])
     elif type == capnp.TYPE_LIST:
         return _DynamicListBuilder()._init(self.asList(), parent)
     elif type == capnp.TYPE_STRUCT:
@@ -1226,6 +1226,29 @@ cdef class _DynamicStructReader:
     cpdef _has_by_field(self, _StructSchemaField field):
         return self.thisptr.hasByField(field.thisptr)
 
+    cpdef get_data_as_view(self, field):
+        """
+        Efficiently get a read-only memoryview for a DATA field without copying.
+
+        WARNING: The memoryview is tied to the underlying Cap'n Proto message.
+        If the message is destroyed, accessing this view will cause a crash.
+        """
+        cdef C_DynamicValue.Reader val
+        cdef capnp.Data.Reader temp_data
+
+        try:
+            val = self.thisptr.get(field)
+        except KjException as e:
+            raise e._to_python() from None
+
+        if val.getType() != capnp.TYPE_DATA:
+            raise TypeError("Field '{}' is not a DATA field".format(field))
+
+        temp_data = val.asData()
+
+        # Return read-only memoryview
+        return PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), PyBUF_READ)
+
     cpdef _which_str(self):
         try:
             return <char *>helpers.fixMaybe(self.thisptr.which()).getProto().getName().cStr()
@@ -1627,6 +1650,29 @@ cdef class _DynamicStructBuilder:
         :rtype: :class:`_DynamicOrphan`
         """
         return _DynamicOrphan()._init(self.thisptr.disown(field), self._parent)
+
+    cpdef get_data_as_view(self, field):
+        """
+        Efficiently get a writable memoryview for a DATA field without copying.
+
+        This allows in-place modification of the underlying buffer:
+        msg.get_data_as_view('myField')[0] = 0xFF
+        """
+        cdef C_DynamicValue.Builder val
+        cdef capnp.Data.Builder temp_data
+
+        try:
+            val = self.thisptr.get(field)
+        except KjException as e:
+            raise e._to_python() from None
+
+        if val.getType() != capnp.TYPE_DATA:
+            raise TypeError("Field '{}' is not a DATA field".format(field))
+
+        temp_data = val.asData()
+
+        # Return writable memoryview
+        return PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), PyBUF_WRITE)
 
     cpdef as_reader(self):
         """A method for casting this Builder to a Reader
