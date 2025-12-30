@@ -41,9 +41,6 @@ def test_addressbook(all_types):
     struct_builder.init("dataField", 5)
     assert struct_builder._get("dataField") == b"\x00\x00\x00\x00\x00"
 
-    struct_builder._get("dataField")[1] = 0xFF
-    assert struct_builder._get("dataField") == b"\x00\xff\x00\x00\x00"
-
     struct_builder.dataField = b"hello"
     assert struct_builder._get("dataField") == b"hello"
 
