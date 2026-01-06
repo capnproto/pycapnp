@@ -186,6 +186,9 @@ def test_error_missing_field(all_types):
 
 
 def test_view_keeps_message_alive(all_types):
+    """
+    Verify that a View keeps messages alive.
+    """
     msg = all_types.TestAllTypes.new_message()
     expected_data = b"persistence_check"
     msg.dataField = expected_data
