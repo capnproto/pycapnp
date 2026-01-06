@@ -1246,7 +1246,7 @@ cdef class _DynamicStructReader:
         # Return read-only memoryview
         cdef Py_buffer buf
         if PyBuffer_FillInfo(&buf, self, <void*>temp_data.begin(), temp_data.size(), 1, PyBUF_CONTIG_RO) < 0:
-            raise Exception("Failed to create buffer info")
+            raise KjException("Failed to create buffer info")
         return PyMemoryView_FromBuffer(&buf)
 
     cpdef _which_str(self):
@@ -1674,7 +1674,7 @@ cdef class _DynamicStructBuilder:
         # Return writable memoryview
         cdef Py_buffer buf
         if PyBuffer_FillInfo(&buf, self, <void*>temp_data.begin(), temp_data.size(), 0, PyBUF_WRITABLE) < 0:
-            raise Exception("Failed to create buffer info")
+            raise KjException("Failed to create buffer info")
         return PyMemoryView_FromBuffer(&buf)
 
     cpdef as_reader(self):
