@@ -22,9 +22,9 @@ jobs:
           - os: ubuntu-latest
             arch: s390x
 
-          - os: macos-13
+          - os: macos-15
             arch: x86_64
-          - os: macos-14
+          - os: macos-15
             arch: arm64
           # Disabled until someone figures out how to build capnproto for arm64 and x86_64 simultaneously
           # - os: macOS-latest
