@@ -17,6 +17,7 @@ from builtins import memoryview as BuiltinsMemoryview
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer
 from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE, PyBUF_WRITE, PyBUF_READ, PyBUF_CONTIG_RO
 from cpython.memoryview cimport PyMemoryView_FromMemory
+from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.exc cimport PyErr_Clear
 from cython.operator cimport dereference as deref
 from libc.stdlib cimport malloc, free
@@ -2699,8 +2700,13 @@ cdef class _PyAsyncIoStreamProtocol(DummyBaseClass, asyncio.BufferedProtocol):
         cdef const ArrayPtr[const uint8_t]* piece
         for i in range(self.write_index, self.write_pieces.size()):
             piece = &self.write_pieces[i]
-            view = PyMemoryView_FromMemory(<char*>piece.begin(), piece.size(), PyBUF_READ)
-            self.transport.write(view)
+            # Copy data to Python bytes to avoid use-after-free.
+            # transport.write() is non-blocking and buffers data asynchronously.
+            # The memoryview would point to C++ memory that gets freed when
+            # fulfill() is called below, but asyncio may not have sent the data
+            # yet, causing memory corruption with large payloads.
+            data = PyBytes_FromStringAndSize(<char*>piece.begin(), piece.size())
+            self.transport.write(data)
             if self.write_paused:
                 self.write_index = i+1
                 break
