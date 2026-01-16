@@ -1,6 +1,8 @@
 import os
 import pytest
 import capnp
+import sys
+import gc
 
 
 @pytest.fixture(scope="module")
@@ -181,3 +183,25 @@ def test_error_missing_field(all_types):
 
     # Optional: Verify the error message contains the field name
     assert "non_existent_field" in str(excinfo.value)
+
+
+def test_view_keeps_message_alive(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    expected_data = b"persistence_check"
+    msg.dataField = expected_data
+
+    initial_ref_count = sys.getrefcount(msg)
+    view = msg.get_data_as_view("dataField")
+    new_ref_count = sys.getrefcount(msg)
+
+    assert (
+        new_ref_count > initial_ref_count
+    ), f"View failed to hold reference to Message! (Old: {initial_ref_count}, New: {new_ref_count})"
+    print(
+        f"\n[Ref Check] Success: Ref count increased from {initial_ref_count} to {new_ref_count}"
+    )
+
+    del msg
+    gc.collect()
+
+    assert view.tobytes() == expected_data

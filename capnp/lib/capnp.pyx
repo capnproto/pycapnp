@@ -15,8 +15,8 @@ from capnp.includes.schema_cpp cimport (MessageReader,)
 
 from builtins import memoryview as BuiltinsMemoryview
 from cpython cimport array, Py_buffer, PyObject_CheckBuffer
-from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE, PyBUF_WRITE, PyBUF_READ, PyBUF_CONTIG_RO
-from cpython.memoryview cimport PyMemoryView_FromMemory
+from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE, PyBUF_WRITE, PyBUF_READ, PyBUF_CONTIG_RO, PyBuffer_FillInfo
+from cpython.memoryview cimport PyMemoryView_FromMemory, PyMemoryView_FromBuffer
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.exc cimport PyErr_Clear
 from cython.operator cimport dereference as deref
@@ -1229,9 +1229,6 @@ cdef class _DynamicStructReader:
     cpdef get_data_as_view(self, field):
         """
         Efficiently get a read-only memoryview for a DATA field without copying.
-
-        WARNING: The memoryview is tied to the underlying Cap'n Proto message.
-        If the message is destroyed, accessing this view will cause a crash.
         """
         cdef C_DynamicValue.Reader val
         cdef capnp.Data.Reader temp_data
@@ -1247,7 +1244,10 @@ cdef class _DynamicStructReader:
         temp_data = val.asData()
 
         # Return read-only memoryview
-        return PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), PyBUF_READ)
+        cdef Py_buffer buf
+        if PyBuffer_FillInfo(&buf, self, <void*>temp_data.begin(), temp_data.size(), 1, PyBUF_CONTIG_RO) < 0:
+            raise Exception("Failed to create buffer info")
+        return PyMemoryView_FromBuffer(&buf)
 
     cpdef _which_str(self):
         try:
@@ -1672,7 +1672,10 @@ cdef class _DynamicStructBuilder:
         temp_data = val.asData()
 
         # Return writable memoryview
-        return PyMemoryView_FromMemory(<char *> temp_data.begin(), temp_data.size(), PyBUF_WRITE)
+        cdef Py_buffer buf
+        if PyBuffer_FillInfo(&buf, self, <void*>temp_data.begin(), temp_data.size(), 0, PyBUF_WRITABLE) < 0:
+            raise Exception("Failed to create buffer info")
+        return PyMemoryView_FromBuffer(&buf)
 
     cpdef as_reader(self):
         """A method for casting this Builder to a Reader
