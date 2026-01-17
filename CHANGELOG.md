@@ -1,3 +1,8 @@
+## v2.2.2 (2026-01-16)
+- Revert Data fields to bytes and add get_data_as_view for zero-copy access (#390)
+- Fix use-after-free in async write causing corruption with large payloads (#392)
+- Update macOS builds from 13 to 15 (#393)
+
 ## v2.2.1 (2025-10-21)
 - Make `message.to_dict()` return bytes for DATA type field (#386)
 
