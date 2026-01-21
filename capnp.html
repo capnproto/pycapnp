@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API Reference &#8212; capnp 2.1.0 documentation</title>
+    <title>API Reference &#8212; capnp 2.2.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
-    <script src="_static/documentation_options.js?v=20623aea"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/documentation_options.js?v=219dea72"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
@@ -27,7 +27,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.1.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.2.2 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>  
@@ -77,7 +77,7 @@
 <h3>RPC<a class="headerlink" href="#rpc" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.lib.capnp._RemotePromise">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_RemotePromise</span></span><a class="headerlink" href="#capnp.lib.capnp._RemotePromise" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_RemotePromise</span></span><a class="headerlink" href="#capnp.lib.capnp._RemotePromise" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._RemotePromise.cancel">
 <span class="sig-name descname"><span class="pre">cancel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._RemotePromise.cancel" title="Link to this definition">¶</a></dt>
@@ -91,7 +91,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._RemotePromise.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._RemotePromise.to_dict" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_bytes_as_base64</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._RemotePromise.to_dict" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -100,7 +100,7 @@
 <h4>Communication<a class="headerlink" href="#communication" title="Link to this heading">¶</a></h4>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.TwoPartyClient">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">TwoPartyClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">socket</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.TwoPartyClient" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">TwoPartyClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">socket</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.TwoPartyClient" title="Link to this definition">¶</a></dt>
 <dd><p>TwoPartyClient for RPC Communication</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -130,7 +130,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.TwoPartyServer">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">TwoPartyServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">socket</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bootstrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.TwoPartyServer" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">TwoPartyServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">socket</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bootstrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.TwoPartyServer" title="Link to this definition">¶</a></dt>
 <dd><p>TwoPartyServer for RPC Communication</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -167,7 +167,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.lib.capnp._AsyncIoStream">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_AsyncIoStream</span></span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_AsyncIoStream</span></span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._AsyncIoStream.close">
 <span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.close" title="Link to this definition">¶</a></dt>
@@ -175,7 +175,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._AsyncIoStream.create_connection">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_connection" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">create_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_connection" title="Link to this definition">¶</a></dt>
 <dd><p>Create a TCP connection.</p>
 <p>All parameters given to this function are passed to <cite>asyncio.get_running_loop().create_connection()</cite>.
 See that function for documentation on the possible arguments.</p>
@@ -183,7 +183,7 @@ See that function for documentation on the possible arguments.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._AsyncIoStream.create_server">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_server" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">create_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_server" title="Link to this definition">¶</a></dt>
 <dd><p>Create a TCP connection server.</p>
 <p>The <cite>callback</cite> parameter will be called whenever a new connection is made. It receives a <cite>AsyncIoStream</cite>
 instance as its only argument. If the result of <cite>callback</cite> is a coroutine, it will be scheduled as a task.</p>
@@ -194,7 +194,7 @@ See that function for documentation on the possible arguments.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._AsyncIoStream.create_unix_connection">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_unix_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_unix_connection" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">create_unix_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_unix_connection" title="Link to this definition">¶</a></dt>
 <dd><p>Create a Unix socket connection.</p>
 <p>All parameters given to this function are passed to <cite>asyncio.get_running_loop().create_unix_connection()</cite>.
 See that function for documentation on the possible arguments.</p>
@@ -202,7 +202,7 @@ See that function for documentation on the possible arguments.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._AsyncIoStream.create_unix_server">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_unix_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_unix_server" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">create_unix_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.create_unix_server" title="Link to this definition">¶</a></dt>
 <dd><p>Create a unix connection server.</p>
 <p>The <cite>callback</cite> parameter will be called whenever a new connection is made. It receives a <cite>AsyncIoStream</cite>
 instance as its only argument. If the result of <cite>callback</cite> is a coroutine, it will be scheduled as a task.</p>
@@ -213,7 +213,7 @@ See that function for documentation on the possible arguments.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._AsyncIoStream.wait_closed">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wait_closed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.wait_closed" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">wait_closed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._AsyncIoStream.wait_closed" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -223,7 +223,7 @@ See that function for documentation on the possible arguments.</p>
 <h4>Capability<a class="headerlink" href="#capability" title="Link to this heading">¶</a></h4>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.lib.capnp._DynamicCapabilityClient">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicCapabilityClient</span></span><a class="headerlink" href="#capnp.lib.capnp._DynamicCapabilityClient" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicCapabilityClient</span></span><a class="headerlink" href="#capnp.lib.capnp._DynamicCapabilityClient" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._DynamicCapabilityClient.cast_as">
 <span class="sig-name descname"><span class="pre">cast_as</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._DynamicCapabilityClient.cast_as" title="Link to this definition">¶</a></dt>
@@ -247,21 +247,34 @@ See that function for documentation on the possible arguments.</p>
 <h4>Response<a class="headerlink" href="#response" title="Link to this heading">¶</a></h4>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.lib.capnp._Response">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_Response</span></span><a class="headerlink" href="#capnp.lib.capnp._Response" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.lib.capnp.</span></span><span class="sig-name descname"><span class="pre">_Response</span></span><a class="headerlink" href="#capnp.lib.capnp._Response" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._Response.as_builder">
-<span class="sig-name descname"><span class="pre">as_builder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._Response.as_builder" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">as_builder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allocate_seg_callable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._Response.as_builder" title="Link to this definition">¶</a></dt>
 <dd><p>A method for casting this Reader to a Builder</p>
 <p>This is a copying operation with respect to the message’s buffer.
 Changes in the new builder will not reflect in the original reader.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp.lib.capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p></li>
+<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><em>bytearray</em></a><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
+</ul>
 </dd>
 </dl>
+<p>words to allocate (as an <cite>int</cite>) and returns a <cite>bytearray</cite>. This is used to customize the memory 
+allocation strategy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp.lib.capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="capnp.lib.capnp._Response.get_data_as_view">
+<span class="sig-name descname"><span class="pre">get_data_as_view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._Response.get_data_as_view" title="Link to this definition">¶</a></dt>
+<dd><p>Efficiently get a read-only memoryview for a DATA field without copying.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -278,7 +291,7 @@ Changes in the new builder will not reflect in the original reader.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.lib.capnp._Response.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._Response.to_dict" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_bytes_as_base64</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.lib.capnp._Response.to_dict" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -311,49 +324,48 @@ Changes in the new builder will not reflect in the original reader.</p>
 <h3>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.KjException">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">KjException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">durability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrapper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">KjException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">durability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrapper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException" title="Link to this definition">¶</a></dt>
 <dd><p>KjException is a wrapper of the internal C++ exception type.</p>
 <p>There is an enum named <cite>Type</cite> listed below, and a bunch of fields.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.KjException.Type">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Type</span></span><a class="headerlink" href="#capnp.KjException.Type" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Type</span></span><a class="headerlink" href="#capnp.KjException.Type" title="Link to this definition">¶</a></dt>
 <dd><dl class="py attribute">
 <dt class="sig sig-object py" id="capnp.KjException.Type.DISCONNECTED">
-<span class="sig-name descname"><span class="pre">DISCONNECTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'DISCONNECTED'</span></em><a class="headerlink" href="#capnp.KjException.Type.DISCONNECTED" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">DISCONNECTED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'DISCONNECTED'</span></span><a class="headerlink" href="#capnp.KjException.Type.DISCONNECTED" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="capnp.KjException.Type.FAILED">
-<span class="sig-name descname"><span class="pre">FAILED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'FAILED'</span></em><a class="headerlink" href="#capnp.KjException.Type.FAILED" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">FAILED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'FAILED'</span></span><a class="headerlink" href="#capnp.KjException.Type.FAILED" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="capnp.KjException.Type.OTHER">
-<span class="sig-name descname"><span class="pre">OTHER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'OTHER'</span></em><a class="headerlink" href="#capnp.KjException.Type.OTHER" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">OTHER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'OTHER'</span></span><a class="headerlink" href="#capnp.KjException.Type.OTHER" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="capnp.KjException.Type.OVERLOADED">
-<span class="sig-name descname"><span class="pre">OVERLOADED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'OVERLOADED'</span></em><a class="headerlink" href="#capnp.KjException.Type.OVERLOADED" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">OVERLOADED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'OVERLOADED'</span></span><a class="headerlink" href="#capnp.KjException.Type.OVERLOADED" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="capnp.KjException.Type.UNIMPLEMENTED">
-<span class="sig-name descname"><span class="pre">UNIMPLEMENTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'UNIMPLEMENTED'</span></em><a class="headerlink" href="#capnp.KjException.Type.UNIMPLEMENTED" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">UNIMPLEMENTED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'UNIMPLEMENTED'</span></span><a class="headerlink" href="#capnp.KjException.Type.UNIMPLEMENTED" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="capnp.KjException.Type.reverse_mapping">
-<span class="sig-name descname"><span class="pre">reverse_mapping</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'DISCONNECTED':</span> <span class="pre">'DISCONNECTED',</span> <span class="pre">'FAILED':</span> <span class="pre">'FAILED',</span> <span class="pre">'OTHER':</span> <span class="pre">'OTHER',</span> <span class="pre">'OVERLOADED':</span> <span class="pre">'OVERLOADED',</span> <span class="pre">'UNIMPLEMENTED':</span> <span class="pre">'UNIMPLEMENTED'}</span></em><a class="headerlink" href="#capnp.KjException.Type.reverse_mapping" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">reverse_mapping</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'DISCONNECTED':</span> <span class="pre">'DISCONNECTED',</span> <span class="pre">'FAILED':</span> <span class="pre">'FAILED',</span> <span class="pre">'OTHER':</span> <span class="pre">'OTHER',</span> <span class="pre">'OVERLOADED':</span> <span class="pre">'OVERLOADED',</span> <span class="pre">'UNIMPLEMENTED':</span> <span class="pre">'UNIMPLEMENTED'}</span></span><a class="headerlink" href="#capnp.KjException.Type.reverse_mapping" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.KjException.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.add_note" title="Link to this definition">¶</a></dt>
-<dd><p>Exception.add_note(note) –
-add a note to the exception</p>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">note</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.add_note" title="Link to this definition">¶</a></dt>
+<dd><p>Add a note to the exception</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -363,36 +375,35 @@ add a note to the exception</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="capnp.KjException.description">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#capnp.KjException.description" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#capnp.KjException.description" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="capnp.KjException.file">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">file</span></span><a class="headerlink" href="#capnp.KjException.file" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">file</span></span><a class="headerlink" href="#capnp.KjException.file" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="capnp.KjException.line">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">line</span></span><a class="headerlink" href="#capnp.KjException.line" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">line</span></span><a class="headerlink" href="#capnp.KjException.line" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="capnp.KjException.type">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">type</span></span><a class="headerlink" href="#capnp.KjException.type" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">type</span></span><a class="headerlink" href="#capnp.KjException.type" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.KjException.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.with_traceback" title="Link to this definition">¶</a></dt>
-<dd><p>Exception.with_traceback(tb) –
-set self.__traceback__ to tb and return self.</p>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tb</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.with_traceback" title="Link to this definition">¶</a></dt>
+<dd><p>Set self.__traceback__ to tb and return self.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.SchemaParser">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">SchemaParser</span></span><a class="headerlink" href="#capnp.SchemaParser" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">SchemaParser</span></span><a class="headerlink" href="#capnp.SchemaParser" title="Link to this definition">¶</a></dt>
 <dd><p>A class for loading Cap’n Proto schema files.</p>
 <p>Do not use this class unless you’re sure you know what you’re doing.
 Use the convenience method <a class="reference internal" href="#capnp.load" title="capnp.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> instead.</p>
@@ -446,7 +457,7 @@ parsed schemas and constants with . syntax</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp.SchemaLoader">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">SchemaLoader</span></span><a class="headerlink" href="#capnp.SchemaLoader" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">SchemaLoader</span></span><a class="headerlink" href="#capnp.SchemaLoader" title="Link to this definition">¶</a></dt>
 <dd><p>Class which can be used to construct Schema objects from schema::Nodes as defined in
 schema.capnp.</p>
 <p>This class wraps capnproto/c++/src/capnp/schema-loader.h directly.</p>
@@ -525,7 +536,7 @@ shut down properly and pending tasks are cancelled.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="capnp.run">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coro</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.run" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coro</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.run" title="Link to this definition">¶</a></dt>
 <dd><p>Ensure that the coroutine runs while the KJ event loop is running</p>
 <p>This is a shortcut for wrapping the coroutine in a <a class="reference internal" href="#capnp.kj_loop" title="capnp.kj_loop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">capnp.kj_loop()</span></code></a> context manager.</p>
 <dl class="field-list simple">
@@ -587,12 +598,12 @@ one yourself, but you may end up using some of their member methods.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._InterfaceModule">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_InterfaceModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._InterfaceModule" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_InterfaceModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._InterfaceModule" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._StructModule">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_StructModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StructModule" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_StructModule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StructModule" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp._StructModule.from_bytes">
 <span class="sig-name descname"><span class="pre">from_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">builder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StructModule.from_bytes" title="Link to this definition">¶</a></dt>
@@ -650,14 +661,21 @@ Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.<
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._StructModule.new_message">
-<span class="sig-name descname"><span class="pre">new_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StructModule.new_message" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">new_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allocate_seg_callable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StructModule.new_message" title="Link to this definition">¶</a></dt>
 <dd><p>Returns a newly allocated builder message.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p></li>
-<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – A list of fields and their values to initialize in the struct.</p></li>
+<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><em>bytearray</em></a><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
 </ul>
+</dd>
+</dl>
+<p>words to allocate (as an <cite>int</cite>) and returns a <cite>bytearray</cite>. This is used to customize the memory
+allocation strategy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – A list of fields and their values to initialize in the struct.</p>
 </dd>
 </dl>
 <p>Note, kwargs is not an actual argument, but refers to Python’s ability to pass keyword arguments.
@@ -676,7 +694,7 @@ ie. new_message(my_field=100)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
+<li><p><strong>file</strong> (<a class="reference internal" href="#capnp.KjException.file" title="capnp.KjException.file"><em>file</em></a>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
 <li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed.
 Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
 <li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
@@ -690,12 +708,12 @@ Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.<
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._StructModule.read_async">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_AsyncIoStream</span> <span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StructModule.read_async" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">read_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_AsyncIoStream</span> <span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StructModule.read_async" title="Link to this definition">¶</a></dt>
 <dd><p>Async version of read(). Returns either a message, or None in case of EOF.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<em>AsyncIoStream</em>) – A AsyncIoStream</p></li>
+<li><p><strong>file</strong> (<a class="reference internal" href="#capnp.AsyncIoStream" title="capnp.AsyncIoStream"><em>AsyncIoStream</em></a>) – A AsyncIoStream</p></li>
 <li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed.
 Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
 <li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
@@ -714,7 +732,7 @@ Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.<
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
+<li><p><strong>file</strong> (<a class="reference internal" href="#capnp.KjException.file" title="capnp.KjException.file"><em>file</em></a>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
 <li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed.
 Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
 <li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
@@ -773,7 +791,7 @@ Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.<
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
+<li><p><strong>file</strong> (<a class="reference internal" href="#capnp.KjException.file" title="capnp.KjException.file"><em>file</em></a>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
 <li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed.
 Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
 <li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
@@ -794,7 +812,7 @@ never read completely. Skip this only if you know what you’re doing.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<em>file</em>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
+<li><p><strong>file</strong> (<a class="reference internal" href="#capnp.KjException.file" title="capnp.KjException.file"><em>file</em></a>) – A python file-like object. It must be a “real” file, with a <cite>fileno()</cite> method.</p></li>
 <li><p><strong>traversal_limit_in_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed.
 Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.</p></li>
 <li><p><strong>nesting_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Limits how many total words of data are allowed to be traversed. Default is 64.</p></li>
@@ -813,7 +831,7 @@ Is actually a uint64_t, and values can be up to 2^64-1. Default is 8*1024*1024.<
 <h3>Readers<a class="headerlink" href="#readers" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._DynamicListReader">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicListReader</span></span><a class="headerlink" href="#capnp._DynamicListReader" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicListReader</span></span><a class="headerlink" href="#capnp._DynamicListReader" title="Link to this definition">¶</a></dt>
 <dd><p>Class for reading Cap’n Proto Lists</p>
 <p>This class thinly wraps the C++ Cap’n Proto DynamicList::Reader class. __getitem__ and __len__
 have been defined properly, so you can treat this class mostly like any other iterable class:</p>
@@ -833,7 +851,7 @@ have been defined properly, so you can treat this class mostly like any other it
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._DynamicStructReader">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicStructReader</span></span><a class="headerlink" href="#capnp._DynamicStructReader" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicStructReader</span></span><a class="headerlink" href="#capnp._DynamicStructReader" title="Link to this definition">¶</a></dt>
 <dd><p>Reads Cap’n Proto structs</p>
 <p>This class is almost a 1 for 1 wrapping of the Cap’n Proto C++ DynamicStruct::Reader.
 The only difference is that instead of a <cite>get</cite> method, __getattr__ is overloaded and the field name
@@ -847,18 +865,31 @@ For field names that don’t follow valid python naming convention for fields, u
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicStructReader.as_builder">
-<span class="sig-name descname"><span class="pre">as_builder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructReader.as_builder" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">as_builder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allocate_seg_callable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructReader.as_builder" title="Link to this definition">¶</a></dt>
 <dd><p>A method for casting this Reader to a Builder</p>
 <p>This is a copying operation with respect to the message’s buffer.
 Changes in the new builder will not reflect in the original reader.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p></li>
+<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><em>bytearray</em></a><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
+</ul>
 </dd>
 </dl>
+<p>words to allocate (as an <cite>int</cite>) and returns a <cite>bytearray</cite>. This is used to customize the memory 
+allocation strategy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="capnp._DynamicStructReader.get_data_as_view">
+<span class="sig-name descname"><span class="pre">get_data_as_view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructReader.get_data_as_view" title="Link to this definition">¶</a></dt>
+<dd><p>Efficiently get a read-only memoryview for a DATA field without copying.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -875,7 +906,7 @@ Changes in the new builder will not reflect in the original reader.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicStructReader.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_bytes_as_base64</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructReader.to_dict" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -904,7 +935,7 @@ Changes in the new builder will not reflect in the original reader.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._PackedFdMessageReader">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_PackedFdMessageReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._PackedFdMessageReader" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_PackedFdMessageReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._PackedFdMessageReader" title="Link to this definition">¶</a></dt>
 <dd><p>Read a Cap’n Proto message from a file descriptor in a packed manner</p>
 <p>You use this class to for reading message(s) from a file. It’s analagous to the inverse of
 <code class="xref py py-func docutils literal notranslate"><span class="pre">_write_packed_message_to_fd()</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">_MessageBuilder</span></code>, but in one class.:</p>
@@ -965,7 +996,7 @@ Access members with . syntax.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._StreamFdMessageReader">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_StreamFdMessageReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StreamFdMessageReader" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_StreamFdMessageReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traversal_limit_in_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nesting_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._StreamFdMessageReader" title="Link to this definition">¶</a></dt>
 <dd><p>Read a Cap’n Proto message from a file descriptor</p>
 <p>You use this class to for reading message(s) from a file. It’s analagous to the inverse of
 <code class="xref py py-func docutils literal notranslate"><span class="pre">_write_message_to_fd()</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">_MessageBuilder</span></code>, but in one class:</p>
@@ -1029,7 +1060,7 @@ Access members with . syntax.</p>
 <h3>Builders<a class="headerlink" href="#builders" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._DynamicResizableListBuilder">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicResizableListBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicResizableListBuilder" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicResizableListBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicResizableListBuilder" title="Link to this definition">¶</a></dt>
 <dd><p>Class for building growable Cap’n Proto Lists</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -1082,7 +1113,7 @@ ie. inaccessible but still taking up space.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._DynamicListBuilder">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicListBuilder</span></span><a class="headerlink" href="#capnp._DynamicListBuilder" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicListBuilder</span></span><a class="headerlink" href="#capnp._DynamicListBuilder" title="Link to this definition">¶</a></dt>
 <dd><p>Class for building Cap’n Proto Lists</p>
 <p>This class thinly wraps the C++ Cap’n Proto DynamicList::Bulder class. __getitem__, __setitem__, and __len__
 have been defined properly, so you can treat this class mostly like any other iterable class:</p>
@@ -1152,7 +1183,7 @@ Orphans are useful for dynamically allocating objects for an unknown sized list.
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._DynamicStructBuilder">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicStructBuilder</span></span><a class="headerlink" href="#capnp._DynamicStructBuilder" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicStructBuilder</span></span><a class="headerlink" href="#capnp._DynamicStructBuilder" title="Link to this definition">¶</a></dt>
 <dd><p>Builds Cap’n Proto structs</p>
 <p>This class is almost a 1 for 1 wrapping of the Cap’n Proto C++ DynamicStruct::Builder.
 The only difference is that instead of a <cite>get</cite>/<cite>set</cite> method, __getattr__/__setattr__ is overloaded
@@ -1209,16 +1240,23 @@ This means changes to the fields in the original struct will carry over to the n
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicStructBuilder.copy">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.copy" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_first_segment_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allocate_seg_callable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.copy" title="Link to this definition">¶</a></dt>
 <dd><p>A method for copying this Builder</p>
 <p>This is a copying operation with respect to the message’s buffer.
 Changes in the new builder will not reflect in the original reader.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p></li>
+<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><em>bytearray</em></a><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
+</ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
+</dl>
+<p>words to allocate (as an <cite>int</cite>) and returns a <cite>bytearray</cite>. This is used to customize the memory 
+allocation strategy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1242,6 +1280,14 @@ Changes in the new builder will not reflect in the original reader.</p>
 <dt class="sig sig-object py" id="capnp._DynamicStructBuilder.from_dict">
 <span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict</span> <span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.from_dict" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="capnp._DynamicStructBuilder.get_data_as_view">
+<span class="sig-name descname"><span class="pre">get_data_as_view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.get_data_as_view" title="Link to this definition">¶</a></dt>
+<dd><p>Efficiently get a writable memoryview for a DATA field without copying.</p>
+<p>This allows in-place modification of the underlying buffer:
+msg.get_data_as_view(‘myField’)[0] = 0xFF</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicStructBuilder.init">
@@ -1326,7 +1372,7 @@ orphan structs into your message.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicStructBuilder.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_bytes_as_base64</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.to_dict" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -1372,7 +1418,7 @@ orphan structs into your message.</p>
 message’s root struct.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file</strong> (<em>file</em>) – A file or socket object (or anything with a fileno() method), open for write.</p>
+<dd class="field-odd"><p><strong>file</strong> (<a class="reference internal" href="#capnp.KjException.file" title="capnp.KjException.file"><em>file</em></a>) – A file or socket object (or anything with a fileno() method), open for write.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>void</p>
@@ -1385,13 +1431,13 @@ message’s root struct.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicStructBuilder.write_async">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">write_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_AsyncIoStream</span> <span class="pre">stream</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.write_async" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">write_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_AsyncIoStream</span> <span class="pre">stream</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicStructBuilder.write_async" title="Link to this definition">¶</a></dt>
 <dd><p>Async version of of write().</p>
 <p>This is a shortcut for calling capnp._write_message_to_fd().  This can only be called on the
 message’s root struct.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file</strong> (<em>AsyncIoStream</em>) – The AsyncIoStream to write the message to</p>
+<dd class="field-odd"><p><strong>file</strong> (<a class="reference internal" href="#capnp.AsyncIoStream" title="capnp.AsyncIoStream"><em>AsyncIoStream</em></a>) – The AsyncIoStream to write the message to</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>void</p>
@@ -1410,7 +1456,7 @@ message’s root struct.</p>
 the message’s root struct.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file</strong> (<em>file</em>) – A file or socket object (or anything with a fileno() method), open for write.</p>
+<dd class="field-odd"><p><strong>file</strong> (<a class="reference internal" href="#capnp.KjException.file" title="capnp.KjException.file"><em>file</em></a>) – A file or socket object (or anything with a fileno() method), open for write.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>void</p>
@@ -1425,7 +1471,7 @@ the message’s root struct.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._MallocMessageBuilder">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_MallocMessageBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._MallocMessageBuilder" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_MallocMessageBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._MallocMessageBuilder" title="Link to this definition">¶</a></dt>
 <dd><p>The main class for building Cap’n Proto messages</p>
 <p>You will use this class to handle arena allocation of the Cap’n Proto
 messages. You also use this object when you’re done assigning to Cap’n
@@ -1554,7 +1600,7 @@ Orphans are useful for dynamically allocating objects for an unknown sized list,
 <h3>RPC<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._CapabilityClient">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_CapabilityClient</span></span><a class="headerlink" href="#capnp._CapabilityClient" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_CapabilityClient</span></span><a class="headerlink" href="#capnp._CapabilityClient" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp._CapabilityClient.cast_as">
 <span class="sig-name descname"><span class="pre">cast_as</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._CapabilityClient.cast_as" title="Link to this definition">¶</a></dt>
@@ -1564,7 +1610,7 @@ Orphans are useful for dynamically allocating objects for an unknown sized list,
 
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._DynamicCapabilityClient">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicCapabilityClient</span></span><a class="headerlink" href="#capnp._DynamicCapabilityClient" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicCapabilityClient</span></span><a class="headerlink" href="#capnp._DynamicCapabilityClient" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicCapabilityClient.cast_as">
 <span class="sig-name descname"><span class="pre">cast_as</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicCapabilityClient.cast_as" title="Link to this definition">¶</a></dt>
@@ -1588,7 +1634,7 @@ Orphans are useful for dynamically allocating objects for an unknown sized list,
 <h3>Miscellaneous<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="capnp._DynamicOrphan">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicOrphan</span></span><a class="headerlink" href="#capnp._DynamicOrphan" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">capnp.</span></span><span class="sig-name descname"><span class="pre">_DynamicOrphan</span></span><a class="headerlink" href="#capnp._DynamicOrphan" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="capnp._DynamicOrphan.get">
 <span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp._DynamicOrphan.get" title="Link to this definition">¶</a></dt>
@@ -1712,13 +1758,13 @@ Orphans are useful for dynamically allocating objects for an unknown sized list,
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.1.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.2.2 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2013-2019 (Jason Paryani), 2019-2020 (Jacob Alexander).
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     </div>
   </body>
 </html>
