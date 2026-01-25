@@ -7,7 +7,6 @@ import logging
 import capnp
 import thread_capnp
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 

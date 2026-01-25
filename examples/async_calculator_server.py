@@ -7,7 +7,6 @@ import logging
 import capnp
 import calculator_capnp
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 

@@ -9,7 +9,6 @@ import socket
 import capnp
 import calculator_capnp
 
-
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
