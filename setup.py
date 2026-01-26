@@ -21,7 +21,6 @@ sys.path.insert(1, _this_dir)
 from buildutils.build import build_libcapnp
 from buildutils.bundle import fetch_libcapnp
 
-
 MAJOR = 2
 MINOR = 2
 MICRO = 2

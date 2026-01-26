@@ -71,5 +71,5 @@ if __name__ == "__main__":
     # Using asyncio.run hits an asyncio ssl bug
     # https://bugs.python.org/issue36709
     # asyncio.run(main(parse_args().host), loop=loop, debug=True)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     loop.run_until_complete(capnp.run(main(parse_args().host)))
