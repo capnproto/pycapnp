@@ -1314,10 +1314,11 @@ cdef class _DynamicStructReader:
         :type num_first_segment_words: int
         :param num_first_segment_words: Size of the first segment to allocate (in words ie. 8 byte increments)
         
-        :type allocate_seg_callable: Callable[[int], bytearray]
+        :type allocate_seg_callable: Callable[[int], Buffer]
         :param allocate_seg_callable: A python callable object that takes the minimum number of 8-byte 
-        words to allocate (as an `int`) and returns a `bytearray`. This is used to customize the memory 
-        allocation strategy.
+        words to allocate (as an `int`) and returns any object supporting the writable buffer protocol
+        (e.g., `bytearray`, `memoryview`, `numpy.ndarray`). This enables custom memory allocation
+        strategies including shared memory.
 
         :rtype: :class:`_DynamicStructBuilder`
         """
@@ -1700,10 +1701,11 @@ cdef class _DynamicStructBuilder:
         :type num_first_segment_words: int
         :param num_first_segment_words: Size of the first segment to allocate (in words ie. 8 byte increments)
         
-        :type allocate_seg_callable: Callable[[int], bytearray]
+        :type allocate_seg_callable: Callable[[int], Buffer]
         :param allocate_seg_callable: A python callable object that takes the minimum number of 8-byte 
-        words to allocate (as an `int`) and returns a `bytearray`. This is used to customize the memory 
-        allocation strategy.
+        words to allocate (as an `int`) and returns any object supporting the writable buffer protocol
+        (e.g., `bytearray`, `memoryview`, `numpy.ndarray`). This enables custom memory allocation
+        strategies including shared memory.
 
         :rtype: :class:`_DynamicStructBuilder`
         """
@@ -3891,15 +3893,27 @@ cdef class _PyCustomMessageBuilder(_MessageBuilder):
         This callable object will be invoked in the allocateSegment method of the MessageBuilder
         to allocate memory. The allocated memory will be managed within the MessageBuilder.
 
-        :type allocate_seg_callable: Callable[[int], bytearray]
+        :type allocate_seg_callable: Callable[[int], Buffer]
         :param allocate_seg_callable: A python callable object that takes the minimum number of 8-byte
-        words to allocate (as an `int`) and returns a `bytearray`. This is used to customize the memory
-        allocation strategy.
+        words to allocate (as an `int`) and returns any object supporting the writable buffer protocol
+        (e.g., `bytearray`, `memoryview`, `numpy.ndarray`). This enables custom memory allocation
+        strategies including shared memory.
 
         Required function signature is like this:
-        def __call__(self, minimum_size: int) -> bytearray:
+        def __call__(self, minimum_size: int) -> Buffer:
+
+        Where `Buffer` is any object that:
+          - Supports the Python buffer protocol (PyObject_GetBuffer)
+          - Is writable
         Note that the unit of minimum_size is words, ie. 8 byte increments.
 
+        The underlying memory must remain valid for the lifetime of the MessageBuilder.
+        If returning a view (e.g., `memoryview`, `numpy.ndarray`) that wraps external memory,
+        the allocator is responsible for properly managing the memory lifecycle。
+
+        Examples:
+
+            # Example 1: Simple bytearray allocator
             class Allocator:
                 def __init__(self):
                     self.cur_size = 0
@@ -3911,8 +3925,31 @@ cdef class _PyCustomMessageBuilder(_MessageBuilder):
                     return bytearray(byte_count)
 
             addressbook = capnp.load('addressbook.capnp')
+            allocator = Allocator()
             message = capnp._PyCustomMessageBuilder(allocator)
             person = message.init_root(addressbook.Person)
+
+            # Example 2: Shared memory allocator (zero-copy)
+            import ctypes
+
+            class ShmAllocator:
+                def __init__(self, shm_pool):
+                    self.shm = shm_pool
+                    self.buffers = []
+
+                def __call__(self, minimum_size: int) -> memoryview:
+                    size = minimum_size * 8
+                    ptr = self.shm.allocate(size)
+                    buffer = (ctypes.c_uint8 * size).from_address(ptr)
+                    self.buffers.append(buffer)
+                    return memoryview(buffer)
+
+                def release(self):
+                    for buffer in self.buffers:
+                        ptr = ctypes.addressof(buffer)
+                        size = ctypes.sizeof(buffer)
+                        self.shm.deallocate(ptr, size)
+                    self.buffers.clear()
 
         :type size: int
         :param size: Size of the first segment to allocate (in words ie. 8 byte increments)

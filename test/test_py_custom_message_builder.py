@@ -12,7 +12,7 @@ def all_types():
     return capnp.load(os.path.join(this_dir, "all_types.capnp"))
 
 
-def test_addressbook(all_types):
+def test_bytearray_allocator(all_types):
     class Allocator:
         def __init__(self):
             self.cur_size = 0
@@ -20,10 +20,6 @@ def test_addressbook(all_types):
 
         def __call__(self, minimum_size: int) -> bytearray:
             actual_size = max(minimum_size, self.cur_size)
-            print(
-                f"minimum_size: {minimum_size}, last_size: {self.last_size}, "
-                f"actual_size: {actual_size}, cur_size: {self.cur_size}"
-            )
             self.last_size = actual_size
             self.cur_size += actual_size
             WORD_SIZE = 8
@@ -39,10 +35,45 @@ def test_addressbook(all_types):
     assert allocator.last_size == 1024
 
     struct_builder.init("dataField", 5)
-    assert struct_builder._get("dataField") == b"\x00\x00\x00\x00\x00"
+    assert bytes(struct_builder._get("dataField")) == b"\x00\x00\x00\x00\x00"
 
     struct_builder.dataField = b"hello"
-    assert struct_builder._get("dataField") == b"hello"
+    assert bytes(struct_builder._get("dataField")) == b"hello"
 
-    struct_builder = struct_builder.as_reader()
-    assert struct_builder._get("dataField") == b"hello"
+    struct_reader = struct_builder.as_reader()
+    assert bytes(struct_reader._get("dataField")) == b"hello"
+
+
+def test_memoryview_allocator(all_types):
+    class MemoryViewAllocator:
+        def __init__(self):
+            self.cur_size = 0
+            self.last_size = 0
+            self.buffers = []
+
+        def __call__(self, minimum_size: int) -> memoryview:
+            actual_size = max(minimum_size, self.cur_size)
+            self.last_size = actual_size
+            self.cur_size += actual_size
+            WORD_SIZE = 8
+            byte_count = actual_size * WORD_SIZE
+            buffer = bytearray(byte_count)
+            self.buffers.append(buffer)
+            return memoryview(buffer)
+
+    allocator = MemoryViewAllocator()
+    assert allocator.cur_size == 0
+    assert allocator.last_size == 0
+    msg_builder = capnp._PyCustomMessageBuilder(allocator, 1024)
+    struct_builder = msg_builder.init_root(all_types.TestAllTypes)
+    assert allocator.cur_size == 1024
+    assert allocator.last_size == 1024
+
+    struct_builder.init("dataField", 5)
+    assert bytes(struct_builder._get("dataField")) == b"\x00\x00\x00\x00\x00"
+
+    struct_builder.dataField = b"hello"
+    assert bytes(struct_builder._get("dataField")) == b"hello"
+
+    struct_reader = struct_builder.as_reader()
+    assert bytes(struct_reader._get("dataField")) == b"hello"
