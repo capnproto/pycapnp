@@ -49,30 +49,18 @@ person = addressbook_capnp.Person.new_message(allocate_seg_callable=Allocator())
 
 person.init("extraData", 5)
 print(person.extraData)
-print(bytes(person.extraData))
 print(type(person.extraData))
-print()
-
-person.extraData[1] = 0xFF
-print(person.extraData)
-print(bytes(person.extraData))
 print()
 
 person.extraData = b"hello"
 print(person.extraData)
-print(bytes(person.extraData))
 print(type(person.extraData))
 print()
 
 person = person.as_reader()
 print(person.extraData)
-print(bytes(person.extraData))
 print(type(person.extraData))
 print()
-
-print("=" * 40)
-print("MemoryViewAllocator")
-print("=" * 40)
 
 person = addressbook_capnp.Person.new_message(
     allocate_seg_callable=MemoryViewAllocator()
@@ -80,16 +68,9 @@ person = addressbook_capnp.Person.new_message(
 
 person.init("extraData", 5)
 print(person.extraData)
-print(bytes(person.extraData))
 print(type(person.extraData))
-print()
-
-person.extraData[1] = 0xFF
-print(person.extraData)
-print(bytes(person.extraData))
 print()
 
 person.extraData = b"world"
 print(person.extraData)
-print(bytes(person.extraData))
 print(type(person.extraData))
