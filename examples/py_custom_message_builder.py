@@ -23,26 +23,43 @@ class Allocator:
         return bytearray(byte_count)
 
 
+class MemoryViewAllocator:
+    def __init__(self):
+        self.buffers = []
+
+    def __call__(self, minimum_size: int) -> memoryview:
+        WORD_SIZE = 8
+        buffer = bytearray(minimum_size * WORD_SIZE)
+        self.buffers.append(buffer)
+        return memoryview(buffer)
+
+
 person = addressbook_capnp.Person.new_message(allocate_seg_callable=Allocator())
 
 person.init("extraData", 5)
 print(person.extraData)
-print(bytes(person.extraData))
 print(type(person.extraData))
-print()
-
-person.extraData[1] = 0xFF
-print(person.extraData)
-print(bytes(person.extraData))
 print()
 
 person.extraData = b"hello"
 print(person.extraData)
-print(bytes(person.extraData))
 print(type(person.extraData))
 print()
 
 person = person.as_reader()
 print(person.extraData)
-print(bytes(person.extraData))
+print(type(person.extraData))
+print()
+
+person = addressbook_capnp.Person.new_message(
+    allocate_seg_callable=MemoryViewAllocator()
+)
+
+person.init("extraData", 5)
+print(person.extraData)
+print(type(person.extraData))
+print()
+
+person.extraData = b"world"
+print(person.extraData)
 print(type(person.extraData))
