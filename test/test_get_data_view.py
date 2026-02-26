@@ -197,12 +197,10 @@ def test_view_keeps_message_alive(all_types):
     view = msg.get_data_as_view("dataField")
     new_ref_count = sys.getrefcount(msg)
 
-    assert (
-        new_ref_count > initial_ref_count
-    ), f"View failed to hold reference to Message! (Old: {initial_ref_count}, New: {new_ref_count})"
-    print(
-        f"\n[Ref Check] Success: Ref count increased from {initial_ref_count} to {new_ref_count}"
+    assert new_ref_count > initial_ref_count, (
+        f"View failed to hold reference to Message! (Old: {initial_ref_count}, New: {new_ref_count})"
     )
+    print(f"\n[Ref Check] Success: Ref count increased from {initial_ref_count} to {new_ref_count}")
 
     del msg
     gc.collect()

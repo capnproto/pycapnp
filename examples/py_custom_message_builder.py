@@ -51,9 +51,7 @@ print(person.extraData)
 print(type(person.extraData))
 print()
 
-person = addressbook_capnp.Person.new_message(
-    allocate_seg_callable=MemoryViewAllocator()
-)
+person = addressbook_capnp.Person.new_message(allocate_seg_callable=MemoryViewAllocator())
 
 person.init("extraData", 5)
 print(person.extraData)

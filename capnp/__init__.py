@@ -32,7 +32,6 @@ Example Usage::
             print(phone.type, ':', phone.number)
 """
 
-# flake8: noqa F401 F403 F405
 from .version import version as __version__
 from .lib.capnp import *
 from .lib.capnp import (

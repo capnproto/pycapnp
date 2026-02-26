@@ -21,21 +21,13 @@ def main():
 
     code = schema_capnp.CodeGeneratorRequest.read(sys.stdin)
     code = code.to_dict()
-    code["nodes"] = [
-        node for node in code["nodes"] if "struct" in node and node["scopeId"] != 0
-    ]
+    code["nodes"] = [node for node in code["nodes"] if "struct" in node and node["scopeId"] != 0]
     for node in code["nodes"]:
         displayName = node["displayName"]
         parent, path = displayName.split(":")
-        node["module_path"] = (
-            parent.replace(".", "_")
-            + "."
-            + ".".join([x[0].upper() + x[1:] for x in path.split(".")])
-        )
+        node["module_path"] = parent.replace(".", "_") + "." + ".".join([x[0].upper() + x[1:] for x in path.split(".")])
         node["module_name"] = path.replace(".", "_")
-        node["c_module_path"] = "::".join(
-            [x[0].upper() + x[1:] for x in path.split(".")]
-        )
+        node["c_module_path"] = "::".join([x[0].upper() + x[1:] for x in path.split(".")])
         node["schema"] = "_{}_Schema".format(node["module_name"])
         is_union = False
         for field in node["struct"]["fields"]:
@@ -63,18 +55,12 @@ def main():
         filename = f["filename"].replace(".", "_") + "_cython.pyx"
 
         file_code = dict(code)
-        file_code["nodes"] = [
-            node
-            for node in file_code["nodes"]
-            if node["displayName"].startswith(f["filename"])
-        ]
+        file_code["nodes"] = [node for node in file_code["nodes"] if node["displayName"].startswith(f["filename"])]
         with open(filename, "w") as out:
             out.write(module.render(code=file_code, file=f, include_dir=include_dir))
 
     setup = env.get_template("setup.py.tmpl")
     with open("setup_capnp.py", "w") as out:
         out.write(setup.render(code=code))
-    print(
-        "You now need to build the cython module by running `python setup_capnp.py build_ext --inplace`."
-    )
+    print("You now need to build the cython module by running `python setup_capnp.py build_ext --inplace`.")
     print()

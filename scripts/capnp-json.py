@@ -48,9 +48,7 @@ def main():
     kwargs = vars(args)
     del kwargs["command"]
 
-    globals()[command](
-        **kwargs
-    )  # hacky way to get defined functions, and call function with name=command
+    globals()[command](**kwargs)  # hacky way to get defined functions, and call function with name=command
 
 
 main()

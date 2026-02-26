@@ -79,17 +79,16 @@ jobs:
           path: dist/*.tar.gz
 
   lint:
-    name: Lint with flake8 and check black
+    name: Lint and format with ruff
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
-      - name: Lint with flake8 and check black
+      - name: Lint and format with ruff
         run: |
-          pip install black flake8
-          flake8 . --filename '*.py,*.pyx,*.pxd' --count --show-source --statistics --exclude benchmark,build,capnp/templates/module.pyx
-          flake8 . --count --show-source --statistics --exclude benchmark,build
-          black . --check --diff --color
+          pip install ruff
+          ruff check .
+          ruff format --check .
 
   # upload_pypi:
   #   needs: [build_wheels, build_sdist]

@@ -10,7 +10,6 @@
 # Adapted for use in pycapnp from pyzmq. See https://github.com/zeromq/pyzmq
 # for original project.
 
-
 import fileinput  # noqa
 import os
 import shutil

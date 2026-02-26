@@ -28,9 +28,7 @@ class PowerFunction(calculator_capnp.Calculator.Function.Server):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        usage="Connects to the Calculator server at the given address and does some RPCs"
-    )
+    parser = argparse.ArgumentParser(usage="Connects to the Calculator server at the given address and does some RPCs")
     parser.add_argument("host", help="HOST:PORT")
 
     return parser.parse_args()
@@ -40,21 +38,15 @@ async def main(host):
     addr, port = host.split(":")
 
     # Setup SSL context
-    ctx = ssl.create_default_context(
-        ssl.Purpose.SERVER_AUTH, cafile=os.path.join(this_dir, "selfsigned.cert")
-    )
+    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=os.path.join(this_dir, "selfsigned.cert"))
 
     # Handle both IPv4 and IPv6 cases
     try:
         print("Try IPv4")
-        stream = await capnp.AsyncIoStream.create_connection(
-            addr, port, ssl=ctx, family=socket.AF_INET
-        )
+        stream = await capnp.AsyncIoStream.create_connection(addr, port, ssl=ctx, family=socket.AF_INET)
     except Exception:
         print("Try IPv6")
-        stream = await capnp.AsyncIoStream.create_connection(
-            addr, port, ssl=ctx, family=socket.AF_INET6
-        )
+        stream = await capnp.AsyncIoStream.create_connection(addr, port, ssl=ctx, family=socket.AF_INET6)
 
     client = capnp.TwoPartyClient(stream)
 

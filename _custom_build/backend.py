@@ -21,9 +21,7 @@ class _CustomBuildMetaBackend(backend_class):
                 sys.argv = sys.argv[:1] + ["build_ext"] + flags + sys.argv[1:]
         return super().run_setup(setup_script)
 
-    def build_wheel(
-        self, wheel_directory, config_settings=None, metadata_directory=None
-    ):
+    def build_wheel(self, wheel_directory, config_settings=None, metadata_directory=None):
         self.config_settings = config_settings
         return super().build_wheel(wheel_directory, config_settings, metadata_directory)
 

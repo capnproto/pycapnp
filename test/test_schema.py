@@ -40,15 +40,11 @@ def test_annotations(annotations):
     assert annotation.value.struct.as_struct(annotations.AnnotationStruct).test == 100
 
     annotation = annotations.TestAnnotationThree.schema.node.annotations[0]
-    annotation_list = annotation.value.list.as_list(
-        capnp._ListSchema(annotations.AnnotationStruct)
-    )
+    annotation_list = annotation.value.list.as_list(capnp._ListSchema(annotations.AnnotationStruct))
     assert annotation_list[0].test == 100
     assert annotation_list[1].test == 101
 
     annotation = annotations.TestAnnotationFour.schema.node.annotations[0]
-    annotation_list = annotation.value.list.as_list(
-        capnp._ListSchema(capnp.types.UInt16)
-    )
+    annotation_list = annotation.value.list.as_list(capnp._ListSchema(capnp.types.UInt16))
     assert annotation_list[0] == 200
     assert annotation_list[1] == 201

@@ -114,9 +114,7 @@ def test_roundtrip_bytes_packed(all_types):
 
 
 @contextmanager
-def _warnings(
-    expected_count=2, expected_text="This message has already been written once."
-):
+def _warnings(expected_count=2, expected_text="This message has already been written once."):
     with warnings.catch_warnings(record=True) as w:
         yield
 

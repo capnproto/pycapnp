@@ -5,3 +5,24 @@ backend-path = ["_custom_build"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py37"
+line-length = 120
+exclude = ["benchmark", "build", "capnp/templates/module.pyx"]
+
+[tool.ruff.lint]
+ignore = [
+    "E203", "E211", "E225", "E226", "E227", "E231", "E251",
+    "E261", "E262", "E265", "E402",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"test/test_examples.py" = ["C901"]
+"capnp/__init__.py" = ["F401", "F403", "F405"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+quote-style = "double"

@@ -212,9 +212,7 @@ class TailCaller(capability.TestTailCaller.Server):
     async def foo_context(self, context):
         self.count += 1
 
-        tail = context.params.callee.foo_request(
-            i=context.params.i, t="from TailCaller"
-        )
+        tail = context.params.callee.foo_request(i=context.params.i, t="from TailCaller")
         await context.tail_call(tail)
 
 

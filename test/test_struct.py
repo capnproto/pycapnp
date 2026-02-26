@@ -168,9 +168,7 @@ def test_new_message(all_types):
 
     assert msg.structField.int32Field == 100
 
-    msg = all_types.TestAllTypes.new_message(
-        structList=[{"int32Field": 100}, {"int32Field": 101}]
-    )
+    msg = all_types.TestAllTypes.new_message(structList=[{"int32Field": 100}, {"int32Field": 101}])
 
     assert msg.structList[0].int32Field == 100
     assert msg.structList[1].int32Field == 101
@@ -199,9 +197,7 @@ def test_set_dict(all_types):
 
 
 def test_set_dict_union(addressbook):
-    person = addressbook.Person.new_message(
-        **{"employment": {"employer": {"name": "foo"}}}
-    )
+    person = addressbook.Person.new_message(**{"employment": {"employer": {"name": "foo"}}})
 
     assert person.employment.which == addressbook.Person.Employment.employer
 
@@ -212,16 +208,12 @@ def test_union_enum(all_types):
     assert all_types.UnionAllTypes.Union.UnionStructField1 == 0
     assert all_types.UnionAllTypes.Union.UnionStructField2 == 1
 
-    msg = all_types.UnionAllTypes.new_message(
-        **{"unionStructField1": {"textField": "foo"}}
-    )
+    msg = all_types.UnionAllTypes.new_message(**{"unionStructField1": {"textField": "foo"}})
     assert msg.which == all_types.UnionAllTypes.Union.UnionStructField1
     assert msg.which == "unionStructField1"
     assert msg.which == 0
 
-    msg = all_types.UnionAllTypes.new_message(
-        **{"unionStructField2": {"textField": "foo"}}
-    )
+    msg = all_types.UnionAllTypes.new_message(**{"unionStructField2": {"textField": "foo"}})
     assert msg.which == all_types.UnionAllTypes.Union.UnionStructField2
     assert msg.which == "unionStructField2"
     assert msg.which == 1
@@ -229,14 +221,10 @@ def test_union_enum(all_types):
     assert all_types.GroupedUnionAllTypes.Union.G1 == 0
     assert all_types.GroupedUnionAllTypes.Union.G2 == 1
 
-    msg = all_types.GroupedUnionAllTypes.new_message(
-        **{"g1": {"unionStructField1": {"textField": "foo"}}}
-    )
+    msg = all_types.GroupedUnionAllTypes.new_message(**{"g1": {"unionStructField1": {"textField": "foo"}}})
     assert msg.which == all_types.GroupedUnionAllTypes.Union.G1
 
-    msg = all_types.GroupedUnionAllTypes.new_message(
-        **{"g2": {"unionStructField2": {"textField": "foo"}}}
-    )
+    msg = all_types.GroupedUnionAllTypes.new_message(**{"g2": {"unionStructField2": {"textField": "foo"}}})
     assert msg.which == all_types.GroupedUnionAllTypes.Union.G2
 
     msg = all_types.UnionAllTypes.new_message()
@@ -248,9 +236,7 @@ def isstr(s):
 
 
 def test_to_dict_enum(addressbook):
-    person = addressbook.Person.new_message(
-        **{"phones": [{"number": "999-9999", "type": "mobile"}]}
-    )
+    person = addressbook.Person.new_message(**{"phones": [{"number": "999-9999", "type": "mobile"}]})
 
     field = person.to_dict()["phones"][0]["type"]
     assert isstr(field)

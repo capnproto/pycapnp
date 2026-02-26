@@ -124,11 +124,7 @@ class build_libcapnp_ext(build_ext_c):
             if capnp_executable:
                 capnp_dir = os.path.dirname(capnp_executable)
                 self.include_dirs += [os.path.join(capnp_dir, "..", "include")]
-                self.library_dirs += [
-                    os.path.join(
-                        capnp_dir, "..", "lib{}".format(8 * struct.calcsize("P"))
-                    )
-                ]
+                self.library_dirs += [os.path.join(capnp_dir, "..", "lib{}".format(8 * struct.calcsize("P")))]
                 self.library_dirs += [os.path.join(capnp_dir, "..", "lib")]
 
             # Look for capnproto using pkg-config (and minimum version)
@@ -151,9 +147,7 @@ class build_libcapnp_ext(build_ext_c):
             bundle_dir = os.path.join(_this_dir, "bundled")
             if not os.path.exists(bundle_dir):
                 os.mkdir(bundle_dir)
-            build_dir = os.path.join(
-                _this_dir, "build{}".format(8 * struct.calcsize("P"))
-            )
+            build_dir = os.path.join(_this_dir, "build{}".format(8 * struct.calcsize("P")))
             if not os.path.exists(build_dir):
                 os.mkdir(build_dir)
 

@@ -63,9 +63,7 @@ async def test_large_response_sequential():
         response = await cap.foo(i=size, j=False)
 
         # Verify the response has the correct length
-        assert (
-            len(response.x) == size
-        ), f"Size mismatch for {size}: expected {size}, got {len(response.x)}"
+        assert len(response.x) == size, f"Size mismatch for {size}: expected {size}, got {len(response.x)}"
 
         # Verify the pattern is correct (not corrupted)
         expected = "".join(chr(65 + (k % 26)) for k in range(size))
@@ -107,6 +105,4 @@ async def test_large_response_pipelined():
         assert len(response.x) == size, f"Size mismatch for {size}"
 
         expected = "".join(chr(65 + (k % 26)) for k in range(size))
-        assert (
-            response.x == expected
-        ), f"Data corruption detected for {size} bytes payload!"
+        assert response.x == expected, f"Data corruption detected for {size} bytes payload!"

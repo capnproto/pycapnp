@@ -216,9 +216,7 @@ def test_addressbook_explicit_fields(addressbook):
         alicePhones[0]._set_by_field(phone_fields["number"], "555-1212")
         alicePhones[0]._set_by_field(phone_fields["type"], "mobile")
         employment = alice._get_by_field(person_fields["employment"])
-        employment._set_by_field(
-            addressbook.Person.Employment.schema.fields["school"], "MIT"
-        )
+        employment._set_by_field(addressbook.Person.Employment.schema.fields["school"], "MIT")
 
         bob = people[1]
         bob._set_by_field(person_fields["id"], 456)
@@ -230,9 +228,7 @@ def test_addressbook_explicit_fields(addressbook):
         bobPhones[1]._set_by_field(phone_fields["number"], "555-7654")
         bobPhones[1]._set_by_field(phone_fields["type"], "work")
         employment = bob._get_by_field(person_fields["employment"])
-        employment._set_by_field(
-            addressbook.Person.Employment.schema.fields["unemployed"], None
-        )
+        employment._set_by_field(addressbook.Person.Employment.schema.fields["unemployed"], None)
 
         addresses.write(file)
 
@@ -252,9 +248,7 @@ def test_addressbook_explicit_fields(addressbook):
         assert alicePhones[0]._get_by_field(phone_fields["number"]) == "555-1212"
         assert alicePhones[0]._get_by_field(phone_fields["type"]) == "mobile"
         employment = alice._get_by_field(person_fields["employment"])
-        employment._get_by_field(
-            addressbook.Person.Employment.schema.fields["school"]
-        ) == "MIT"
+        employment._get_by_field(addressbook.Person.Employment.schema.fields["school"]) == "MIT"
 
         bob = people[1]
         assert bob._get_by_field(person_fields["id"]) == 456
@@ -266,9 +260,7 @@ def test_addressbook_explicit_fields(addressbook):
         assert bobPhones[1]._get_by_field(phone_fields["number"]) == "555-7654"
         assert bobPhones[1]._get_by_field(phone_fields["type"]) == "work"
         employment = bob._get_by_field(person_fields["employment"])
-        employment._get_by_field(
-            addressbook.Person.Employment.schema.fields["unemployed"]
-        ) is None
+        employment._get_by_field(addressbook.Person.Employment.schema.fields["unemployed"]) is None
 
     f = open("example", "w")
     writeAddressBook(f)
@@ -450,13 +442,9 @@ def check_all_types(reader):
     check_list(subReader.uInt8List, [12, 34, 0, 0xFF])
     check_list(subReader.uInt16List, [1234, 5678, 0, 0xFFFF])
     check_list(subReader.uInt32List, [12345678, 90123456, 0, 0xFFFFFFFF])
-    check_list(
-        subReader.uInt64List, [123456789012345, 678901234567890, 0, 0xFFFFFFFFFFFFFFFF]
-    )
+    check_list(subReader.uInt64List, [123456789012345, 678901234567890, 0, 0xFFFFFFFFFFFFFFFF])
     check_list(subReader.float32List, [0.0, 1234567.0, 1e37, -1e37, 1e-37, -1e-37])
-    check_list(
-        subReader.float64List, [0.0, 123456789012345.0, 1e306, -1e306, 1e-306, -1e-306]
-    )
+    check_list(subReader.float64List, [0.0, 123456789012345.0, 1e306, -1e306, 1e-306, -1e-306])
     check_list(subReader.textList, ["quux", "corge", "grault"])
     check_list(subReader.dataList, [b"garply", b"waldo", b"fred"])
 
@@ -510,25 +498,19 @@ def check_all_types(reader):
 def test_build(all_types):
     root = all_types.TestAllTypes.new_message()
     init_all_types(root)
-    expectedText = open(
-        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
-    ).read()
+    expectedText = open(os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8").read()
     assert str(root) + "\n" == expectedText
 
 
 def test_build_first_segment_size(all_types):
     root = all_types.TestAllTypes.new_message(1)
     init_all_types(root)
-    expectedText = open(
-        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
-    ).read()
+    expectedText = open(os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8").read()
     assert str(root) + "\n" == expectedText
 
     root = all_types.TestAllTypes.new_message(1024 * 1024)
     init_all_types(root)
-    expectedText = open(
-        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
-    ).read()
+    expectedText = open(os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8").read()
     assert str(root) + "\n" == expectedText
 
 
@@ -537,9 +519,7 @@ def test_binary_read(all_types):
     root = all_types.TestAllTypes.read(f)
     check_all_types(root)
 
-    expectedText = open(
-        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
-    ).read()
+    expectedText = open(os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8").read()
     assert str(root) + "\n" == expectedText
 
     # Test set_root().
@@ -557,9 +537,7 @@ def test_packed_read(all_types):
     root = all_types.TestAllTypes.read_packed(f)
     check_all_types(root)
 
-    expectedText = open(
-        os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8"
-    ).read()
+    expectedText = open(os.path.join(this_dir, "all-types.txt"), "r", encoding="utf8").read()
     assert str(root) + "\n" == expectedText
 
 

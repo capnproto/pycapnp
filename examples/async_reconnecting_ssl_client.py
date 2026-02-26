@@ -45,21 +45,15 @@ async def main(host):
     addr, port = host.split(":")
 
     # Setup SSL context
-    ctx = ssl.create_default_context(
-        ssl.Purpose.SERVER_AUTH, cafile=os.path.join(this_dir, "selfsigned.cert")
-    )
+    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=os.path.join(this_dir, "selfsigned.cert"))
 
     # Handle both IPv4 and IPv6 cases
     try:
         print("Try IPv4")
-        stream = await capnp.AsyncIoStream.create_connection(
-            addr, port, ssl=ctx, family=socket.AF_INET
-        )
+        stream = await capnp.AsyncIoStream.create_connection(addr, port, ssl=ctx, family=socket.AF_INET)
     except Exception:
         print("Try IPv6")
-        stream = await capnp.AsyncIoStream.create_connection(
-            addr, port, ssl=ctx, family=socket.AF_INET6
-        )
+        stream = await capnp.AsyncIoStream.create_connection(addr, port, ssl=ctx, family=socket.AF_INET6)
 
     client = capnp.TwoPartyClient(stream)
     cap = client.bootstrap().cast_as(thread_capnp.Example)

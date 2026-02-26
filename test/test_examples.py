@@ -19,9 +19,7 @@ def cleanup():
         p.kill()
 
 
-def run_subprocesses(
-    address, server, client, wildcard_server=False, ipv4_force=True
-):  # noqa
+def run_subprocesses(address, server, client, wildcard_server=False, ipv4_force=True):  # noqa
     server_attempt = 0
     server_attempts = 2
     done = False
@@ -29,9 +27,7 @@ def run_subprocesses(
     c_address = address
     s_address = address
     while not done:
-        assert server_attempt < server_attempts, "Failed {} server attempts".format(
-            server_attempts
-        )
+        assert server_attempt < server_attempts, "Failed {} server attempts".format(server_attempts)
         server_attempt += 1
 
         # Force ipv4 for tests (known issues on GitHub Actions with IPv6 for some targets)
@@ -125,9 +121,7 @@ def test_async_calculator_example(unused_tcp_port, cleanup):
 
 
 def test_addressbook_example(cleanup):
-    proc = subprocess.Popen(
-        [sys.executable, os.path.join(examples_dir, "addressbook.py")]
-    )
+    proc = subprocess.Popen([sys.executable, os.path.join(examples_dir, "addressbook.py")])
     ret = proc.wait()
     assert ret == 0
 
