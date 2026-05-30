@@ -120,6 +120,13 @@ scripts/release-pypi.sh v2.2.1
 
 # Or, target a specific Actions run id:
 scripts/release-pypi.sh 1234567890
+
+# Dry run: upload to TestPyPI (https://test.pypi.org) instead of real PyPI.
+# Useful for validating the release flow end-to-end before pushing to
+# production. Requires a TestPyPI account + API token configured in
+# ~/.pypirc under a [testpypi] section. See
+# https://packaging.python.org/en/latest/guides/using-testpypi/ .
+scripts/release-pypi.sh v2.2.1 --test
 ```
 
 Requirements on the release machine:

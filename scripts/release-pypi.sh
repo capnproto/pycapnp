@@ -3,18 +3,21 @@
 # ID) and upload the wheels + sdist to PyPI via twine.
 #
 # Usage:
-#   scripts/release-pypi.sh <tag-or-run-id> [output-dir] [--force]
+#   scripts/release-pypi.sh <tag-or-run-id> [output-dir] [--force] [--test]
 #
 # Examples:
 #   scripts/release-pypi.sh v2.2.1
 #   scripts/release-pypi.sh 2.2.1 dist_221
 #   scripts/release-pypi.sh 1234567890 dist_run_1234567890
+#   scripts/release-pypi.sh v2.2.1 --test    # dry-run upload to TestPyPI
 #
 # Requirements:
 #   - gh CLI (authenticated; `gh auth status` must succeed)
 #   - python3
-#   - Twine credentials configured in the environment or ~/.pypirc
-#     (TWINE_USERNAME / TWINE_PASSWORD, or an API token).
+#   - Twine credentials configured in the environment or ~/.pypirc.
+#     For real uploads:  ~/.pypirc [pypi]     section, or TWINE_USERNAME/TWINE_PASSWORD.
+#     For --test uploads: ~/.pypirc [testpypi] section (separate TestPyPI account
+#     and API token; see https://packaging.python.org/en/latest/guides/using-testpypi/).
 
 set -euo pipefail
 
@@ -24,12 +27,15 @@ VENV_DIR=".venv-release"
 
 usage() {
     cat >&2 <<EOF
-Usage: $0 <tag-or-run-id> [output-dir] [--force]
+Usage: $0 <tag-or-run-id> [output-dir] [--force] [--test]
 
   <tag-or-run-id>  Git tag (e.g. v2.2.1 or 2.2.1) or a GitHub Actions run ID.
   [output-dir]     Directory to place wheels/sdist into. Defaults to
                    dist_<digits> for a tag, or dist_run_<id> for a run ID.
   --force          Allow reusing a non-empty output directory.
+  --test           Dry-run: upload to TestPyPI (https://test.pypi.org) instead
+                   of the real PyPI. Requires a [testpypi] entry in ~/.pypirc
+                   or a TestPyPI API token.
 EOF
     exit 2
 }
@@ -44,10 +50,12 @@ require_cmd() {
 }
 
 FORCE=0
+TEST_UPLOAD=0
 POSITIONAL=()
 for arg in "$@"; do
     case "$arg" in
         --force) FORCE=1 ;;
+        --test|--testpypi|--dry-run) TEST_UPLOAD=1 ;;
         -h|--help) usage ;;
         *) POSITIONAL+=("$arg") ;;
     esac
@@ -137,17 +145,26 @@ python -m pip install --quiet --upgrade twine
 echo ">> running 'twine check'"
 python -m twine check "$OUTPUT_DIR_ABS"/*
 
+if [[ "$TEST_UPLOAD" -eq 1 ]]; then
+    TARGET_LABEL="TestPyPI (https://test.pypi.org)"
+    TWINE_REPO_ARGS=(--repository testpypi)
+else
+    TARGET_LABEL="PyPI (https://pypi.org)"
+    TWINE_REPO_ARGS=()
+fi
+
 echo
+echo "Target:   $TARGET_LABEL"
 echo "Files to upload from $OUTPUT_DIR_ABS:"
 ls -1 "$OUTPUT_DIR_ABS"
 echo
-read -r -p "Upload these to PyPI? [y/N] " reply
+read -r -p "Upload these to $TARGET_LABEL? [y/N] " reply
 case "$reply" in
     [yY]|[yY][eE][sS]) ;;
     *) echo "aborted; files remain in $OUTPUT_DIR_ABS"; exit 0 ;;
 esac
 
-echo ">> uploading to PyPI via twine"
-python -m twine upload "$OUTPUT_DIR_ABS"/*
+echo ">> uploading to $TARGET_LABEL via twine"
+python -m twine upload "${TWINE_REPO_ARGS[@]}" "$OUTPUT_DIR_ABS"/*
 
 echo ">> done"
