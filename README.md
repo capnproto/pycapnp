@@ -100,6 +100,46 @@ Building a Python wheel distributiion
 pip wheel .
 ```
 
+
+### Releasing to PyPI
+
+Wheels and the sdist are built by the `Build` GitHub Actions workflow
+(`.github/workflows/wheels.yml`) for every push, including tag pushes. The
+`scripts/release-pypi.sh` helper downloads those artifacts for a given tag (or
+explicit run ID) and uploads them to PyPI via `twine`.
+
+Typical release flow:
+
+```bash
+git tag v2.2.1
+git push origin v2.2.1
+# wait for the "Build" workflow run to finish successfully on GitHub
+
+# Download artifacts and upload to PyPI (creates dist_221/ by default).
+scripts/release-pypi.sh v2.2.1
+
+# Or, target a specific Actions run id:
+scripts/release-pypi.sh 1234567890
+```
+
+Requirements on the release machine:
+
+- `gh` CLI, authenticated (`gh auth login`)
+- `python3` (the script creates `.venv-release/` and installs `twine` into it)
+- PyPI credentials available to `twine`, e.g. `TWINE_USERNAME=__token__` and
+  `TWINE_PASSWORD=<api-token>`, or a configured `~/.pypirc`
+
+The script:
+
+1. Resolves the latest successful `wheels.yml` run for the tag (or uses the
+   given run ID).
+2. Downloads `cibw-*` artifacts and flattens all `*.whl` / `*.tar.gz` files
+   into the output directory (default `dist_<digits>` for tags,
+   `dist_run_<id>` for run IDs; pass a second arg to override, and `--force`
+   to reuse a non-empty directory).
+3. Runs `twine check`, prints the file list, and prompts before running
+   `twine upload`.
+
 ## Documentation/Example
 
 There is some basic documentation [here](http://capnproto.github.io/pycapnp/).
