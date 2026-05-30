@@ -43,23 +43,23 @@ jobs:
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.1.4
+        uses: pypa/cibuildwheel@v3.4.1
         with:
           output-dir: wheelhouse
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
-          # TODO: Disable building PyPy wheels. If the build system gets modernized, this should be
-          # auto-detected based on the Cython dependency.
-          CIBW_SKIP: pp*
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
+          # cibuildwheel can build cp38 macOS universal2/arm64 wheels but can't test the
+          # arm64 slice because the cp38 installer is x86_64-only. Silence the warning.
+          CIBW_TEST_SKIP: "cp38-macosx_*:arm64"
           # Only needed to make the macosx arm64 build work
           CMAKE_OSX_ARCHITECTURES: "${{ matrix.arch == 'arm64' && 'arm64' || '' }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -73,7 +73,7 @@ jobs:
       - name: Build sdist
         run: pipx run build --sdist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: cibw-sdist
           path: dist/*.tar.gz
