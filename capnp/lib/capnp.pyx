@@ -1738,8 +1738,8 @@ cdef class _DynamicStructBuilder:
     def from_dict(self, dict d):
         for key, val in d.iteritems():
             if key != 'which':
-                field = self.schema.fields.get(key)
                 if isinstance(val, str):
+                    field = self.schema.fields.get(key)
                     dtype = field.proto.slot.type.which()
                     if dtype == "data":
                         # decode bytes from utf-8 base64 encoding
