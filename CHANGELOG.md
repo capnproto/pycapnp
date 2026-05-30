@@ -1,3 +1,10 @@
+## v2.2.3 (2026-05-30)
+- Fix test failures on Python 3.14 (#394)
+- Refine documentation for PyCustomMessageBuilder (#395)
+- Replace black and flake8 with ruff for linting and formatting
+- ci: deploy docs to gh-pages on tagged releases
+- Add scripts/release-pypi.sh for downloading CI artifacts and uploading to PyPI
+
 ## v2.2.2 (2026-01-16)
 - Revert Data fields to bytes and add get_data_as_view for zero-copy access (#390)
 - Fix use-after-free in async write causing corruption with large payloads (#392)
