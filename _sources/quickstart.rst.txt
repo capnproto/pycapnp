@@ -440,7 +440,7 @@ SSL/TLS setup effectively wraps the socket transport. You'll need an SSL certifi
 Due to a `bug <https://bugs.python.org/issue36709>`_ in Python 3.8 asyncio client needs to be initialized in a slightly different way::
 
     if __name__ == '__main__':
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
         loop.run_until_complete(capnp.run(main(parse_args().host)))
 
 

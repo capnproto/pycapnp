@@ -5,10 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API Reference &#8212; capnp 2.2.2 documentation</title>
+    <title>API Reference &#8212; capnp 2.2.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
-    <script src="_static/documentation_options.js?v=219dea72"></script>
+    <script src="_static/documentation_options.js?v=85e56e6b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -27,7 +27,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.2.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.2.3 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>  
@@ -258,12 +258,13 @@ Changes in the new builder will not reflect in the original reader.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p></li>
-<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><em>bytearray</em></a><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
+<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><em>Buffer</em><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
 </ul>
 </dd>
 </dl>
-<p>words to allocate (as an <cite>int</cite>) and returns a <cite>bytearray</cite>. This is used to customize the memory 
-allocation strategy.</p>
+<p>words to allocate (as an <cite>int</cite>) and returns any object supporting the writable buffer protocol
+(e.g., <cite>bytearray</cite>, <cite>memoryview</cite>, <cite>numpy.ndarray</cite>). This enables custom memory allocation
+strategies including shared memory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp.lib.capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
@@ -364,8 +365,9 @@ allocation strategy.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.KjException.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">note</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.add_note" title="Link to this definition">¶</a></dt>
-<dd><p>Add a note to the exception</p>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.add_note" title="Link to this definition">¶</a></dt>
+<dd><p>Exception.add_note(note) –
+add a note to the exception</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -395,8 +397,9 @@ allocation strategy.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="capnp.KjException.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tb</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.with_traceback" title="Link to this definition">¶</a></dt>
-<dd><p>Set self.__traceback__ to tb and return self.</p>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#capnp.KjException.with_traceback" title="Link to this definition">¶</a></dt>
+<dd><p>Exception.with_traceback(tb) –
+set self.__traceback__ to tb and return self.</p>
 </dd></dl>
 
 </dd></dl>
@@ -873,12 +876,13 @@ Changes in the new builder will not reflect in the original reader.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p></li>
-<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><em>bytearray</em></a><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
+<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><em>Buffer</em><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
 </ul>
 </dd>
 </dl>
-<p>words to allocate (as an <cite>int</cite>) and returns a <cite>bytearray</cite>. This is used to customize the memory 
-allocation strategy.</p>
+<p>words to allocate (as an <cite>int</cite>) and returns any object supporting the writable buffer protocol
+(e.g., <cite>bytearray</cite>, <cite>memoryview</cite>, <cite>numpy.ndarray</cite>). This enables custom memory allocation
+strategies including shared memory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
@@ -1248,12 +1252,13 @@ Changes in the new builder will not reflect in the original reader.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>num_first_segment_words</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of the first segment to allocate (in words ie. 8 byte increments)</p></li>
-<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytearray" title="(in Python v3.14)"><em>bytearray</em></a><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
+<li><p><strong>allocate_seg_callable</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>, </em><em>Buffer</em><em>]</em>) – A python callable object that takes the minimum number of 8-byte</p></li>
 </ul>
 </dd>
 </dl>
-<p>words to allocate (as an <cite>int</cite>) and returns a <cite>bytearray</cite>. This is used to customize the memory 
-allocation strategy.</p>
+<p>words to allocate (as an <cite>int</cite>) and returns any object supporting the writable buffer protocol
+(e.g., <cite>bytearray</cite>, <cite>memoryview</cite>, <cite>numpy.ndarray</cite>). This enables custom memory allocation
+strategies including shared memory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#capnp._DynamicStructBuilder" title="capnp._DynamicStructBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">_DynamicStructBuilder</span></code></a></p>
@@ -1758,7 +1763,7 @@ Orphans are useful for dynamically allocating objects for an unknown sized list,
         <li class="right" >
           <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.2.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">capnp 2.2.3 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>
