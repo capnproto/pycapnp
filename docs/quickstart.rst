@@ -338,9 +338,17 @@ For compatibility on the Python side, use the ``to_segments()`` and ``from_segme
 
     segments = alice.to_segments()
 
-This returns a list of segments, each a byte buffer. Each segment can be, e.g., turned into a ZeroMQ message frame. The list of segments can also be turned back into an object::
+This returns a list of copied, Python-owned ``bytes`` objects. Each segment can be, e.g., turned into a ZeroMQ message frame. The list of segments can also be turned back into an object::
 
     alice = addressbook_capnp.Person.from_segments(segments)
+
+For high-throughput code that can safely consume borrowed buffers, ``to_segment_views()`` exposes the same output segments without copying them into Python ``bytes`` objects::
+
+    segment_views = alice.to_segment_views()
+    for segment in segment_views:
+        transport.send(segment)
+
+Each segment view supports the Python buffer protocol and is read-only. The returned views borrow memory from the message builder's arena, so do not mutate, reset, or reuse the builder while any segment view is still in use. If you need data that remains independent of the builder lifetime, use ``to_segments()`` instead.
 
 For more information, please refer to the following links:
 
