@@ -14,8 +14,9 @@ class PycapnpConan(ConanFile):
         cmake_layout(self)
 
     def build(self):
+        import sys
         cmake = CMake(self)
-        cmake.configure()
+        cmake.configure(variables={"Python3_EXECUTABLE": sys.executable})
         cmake.build()
 
     def package(self):

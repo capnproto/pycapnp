@@ -48,6 +48,9 @@ jobs:
           CIBW_SKIP: "cp38-*"
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
+          # Pre-build m4 from source inside manylinux so Conan uses a glibc-2.28-compatible
+          # binary instead of ConanCenter's Ubuntu binary (glibc 2.35, crashes in manylinux_2_28).
+          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan install --requires=m4/1.4.19 --build=m4*"
           # Force libcapnp to build for the target arch on macOS (the runner
           # is arm64, so without this an x86_64 wheel ends up linking against
           # an arm64 libkj/libcapnp and failing to load at test time).
@@ -81,6 +84,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_SKIP: "cp38-*"
+          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan install --requires=m4/1.4.19 --build=m4*"
           # Tests under QEMU are extremely slow; skip them for these arches.
           CIBW_TEST_SKIP: "*"
 
