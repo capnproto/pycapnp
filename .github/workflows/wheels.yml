@@ -48,6 +48,7 @@ jobs:
           CIBW_SKIP: "cp38-*"
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
+          CIBW_BEFORE_ALL_LINUX: "yum install -y m4 autoconf automake libtool"
           # Force libcapnp to build for the target arch on macOS (the runner
           # is arm64, so without this an x86_64 wheel ends up linking against
           # an arm64 libkj/libcapnp and failing to load at test time).
@@ -62,7 +63,7 @@ jobs:
   # on release tags rather than every push/PR.
   build_wheels_exotic:
     name: Build wheels (exotic) ${{ matrix.arch }}
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/conan-py-build'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
