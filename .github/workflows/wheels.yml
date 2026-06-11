@@ -21,6 +21,7 @@ jobs:
 
           - os: macos-15
             arch: x86_64
+            host_profile: profiles/macos-x86_64
           - os: macos-15
             arch: arm64
           # Disabled until someone figures out how to build capnproto for arm64 and x86_64 simultaneously
@@ -51,10 +52,9 @@ jobs:
           # Pre-build m4 from source inside manylinux so Conan uses a glibc-2.28-compatible
           # binary instead of ConanCenter's Ubuntu binary (glibc 2.35, crashes in manylinux_2_28).
           CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect && conan install --requires=m4/1.4.19 --build=m4*"
-          # Force libcapnp to build for the target arch on macOS (the runner
-          # is arm64, so without this an x86_64 wheel ends up linking against
-          # an arm64 libkj/libcapnp and failing to load at test time).
-          CMAKE_OSX_ARCHITECTURES: "${{ runner.os == 'macOS' && matrix.arch || '' }}"
+          # For macOS x86_64 on the arm64 runner, override the host profile so
+          # Conan builds capnproto and the extension for the right architecture.
+          CIBW_CONFIG_SETTINGS: "${{ matrix.host_profile && format('host-profile=./{0}', matrix.host_profile) || '' }}"
 
       - uses: actions/upload-artifact@v6
         with:
