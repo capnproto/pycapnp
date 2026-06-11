@@ -66,6 +66,7 @@ docs = [
 
 [tool.conan-py-build]
 extra-arguments = ["-o=capnproto/*:with_openssl=False", "-o=capnproto/*:with_zlib=False"]
+extra-profile-host = "conan-host.profile"
 
 [tool.conan-py-build.wheel]
 packages = ["capnp"]
