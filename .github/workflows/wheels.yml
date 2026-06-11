@@ -11,8 +11,29 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: ubuntu-latest
+            arch: i686
+          # Native ARM runner — no QEMU, drastically faster than emulated aarch64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+
           - os: macos-15
             arch: x86_64
+          - os: macos-15
+            arch: arm64
+          # Disabled until someone figures out how to build capnproto for arm64 and x86_64 simultaneously
+          # - os: macOS-latest
+          #   arch: universal2
+
+          - os: windows-2022
+            arch: AMD64
+          - os: windows-2022
+            arch: x86
+          # Does not build currently
+          # - os: windows-2019
+          #   arch: ARM64
 
     steps:
       - uses: actions/checkout@v5
@@ -23,7 +44,6 @@ jobs:
           output-dir: wheelhouse
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
-          CIBW_BUILD: "cp314t-*"
           CIBW_SKIP: "cp38-*"
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
