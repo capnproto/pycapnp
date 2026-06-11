@@ -1,14 +1,14 @@
 {% set cibw_arch = os.environ.get("CIBW_ARCHS", "") %}
-{% set arch_map = {"x86_64": "x86_64", "arm64": "armv8", "x86": "x86"} %}
-{% set conan_arch = arch_map.get(cibw_arch, "") %}
+{% set conan_arch = {"x86_64": "x86_64", "arm64": "armv8", "x86": "x86"}.get(cibw_arch, "") %}
+{% set dt = os.environ.get("MACOSX_DEPLOYMENT_TARGET", "").replace(".", "_") %}
+include(default)
 {% if conan_arch %}
+
 [settings]
 arch={{ conan_arch }}
 {% endif %}
-{% set is_macos = os.path.isdir('/System') %}
-{% set wheel_mac_arch = {"x86_64": "x86_64", "arm64": "arm64"}.get(cibw_arch, "") %}
-{% if is_macos and wheel_mac_arch %}
-{% set dt = os.environ.get("MACOSX_DEPLOYMENT_TARGET", "").replace(".", "_") or ("10_9" if cibw_arch == "x86_64" else "11_0") %}
+{% if platform.system() == 'Darwin' and cibw_arch in ("x86_64", "arm64") and dt %}
+
 [buildenv]
-WHEEL_ARCH=macosx_{{ dt }}_{{ wheel_mac_arch }}
+WHEEL_ARCH=macosx_{{ dt }}_{{ cibw_arch }}
 {% endif %}
