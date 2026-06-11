@@ -32,6 +32,7 @@ jobs:
             arch: AMD64
           - os: windows-2022
             arch: x86
+            host_profile: profiles/windows-x86
           # Does not build currently
           # - os: windows-2019
           #   arch: ARM64
