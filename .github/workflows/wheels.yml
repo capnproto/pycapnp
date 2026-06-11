@@ -44,7 +44,6 @@ jobs:
           output-dir: wheelhouse
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
-          # Drop EOL CPython 3.8 (also avoids the macOS x86_64-only-installer warning)
           CIBW_SKIP: "cp38-*"
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}

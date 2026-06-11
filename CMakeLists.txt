@@ -13,6 +13,7 @@ add_custom_command(
     OUTPUT "${CAPNP_CPP}"
     COMMAND "${Python3_EXECUTABLE}" -m cython
             --cplus
+            -X freethreading_compatible=True
             -I "${CMAKE_SOURCE_DIR}"
             "${CAPNP_PYX}"
             -o "${CAPNP_CPP}"
