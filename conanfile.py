@@ -19,6 +19,7 @@ class PycapnpConan(ConanFile):
         tc = CMakeToolchain(self)
         tc.cache_variables["Python3_EXECUTABLE"] = sys.executable
         tc.cache_variables["Python3_INCLUDE_DIR"] = sysconfig.get_path("include")
+        tc.cache_variables["Python3_SOABI"] = sysconfig.get_config_var("SOABI")
         tc.generate()
         CMakeDeps(self).generate()
 

@@ -35,6 +35,9 @@ dependencies = [
     "jinja2",
 ]
 
+[project.urls]
+Homepage = "https://github.com/capnproto/pycapnp"
+
 [project.scripts]
 capnpc-cython = "capnp._gen:main"
 
