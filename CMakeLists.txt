@@ -65,13 +65,3 @@ install(TARGETS capnp_ext DESTINATION capnp/lib)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/capnp/lib/capnp_api.h"
         DESTINATION capnp/lib)
-
-get_target_property(_capnp_inc_dirs CapnProto::capnp INTERFACE_INCLUDE_DIRECTORIES)
-foreach(_inc_dir IN LISTS _capnp_inc_dirs)
-    string(REGEX REPLACE "\\$<\\$<CONFIG:[^>]+>:([^>]+)>" "\\1" _inc_dir_resolved "${_inc_dir}")
-    if(EXISTS "${_inc_dir_resolved}/capnp/schema.capnp")
-        file(GLOB _capnp_schemas "${_inc_dir_resolved}/capnp/*.capnp")
-        install(FILES ${_capnp_schemas} DESTINATION capnp)
-        break()
-    endif()
-endforeach()

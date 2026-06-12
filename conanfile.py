@@ -1,8 +1,10 @@
+import os
 import sys
 import sysconfig
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
+from conan.tools.files import copy
 
 
 class PycapnpConan(ConanFile):
@@ -30,3 +32,5 @@ class PycapnpConan(ConanFile):
     def package(self):
         cmake = CMake(self)
         cmake.install()
+        capnp_include = os.path.join(str(self.dependencies["capnproto"].package_folder), "include", "capnp")
+        copy(self, "*.capnp", src=capnp_include, dst=os.path.join(self.package_folder, "capnp"))
