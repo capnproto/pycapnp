@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 project(pycapnp LANGUAGES CXX)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+# FindPython3 clears Python3_SOABI via PARENT_SCOPE when CMAKE_OSX_ARCHITECTURES differs
+# from the runner arch (macOS cross-compile). Restore from the Conan-provided hint.
+if(PYTHON3_SOABI_HINT AND NOT Python3_SOABI)
+    set(Python3_SOABI "${PYTHON3_SOABI_HINT}")
+endif()
 find_package(CapnProto REQUIRED)
 
 set(CAPNP_PYX "${CMAKE_SOURCE_DIR}/capnp/lib/capnp.pyx")
