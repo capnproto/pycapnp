@@ -1,6 +1,5 @@
 import sys
 import sysconfig
-from pathlib import Path
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
@@ -18,8 +17,8 @@ class PycapnpConan(ConanFile):
 
     def generate(self):
         tc = CMakeToolchain(self)
-        tc.cache_variables["Python3_EXECUTABLE"] = Path(sys.executable).as_posix()
-        tc.cache_variables["Python3_INCLUDE_DIR"] = Path(sysconfig.get_path("include")).as_posix()
+        tc.cache_variables["Python3_EXECUTABLE"] = sys.executable
+        tc.cache_variables["Python3_INCLUDE_DIR"] = sysconfig.get_path("include")
         tc.generate()
         CMakeDeps(self).generate()
 
