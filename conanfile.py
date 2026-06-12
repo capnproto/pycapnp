@@ -20,10 +20,6 @@ class PycapnpConan(ConanFile):
         tc = CMakeToolchain(self)
         tc.cache_variables["Python3_EXECUTABLE"] = Path(sys.executable).as_posix()
         tc.cache_variables["Python3_INCLUDE_DIR"] = Path(sysconfig.get_path("include")).as_posix()
-        # FindPython3 overwrites Python3_SOABI via PARENT_SCOPE on macOS cross-compile
-        # (CMAKE_OSX_ARCHITECTURES != runner arch), clearing any pre-set value. Pass the
-        # correct SOABI under a different name; CMakeLists.txt restores it after find_package.
-        tc.cache_variables["PYTHON3_SOABI_HINT"] = sysconfig.get_config_var("SOABI") or ""
         tc.generate()
         CMakeDeps(self).generate()
 

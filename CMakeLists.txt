@@ -2,10 +2,16 @@ cmake_minimum_required(VERSION 3.15)
 project(pycapnp LANGUAGES CXX)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
-# FindPython3 clears Python3_SOABI via PARENT_SCOPE when CMAKE_OSX_ARCHITECTURES differs
-# from the runner arch (macOS cross-compile). Restore from the Conan-provided hint.
-if(PYTHON3_SOABI_HINT AND NOT Python3_SOABI)
-    set(Python3_SOABI "${PYTHON3_SOABI_HINT}")
+# FindPython3 skips SOABI detection when CMAKE_OSX_ARCHITECTURES differs from the runner
+# arch (e.g. x86_64 wheel on arm64 runner), leaving Python3_SOABI empty. On macOS,
+# Rosetta 2 can transparently execute the cross-compile target Python, so re-derive it.
+if(APPLE AND NOT Python3_SOABI)
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}" -c
+            "import sysconfig; print(sysconfig.get_config_var('SOABI') or '', end='')"
+        OUTPUT_VARIABLE Python3_SOABI
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 endif()
 find_package(CapnProto REQUIRED)
 
