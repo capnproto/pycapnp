@@ -38,6 +38,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Restore Conan cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.conan_home
+            ~/.conan2/p
+          key: conan-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('conanfile.py') }}
+          restore-keys: conan-${{ matrix.os }}-${{ matrix.arch }}-
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
         with:
@@ -49,7 +58,10 @@ jobs:
           CIBW_TEST_COMMAND: pytest {project}
           # Pre-build m4 from source inside manylinux so Conan uses a glibc-2.28-compatible
           # binary instead of ConanCenter's Ubuntu binary (glibc 2.35, crashes in manylinux_2_28).
-          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect && conan install --requires=m4/1.4.19 --build=m4*"
+          # CONAN_HOME points to the project dir so the cache persists to the host runner.
+          # --force regenerates the compiler profile for each container image (manylinux vs musllinux).
+          CIBW_ENVIRONMENT_LINUX: CONAN_HOME=/project/.conan_home
+          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect --force && conan install --requires=m4/1.4.19 --build=m4*"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -75,7 +87,7 @@ jobs:
       - name: Restore Conan cache
         uses: actions/cache@v4
         with:
-          path: ~/.conan2/p
+          path: ${{ github.workspace }}/.conan_home
           key: conan-exotic-${{ matrix.arch }}-${{ hashFiles('conanfile.py') }}
           restore-keys: conan-exotic-${{ matrix.arch }}-
 
@@ -86,7 +98,8 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_SKIP: "cp38-*"
-          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect && conan install --requires=m4/1.4.19 --build=m4*"
+          CIBW_ENVIRONMENT_LINUX: CONAN_HOME=/project/.conan_home
+          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect --force && conan install --requires=m4/1.4.19 --build=m4*"
           # Tests under QEMU are extremely slow; skip them for these arches.
           CIBW_TEST_SKIP: "*"
 
