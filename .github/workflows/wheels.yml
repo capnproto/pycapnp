@@ -58,35 +58,42 @@ jobs:
 
   # Exotic arches built via QEMU emulation — very slow (often >1h), so only run
   # on release tags rather than every push/PR.
-  # build_wheels_exotic:
-  #   name: Build wheels (exotic) ${{ matrix.arch }}
-  #   if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/conan-py-build'
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       arch: [ppc64le, s390x]
-  #   steps:
-  #     - uses: actions/checkout@v5
+  build_wheels_exotic:
+    name: Build wheels (exotic) ${{ matrix.arch }}
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/conan-py-build'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ppc64le, s390x]
+    steps:
+      - uses: actions/checkout@v5
 
-  #     - name: Set up QEMU
-  #       uses: docker/setup-qemu-action@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
 
-  #     - name: Build wheels
-  #       uses: pypa/cibuildwheel@v3.4.1
-  #       with:
-  #         output-dir: wheelhouse
-  #       env:
-  #         CIBW_ARCHS: ${{ matrix.arch }}
-  #         CIBW_SKIP: "cp38-*"
-  #         CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect && conan install --requires=m4/1.4.19 --build=m4*"
-  #         # Tests under QEMU are extremely slow; skip them for these arches.
-  #         CIBW_TEST_SKIP: "*"
+      - name: Restore Conan cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2/p
+          key: conan-exotic-${{ matrix.arch }}-${{ hashFiles('conanfile.py') }}
+          restore-keys: conan-exotic-${{ matrix.arch }}-
 
-  #     - uses: actions/upload-artifact@v6
-  #       with:
-  #         name: cibw-wheels-${{ matrix.arch }}
-  #         path: ./wheelhouse/*.whl
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.4.1
+        with:
+          output-dir: wheelhouse
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_SKIP: "cp38-*"
+          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect && conan install --requires=m4/1.4.19 --build=m4*"
+          # Tests under QEMU are extremely slow; skip them for these arches.
+          CIBW_TEST_SKIP: "*"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cibw-wheels-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
 
   build_sdist:
     name: Build source distribution
