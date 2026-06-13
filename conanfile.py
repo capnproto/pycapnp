@@ -33,4 +33,5 @@ class PycapnpConan(ConanFile):
         cmake = CMake(self)
         cmake.install()
         capnp_include = os.path.join(str(self.dependencies["capnproto"].package_folder), "include", "capnp")
-        copy(self, "*.capnp", src=capnp_include, dst=os.path.join(self.package_folder, "capnp"))
+        # excludes="*/*" skips subdirectories, top-level schemas only
+        copy(self, "*.capnp", src=capnp_include, dst=os.path.join(self.package_folder, "capnp"), excludes="*/*")
