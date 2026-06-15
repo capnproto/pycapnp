@@ -41,11 +41,13 @@ jobs:
       - name: Restore Conan cache
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ github.workspace }}/.conan_home
-            ~/.conan2/p
+          path: ~/.conan2/p
           key: conan-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('conanfile.py') }}
           restore-keys: conan-${{ matrix.os }}-${{ matrix.arch }}-
+
+      - name: Ensure Conan package dir exists
+        run: mkdir -p ~/.conan2/p
+        shell: bash
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
@@ -56,11 +58,10 @@ jobs:
           CIBW_SKIP: "cp38-*"
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
-          # Pre-build m4 from source inside manylinux so Conan uses a glibc-2.28-compatible
-          # binary instead of ConanCenter's Ubuntu binary (glibc 2.35, crashes in manylinux_2_28).
-          # CONAN_HOME points to the project dir so the cache persists to the host runner.
+          # Mount the runner's ~/.conan2 directly into the container so packages built
+          # inside (m4, capnproto) persist to the host and are cached by actions/cache.
           # --force regenerates the compiler profile for each container image (manylinux vs musllinux).
-          CIBW_ENVIRONMENT_LINUX: CONAN_HOME=/project/.conan_home
+          CIBW_CONTAINER_ENGINE: "docker; create_args: -v /home/runner/.conan2:/root/.conan2"
           CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect --force && conan install --requires=m4/1.4.19 --build=m4*"
 
       - uses: actions/upload-artifact@v6
@@ -87,9 +88,12 @@ jobs:
       - name: Restore Conan cache
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/.conan_home
+          path: ~/.conan2/p
           key: conan-exotic-${{ matrix.arch }}-${{ hashFiles('conanfile.py') }}
           restore-keys: conan-exotic-${{ matrix.arch }}-
+
+      - name: Ensure Conan package dir exists
+        run: mkdir -p ~/.conan2/p
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
@@ -98,7 +102,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_SKIP: "cp38-*"
-          CIBW_ENVIRONMENT_LINUX: CONAN_HOME=/project/.conan_home
+          CIBW_CONTAINER_ENGINE: "docker; create_args: -v /home/runner/.conan2:/root/.conan2"
           CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect --force && conan install --requires=m4/1.4.19 --build=m4*"
           # Tests under QEMU are extremely slow; skip them for these arches.
           CIBW_TEST_SKIP: "*"
