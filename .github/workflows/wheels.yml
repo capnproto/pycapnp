@@ -38,17 +38,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Restore Conan cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.conan2-cibw/p
-          key: conan-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('conanfile.py') }}
-          restore-keys: conan-${{ matrix.os }}-${{ matrix.arch }}-
-
-      - name: Ensure Conan package dir exists
-        run: mkdir -p ~/.conan2-cibw/p
-        shell: bash
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
         with:
@@ -58,7 +47,6 @@ jobs:
           CIBW_SKIP: "cp38-*"
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
-          # --force regenerates the compiler profile for each container image (manylinux vs musllinux).
           CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect --force && conan install --requires=m4/1.4.19 --build=m4*"
 
       - uses: actions/upload-artifact@v6
