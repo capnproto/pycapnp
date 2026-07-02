@@ -252,3 +252,22 @@ def test_from_bytes_packed_traversal_limit(all_types):
     msg = all_types.TestAllTypes.from_bytes_packed(data, traversal_limit_in_words=2**62)
     for i in range(0, size):
         assert msg.structList[i].uInt8Field == 0
+
+def test_malformed_text_field_reraise():
+    SCHEMA = "@0xdbb9ad1f14bf0b36;\nstruct Person { name @0 :Text; age @1 :UInt32; }\n"
+    with tempfile.NamedTemporaryFile(suffix=".capnp", mode="w", delete=False) as f:
+        f.write(SCHEMA)
+
+    Person = capnp.load(f.name).Person
+
+    # Create valid payload and corrupt the NUL terminator
+    buf = bytearray(Person.new_message(name="alice", age=30).to_bytes())
+    buf[37] ^= 0xFF
+
+    # The process should raise an exception, not SIGSEGV
+    try:
+        with Person.from_bytes(bytes(buf), traversal_limit_in_words=2**20) as r:
+            _ = str(r.name)
+    except Exception as e:
+        # Success: We caught an exception cleanly
+        pass

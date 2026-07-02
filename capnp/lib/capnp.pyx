@@ -288,8 +288,8 @@ cdef api object wrap_kj_exception(capnp.Exception & exception) with gil:
 
 
 cdef api object wrap_kj_exception_for_reraise(capnp.Exception & exception) with gil:
+    PyErr_Clear()
     wrapper = _KjExceptionWrapper()._init(exception)
-
     ret = KjException(wrapper=wrapper)
     return ret
 

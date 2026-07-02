@@ -16,6 +16,9 @@ void c_reraise_kj_exception() {
   }
   catch (kj::Exception& exn) {
     auto obj = wrap_kj_exception_for_reraise(exn);
+    if (obj == nullptr) {
+      return;
+    }
     PyErr_SetObject((PyObject*)obj->ob_type, obj);
     Py_DECREF(obj);
   }
