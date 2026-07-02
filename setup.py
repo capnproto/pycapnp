@@ -10,6 +10,7 @@ import struct
 import sys
 
 import pkgconfig
+import setuptools  # noqa: F401
 
 from distutils.command.clean import clean as _clean
 
@@ -23,7 +24,7 @@ from buildutils.bundle import fetch_libcapnp
 
 MAJOR = 2
 MINOR = 2
-MICRO = 3
+MICRO = 4
 TAG = ""
 VERSION = "%d.%d.%d%s" % (MAJOR, MINOR, MICRO, TAG)
 
@@ -204,7 +205,7 @@ extensions = [
 ]
 
 setup(
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     name="pycapnp",
     packages=["capnp"],
     version=VERSION,
@@ -237,7 +238,7 @@ setup(
     author="Jacob Alexander",  # <- Current maintainer; Original author -> Jason Paryani
     author_email="haata@kiibohd.com",
     url="https://github.com/capnproto/pycapnp",
-    download_url="https://github.com/haata/pycapnp/archive/v%s.zip" % VERSION,
+    download_url="https://github.com/capnproto/pycapnp/archive/v%s.zip" % VERSION,
     keywords=["capnp", "capnproto", "Cap'n Proto", "pycapnp"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -247,11 +248,12 @@ setup(
         "Operating System :: POSIX",
         "Programming Language :: C++",
         "Programming Language :: Cython",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Communications",
     ],

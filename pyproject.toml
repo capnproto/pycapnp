@@ -3,6 +3,49 @@ requires = ["setuptools", "wheel", "pkgconfig", "cython>=3.0"]
 build-backend = "backend"
 backend-path = ["_custom_build"]
 
+[project]
+name = "pycapnp"
+requires-python = ">=3.9"
+dynamic = [
+    "authors",
+    "classifiers",
+    "description",
+    "keywords",
+    "license",
+    "readme",
+    "scripts",
+    "version",
+]
+dependencies = [
+    "jinja2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "tox",
+    "pkgconfig",
+    "cython>=3.0",
+    "setuptools",
+    {include-group = "test"},
+    {include-group = "docs"},
+]
+
+test = [
+    "pytest",
+    "anyio",
+    "pytest-asyncio",
+    "pytest-tornasync",
+    "pytest-trio",
+    "pytest-twisted",
+    "twisted",
+]
+
+docs = [
+    "sphinx",
+    "sphinx-multiversion",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
