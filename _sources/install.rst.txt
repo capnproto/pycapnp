@@ -42,13 +42,14 @@ If you want the latest development version, you can clone the github repo::
 
 For development packages use one of the following to install the python dependencies::
 
-    pipenv install
-    pip install -r requirements.txt
+    cd pycapnp
+    uv venv
+    uv sync
+    source .venv/bin/activate
 
 And install pycapnp with::
 
-    cd pycapnp
-    pip install .
+    uv pip install .
 
 
 Development
@@ -59,13 +60,14 @@ Clone the repo from https://github.com/capnproto/pycapnp.git::
 
 For development packages use one of the following to install the python dependencies::
 
-    pipenv install
-    pip install -r requirements.txt
+    cd pycapnp
+    uv venv
+    uv sync
+    source .venv/bin/activate
 
 Building::
 
-    cd pycapnp
-    pip install .
+    uv pip install .
 
 Useful targets for setup.py::
 
