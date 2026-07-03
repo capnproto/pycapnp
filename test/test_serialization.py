@@ -253,6 +253,7 @@ def test_from_bytes_packed_traversal_limit(all_types):
     for i in range(0, size):
         assert msg.structList[i].uInt8Field == 0
 
+
 def test_malformed_text_field_reraise():
     SCHEMA = "@0xdbb9ad1f14bf0b36;\nstruct Person { name @0 :Text; age @1 :UInt32; }\n"
     with tempfile.NamedTemporaryFile(suffix=".capnp", mode="w", delete=False) as f:
@@ -268,6 +269,6 @@ def test_malformed_text_field_reraise():
     try:
         with Person.from_bytes(bytes(buf), traversal_limit_in_words=2**20) as r:
             _ = str(r.name)
-    except Exception as e:
+    except Exception:
         # Success: We caught an exception cleanly
         pass
