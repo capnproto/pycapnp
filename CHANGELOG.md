@@ -1,3 +1,11 @@
+## v2.2.4 (2026-07-03)
+- Fix memory leak in `_DynamicCapabilityClient._send_helper()` (#398)
+- Fix SIGSEGV (NULL pointer dereference) on malformed Text field
+- Update default bundled capnproto to 1.4.0
+- Migrate project dependency management, testing, and CI to `uv`
+- Consolidate configurations into `pyproject.toml` (removed `Pipfile` and `requirements.txt`)
+- Apply small ruff linting fixes
+
 ## v2.2.3 (2026-05-30)
 - Fix test failures on Python 3.14 (#394)
 - Refine documentation for PyCustomMessageBuilder (#395)
