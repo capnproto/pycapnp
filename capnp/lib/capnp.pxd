@@ -82,6 +82,7 @@ cdef class _DynamicStructBuilder:
     cdef _check_write(self)
     cpdef to_bytes(_DynamicStructBuilder self)
     cpdef to_segments(_DynamicStructBuilder self)
+    cpdef to_segment_views(_DynamicStructBuilder self)
     cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count)
     cpdef to_bytes_packed(_DynamicStructBuilder self)
 
