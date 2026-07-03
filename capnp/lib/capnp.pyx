@@ -19,6 +19,7 @@ from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITABLE, PyBUF_WRITE, PyBUF_REA
 from cpython.memoryview cimport PyMemoryView_FromMemory, PyMemoryView_FromBuffer
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.exc cimport PyErr_Clear
+from cpython.pyport cimport PY_SSIZE_T_MAX
 from cython.operator cimport dereference as deref
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
@@ -1173,6 +1174,70 @@ cdef class _MessageSize:
         self.word_count = word_count
         self.cap_count = cap_count
 
+
+@cython.internal
+cdef class _SegmentView:
+    cdef object _builder
+    cdef const char* _ptr
+    cdef Py_ssize_t _size
+
+    cdef _init(self, object builder, const char* ptr, Py_ssize_t size):
+        self._builder = builder
+        self._ptr = ptr
+        self._size = size
+        return self
+
+    def __getbuffer__(self, Py_buffer *buffer, int flags):
+        if PyBuffer_FillInfo(buffer, self, <void*>self._ptr, self._size, 1, flags) < 0:
+            raise BufferError("Failed to create segment buffer view")
+
+    def __releasebuffer__(self, Py_buffer *buffer):
+        pass
+
+    def __len__(self):
+        return self._size
+
+    def __repr__(self):
+        return '<capnp segment view size=%d>' % self._size
+
+
+@cython.internal
+cdef class _SegmentViews:
+    cdef object _builder
+    cdef list _views
+
+    cdef _init(self, _MessageBuilder builder):
+        cdef schema_cpp.ConstWordArrayArrayPtr segments = builder.thisptr.getSegmentsForOutput()
+        cdef size_t i
+        cdef size_t word_count
+        cdef Py_ssize_t byte_count
+
+        self._builder = builder
+        self._views = []
+        for i in range(0, segments.size()):
+            word_count = segments[i].size()
+            if word_count > <size_t>(PY_SSIZE_T_MAX // 8):
+                raise OverflowError("segment is too large to expose as a Python buffer")
+            byte_count = <Py_ssize_t>(8 * word_count)
+            self._views.append(_SegmentView()._init(
+                builder,
+                <const char*>segments[i].begin(),
+                byte_count))
+        return self
+
+    def __getitem__(self, index):
+        return self._views[index]
+
+    def __iter__(self):
+        return iter(self._views)
+
+    def __len__(self):
+        return len(self._views)
+
+    def __repr__(self):
+        return '<capnp segment views count=%d>' % len(self)
+
+
 if getattr(_sys, 'subversion', [''])[0] == 'PyPy':
     from pickle_helper import _struct_reducer
 else:
@@ -1451,7 +1516,8 @@ cdef class _DynamicStructBuilder:
     cpdef to_segments(_DynamicStructBuilder self):
         """Returns the struct's containing message as a Python list of Python bytes objects.
 
-        This avoids making copies.
+        This copies each output segment into a Python-owned bytes object. Use
+        to_segment_views() for zero-copy, read-only borrowed segment views.
 
         NB: This is not currently supported on PyPy.
 
@@ -1461,6 +1527,18 @@ cdef class _DynamicStructBuilder:
         cdef _MessageBuilder builder = self._parent
         segments = builder.get_segments_for_output()
         return segments
+
+    cpdef to_segment_views(_DynamicStructBuilder self):
+        """Returns the struct's containing message as zero-copy, read-only segment views.
+
+        The returned views borrow memory from the message builder. Do not mutate, reset, or reuse
+        the builder while the views are still in use.
+
+        :rtype: sequence
+        """
+        self._check_write()
+        cdef _MessageBuilder builder = self._parent
+        return _SegmentViews()._init(builder)
 
     cpdef _to_bytes_packed_helper(_DynamicStructBuilder self, word_count):
         cdef _MessageBuilder builder = self._parent

@@ -1,6 +1,7 @@
 import warnings
 from contextlib import contextmanager
 
+import gc
 import pytest
 import capnp
 import os
@@ -60,6 +61,93 @@ def test_roundtrip_segments(all_types):
     segments = msg.to_segments()
     msg = all_types.TestAllTypes.from_segments(segments)
     test_regression.check_all_types(msg)
+
+
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy",
+    reason="TODO: Investigate segmented serialization support on PyPy.",
+)
+def test_segment_views_are_read_only_buffers(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    segments = msg.to_segments()
+    segment_views = msg.to_segment_views()
+
+    assert len(segment_views) == len(segments)
+    assert len(segment_views) >= 1
+
+    for segment_view, segment_bytes in zip(segment_views, segments):
+        assert not isinstance(segment_view, bytes)
+        view = memoryview(segment_view)
+        try:
+            assert view.readonly is True
+            assert view.tobytes() == segment_bytes
+        finally:
+            view.release()
+
+
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy",
+    reason="TODO: Investigate segmented serialization support on PyPy.",
+)
+def test_roundtrip_segment_views(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    segment_views = msg.to_segment_views()
+    msg = all_types.TestAllTypes.from_segments(segment_views)
+    test_regression.check_all_types(msg)
+
+
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy",
+    reason="TODO: Investigate segmented serialization support on PyPy.",
+)
+def test_segment_views_are_not_writable(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    segment_views = msg.to_segment_views()
+    view = memoryview(segment_views[0])
+    try:
+        assert len(view) > 0
+        with pytest.raises(TypeError):
+            view[0] = 0
+    finally:
+        view.release()
+
+
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy",
+    reason="TODO: Investigate segmented serialization support on PyPy.",
+)
+def test_segment_view_keeps_message_alive(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    test_regression.init_all_types(msg)
+
+    segment_views = msg.to_segment_views()
+    segment_view = segment_views[0]
+    view = memoryview(segment_view)
+    expected = view.tobytes()
+
+    del msg
+    del segment_views
+    del segment_view
+    gc.collect()
+
+    try:
+        assert view.tobytes() == expected
+    finally:
+        view.release()
+
+
+def test_segment_views_require_root_struct(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    nested = msg.init("structField")
+
+    with pytest.raises(capnp.KjException):
+        nested.to_segment_views()
 
 
 @pytest.mark.skipif(
