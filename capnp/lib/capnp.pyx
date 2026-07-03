@@ -2320,7 +2320,9 @@ cdef class _DynamicCapabilityClient:
 
         self._set_fields(request, name, args, kwargs)
 
-        return _RemotePromise()._init(request.send(), self)
+        cdef _RemotePromise result = _RemotePromise()._init(request.send(), self)
+        del request
+        return result
 
     cpdef _request_helper(self, name, firstSegmentWordSize, args, kwargs):
         # if word_count is None:
