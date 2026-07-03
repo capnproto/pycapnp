@@ -11,55 +11,56 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: "pyproject.toml"
+
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-    - name: Install dependencies
+
+    - name: Install project and dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Build pycapnp and install
-      run: |
-        python setup.py build
-        pip install .
+        # This replaces requirements.txt, setup.py build, and pip install .
+        # It reads pyproject.toml, builds pycapnp, and installs it into a fast .venv
+        uv sync --all-extras
+
     - name: Build documentation
       run: |
-        sphinx-build docs build/html
+        # uv run executes sphinx within the isolated virtual environment
+        uv run sphinx-build docs build/html
+
     - name: Upload documentation artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v4
       with:
         name: html-docs
         path: build/html
 
   deploy:
-    needs: docs
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-    - uses: actions/checkout@v5
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.12'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Build pycapnp and install
-      run: |
-        python setup.py build
-        pip install .
-    - name: Build documentation
-      run: |
-        sphinx-build docs build/html
-        touch build/html/.nojekyll
-    - name: Deploy to gh-pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./build/html
-        publish_branch: gh-pages
+      needs: docs
+      if: startsWith(github.ref, 'refs/tags/v')
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+      steps:
+      - name: Download documentation artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: html-docs
+          path: build/html
+
+      - name: Add .nojekyll file
+        run: touch build/html/.nojekyll
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/html
+          publish_branch: gh-pages
