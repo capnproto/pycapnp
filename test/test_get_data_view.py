@@ -1,4 +1,8 @@
 import os
+import tempfile
+import weakref
+from pathlib import Path
+
 import pytest
 import capnp
 import sys
@@ -233,3 +237,56 @@ def test_view_keeps_message_alive(all_types):
     gc.collect()
 
     assert view.tobytes() == expected_data
+
+
+def test_data_view_exports_through_buffer_exporter(all_types):
+    """Returned memoryviews should pin an internal exporter, not bare pointers."""
+    msg = all_types.TestAllTypes.new_message()
+    msg.dataField = b"exporter_check"
+    view = msg.get_data_as_view("dataField")
+
+    assert isinstance(view, memoryview)
+    assert view.obj is not None
+    assert len(view.obj) == len(view)
+
+
+def test_data_view_survives_del_builder(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    msg.dataField = b"persistence_check"
+    view = msg.get_data_as_view("dataField")
+
+    del msg
+    gc.collect()
+
+    assert view.tobytes() == b"persistence_check"
+
+
+def test_data_view_releases_packed_payload():
+    schema_text = """
+    @0x9d7d4f087df9b6e1;
+    struct BlobMsg {
+      data @0 :Data;
+    }
+    """
+
+    class Payload(bytearray):
+        pass
+
+    td = tempfile.TemporaryDirectory()
+    path = Path(td.name) / "blob.capnp"
+    path.write_text(schema_text)
+    schema = capnp.load(str(path))
+    try:
+        payload = Payload(schema.BlobMsg.new_message(data=b"x" * 4096).to_bytes_packed())
+        payload_ref = weakref.ref(payload)
+
+        reader = schema.BlobMsg.from_bytes_packed(payload)
+        view = reader.get_data_as_view("data")
+        view.release()
+
+        del view, reader, payload
+        gc.collect()
+
+        assert payload_ref() is None
+    finally:
+        td.cleanup()
