@@ -54,6 +54,8 @@ _CAPNP_VERSION_MINOR = capnp.CAPNP_VERSION_MINOR
 _CAPNP_VERSION_MICRO = capnp.CAPNP_VERSION_MICRO
 _CAPNP_VERSION = capnp.CAPNP_VERSION
 
+cdef char _EMPTY_DATA_VIEW_SENTINEL = 0
+
 cdef dict _type_registry = {}
 
 
@@ -1297,6 +1299,9 @@ cdef class _DynamicStructReader:
         """
         cdef C_DynamicValue.Reader val
         cdef capnp.Data.Reader temp_data
+        cdef Py_buffer buf
+        cdef void* data_ptr
+        cdef size_t data_size
 
         try:
             val = self.thisptr.get(field)
@@ -1307,10 +1312,14 @@ cdef class _DynamicStructReader:
             raise TypeError("Field '{}' is not a DATA field".format(field))
 
         temp_data = val.asData()
+        data_ptr = <void*>temp_data.begin()
+        data_size = temp_data.size()
+
+        if data_size == 0 and data_ptr == NULL:
+            data_ptr = <void*>&_EMPTY_DATA_VIEW_SENTINEL
 
         # Return read-only memoryview
-        cdef Py_buffer buf
-        if PyBuffer_FillInfo(&buf, self, <void*>temp_data.begin(), temp_data.size(), 1, PyBUF_CONTIG_RO) < 0:
+        if PyBuffer_FillInfo(&buf, self, data_ptr, data_size, 1, PyBUF_CONTIG_RO) < 0:
             raise KjException("Failed to create buffer info")
         return PyMemoryView_FromBuffer(&buf)
 
@@ -1739,6 +1748,9 @@ cdef class _DynamicStructBuilder:
         """
         cdef C_DynamicValue.Builder val
         cdef capnp.Data.Builder temp_data
+        cdef Py_buffer buf
+        cdef void* data_ptr
+        cdef size_t data_size
 
         try:
             val = self.thisptr.get(field)
@@ -1749,10 +1761,14 @@ cdef class _DynamicStructBuilder:
             raise TypeError("Field '{}' is not a DATA field".format(field))
 
         temp_data = val.asData()
+        data_ptr = <void*>temp_data.begin()
+        data_size = temp_data.size()
+
+        if data_size == 0 and data_ptr == NULL:
+            data_ptr = <void*>&_EMPTY_DATA_VIEW_SENTINEL
 
         # Return writable memoryview
-        cdef Py_buffer buf
-        if PyBuffer_FillInfo(&buf, self, <void*>temp_data.begin(), temp_data.size(), 0, PyBUF_WRITABLE) < 0:
+        if PyBuffer_FillInfo(&buf, self, data_ptr, data_size, 0, PyBUF_WRITABLE) < 0:
             raise KjException("Failed to create buffer info")
         return PyMemoryView_FromBuffer(&buf)
 
