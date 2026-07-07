@@ -1321,7 +1321,14 @@ cdef class _DynamicStructReader:
         # Return read-only memoryview
         if PyBuffer_FillInfo(&buf, self, data_ptr, data_size, 1, PyBUF_CONTIG_RO) < 0:
             raise KjException("Failed to create buffer info")
-        return PyMemoryView_FromBuffer(&buf)
+        # PyBuffer_FillInfo took a reference to `self` via buf.obj. If building the memoryview
+        # fails, release it so we don't leak that reference. PyBuffer_Release only decrements
+        # buf.obj; it does not free buf.buf (including when buf.buf points at the sentinel).
+        try:
+            return PyMemoryView_FromBuffer(&buf)
+        except Exception:
+            PyBuffer_Release(&buf)
+            raise
 
     cpdef _which_str(self):
         try:
@@ -1770,7 +1777,14 @@ cdef class _DynamicStructBuilder:
         # Return writable memoryview
         if PyBuffer_FillInfo(&buf, self, data_ptr, data_size, 0, PyBUF_WRITABLE) < 0:
             raise KjException("Failed to create buffer info")
-        return PyMemoryView_FromBuffer(&buf)
+        # PyBuffer_FillInfo took a reference to `self` via buf.obj. If building the memoryview
+        # fails, release it so we don't leak that reference. PyBuffer_Release only decrements
+        # buf.obj; it does not free buf.buf (including when buf.buf points at the sentinel).
+        try:
+            return PyMemoryView_FromBuffer(&buf)
+        except Exception:
+            PyBuffer_Release(&buf)
+            raise
 
     cpdef as_reader(self):
         """A method for casting this Builder to a Reader
