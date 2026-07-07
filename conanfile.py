@@ -12,7 +12,7 @@ class PycapnpConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     def requirements(self):
-        self.requires("capnproto/1.3.0")
+        self.requires("capnproto/1.4.0")
 
     def layout(self):
         cmake_layout(self)
