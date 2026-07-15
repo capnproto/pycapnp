@@ -1,24 +1,45 @@
 [build-system]
-requires = ["setuptools", "wheel", "pkgconfig", "cython>=3.0"]
-build-backend = "backend"
-backend-path = ["_custom_build"]
+requires = ["conan-py-build>=0.5.3", "cython>=3.0"]
+build-backend = "conan_py_build.build"
 
 [project]
 name = "pycapnp"
+version = "2.2.4"
+description = "A cython wrapping of the C++ Cap'n Proto library"
+readme = "README.md"
 requires-python = ">=3.9"
-dynamic = [
-    "authors",
-    "classifiers",
-    "description",
-    "keywords",
-    "license",
-    "readme",
-    "scripts",
-    "version",
+license = "BSD-2-Clause"
+license-files = ["LICENSE.md"]
+authors = [
+    {name = "Jacob Alexander", email = "haata@kiibohd.com"},
+]
+keywords = ["capnp", "capnproto", "Cap'n Proto", "pycapnp"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: POSIX",
+    "Programming Language :: C++",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Communications",
 ]
 dependencies = [
     "jinja2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/capnproto/pycapnp"
+
+[project.scripts]
+capnpc-cython = "capnp._gen:main"
 
 [dependency-groups]
 dev = [
@@ -45,6 +66,17 @@ docs = [
     "sphinx",
     "sphinx-multiversion",
 ]
+
+[tool.conan-py-build]
+extra-arguments = ["-o=capnproto/*:with_openssl=False", "-o=capnproto/*:with_zlib=False"]
+extra-profile-host = "conan-host.profile"
+
+[tool.conan-py-build.wheel]
+packages = ["capnp"]
+exclude = ["**/*.cpp"]
+
+[tool.conan-py-build.sdist]
+include = ["capnp", "CHANGELOG.md", "MANIFEST.in"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
