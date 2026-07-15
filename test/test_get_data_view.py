@@ -1,4 +1,8 @@
 import os
+import tempfile
+import weakref
+from pathlib import Path
+
 import pytest
 import capnp
 import sys
@@ -152,6 +156,33 @@ def test_corner_cases_values(all_types):
     assert msg.get_data_as_view("dataField").tobytes() == binary_data
 
 
+def test_uninitialized_data_get_view(all_types):
+    """
+    Default DATA fields should expose an empty memoryview instead of failing on a NULL buffer pointer.
+    """
+    builder = all_types.TestAllTypes.new_message()
+    builder_view = builder.get_data_as_view("dataField")
+
+    assert isinstance(builder_view, memoryview)
+    assert builder_view.readonly is False
+    assert len(builder_view) == 0
+    assert builder_view.tobytes() == b""
+
+    reader = all_types.TestAllTypes.new_message().as_reader()
+    reader_view = reader.get_data_as_view("dataField")
+
+    assert isinstance(reader_view, memoryview)
+    assert reader_view.readonly is True
+    assert len(reader_view) == 0
+    assert reader_view.tobytes() == b""
+
+    with pytest.raises(IndexError):
+        builder_view[0] = 0xFF
+
+    with pytest.raises(ValueError):
+        builder_view[0:1] = b"\xff"
+
+
 def test_error_wrong_type(all_types):
     """
     Test error handling: Calling get_data_as_view on non-Data fields.
@@ -206,3 +237,56 @@ def test_view_keeps_message_alive(all_types):
     gc.collect()
 
     assert view.tobytes() == expected_data
+
+
+def test_data_view_exports_through_buffer_exporter(all_types):
+    """Returned memoryviews should pin an internal exporter, not bare pointers."""
+    msg = all_types.TestAllTypes.new_message()
+    msg.dataField = b"exporter_check"
+    view = msg.get_data_as_view("dataField")
+
+    assert isinstance(view, memoryview)
+    assert view.obj is not None
+    assert len(view.obj) == len(view)
+
+
+def test_data_view_survives_del_builder(all_types):
+    msg = all_types.TestAllTypes.new_message()
+    msg.dataField = b"persistence_check"
+    view = msg.get_data_as_view("dataField")
+
+    del msg
+    gc.collect()
+
+    assert view.tobytes() == b"persistence_check"
+
+
+def test_data_view_releases_packed_payload():
+    schema_text = """
+    @0x9d7d4f087df9b6e1;
+    struct BlobMsg {
+      data @0 :Data;
+    }
+    """
+
+    class Payload(bytearray):
+        pass
+
+    td = tempfile.TemporaryDirectory()
+    path = Path(td.name) / "blob.capnp"
+    path.write_text(schema_text)
+    schema = capnp.load(str(path))
+    try:
+        payload = Payload(schema.BlobMsg.new_message(data=b"x" * 4096).to_bytes_packed())
+        payload_ref = weakref.ref(payload)
+
+        reader = schema.BlobMsg.from_bytes_packed(payload)
+        view = reader.get_data_as_view("data")
+        view.release()
+
+        del view, reader, payload
+        gc.collect()
+
+        assert payload_ref() is None
+    finally:
+        td.cleanup()
