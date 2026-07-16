@@ -1,0 +1,15 @@
+capnp\._gen
+capnp\.lib\.capnp\.DummyBaseClass
+capnp\.lib\.capnp\._DynamicCapabilityServer\.__reduce_cython__
+capnp\.lib\.capnp\._DynamicCapabilityServer\.__setstate_cython__
+capnp\.lib\.capnp\._DynamicEnumField\.__reduce_cython__
+capnp\.lib\.capnp\._DynamicEnumField\.__setstate_cython__
+capnp\.lib\.capnp\._DynamicResizableListBuilder\.__reduce_cython__
+capnp\.lib\.capnp\._DynamicResizableListBuilder\.__setstate_cython__
+capnp\.lib\.capnp\._MessageSize\.__reduce_cython__
+capnp\.lib\.capnp\._MessageSize\.__setstate_cython__
+capnp\.lib\.capnp\.__pyx_capi__
+capnp\.lib\.capnp\.__reduce_cython__
+capnp\.lib\.capnp\.__setstate_cython__
+capnp\.lib\.capnp\.__test__
+capnp\.types

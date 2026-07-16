@@ -1,10 +1,11 @@
-import pytest
 import asyncio
 import socket
 
-import capnp
+import pytest
 import test_capability
 import test_capability_capnp as capability
+
+import capnp
 
 
 async def test_two_kj_one_asyncio():

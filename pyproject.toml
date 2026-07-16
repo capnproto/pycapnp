@@ -22,6 +22,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "basedpyright",
+    "mypy",
     "ruff",
     "tox",
     "pkgconfig",
@@ -50,7 +52,7 @@ docs = [
 asyncio_mode = "auto"
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py39"
 line-length = 120
 exclude = ["benchmark", "build", "capnp/templates/module.pyx"]
 
