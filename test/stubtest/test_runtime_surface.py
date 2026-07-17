@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import enum
 import inspect
 from pathlib import Path
 
@@ -58,6 +59,16 @@ def _runtime_source_doc(runtime_object: object, *, is_class: bool) -> str | None
     """Remove Cython's embedded signature from an authored source docstring."""
     raw_doc = getattr(runtime_object, "__doc__", None)
     if not raw_doc:
+        return None
+
+    # Python 3.10 and earlier synthesize this docstring for undocumented Enum
+    # subclasses. It is not a docstring authored in capnp.pyx.
+    if (
+        is_class
+        and isinstance(runtime_object, type)
+        and issubclass(runtime_object, enum.Enum)
+        and raw_doc == "An enumeration."
+    ):
         return None
 
     doc = inspect.cleandoc(raw_doc)
