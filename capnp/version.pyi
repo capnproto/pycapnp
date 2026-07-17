@@ -1,0 +1,6 @@
+LIBCAPNP_VERSION: int
+LIBCAPNP_VERSION_MAJOR: int
+LIBCAPNP_VERSION_MINOR: int
+LIBCAPNP_VERSION_MICRO: int
+version: str
+short_version: str
