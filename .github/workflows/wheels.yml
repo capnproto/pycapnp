@@ -111,7 +111,8 @@ jobs:
 
       - name: Lint and format with ruff
         run: |
-          pip install ruff
+          # Preserve the existing lint/format baseline; keep in sync with the dev dependency.
+          pip install ruff==0.15.21
           ruff check .
           ruff format --check .
 
