@@ -22,13 +22,17 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ruff==0.15.22", # Keep in sync with the CI lint job.
     "tox",
     "pkgconfig",
     "cython>=3.0",
     "setuptools",
+    {include-group = "lint"},
     {include-group = "test"},
     {include-group = "docs"},
+]
+
+lint = [
+    "ruff==0.15.22",
 ]
 
 test = [
