@@ -32,6 +32,7 @@ dev = [
 ]
 
 lint = [
+    # TODO: Update lint and formatting for newer Ruff releases, then remove the pin.
     "ruff==0.15.22",
 ]
 
