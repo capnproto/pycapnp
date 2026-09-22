@@ -22,13 +22,18 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ruff",
     "tox",
     "pkgconfig",
     "cython>=3.0",
     "setuptools",
+    {include-group = "lint"},
     {include-group = "test"},
     {include-group = "docs"},
+]
+
+lint = [
+    # TODO: Update lint and formatting for newer Ruff releases, then remove the pin.
+    "ruff==0.15.22",
 ]
 
 test = [

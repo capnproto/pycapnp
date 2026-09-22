@@ -111,7 +111,8 @@ jobs:
 
       - name: Lint and format with ruff
         run: |
-          pip install ruff
+          pip install --upgrade pip
+          pip install --group lint
           ruff check .
           ruff format --check .
 
