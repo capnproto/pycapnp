@@ -1879,9 +1879,8 @@ cdef class _DynamicStructBuilder:
         for key, val in d.iteritems():
             if key != 'which':
                 if isinstance(val, str):
-                    field = self.schema.fields.get(key)
-                    dtype = field.proto.slot.type.which()
-                    if dtype == "data":
+                    key_bytes = key.encode()
+                    if self.thisptr.getSchema().getFieldByName(key_bytes).getType().isData():
                         # decode bytes from utf-8 base64 encoding
                         val = base64.b64decode(val)
                 try:

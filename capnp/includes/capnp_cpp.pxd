@@ -128,6 +128,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         cbool isEnum()
         cbool isStruct()
         cbool isInterface()
+        cbool isData()
 
         StructSchema asStruct() except +reraise_kj_exception
         EnumSchema asEnum() except +reraise_kj_exception
@@ -185,7 +186,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
         FieldSubset getUnionFields()
         FieldSubset getNonUnionFields()
 
-        Field getFieldByName(char * name)
+        Field getFieldByName(char * name) except +reraise_kj_exception
 
         cbool operator == (StructSchema)
 
