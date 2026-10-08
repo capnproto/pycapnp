@@ -44,14 +44,10 @@ jobs:
           output-dir: wheelhouse
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
-          # Drop EOL CPython 3.8 (also avoids the macOS x86_64-only-installer warning)
           CIBW_SKIP: "cp38-*"
           CIBW_TEST_REQUIRES: pytest pytest-asyncio
           CIBW_TEST_COMMAND: pytest {project}
-          # Force libcapnp to build for the target arch on macOS (the runner
-          # is arm64, so without this an x86_64 wheel ends up linking against
-          # an arm64 libkj/libcapnp and failing to load at test time).
-          CMAKE_OSX_ARCHITECTURES: "${{ runner.os == 'macOS' && matrix.arch || '' }}"
+          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect --force && conan install --requires=m4/1.4.19 --build=m4*"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -62,7 +58,7 @@ jobs:
   # on release tags rather than every push/PR.
   build_wheels_exotic:
     name: Build wheels (exotic) ${{ matrix.arch }}
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/conan-py-build'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -81,6 +77,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_SKIP: "cp38-*"
+          CIBW_BEFORE_ALL_LINUX: "pip install conan && conan profile detect --force && conan install --requires=m4/1.4.19 --build=m4*"
           # Tests under QEMU are extremely slow; skip them for these arches.
           CIBW_TEST_SKIP: "*"
 
