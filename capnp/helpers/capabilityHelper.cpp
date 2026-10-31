@@ -1,6 +1,10 @@
 #include "capnp/helpers/capabilityHelper.h"
 #include "capnp/lib/capnp_api.h"
 
+#if !_WIN32
+#include <sys/socket.h>
+#endif
+
 ::kj::Promise<kj::Own<PyRefCounter>> convert_to_pypromise(capnp::RemotePromise<capnp::DynamicStruct> promise) {
     return promise.then([](capnp::Response<capnp::DynamicStruct>&& response) {
       return stealPyRef(wrap_dynamic_struct_reader(response)); } );
@@ -196,4 +200,36 @@ kj::Promise<void> taskToPromise(kj::Own<PyRefCounter> task, PyObject* callback) 
 
 void init_capnp_api() {
     import_capnp__lib__capnp();
+}
+
+void PyAsyncIoStream::getsockopt(int level, int option, void* value, uint* length) {
+  // Forwards to the socket under the asyncio transport, so that the RPC
+  // system can size its flow-control window from SO_SNDBUF.
+#if _WIN32
+  KJ_UNIMPLEMENTED("getsockopt() is not implemented on Windows.") { *length = 0; return; }
+#else
+  int fd = -1;
+  PyGILState_STATE gil = PyGILState_Ensure();
+  PyObject* transport = PyObject_GetAttrString(protocol->obj, "transport");
+  if (transport != nullptr && transport != Py_None) {
+    PyObject* sock = PyObject_CallMethod(transport, "get_extra_info", "s", "socket");
+    if (sock != nullptr && sock != Py_None) {
+      PyObject* f = PyObject_CallMethod(sock, "fileno", nullptr);
+      if (f != nullptr) {
+        fd = (int)PyLong_AsLong(f);
+        Py_DECREF(f);
+      }
+    }
+    Py_XDECREF(sock);
+  }
+  Py_XDECREF(transport);
+  PyErr_Clear();
+  PyGILState_Release(gil);
+  if (fd < 0) {
+    KJ_UNIMPLEMENTED("Not a socket.") { *length = 0; return; }
+  }
+  socklen_t len = *length;
+  KJ_SYSCALL(::getsockopt(fd, level, option, value, &len));
+  *length = len;
+#endif
 }

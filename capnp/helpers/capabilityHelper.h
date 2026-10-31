@@ -118,6 +118,8 @@ public:
   kj::Promise<void> whenWriteDisconnected();
 
   void shutdownWrite();
+
+  void getsockopt(int level, int option, void* value, uint* length) override;
 };
 
 template <typename T>

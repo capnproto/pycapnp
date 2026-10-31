@@ -155,6 +155,7 @@ cdef extern from "capnp/schema.h" namespace " ::capnp":
             uint getIndex()
             StructSchema getParamType()
             StructSchema getResultType()
+            bint isStreaming()
 
         cppclass MethodList nogil:
             uint size()
@@ -329,6 +330,7 @@ cdef extern from "capnp/dynamic.h" namespace " ::capnp":
         StructSchema getSchema()
         Maybe[StructSchema.Field] which()
         RemotePromise send()
+        VoidPromise sendStreaming()
 
 cdef extern from "capnp/dynamic.h" namespace " ::capnp":
     cdef cppclass DynamicEnum nogil:
