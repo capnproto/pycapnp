@@ -2356,6 +2356,7 @@ cdef class _RemotePromise:
 cdef class _Request(_DynamicStructBuilder):
     cdef Request * thisptr_child
     cdef public bint is_consumed
+    cdef bint is_streaming
 
     cdef _init_child(self, Request other, parent):
         self.thisptr_child = new Request(move(other))
@@ -2371,6 +2372,8 @@ cdef class _Request(_DynamicStructBuilder):
         if self.is_consumed:
             raise KjException('Request has already been sent. You can only send a request once.')
         self.is_consumed = True
+        if self.is_streaming:
+            return _voidpromise_to_asyncio(self.thisptr_child.sendStreaming())
         return _RemotePromise()._init(self.thisptr_child.send(), self._parent)
 
 
@@ -2451,6 +2454,13 @@ cdef class _DynamicCapabilityClient:
             for key, val in kwargs.items():
                 _setDynamicField(<DynamicStruct_Builder>deref(request), key, val, self)
 
+    cdef bint _is_streaming(self, name):
+        # Methods declared `-> stream` are sent with sendStreaming(), which goes
+        # through the connection's flow controller: the returned awaitable
+        # completes when the window has room, not when the server returns.
+        cdef _InterfaceMethod meth = self.schema.methods_inherited.get(name, None)
+        return meth is not None and meth.thisptr.isStreaming()
+
     cpdef _send_helper(self, name, word_count, args, kwargs):
         # if word_count is None:
         #     word_count = 0
@@ -2459,6 +2469,10 @@ cdef class _DynamicCapabilityClient:
 
         self._set_fields(request, name, args, kwargs)
 
+        if self._is_streaming(name):
+            stream_result = _voidpromise_to_asyncio(request.sendStreaming())
+            del request
+            return stream_result
         cdef _RemotePromise result = _RemotePromise()._init(request.send(), self)
         del request
         return result
@@ -2467,6 +2481,7 @@ cdef class _DynamicCapabilityClient:
         # if word_count is None:
         #     word_count = 0
         cdef _Request req = _Request()._init_child(self.thisptr.newRequest(name), self)
+        req.is_streaming = self._is_streaming(name)
 
         self._set_fields(req.thisptr_child, name, args, kwargs)
 
